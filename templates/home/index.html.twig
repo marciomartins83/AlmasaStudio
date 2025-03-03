@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bem-vindo ao Almasa{% endblock %}
+
+{% block content %}
+<div class="container text-center my-5">
+    <h1 class="fs-2 fw-bold">Bem-vindo ao Almasa</h1>
+    <p class="mt-3 text-secondary">Faça login para acessar o sistema.</p>
+
+    <a href="{{ path('app_login') }}" class="btn btn-primary mt-4 px-4 py-2">
+        Acessar
+    </a>
+</div>
+{% endblock %}

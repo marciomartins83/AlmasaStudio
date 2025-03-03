@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Login - Almasa{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center min-vh-100 bg-light">
+    <div class="card shadow-sm p-4" style="width: 100%; max-width: 400px;">
+        <h1 class="fs-4 fw-bold text-center mb-3">Bem-vindo ao Almasa</h1>
+
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                Usuário ou senha inválidos.
+            </div>
+        {% endif %}
+
+        <form method="post">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" name="email" class="form-control" required autofocus>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Senha</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                Entrar
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

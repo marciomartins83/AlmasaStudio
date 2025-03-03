@@ -1,0 +1,46 @@
+security:
+    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    providers:
+        # used to reload user from session & other features (e.g. switch_user)
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        main:
+            lazy: true
+            provider: app_user_provider
+            custom_authenticator: App\Security\UserAuthenticator
+            entry_point: App\Security\UserAuthenticator
+            logout:
+                path: app_logout
+                target: app_login  # 🔹 Redireciona corretamente para a tela de login após logout
+
+            remember_me:
+                secret: '%kernel.secret%'
+                lifetime: 604800  # 🔹 Cookie de "lembrar-me" dura 7 dias (604800 segundos)
+                path: /
+                always_remember_me: true  # 🔹 Sempre lembrar do usuário (opcional)
+
+    access_control:
+        - { path: ^/dashboard, roles: ROLE_USER }  # 🔹 Agora só usuários logados podem acessar o Dashboard
+        - { path: ^/logout, roles: ROLE_USER }  # 🔹 Logout apenas se estiver autenticado
+        - { path: ^/, roles: PUBLIC_ACCESS }  # 🔹 Permite acesso público à página inicial
+
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4  # Menor custo para bcrypt em testes
+                time_cost: 3  # Menor tempo de processamento para Argon2
+                memory_cost: 10  # Menor uso de memória para Argon2

@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Almasa{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="fs-3 fw-bold mb-4 text-dark">Painel - Administrativo</h2>
+    <p>Bem-vindo ao painel, <strong class="text-dark">{{ app.user.email }}</strong></p>
+
+    <!-- Cards do Dashboard -->
+    <div class="row g-4 mt-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="fs-5 fw-semibold">Tipos de Documentos</h3>
+                    <p class="text-secondary">Gerencie os tipos de documentos cadastrados.</p>
+                    <a href="#" class="text-primary text-decoration-none">Ver mais →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="fs-5 fw-semibold">Tipos de Contas Bancárias</h3>
+                    <p class="text-secondary">Gerencie os tipos de contas bancárias.</p>
+                    <a href="#" class="text-primary text-decoration-none">Ver mais →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="fs-5 fw-semibold">Tipos de Telefones</h3>
+                    <p class="text-secondary">Gerencie os tipos de telefones.</p>
+                    <a href="#" class="text-primary text-decoration-none">Ver mais →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
