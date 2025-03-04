@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Lista de Tipos - Almasa{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <a href="{{ path('app_dashboard') }}" class="btn btn-primary mb-3">← Voltar</a>
+    <h2 class="fs-3 fw-bold mb-4 text-dark">Lista de Tipos</h2>
+
+    <p class="text-secondary">Aqui você pode gerenciar os diferentes tipos de cadastros do sistema.</p>
+
+    <div class="row g-4">
+        {% set cards = [
+            {'title': 'Tipos de Documentos', 'description': 'Lista de tipos de documentos.', 'link': '#', 'icon': 'file-text', 'details': 'Gerencie diferentes categorias de documentos utilizados no sistema.'},
+            {'title': 'Tipos de Telefones', 'description': 'Lista de tipos de telefones.', 'link': '#', 'icon': 'telephone', 'details': 'Defina os tipos de telefones permitidos para cadastros.'},
+            {'title': 'Tipos de Chaves Pix', 'description': 'Lista de tipos de chaves Pix.', 'link': '#', 'icon': 'key', 'details': 'Gerencie as categorias de chaves Pix aceitas no sistema.'},
+            {'title': 'Tipos de Contas Bancárias', 'description': 'Lista de tipos de contas bancárias.', 'link': '#', 'icon': 'wallet', 'details': 'Gerencie os diferentes tipos de contas bancárias cadastradas.'}
+        ] %}
+
+        {% for card in cards %}
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-{{ card.icon }} fs-2 text-primary me-2"></i>
+                            <h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
+                        </div>
+                        <p class="text-secondary">{{ card.description }}</p>
+                        <button class="btn btn-link p-0 text-primary" onclick="event.stopPropagation(); toggleDetails('{{ loop.index }}')">
+                            Ver mais →
+                        </button>
+                        <p id="details-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function toggleDetails(index) {
+        const details = document.getElementById("details-" + index);
+        details.classList.toggle("d-none");
+    }
+</script>
+{% endblock %}

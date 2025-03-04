@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nova Pessoa
+{% endblock %}
+
+{% block content %}
+	<h1>Adicionar Nova Pessoa</h1>
+
+	{{ include('pessoa/_form.html.twig', {'button_label': 'Salvar'}) }}
+
+	<a href="{{ path('app_pessoa') }}">Voltar para a lista</a>
+
+	<script>
+		function toggleUserFields() {
+const criarUsuario = document.getElementById('pessoa_criarUsuario');
+const emailField = document.getElementById('userEmailField') ?. closest('.form-group');
+const passwordField = document.getElementById('userPasswordField') ?. closest('.form-group');
+
+if (criarUsuario ?. checked) {
+emailField.style.display = 'block';
+passwordField.style.display = 'block';
+} else {
+emailField.style.display = 'none';
+passwordField.style.display = 'none';
+}
+}
+
+// Executar no carregamento da página
+document.addEventListener('DOMContentLoaded', toggleUserFields);
+	</script>
+{% endblock %}

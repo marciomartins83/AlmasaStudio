@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pessoa
+{% endblock %}
+
+{% block content %}
+	<h1>Detalhes da Pessoa</h1>
+
+	<table class="table">
+		<tbody>
+			<tr>
+				<th>ID</th>
+				<td>{{ pessoa.id }}</td>
+			</tr>
+			<tr>
+				<th>Nome</th>
+				<td>{{ pessoa.nome }}</td>
+			</tr>
+			<tr>
+				<th>Data de Cadastro</th>
+				<td>{{ pessoa.dtCadastro|date('d/m/Y H:i') }}</td>
+			</tr>
+			<tr>
+				<th>Tipo de Pessoa</th>
+				<td>{{ pessoa.tipoPessoa }}</td>
+			</tr>
+			<tr>
+				<th>Status</th>
+				<td>{{ pessoa.status ? 'Ativo' : 'Inativo' }}</td>
+			</tr>
+			<tr>
+				<th>Tema</th>
+				<td>{{ pessoa.themeLight  ? 'Claro' : 'Escuro' }}</td>
+			</tr>
+			<tr>
+				<th>ID do Usuário</th>
+				<td>{{ pessoa.user.id }}</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<a href="{{ path('app_pessoa') }}">Voltar para a lista</a>
+	<a href="{{ path('app_pessoa_edit', {'id': pessoa.id}) }}" class="btn btn-primary">Editar</a>
+
+	{{ include('pessoa/_delete_form.html.twig') }}
+{% endblock %}

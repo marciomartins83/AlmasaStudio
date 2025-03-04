@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Perfil - Almasa{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <a href="{{ path('app_dashboard') }}" class="btn btn-primary mb-3">← Voltar</a>
+    <h2 class="fs-3 fw-bold mb-4 text-dark">Perfil do Usuário</h2>
+    
+    <div class="card shadow-sm border-0 p-4">
+        <h3 class="fs-5 fw-semibold">Informações Pessoais</h3>
+        <p><strong>Nome:</strong> {{ user.nome ?? 'Não informado' }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+    </div>
+
+    <div class="card shadow-sm border-0 p-4 mt-4">
+        <h3 class="fs-5 fw-semibold">Alterar Senha</h3>
+        <p>Para manter sua conta segura, use uma senha longa e aleatória.</p>
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Senha Atual</label>
+                <input type="password" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Nova Senha</label>
+                <input type="password" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Confirmar Senha</label>
+                <input type="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm border-0 p-4 mt-4">
+        <h3 class="fs-5 fw-semibold">Sessões Ativas</h3>
+        <p>Gerencie suas sessões abertas em outros dispositivos.</p>
+        <button class="btn btn-outline-danger">Encerrar todas as sessões</button>
+    </div>
+
+    <div class="card shadow-sm border-0 p-4 mt-4">
+        <h3 class="fs-5 fw-semibold text-danger">Excluir Conta</h3>
+        <p>Se excluir sua conta, todos os seus dados serão removidos permanentemente.</p>
+        <button class="btn btn-danger">Excluir Conta</button>
+    </div>
+</div>
+{% endblock %}
