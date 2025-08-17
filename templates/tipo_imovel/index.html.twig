@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tipos de Imóvel{% endblock %}
+
+{% block body %}
+    <h1>Tipos de Imóvel</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Descrição</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for tipo_imovel in tipo_imovels %}
+            <tr>
+                <td>{{ tipo_imovel.id }}</td>
+                <td>{{ tipo_imovel.tipo }}</td>
+                <td>{{ tipo_imovel.descricao }}</td>
+                <td>
+                    <a href="{{ path('app_tipo_imovel_show', {'id': tipo_imovel.id}) }}" class="btn btn-sm btn-info">Ver</a>
+                    <a href="{{ path('app_tipo_imovel_edit', {'id': tipo_imovel.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                    {{ include('tipo_imovel/_delete_form.html.twig', {tipo_imovel: tipo_imovel}) }}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6">Nenhum tipo de imóvel encontrado.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_tipo_imovel_new') }}" class="btn btn-success">Novo Tipo de Imóvel</a>
+{% endblock %}

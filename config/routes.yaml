@@ -1,5 +1,481 @@
+# config/routes.yaml
 controllers:
     resource:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+
+# Rotas para Logradouro
+app_logradouro_index:
+    path: /logradouro
+    controller: App\Controller\LogradouroController::index
+
+app_cep_lookup:
+    path: /api/cep/{cep}
+    controller: App\Controller\LogradouroController::cepLookup
+    methods: [GET]
+
+app_buscar_cep_local:
+    path: /buscar-cep-local
+    controller: App\Controller\LogradouroController::buscarCepLocal
+    methods: [GET]
+
+app_buscar_cep_api:
+    path: /buscar-cep-api
+    controller: App\Controller\LogradouroController::buscarCepApi
+    methods: [GET]
+
+app_salvar_cep:
+    path: /salvar-cep
+    controller: App\Controller\LogradouroController::salvarCep
+    methods: [POST]
+
+# Rotas para Bairro
+app_bairro_index:
+    path: /bairro
+    controller: App\Controller\BairroController::index
+    methods: [GET]
+
+app_bairro_new:
+    path: /bairro/new
+    controller: App\Controller\BairroController::new
+    methods: [GET, POST]
+
+app_bairro_show:
+    path: /bairro/{id}
+    controller: App\Controller\BairroController::show
+    methods: [GET]
+
+app_bairro_edit:
+    path: /bairro/{id}/edit
+    controller: App\Controller\BairroController::edit
+    methods: [GET, POST]
+
+app_bairro_delete:
+    path: /bairro/{id}/delete
+    controller: App\Controller\BairroController::delete
+    methods: [POST]
+
+# Rotas para Cidade
+app_cidade_index:
+    path: /cidade
+    controller: App\Controller\CidadeController::index
+    methods: [GET]
+
+app_cidade_new:
+    path: /cidade/new
+    controller: App\Controller\CidadeController::new
+    methods: [GET, POST]
+
+app_cidade_show:
+    path: /cidade/{id}
+    controller: App\Controller\CidadeController::show
+    methods: [GET]
+
+app_cidade_edit:
+    path: /cidade/{id}/edit
+    controller: App\Controller\CidadeController::edit
+    methods: [GET, POST]
+
+app_cidade_delete:
+    path: /cidade/{id}/delete
+    controller: App\Controller\CidadeController::delete
+    methods: [POST]
+
+# Rotas para Estado
+app_estado_index:
+    path: /estado
+    controller: App\Controller\EstadoController::index
+    methods: [GET]
+
+app_estado_new:
+    path: /estado/new
+    controller: App\Controller\EstadoController::new
+    methods: [GET, POST]
+
+app_estado_show:
+    path: /estado/{id}
+    controller: App\Controller\EstadoController::show
+    methods: [GET]
+
+app_estado_edit:
+    path: /estado/{id}/edit
+    controller: App\Controller\EstadoController::edit
+    methods: [GET, POST]
+
+app_estado_delete:
+    path: /estado/{id}/delete
+    controller: App\Controller\EstadoController::delete
+    methods: [POST]
+
+# Rotas para Dashboard
+app_dashboard:
+    path: /dashboard
+    controller: App\Controller\DashboardController::index
+    methods: [GET]
+
+app_dashboard_enderecos_index:
+    path: /enderecos
+    controller: App\Controller\DashboardController::listAddresses
+    methods: [GET]
+
+app_enderecos:
+    path: /dashboard/enderecos
+    controller: App\Controller\Dashboard\EnderecoController::index
+    methods: [GET]
+
+app_dashboard_tipos_index:
+    path: /dashboard/tipos
+    controller: App\Controller\Dashboard\TiposController::index
+    methods: [GET]
+    requirements:
+        _is_authenticated: true
+
+# Rotas para Conta Bancária
+app_conta_bancaria_index:
+    path: /conta-bancaria
+    controller: App\Controller\ContaBancariaController::index
+    methods: [GET]
+
+app_conta_bancaria_new:
+    path: /conta-bancaria/new
+    controller: App\Controller\ContaBancariaController::new
+    methods: [GET, POST]
+
+app_conta_bancaria_show:
+    path: /conta-bancaria/{id}
+    controller: App\Controller\ContaBancariaController::show
+    methods: [GET]
+
+# Rotas para Perfil
+app_profile:
+    path: /perfil
+    controller: App\Controller\ProfileController::index
+    methods: [GET]
+
+# Rotas para Email
+app_email_index:
+    path: /email/
+    controller: App\Controller\EmailController::index
+    methods: [GET]
+
+# Rotas para Fiadores
+app_pessoa_fiador_index:
+    path: /pessoa-fiador/
+    controller: App\Controller\PessoaFiadorController::index
+    methods: [GET]
+
+app_pessoa_fiador_search_conjuge:
+    path: /pessoa-fiador/search-conjuge
+    controller: App\Controller\PessoaFiadorController::searchConjuge
+    methods: [POST]
+
+# Rotas para Locadores
+app_pessoa_locador_index:
+    path: /pessoa-locador/
+    controller: App\Controller\PessoaLocadorController::index
+    methods: [GET]
+
+# Rotas para Locatários
+app_pessoa_locatario_index:
+    path: /pessoa-locatario/
+    controller: App\Controller\PessoaLocatarioController::index
+    methods: [GET]
+
+# Rotas para Proprietários
+app_pessoa_proprietario_index:
+    path: /pessoa-proprietario/
+    controller: App\Controller\PessoaProprietarioController::index
+    methods: [GET]
+
+# Rotas para Corretores
+app_pessoa_corretor_index:
+    path: /pessoa-corretor/
+    controller: App\Controller\PessoaCorretorController::index
+    methods: [GET]
+
+# Rotas para Telefones
+app_telefone_index:
+    path: /telefone/
+    controller: App\Controller\TelefoneController::index
+    methods: [GET]
+
+# Rotas para Agências
+app_agencia_index:
+    path: /agencia
+    controller: App\Controller\AgenciaController::index
+    methods: [GET]
+
+# Rotas para Tema
+toggle_theme:
+    path: /theme/toggle_theme
+    controller: App\Controller\ThemeController::toggleTheme
+    methods: [POST]
+
+# Rotas para Tipo de Documento
+app_tipo_documento_index:
+    path: /tipo-documento/
+    controller: App\Controller\TipoDocumentoController::index
+    methods: [GET]
+
+app_tipo_documento_new:
+    path: /tipo-documento/new
+    controller: App\Controller\TipoDocumentoController::new
+    methods: [GET, POST]
+
+app_tipo_documento_show:
+    path: /tipo-documento/{id}
+    controller: App\Controller\TipoDocumentoController::show
+    methods: [GET]
+
+app_tipo_documento_edit:
+    path: /tipo-documento/{id}/edit
+    controller: App\Controller\TipoDocumentoController::edit
+    methods: [GET, POST]
+
+app_tipo_documento_delete:
+    path: /tipo-documento/{id}/delete
+    controller: App\Controller\TipoDocumentoController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Conta Bancária
+app_tipo_conta_bancaria_index:
+    path: /tipo-conta-bancaria/
+    controller: App\Controller\TipoContaBancariaController::index
+    methods: [GET]
+
+app_tipo_conta_bancaria_new:
+    path: /tipo-conta-bancaria/new
+    controller: App\Controller\TipoContaBancariaController::new
+    methods: [GET, POST]
+
+app_tipo_conta_bancaria_show:
+    path: /tipo-conta-bancaria/{id}
+    controller: App\Controller\TipoContaBancariaController::show
+    methods: [GET]
+
+app_tipo_conta_bancaria_edit:
+    path: /tipo-conta-bancaria/{id}/edit
+    controller: App\Controller\TipoContaBancariaController::edit
+    methods: [GET, POST]
+
+app_tipo_conta_bancaria_delete:
+    path: /tipo-conta-bancaria/{id}/delete
+    controller: App\Controller\TipoContaBancariaController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Telefone
+app_tipo_telefone_index:
+    path: /tipo-telefone/
+    controller: App\Controller\TipoTelefoneController::index
+    methods: [GET]
+
+app_tipo_telefone_new:
+    path: /tipo-telefone/new
+    controller: App\Controller\TipoTelefoneController::new
+    methods: [GET, POST]
+
+app_tipo_telefone_show:
+    path: /tipo-telefone/{id}
+    controller: App\Controller\TipoTelefoneController::show
+    methods: [GET]
+
+app_tipo_telefone_edit:
+    path: /tipo-telefone/{id}/edit
+    controller: App\Controller\TipoTelefoneController::edit
+    methods: [GET, POST]
+
+app_tipo_telefone_delete:
+    path: /tipo-telefone/{id}/delete
+    controller: App\Controller\TipoTelefoneController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Email
+app_tipo_email_index:
+    path: /tipo-email/
+    controller: App\Controller\TipoEmailController::index
+    methods: [GET]
+
+app_tipo_email_new:
+    path: /tipo-email/new
+    controller: App\Controller\TipoEmailController::new
+    methods: [GET, POST]
+
+app_tipo_email_show:
+    path: /tipo-email/{id}
+    controller: App\Controller\TipoEmailController::show
+    methods: [GET]
+
+app_tipo_email_edit:
+    path: /tipo-email/{id}/edit
+    controller: App\Controller\TipoEmailController::edit
+    methods: [GET, POST]
+
+app_tipo_email_delete:
+    path: /tipo-email/{id}/delete
+    controller: App\Controller\TipoEmailController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Chave PIX
+app_tipo_chave_pix_index:
+    path: /tipo-chave-pix/
+    controller: App\Controller\TipoChavePixController::index
+    methods: [GET]
+
+app_tipo_chave_pix_new:
+    path: /tipo-chave-pix/new
+    controller: App\Controller\TipoChavePixController::new
+    methods: [GET, POST]
+
+app_tipo_chave_pix_show:
+    path: /tipo-chave-pix/{id}
+    controller: App\Controller\TipoChavePixController::show
+    methods: [GET]
+
+app_tipo_chave_pix_edit:
+    path: /tipo-chave-pix/{id}/edit
+    controller: App\Controller\TipoChavePixController::edit
+    methods: [GET, POST]
+
+app_tipo_chave_pix_delete:
+    path: /tipo-chave-pix/{id}/delete
+    controller: App\Controller\TipoChavePixController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Atendimento
+app_tipo_atendimento_index:
+    path: /tipo-atendimento/
+    controller: App\Controller\TipoAtendimentoController::index
+    methods: [GET]
+
+app_tipo_atendimento_new:
+    path: /tipo-atendimento/new
+    controller: App\Controller\TipoAtendimentoController::new
+    methods: [GET, POST]
+
+app_tipo_atendimento_show:
+    path: /tipo-atendimento/{id}
+    controller: App\Controller\TipoAtendimentoController::show
+    methods: [GET]
+
+app_tipo_atendimento_edit:
+    path: /tipo-atendimento/{id}/edit
+    controller: App\Controller\TipoAtendimentoController::edit
+    methods: [GET, POST]
+
+app_tipo_atendimento_delete:
+    path: /tipo-atendimento/{id}/delete
+    controller: App\Controller\TipoAtendimentoController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Carteira
+app_tipo_carteira_index:
+    path: /tipo-carteira/
+    controller: App\Controller\TipoCarteiraController::index
+    methods: [GET]
+
+# Rotas para Tipo de Carteira - New Route
+app_tipo_carteira_new:
+    path: /tipo-carteira/new
+    controller: App\Controller\TipoCarteiraController::new
+    methods: [GET, POST]
+
+# Rotas para Tipo de Carteira - Show Route
+app_tipo_carteira_show:
+    path: /tipo-carteira/{id}
+    controller: App\Controller\TipoCarteiraController::show
+    methods: [GET]
+
+# Rotas para Tipo de Carteira - Edit Route
+app_tipo_carteira_edit:
+    path: /tipo-carteira/{id}/edit
+    controller: App\Controller\TipoCarteiraController::edit
+    methods: [GET, POST]
+
+# Rotas para Tipo de Carteira - Delete Route (NEW)
+app_tipo_carteira_delete:
+    path: /tipo-carteira/{id}/delete
+    controller: App\Controller\TipoCarteiraController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Endereço
+app_tipo_endereco_index:
+    path: /tipo-endereco/
+    controller: App\Controller\TipoEnderecoController::index
+    methods: [GET]
+
+# Rotas para Tipo de Endereço - New Route
+app_tipo_endereco_new:
+    path: /tipo-endereco/new
+    controller: App\Controller\TipoEnderecoController::new
+    methods: [GET, POST]
+
+# Rotas para Tipo de Endereço - Show Route
+app_tipo_endereco_show:
+    path: /tipo-endereco/{id}
+    controller: App\Controller\TipoEnderecoController::show
+    methods: [GET]
+
+# Rotas para Tipo de Endereço - Edit Route
+app_tipo_endereco_edit:
+    path: /tipo-endereco/{id}/edit
+    controller: App\Controller\TipoEnderecoController::edit
+    methods: [GET, POST]
+
+# Rotas para Tipo de Endereço - Delete Route
+app_tipo_endereco_delete:
+    path: /tipo-endereco/{id}/delete
+    controller: App\Controller\TipoEnderecoController::delete
+    methods: [POST]
+
+# Rotas para Tipo de Imóvel
+app_tipo_imovel_index:
+    path: /tipo-imovel/
+    controller: App\Controller\TipoImovelController::index
+    methods: [GET]
+
+# Rotas para Tipo de Imóvel - New Route
+app_tipo_imovel_new:
+    path: /tipo-imovel/new
+    controller: App\Controller\TipoImovelController::new
+    methods: [GET, POST]
+
+# Rotas para Tipo de Pessoa
+app_tipo_pessoa_index:
+    path: /tipo-pessoa/
+    controller: App\Controller\TipoPessoaController::index
+    methods: [GET]
+
+# Rotas para Tipo de Remessa
+app_tipo_remessa_index:
+    path: /tipo-remessa/
+    controller: App\Controller\TipoRemessaController::index
+    methods: [GET]
+
+# Rotas para Estado Civil
+app_estado_civil_index:
+    path: /estado-civil/
+    controller: App\Controller\EstadoCivilController::index
+    methods: [GET]
+
+# Rotas para Nacionalidades
+app_nacionalidade_index:
+    path: /nacionalidade/
+    controller: App\Controller\NacionalidadeController::index
+    methods: [GET]
+
+# Rotas para Naturalidades
+app_naturalidade_index:
+    path: /naturalidade/
+    controller: App\Controller\NaturalidadeController::index
+    methods: [GET]
+
+# Rotas para Logout
+app_logout:
+    path: /logout
+    controller: App\Controller\SecurityController::logout
+
+# Rota para Login
+app_login:
+    path: /login
+    controller: App\Controller\SecurityController::login

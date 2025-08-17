@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\TipoTelefone;
+use App\Form\TipoTelefoneType;
+use App\Repository\TipoTelefoneRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+
+#[Route('/tipo-telefone', name: 'app_tipo_telefone_')]
+class TipoTelefoneController extends AbstractController
+{
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(TipoTelefoneRepository $tipoTelefoneRepository): Response
+    {
+        return $this->render('tipo_telefone/index.html.twig', [
+            'tipos_telefones' => $tipoTelefoneRepository->findAll(),
+        ]);
+    }
+
+    #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
+    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $tipoTelefone = new TipoTelefone();
+        $form = $this->createForm(TipoTelefoneType::class, $tipoTelefone);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->persist($tipoTelefone);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Tipo de Telefone criado com sucesso!');
+            return $this->redirectToRoute('app_tipo_telefone_index');
+        }
+
+        return $this->render('tipo_telefone/new.html.twig', [
+            'tipo_telefone' => $tipoTelefone,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
+    public function edit(Request $request, TipoTelefone $tipoTelefone, EntityManagerInterface $entityManager): Response
+    {
+        $form = $this->createForm(TipoTelefoneType::class, $tipoTelefone);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+            $this->addFlash('success', 'Tipo de Telefone atualizado com sucesso!');
+            return $this->redirectToRoute('app_tipo_telefone_index');
+        }
+
+        return $this->render('tipo_telefone/edit.html.twig', [
+            'tipo_telefone' => $tipoTelefone,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    public function delete(Request $request, TipoTelefone $tipoTelefone, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('delete' . $tipoTelefone->getId(), $request->request->get('_token'))) {
+            $entityManager->remove($tipoTelefone);
+            $entityManager->flush();
+            $this->addFlash('success', 'Tipo de Telefone excluído com sucesso!');
+        }
+
+        return $this->redirectToRoute('app_tipo_telefone_index');
+    }
+} 

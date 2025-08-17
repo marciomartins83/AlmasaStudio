@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo Email - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Lista de Emails', 'url': path('app_email_index')}
+        ],
+        'current': 'Novo Email'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-plus"></i> Novo Email</h1>
+                <a href="{{ path('app_email_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form_label(form.email, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.email) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.idTipo, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.idTipo, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.idTipo) }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    {{ form_label(form.descricao, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.descricao, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.descricao) }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Salvar Email
+                                </button>
+                                <a href="{{ path('app_email_index') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Logradouros - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Logradouros', 'url': path('app_logradouro_index')}
+        ],
+        'current': 'Lista de Logradouros'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-road"></i> Logradouros</h1>
+                <a href="{{ path('app_logradouro_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Logradouro
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="80">ID</th>
+                                    <th>Logradouro</th>
+                                    <th width="150">Bairro</th>
+                                    <th width="120">CEP</th>
+                                    <th width="200">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for logradouro in logradouros %}
+                                <tr>
+                                    <td>{{ logradouro.id }}</td>
+                                    <td><strong>{{ logradouro.logradouro }}</strong></td>
+                                    <td>
+                                        {% if bairros_map[logradouro.idBairro] is defined %}
+                                            <span class="badge bg-info">{{ bairros_map[logradouro.idBairro].nome }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Bairro não encontrado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ logradouro.cep }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical btn-group-sm d-md-none" role="group">
+                                            <a href="{{ path('app_logradouro_show', {'id': logradouro.id}) }}" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_logradouro_edit', {'id': logradouro.id}) }}" 
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                        </div>
+                                        <div class="btn-group d-none d-md-flex" role="group">
+                                            <a href="{{ path('app_logradouro_show', {'id': logradouro.id}) }}" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_logradouro_edit', {'id': logradouro.id}) }}" 
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            <form method="post" 
+                                                  action="{{ path('app_logradouro_delete', {'id': logradouro.id}) }}" 
+                                                  style="display:inline-block"
+                                                  onsubmit="return confirm('Tem certeza que deseja excluir este logradouro?')">
+                                                <input type="hidden" name="_token" 
+                                                       value="{{ csrf_token('delete' ~ logradouro.id) }}">
+                                                <button class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Excluir
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum logradouro cadastrado</span><br>
+                                        <small>Clique em "Novo Logradouro" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

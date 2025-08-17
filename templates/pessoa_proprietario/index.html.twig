@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Proprietários - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Lista de Proprietários'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-home"></i> Proprietários</h1>
+                <a href="{{ path('app_pessoa_proprietario_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Proprietário
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="80">ID</th>
+                                    <th>Nome</th>
+                                    <th width="120">Tipo</th>
+                                    <th width="150">ID Pessoa</th>
+                                    <th width="200">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for proprietario in proprietarios %}
+                                <tr>
+                                    <td>{{ proprietario.id }}</td>
+                                    <td><strong>Nome do Proprietário</strong></td>
+                                    <td>
+                                        <span class="badge bg-success">Proprietário</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ proprietario.idPessoa }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical btn-group-sm d-md-none" role="group">
+                                            <a href="{{ path('app_pessoa_proprietario_show', {'id': proprietario.id}) }}" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_pessoa_proprietario_edit', {'id': proprietario.id}) }}" 
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                        </div>
+                                        <div class="btn-group d-none d-md-flex" role="group">
+                                            <a href="{{ path('app_pessoa_proprietario_show', {'id': proprietario.id}) }}" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_pessoa_proprietario_edit', {'id': proprietario.id}) }}" 
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            <form method="post" 
+                                                  action="{{ path('app_pessoa_proprietario_delete', {'id': proprietario.id}) }}" 
+                                                  style="display:inline-block"
+                                                  onsubmit="return confirm('Tem certeza que deseja excluir este proprietário?')">
+                                                <input type="hidden" name="_token" 
+                                                       value="{{ csrf_token('delete' ~ proprietario.id) }}">
+                                                <button class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Excluir
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum proprietário cadastrado</span><br>
+                                        <small>Clique em "Novo Proprietário" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

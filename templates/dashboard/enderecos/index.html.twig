@@ -11,22 +11,22 @@
 
     <div class="row g-4">
         {% set cards = [
-            {'title': 'Estados', 'description': 'Lista de estados.', 'link': '#', 'icon': 'flag', 'details': 'Aqui você pode visualizar e gerenciar todos os estados cadastrados no sistema.'},
-            {'title': 'Cidades', 'description': 'Lista de cidades.', 'link': '#', 'icon': 'buildings', 'details': 'Gerencie as cidades cadastradas e organize os endereços corretamente.'},
-            {'title': 'Bairros', 'description': 'Lista de bairros.', 'link': '#', 'icon': 'signpost', 'details': 'Adicione e edite bairros vinculados às cidades existentes.'},
-            {'title': 'Logradouros', 'description': 'Lista de logradouros.', 'link': '#', 'icon': 'geo-alt', 'details': 'Gerencie ruas, avenidas e demais logradouros cadastrados no sistema.'}
+            {'title': 'Estados', 'description': 'Lista de estados.', 'link': path('app_estado_index'), 'icon': 'flag', 'details': 'Aqui você pode visualizar e gerenciar todos os estados cadastrados no sistema.'},
+            {'title': 'Cidades', 'description': 'Lista de cidades.', 'link': path('app_cidade_index'), 'icon': 'buildings', 'details': 'Gerencie as cidades cadastradas e organize os endereços corretamente.'},
+            {'title': 'Bairros', 'description': 'Lista de bairros.', 'link': path('app_bairro_index'), 'icon': 'signpost', 'details': 'Adicione e edite bairros vinculados às cidades existentes.'},
+            {'title': 'Logradouros', 'description': 'Lista de logradouros.', 'link': path('app_logradouro_index'), 'icon': 'geo-alt', 'details': 'Gerencie ruas, avenidas e demais logradouros cadastrados no sistema.'}
         ] %}
 
         {% for card in cards %}
             <div class="col-md-4">
-                <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
-                    <div class="card-body">
+                <div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+                    <div class="almasa-card-body">
                         <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-{{ card.icon }} fs-2 text-primary me-2"></i>
+                            <i class="bi bi-{{ card.icon }} fs-2 almasa-text-gradient me-2"></i>
                             <h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
                         </div>
                         <p class="text-secondary">{{ card.description }}</p>
-                        <button class="btn btn-link p-0 text-primary" onclick="event.stopPropagation(); toggleDetails('{{ loop.index }}')">
+                        <button class="btn btn-link p-0 almasa-text-gradient" onclick="event.stopPropagation(); toggleDetails('{{ loop.index }}')">
                             Ver mais →
                         </button>
                         <p id="details-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>

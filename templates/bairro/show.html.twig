@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ bairro.nome }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Endereços', 'url': path('app_enderecos')},
+            {'label': 'Lista de Bairros', 'url': path('app_bairro_index')}
+        ],
+        'current': 'Ver Bairro'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-map-signs"></i> {{ bairro.nome }}
+                    {% if cidade %}
+                        <small class="text-muted">({{ cidade.nome }})</small>
+                    {% endif %}
+                </h1>
+                <div>
+                    <a href="{{ path('app_bairro_edit', {'id': bairro.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Bairro
+                    </a>
+                    <a href="{{ path('app_bairro_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ bairro.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Nome:</th>
+                                    <td><strong>{{ bairro.nome }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Cidade:</th>
+                                    <td>
+                                        {% if cidade %}
+                                            <span class="badge bg-success fs-6">{{ cidade.nome }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Cidade não encontrada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Código:</th>
+                                    <td>
+                                        {% if bairro.codigo %}
+                                            <span class="badge bg-secondary fs-6">{{ bairro.codigo }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Locatário - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [{'label': 'Lista de Locatários', 'url': path('app_pessoa_locatario_index')}],
+        'current': 'Ver Locatário'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-user-tie"></i> Locatário</h1>
+                <div>
+                    <a href="{{ path('app_pessoa_locatario_edit', {'id': locatario.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Locatário
+                    </a>
+                    <a href="{{ path('app_pessoa_locatario_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ locatario.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>ID Pessoa:</th>
+                                    <td>{{ locatario.idPessoa }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Quartos Desejados:</th>
+                                    <td>
+                                        {% if locatario.quartosDesejados %}
+                                            {{ locatario.quartosDesejados }}
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Aluguel Máximo:</th>
+                                    <td>
+                                        {% if locatario.aluguelMaximo %}
+                                            <span class="badge bg-success fs-6">R$ {{ locatario.aluguelMaximo|number_format(2, ',', '.') }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if locatario.disponivel %}
+                                            <span class="badge bg-success fs-6">Disponível</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary fs-6">Indisponível</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Procura:</th>
+                                    <td>
+                                        {% if locatario.procuraAluguel and locatario.procuraCompra %}
+                                            <span class="badge bg-info fs-6">Aluguel e Compra</span>
+                                        {% elseif locatario.procuraAluguel %}
+                                            <span class="badge bg-primary fs-6">Aluguel</span>
+                                        {% elseif locatario.procuraCompra %}
+                                            <span class="badge bg-success fs-6">Compra</span>
+                                        {% else %}
+                                            <span class="text-muted">Não definido</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>Observações:</th>
+                                    <td>
+                                        {% if locatario.observacoes %}
+                                            {{ locatario.observacoes|nl2br }}
+                                        {% else %}
+                                            <span class="text-muted">Nenhuma observação</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pessoas Locadores{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'current': 'Lista de Locadores'
+    } %}
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-building"></i> Pessoas Locadores</h1>
+        <a href="{{ path('app_pessoa_locador_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Locador
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ID Pessoa</th>
+                    <th>ID Forma Retirada</th>
+                    <th>Dependentes</th>
+                    <th>Dia Retirada</th>
+                    <th>Cobrar CPMF</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for locador in pessoa_locadores %}
+                <tr>
+                    <td>{{ locador.id }}</td>
+                    <td>{{ locador.idPessoa }}</td>
+                    <td>{{ locador.idFormaRetirada ?? '-' }}</td>
+                    <td>{{ locador.dependentes }}</td>
+                    <td>{{ locador.diaRetirada ?? '-' }}</td>
+                    <td>{{ locador.cobrarCpmf ? 'Sim' : 'Não' }}</td>
+                    <td>{{ locador.situacao }}</td>
+                    <td>
+                        <a href="{{ path('app_pessoa_locador_edit', {'id': locador.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <form method="post" action="{{ path('app_pessoa_locador_delete', {'id': locador.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ locador.id) }}">
+                            <button class="btn btn-sm btn-danger" onclick="return confirm('Confirma exclusão?')">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

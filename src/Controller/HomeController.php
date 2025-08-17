@@ -13,4 +13,14 @@ class HomeController extends AbstractController
     {
         return $this->render('home/index.html.twig');
     }
+
+    /**
+     * Silencia requisições automáticas do Chrome DevTools
+     */
+    public function chromeDevTools(): Response
+    {
+        return new Response('', Response::HTTP_NO_CONTENT, [
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
+    }
 }

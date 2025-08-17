@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pessoas Fiadores{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'current': 'Lista de Fiadores'
+    } %}
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-handshake"></i> Pessoas Fiadores</h1>
+        <a href="{{ path('app_pessoa_fiador_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Fiador
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ID Pessoa</th>
+                    <th>ID Forma Retirada</th>
+                    <th>Dependentes</th>
+                    <th>Dia Retirada</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fiador in pessoa_fiadores %}
+                <tr>
+                    <td>{{ fiador.id }}</td>
+                    <td>{{ fiador.idPessoa }}</td>
+                    <td>{{ fiador.idFormaRetirada ?? '-' }}</td>
+                    <td>{{ fiador.dependentes }}</td>
+                    <td>{{ fiador.diaRetirada ?? '-' }}</td>
+                    <td>
+                        <a href="{{ path('app_pessoa_fiador_edit', {'id': fiador.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <form method="post" action="{{ path('app_pessoa_fiador_delete', {'id': fiador.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ fiador.id) }}">
+                            <button class="btn btn-sm btn-danger" onclick="return confirm('Confirma exclusão?')">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

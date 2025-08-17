@@ -1,46 +1,63 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Lista de Tipos - Almasa{% endblock %}
+{% block title %}Tipos de Cadastro{% endblock %}
 
 {% block content %}
-<div class="container my-4">
-    <a href="{{ path('app_dashboard') }}" class="btn btn-primary mb-3">← Voltar</a>
-    <h2 class="fs-3 fw-bold mb-4 text-dark">Lista de Tipos</h2>
+    <div class="container my-4">
+        {% include '_partials/breadcrumb.html.twig' with {
+            'items': [
+                {'label': 'Dashboard', 'url': path('app_dashboard')}
+            ],
+            'current': 'Tipos de Cadastro'
+        } %}
+        <h2 class="fs-3 fw-bold mb-4 text-dark">Tipos de Cadastro</h2>
+        <p class="text-secondary mb-4">
+            Gerencie os tipos de dados utilizados no sistema.
+        </p>
 
-    <p class="text-secondary">Aqui você pode gerenciar os diferentes tipos de cadastros do sistema.</p>
+        <div class="row g-4">
+            {% set cards = [
+                {'title': 'Tipo de Documento', 'description': 'Gerencie os tipos de documentos.', 'link': path('app_tipo_documento_index'), 'icon': 'file-earmark-text', 'details': 'Adicione e edite os tipos de documentos disponíveis.'},
+                {'title': 'Tipo de Conta Bancária', 'description': 'Gerencie os tipos de contas bancárias.', 'link': path('app_tipo_conta_bancaria_index'), 'icon': 'wallet', 'details': 'Adicione e edite os tipos de contas bancárias disponíveis.'},
+                {'title': 'Tipo de Telefone', 'description': 'Gerencie os tipos de telefones.', 'link': path('app_tipo_telefone_index'), 'icon': 'telephone', 'details': 'Adicione e edite os tipos de telefones disponíveis.'},
+                {'title': 'Tipo de Email', 'description': 'Gerencie os tipos de emails.', 'link': path('app_tipo_email_index'), 'icon': 'envelope-at', 'details': 'Adicione e edite os tipos de emails disponíveis.'},
+                {'title': 'Tipo de Chave Pix', 'description': 'Gerencie os tipos de chaves Pix.', 'link': path('app_tipo_chave_pix_index'), 'icon': 'key', 'details': 'Adicione e edite os tipos de chaves Pix disponíveis.'},
+                {'title': 'Tipo de Atendimento', 'description': 'Gerencie os tipos de atendimento.', 'link': path('app_tipo_atendimento_index'), 'icon': 'headset', 'details': 'Adicione e edite os tipos de atendimento disponíveis.'},
+                {'title': 'Tipo de Carteira', 'description': 'Gerencie os tipos de carteiras.', 'link': path('app_tipo_carteira_index'), 'icon': 'credit-card', 'details': 'Adicione e edite os tipos de carteiras disponíveis.'},
+                {'title': 'Tipo de Endereço', 'description': 'Gerencie os tipos de endereços.', 'link': path('app_tipo_endereco_index'), 'icon': 'geo-alt', 'details': 'Adicione e edite os tipos de endereços disponíveis.'},
+                {'title': 'Tipo de Imóvel', 'description': 'Gerencie os tipos de imóveis.', 'link': path('app_tipo_imovel_index'), 'icon': 'house', 'details': 'Adicione e edite os tipos de imóveis disponíveis.'},
+                {'title': 'Tipo de Pessoa', 'description': 'Gerencie os tipos de pessoas.', 'link': path('app_tipo_pessoa_index'), 'icon': 'people', 'details': 'Adicione e edite os tipos de pessoas disponíveis.'},
+                {'title': 'Tipo de Remessa', 'description': 'Gerencie os tipos de remessa.', 'link': path('app_tipo_remessa_index'), 'icon': 'file-export', 'details': 'Adicione e edite os tipos de remessa disponíveis.'},
+                {'title': 'Estado Civil', 'description': 'Gerencie os tipos de estado civil.', 'link': path('app_estado_civil_index'), 'icon': 'heart', 'details': 'Adicione e edite os estados civis disponíveis.'},
+                {'title': 'Nacionalidades', 'description': 'Gerencie os tipos de nacionalidades.', 'link': path('app_nacionalidade_index'), 'icon': 'flag', 'details': 'Adicione e edite as nacionalidades disponíveis.'},
+                {'title': 'Naturalidades', 'description': 'Gerencie os tipos de naturalidades.', 'link': path('app_naturalidade_index'), 'icon': 'globe', 'details': 'Adicione e edite as naturalidades disponíveis.'}
+            ] %}
 
-    <div class="row g-4">
-        {% set cards = [
-            {'title': 'Tipos de Documentos', 'description': 'Lista de tipos de documentos.', 'link': '#', 'icon': 'file-text', 'details': 'Gerencie diferentes categorias de documentos utilizados no sistema.'},
-            {'title': 'Tipos de Telefones', 'description': 'Lista de tipos de telefones.', 'link': '#', 'icon': 'telephone', 'details': 'Defina os tipos de telefones permitidos para cadastros.'},
-            {'title': 'Tipos de Chaves Pix', 'description': 'Lista de tipos de chaves Pix.', 'link': '#', 'icon': 'key', 'details': 'Gerencie as categorias de chaves Pix aceitas no sistema.'},
-            {'title': 'Tipos de Contas Bancárias', 'description': 'Lista de tipos de contas bancárias.', 'link': '#', 'icon': 'wallet', 'details': 'Gerencie os diferentes tipos de contas bancárias cadastradas.'}
-        ] %}
-
-        {% for card in cards %}
-            <div class="col-md-4">
-                <div class="card shadow-sm border-0 h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-{{ card.icon }} fs-2 text-primary me-2"></i>
-                            <h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
+            {% for card in cards %}
+                <div class="col-md-4">
+                    <div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+                        <div class="almasa-card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-{{ card.icon }} fs-2 almasa-text-gradient me-2"></i>
+                                <h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
+                            </div>
+                            <p class="text-secondary">{{ card.description }}</p>
+                            <button class="btn btn-link p-0 almasa-text-gradient" onclick="event.stopPropagation(); toggleDetails('{{ loop.index }}')">
+                                Ver mais →
+                            </button>
+                            <p id="details-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
                         </div>
-                        <p class="text-secondary">{{ card.description }}</p>
-                        <button class="btn btn-link p-0 text-primary" onclick="event.stopPropagation(); toggleDetails('{{ loop.index }}')">
-                            Ver mais →
-                        </button>
-                        <p id="details-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
-</div>
 
-<script>
-    function toggleDetails(index) {
-        const details = document.getElementById("details-" + index);
-        details.classList.toggle("d-none");
-    }
-</script>
+    <!-- Script para expandir detalhes -->
+    <script>
+        function toggleDetails(index) {
+            const details = document.getElementById("details-" + index);
+            details.classList.toggle("d-none");
+        }
+    </script>
 {% endblock %}

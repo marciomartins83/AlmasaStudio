@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Conta Bancária - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Lista de Contas Bancárias', 'url': path('app_conta_bancaria_index')}
+        ],
+        'current': 'Ver Conta Bancária'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-wallet"></i> Conta Bancária</h1>
+                <div>
+                    <a href="{{ path('app_conta_bancaria_edit', {'id': conta_bancaria.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Conta
+                    </a>
+                    <a href="{{ path('app_conta_bancaria_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ conta_bancaria.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Código da Conta:</th>
+                                    <td>
+                                        <strong>{{ conta_bancaria.codigo }}</strong>
+                                        {% if conta_bancaria.digitoConta %}
+                                            <small class="text-muted">-{{ conta_bancaria.digitoConta }}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Titular:</th>
+                                    <td>
+                                        {% if conta_bancaria.titular %}
+                                            {{ conta_bancaria.titular }}
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>ID Pessoa:</th>
+                                    <td><span class="badge bg-info fs-6">{{ conta_bancaria.idPessoa }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>ID Banco:</th>
+                                    <td><span class="badge bg-secondary fs-6">{{ conta_bancaria.idBanco }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>ID Agência:</th>
+                                    <td>
+                                        {% if conta_bancaria.idAgencia %}
+                                            <span class="badge bg-secondary fs-6">{{ conta_bancaria.idAgencia }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">Tipo Conta:</th>
+                                    <td><span class="badge bg-primary fs-6">{{ conta_bancaria.idTipoConta }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Principal:</th>
+                                    <td>
+                                        {% if conta_bancaria.principal %}
+                                            <span class="badge bg-warning fs-6">Sim</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary fs-6">Não</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if conta_bancaria.ativo %}
+                                            <span class="badge bg-success fs-6">Ativo</span>
+                                        {% else %}
+                                            <span class="badge bg-danger fs-6">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Registrada:</th>
+                                    <td>
+                                        {% if conta_bancaria.registrada %}
+                                            <span class="badge bg-success fs-6">Sim</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary fs-6">Não</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

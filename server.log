@@ -1,0 +1,70 @@
+[Mon Jul 28 17:33:10 2025] PHP 8.4.10 Development Server (http://127.0.0.1:8001) started
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33862 Accepted
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33862 [302]: GET /dashboard/
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33862 Closing
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33870 Accepted
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33870 [200]: GET /login
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33870 Closing
+[Mon Jul 28 17:33:22 2025] 127.0.0.1:33886 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33886 [500]: GET /agencia/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33886 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33890 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33890 [500]: GET /tipo-telefone/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33890 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33902 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33902 [500]: GET /conta-bancaria/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33902 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33914 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33914 [500]: GET /pessoa-fiador/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33914 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33924 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33924 [500]: GET /pessoa-locador/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33924 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33928 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33928 [500]: GET /pessoa-corretor/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33928 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33932 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33932 [500]: GET /email/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33932 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33938 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33938 [500]: GET /telefone/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33938 Closing
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33954 Accepted
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33954 [500]: GET /tipo-email/
+[Mon Jul 28 17:33:23 2025] 127.0.0.1:33954 Closing
+[Mon Jul 28 17:33:47 2025] 127.0.0.1:54148 Accepted
+[Mon Jul 28 17:33:47 2025] 127.0.0.1:54148 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:47 2025] 127.0.0.1:54148 Closing
+[Mon Jul 28 17:33:47 2025] 127.0.0.1:54160 Accepted
+[Mon Jul 28 17:33:47 2025] 127.0.0.1:54160 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:47 2025] 127.0.0.1:54160 Closing
+[Mon Jul 28 17:33:48 2025] 127.0.0.1:54170 Accepted
+[Mon Jul 28 17:33:48 2025] 127.0.0.1:54170 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:48 2025] 127.0.0.1:54170 Closing
+[Mon Jul 28 17:33:48 2025] 127.0.0.1:54172 Accepted
+[Mon Jul 28 17:33:48 2025] 127.0.0.1:54172 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:48 2025] 127.0.0.1:54172 Closing
+[Mon Jul 28 17:33:50 2025] 127.0.0.1:54184 Accepted
+[Mon Jul 28 17:33:50 2025] 127.0.0.1:54184 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:50 2025] 127.0.0.1:54184 Closing
+[Mon Jul 28 17:33:50 2025] 127.0.0.1:54188 Accepted
+[Mon Jul 28 17:33:50 2025] 127.0.0.1:54188 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:50 2025] 127.0.0.1:54188 Closing
+[Mon Jul 28 17:33:51 2025] 127.0.0.1:40492 Accepted
+[Mon Jul 28 17:33:51 2025] 127.0.0.1:40492 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:51 2025] 127.0.0.1:40492 Closing
+[Mon Jul 28 17:33:51 2025] 127.0.0.1:40500 Accepted
+[Mon Jul 28 17:33:51 2025] 127.0.0.1:40500 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:51 2025] 127.0.0.1:40500 Closing
+[Mon Jul 28 17:33:56 2025] 127.0.0.1:40506 Accepted
+[Mon Jul 28 17:33:56 2025] 127.0.0.1:40506 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:56 2025] 127.0.0.1:40506 Closing
+[Mon Jul 28 17:33:56 2025] 127.0.0.1:40514 Accepted
+[Mon Jul 28 17:33:56 2025] 127.0.0.1:40514 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:33:56 2025] 127.0.0.1:40514 Closing
+[Mon Jul 28 17:36:41 2025] 127.0.0.1:60176 Accepted
+[Mon Jul 28 17:36:41 2025] 127.0.0.1:60176 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:36:41 2025] 127.0.0.1:60176 Closing
+[Mon Jul 28 17:36:41 2025] 127.0.0.1:60192 Accepted
+[Mon Jul 28 17:36:41 2025] 127.0.0.1:60192 Invalid request (Unsupported SSL request)
+[Mon Jul 28 17:36:41 2025] 127.0.0.1:60192 Closing

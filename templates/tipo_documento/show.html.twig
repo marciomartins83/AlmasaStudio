@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ tipo_documento.tipo }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Tipos', 'url': path('app_dashboard_tipos_index')},
+            {'label': 'Lista de Tipos de Documento', 'url': path('app_tipo_documento_index')}
+        ],
+        'current': 'Ver Tipo de Documento'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-id-card"></i> {{ tipo_documento.tipo }}</h1>
+                <div>
+                    <a href="{{ path('app_tipo_documento_edit', {'id': tipo_documento.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Tipo
+                    </a>
+                    <a href="{{ path('app_tipo_documento_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ tipo_documento.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo:</th>
+                                    <td><strong>{{ tipo_documento.tipo }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar {{ tipo_imovel.tipo }}{% endblock %}
+
+{% block body %}
+    <h1>Editar Tipo de Imóvel: {{ tipo_imovel.tipo }}</h1>
+
+    {{ form_start(form) }}
+        <div class="mb-3">
+            {{ form_label(form.tipo, 'Tipo de Imóvel', {'label_attr': {'class': 'form-label'}}) }}
+            {{ form_widget(form.tipo, {'attr': {'class': 'form-control'}}) }}
+            {{ form_errors(form.tipo) }}
+        </div>
+        <div class="mb-3">
+            {{ form_label(form.descricao, 'Descrição', {'label_attr': {'class': 'form-label'}}) }}
+            {{ form_widget(form.descricao, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+            {{ form_errors(form.descricao) }}
+        </div>
+        <button class="btn btn-primary mt-3">Atualizar</button>
+    {{ form_end(form) }}
+
+    <a href="{{ path('app_tipo_imovel_index') }}" class="btn btn-secondary mt-3">Voltar para a lista</a>
+
+    {{ include('tipo_imovel/_delete_form.html.twig', {tipo_imovel: tipo_imovel}) }}
+{% endblock %}

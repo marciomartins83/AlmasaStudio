@@ -1,0 +1,4 @@
+<form method="post" action="{{ path('app_tipo_imovel_delete', {'id': tipo_imovel.id}) }}" onsubmit="return confirm('Tem certeza que deseja excluir este item?');">
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ tipo_imovel.id) }}">
+    <button class="btn btn-danger btn-sm mt-3">Excluir</button>
+</form>

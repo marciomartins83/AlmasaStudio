@@ -7,4 +7,8 @@ import './bootstrap.js';
  */
 import './styles/app.css';
 
+// Importa os formulários JS customizados
+import './js/pessoa-form.js';
+import './js/fiador-form.js';
+
 console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');

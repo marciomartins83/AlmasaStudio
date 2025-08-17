@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Pessoa;
+use App\Entity\Pessoas;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,7 +24,7 @@ class ThemeController extends AbstractController
         }
 
         // Buscar a pessoa vinculada ao usuário
-        $pessoa = $entityManager->getRepository(Pessoa::class)->findOneBy(['user' => $user]);
+        $pessoa = $entityManager->getRepository(Pessoas::class)->findOneBy(['user' => $user]);
 
         if (!$pessoa) {
             return new JsonResponse(['error' => 'Pessoa não encontrada'], 404);

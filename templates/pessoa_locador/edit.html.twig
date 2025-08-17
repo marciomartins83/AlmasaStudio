@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Locador{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Locadores', 'url': path('app_pessoa_locador_index')}
+        ],
+        'current': 'Editar Locador'
+    } %}
+    
+    <h1><i class="fas fa-edit"></i> Editar Locador</h1>
+
+    {{ form_start(form) }}
+    {{ form_widget(form) }}
+    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+    <a href="{{ path('app_pessoa_locador_index') }}" class="btn btn-secondary">Voltar</a>
+    {{ form_end(form) }}
+
+    {{ include('pessoa_locador/_delete_form.html.twig') }}
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ tipo_imovel.tipo }}{% endblock %}
+
+{% block body %}
+    <h1>Detalhes do Tipo de Imóvel: {{ tipo_imovel.tipo }}</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ tipo_imovel.id }}</td>
+            </tr>
+            <tr>
+                <th>Tipo</th>
+                <td>{{ tipo_imovel.tipo }}</td>
+            </tr>
+            <tr>
+                <th>Descrição</th>
+                <td>{{ tipo_imovel.descricao }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_tipo_imovel_index') }}" class="btn btn-secondary mt-3">Voltar para a lista</a>
+    <a href="{{ path('app_tipo_imovel_edit', {'id': tipo_imovel.id}) }}" class="btn btn-primary mt-3">Editar</a>
+
+    {{ include('tipo_imovel/_delete_form.html.twig', {tipo_imovel: tipo_imovel}) }}
+{% endblock %}

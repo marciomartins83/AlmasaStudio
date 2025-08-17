@@ -11,37 +11,93 @@
 			<strong class="text-dark">{{ app.user.email }}</strong>
 		</p>
 
+		{# Seção Principal - Cadastros Gerais e Configurações #}
+		<h3 class="mb-3 text-dark">Cadastros e Configurações</h3>
 		<div class="row g-4">
-			{% set cards = [
+			{% set cards_gerais = [
 				{'title': 'Endereços', 'description': 'Gerencie os dados de endereços.', 'link': path('app_enderecos'), 'icon': 'geo-alt', 'details': 'Aqui você pode gerenciar estados, cidades, bairros e logradouros.'},
-				{'title': 'Tipos', 'description': 'Gerencie os tipos de cadastros do sistema.', 'link': path('app_tipos'), 'icon': 'box', 'details': 'Aqui você pode configurar tipos de documentos, contas e telefones.'},
-				{'title': 'Bancos', 'description': 'Lista de bancos cadastrados.', 'link': '#', 'icon': 'bank', 'details': 'Gerencie os bancos disponíveis para transações financeiras.'},
-				{'title': 'Pessoas', 'description': 'Lista de pessoas cadastradas.', 'link': path('app_pessoa'), 'icon': 'people', 'details': 'Aqui você pode cadastrar clientes, locatários e fiadores.'},
-				{'title': 'Papel', 'description': 'Lista de papéis do sistema.', 'link': '#', 'icon': 'file-earmark-text', 'details': 'Gerencie os diferentes papéis disponíveis no sistema.'},
-				{'title': 'Fiadores', 'description': 'Lista de fiadores cadastrados.', 'link': '#', 'icon': 'person-badge', 'details': 'Adicione e controle fiadores para contratos.'},
-				{'title': 'Imóveis', 'description': 'Lista de imóveis cadastrados.', 'link': '#', 'icon': 'house-door', 'details': 'Aqui você pode cadastrar e gerenciar os imóveis disponíveis.'},
-				{'title': 'Locatários', 'description': 'Lista de locatários cadastrados.', 'link': '#', 'icon': 'person-lines-fill', 'details': 'Gerencie os locatários e seus contratos.'},
-				{'title': 'Proprietários', 'description': 'Lista de proprietários cadastrados.', 'link': '#', 'icon': 'person-check', 'details': 'Controle os proprietários dos imóveis cadastrados.'},
-				{'title': 'Contas', 'description': 'Lista de contas cadastradas.', 'link': '#', 'icon': 'wallet', 'details': 'Gerencie contas e transações financeiras.'},
-				{'title': 'Informe de Rendimentos', 'description': 'Gerencie os informes de rendimentos.', 'link': '#', 'icon': 'file-earmark-bar-graph', 'details': 'Aqui você pode visualizar e gerar informes de rendimento.'},
-				{'title': 'Boletos', 'description': 'Lista de boletos cadastrados.', 'link': '#', 'icon': 'receipt', 'details': 'Gerencie a emissão e pagamento de boletos.'}
+				{'title': 'Tipos', 'description': 'Gerencie os tipos de cadastros do sistema.', 'link': path('app_dashboard_tipos_index'), 'icon': 'box', 'details': 'Aqui você pode configurar tipos de documentos, contas e telefones, estado civil, nacionalidades e naturalidades.'},
+				{'title': 'Emails', 'description': 'Gerencie os emails cadastrados.', 'link': path('app_email_index'), 'icon': 'envelope', 'details': 'Aqui você pode cadastrar e gerenciar emails do sistema.'},
+				{'title': 'Telefones', 'description': 'Gerencie os telefones cadastrados.', 'link': path('app_telefone_index'), 'icon': 'telephone', 'details': 'Aqui você pode cadastrar e gerenciar telefones do sistema.'},
+				{'title': 'Agências', 'description': 'Cadastre e gerencie as agências bancárias.', 'link': path('app_agencia_index'), 'icon': 'bank', 'details': 'Gerencie informações das agências bancárias utilizadas no sistema.'},
+				{'title': 'Contas Bancárias', 'description': 'Gerencie contas bancárias e transações.', 'link': path('app_conta_bancaria_index'), 'icon': 'wallet-fill', 'details': 'Gerencie contas bancárias e transações financeiras do sistema.'}
 			] %}
 
-			{% for card in cards %}
+			{% for card in cards_gerais %}
 				<div class="col-md-4">
-					<!-- Adicionando o redirecionamento apenas se o usuário clicar no card, mas não no botão -->
-					<div class="card shadow-sm border-0 h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
-						<div class="card-body">
+					<div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+						<div class="almasa-card-body">
 							<div class="d-flex align-items-center mb-2">
-								<i class="bi bi-{{ card.icon }} fs-2 text-primary me-2"></i>
+								<i class="bi bi-{{ card.icon }} fs-2 almasa-text-gradient me-2"></i>
 								<h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
 							</div>
 							<p class="text-secondary">{{ card.description }}</p>
-							<!-- O botão "Ver mais" expande a descrição, mas NÃO redireciona -->
-							<button class="btn btn-link p-0 text-primary" onclick="event.stopPropagation(); toggleDetails('{{ loop.index }}')">
+							<button class="btn btn-link p-0 almasa-text-gradient" onclick="event.stopPropagation(); toggleDetails('geral-{{ loop.index }}')">
 								Ver mais →
 							</button>
-							<p id="details-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
+							<p id="details-geral-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+
+		{# Seção Financeiro e Documentos #}
+		<h3 class="mt-5 mb-3 text-dark">Financeiro e Documentos</h3>
+		<div class="row g-4">
+			{% set cards_financeiro = [
+				{'title': 'Bancos', 'description': 'Lista de bancos cadastrados.', 'link': '#', 'icon': 'bank2', 'details': 'Gerencie os bancos disponíveis para transações financeiras.'},
+				{'title': 'Imóveis', 'description': 'Lista de imóveis cadastrados.', 'link': '#', 'icon': 'house-door', 'details': 'Aqui você pode cadastrar e gerenciar os imóveis disponíveis.'},
+				{'title': 'Contratos', 'description': 'Gerencie contratos de locação.', 'link': '#', 'icon': 'file-earmark-text', 'details': 'Gerencie os contratos disponíveis no sistema.'},
+				{'title': 'Informe de Rendimentos', 'description': 'Gerencie os informes de rendimentos.', 'link': '#', 'icon': 'file-earmark-bar-graph', 'details': 'Aqui você pode visualizar e gerar informes de rendimento.'},
+				{'title': 'Boletos', 'description': 'Lista de boletos cadastrados.', 'link': '#', 'icon': 'receipt', 'details': 'Gerencie a emissão e pagamento de boletos.'},
+				{'title': 'Relatórios', 'description': 'Gerencie relatórios do sistema.', 'link': '#', 'icon': 'graph-up', 'details': 'Acesse diversos relatórios de gestão do sistema.'}
+			] %}
+
+			{% for card in cards_financeiro %}
+				<div class="col-md-4">
+					<div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+						<div class="almasa-card-body">
+							<div class="d-flex align-items-center mb-2">
+								<i class="bi bi-{{ card.icon }} fs-2 almasa-text-gradient me-2"></i>
+								<h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
+							</div>
+							<p class="text-secondary">{{ card.description }}</p>
+							<button class="btn btn-link p-0 almasa-text-gradient" onclick="event.stopPropagation(); toggleDetails('financeiro-{{ loop.index }}')">
+								Ver mais →
+							</button>
+							<p id="details-financeiro-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
+						</div>
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+
+		{# Seção Pessoas Específicas - TODAS as pessoas ficam aqui #}
+		<h3 class="mt-5 mb-3 text-dark">Gestão de Pessoas</h3>
+		<div class="row g-4">
+			{% set cards_pessoas = [
+				{'title': 'Fiadores', 'description': 'Controle as pessoas que atuam como fiadores.', 'link': path('app_pessoa_fiador_index'), 'icon': 'person-badge', 'details': 'Adicione e controle fiadores para contratos de locação.'},
+				{'title': 'Locadores', 'description': 'Gerencie os locadores e seus imóveis.', 'link': path('app_pessoa_locador_index'), 'icon': 'person-lines-fill', 'details': 'Gerencie os proprietários e locadores de imóveis.'},
+				{'title': 'Locatários', 'description': 'Gerencie os locatários e seus contratos.', 'link': path('app_pessoa_locatario_index'), 'icon': 'person-fill', 'details': 'Controle os inquilinos e seus contratos de locação.'},
+				{'title': 'Proprietários', 'description': 'Gerencie os proprietários de imóveis.', 'link': path('app_pessoa_proprietario_index'), 'icon': 'house-heart', 'details': 'Controle os proprietários dos imóveis cadastrados.'},
+				{'title': 'Corretores', 'description': 'Cadastre e gerencie os corretores.', 'link': path('app_pessoa_corretor_index'), 'icon': 'person-check', 'details': 'Controle os corretores responsáveis pelas transações.'},
+				{'title': 'Pessoas Geral', 'description': 'Cadastro geral de todas as pessoas.', 'link': '#', 'icon': 'people', 'details': 'Acesse o cadastro geral de pessoas do sistema.'}
+			] %}
+
+			{% for card in cards_pessoas %}
+				<div class="col-md-4">
+					<div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+						<div class="almasa-card-body">
+							<div class="d-flex align-items-center mb-2">
+								<i class="bi bi-{{ card.icon }} fs-2 almasa-text-gradient me-2"></i>
+								<h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
+							</div>
+							<p class="text-secondary">{{ card.description }}</p>
+							<button class="btn btn-link p-0 almasa-text-gradient" onclick="event.stopPropagation(); toggleDetails('pessoa-{{ loop.index }}')">
+								Ver mais →
+							</button>
+							<p id="details-pessoa-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
 						</div>
 					</div>
 				</div>
@@ -53,7 +109,9 @@
 	<script>
 		function toggleDetails(index) {
 			const details = document.getElementById("details-" + index);
-			details.classList.toggle("d-none");
+			if (details) {
+				details.classList.toggle("d-none");
+			}
 		}
 	</script>
 {% endblock %}

@@ -5,8 +5,8 @@ use Twig\Extension\AbstractExtension;
 use Twig\Extension\GlobalsInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
-use App\Entity\Pessoa;
-use App\Entity\User;
+use App\Entity\Pessoas;
+use App\Entity\Users;
 
 class GlobalPessoaExtension extends AbstractExtension implements GlobalsInterface
 {
@@ -28,7 +28,7 @@ class GlobalPessoaExtension extends AbstractExtension implements GlobalsInterfac
         }
 
         // Buscar a Pessoa pelo email do usuário logado (ou outra lógica que faça sentido)
-        $pessoa = $this->entityManager->getRepository(Pessoa::class)->findOneBy(['user' => $user]);
+        $pessoa = $this->entityManager->getRepository(Pessoas::class)->findOneBy(['user' => $user]);
 
         return [
             'pessoa' => $pessoa,

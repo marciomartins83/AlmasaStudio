@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\PessoaFiador;
+use App\Form\PessoaFiadorType;
+use App\Repository\PessoaFiadorRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+
+#[Route('/pessoa-fiador', name: 'app_pessoa_fiador_')]
+class PessoaFiadorController extends AbstractController
+{
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(PessoaFiadorRepository $pessoaFiadorRepository): Response
+    {
+        return $this->render('pessoa_fiador/index.html.twig', [
+            'pessoa_fiadores' => $pessoaFiadorRepository->findAll(),
+        ]);
+    }
+
+    #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
+    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $pessoaFiador = new PessoaFiador();
+        $form = $this->createForm(PessoaFiadorType::class, $pessoaFiador);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->persist($pessoaFiador);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Pessoa Fiador criada com sucesso!');
+            return $this->redirectToRoute('app_pessoa_fiador_index');
+        }
+
+        return $this->render('pessoa_fiador/new.html.twig', [
+            'pessoa_fiador' => $pessoaFiador,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
+    public function edit(Request $request, PessoaFiador $pessoaFiador, EntityManagerInterface $entityManager): Response
+    {
+        $form = $this->createForm(PessoaFiadorType::class, $pessoaFiador);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+            $this->addFlash('success', 'Pessoa Fiador atualizada com sucesso!');
+            return $this->redirectToRoute('app_pessoa_fiador_index');
+        }
+
+        return $this->render('pessoa_fiador/edit.html.twig', [
+            'pessoa_fiador' => $pessoaFiador,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    public function delete(Request $request, PessoaFiador $pessoaFiador, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('delete'.$pessoaFiador->getId(), $request->request->get('_token'))) {
+            $entityManager->remove($pessoaFiador);
+            $entityManager->flush();
+            $this->addFlash('success', 'Pessoa Fiador excluída com sucesso!');
+        }
+
+        return $this->redirectToRoute('app_pessoa_fiador_index');
+    }
+} 

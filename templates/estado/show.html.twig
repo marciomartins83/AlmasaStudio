@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ estado.nome }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Endereços', 'url': path('app_enderecos')},
+            {'label': 'Lista de Estados', 'url': path('app_estado_index')}
+        ],
+        'current': 'Ver Estado'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-map-marked-alt"></i> {{ estado.nome }} ({{ estado.uf }})</h1>
+                <div>
+                    <a href="{{ path('app_estado_edit', {'id': estado.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Estado
+                    </a>
+                    <a href="{{ path('app_estado_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ estado.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Nome:</th>
+                                    <td><strong>{{ estado.nome }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>UF:</th>
+                                    <td><span class="badge bg-primary fs-6">{{ estado.uf }}</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

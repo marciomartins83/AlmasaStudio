@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pessoas Corretores{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Lista de Corretores'
+    } %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Pessoas Corretores</h1>
+        <a href="{{ path('app_pessoa_corretor_new') }}" class="btn btn-primary">Novo Corretor</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ID Pessoa</th>
+                    <th>CRECI</th>
+                    <th>Status</th>
+                    <th>Data Cadastro</th>
+                    <th>Usuário</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for corretor in pessoa_corretores %}
+                <tr>
+                    <td>{{ corretor.id }}</td>
+                    <td>{{ corretor.idPessoa }}</td>
+                    <td>{{ corretor.creci ?? '-' }}</td>
+                    <td>{{ corretor.status ? 'Ativo' : 'Inativo' }}</td>
+                    <td>{{ corretor.dataCadastro ? corretor.dataCadastro|date('d/m/Y') : '-' }}</td>
+                    <td>{{ corretor.usuario ?? '-' }}</td>
+                    <td>
+                        <a href="{{ path('app_pessoa_corretor_edit', {'id': corretor.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <form method="post" action="{{ path('app_pessoa_corretor_delete', {'id': corretor.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ corretor.id) }}">
+                            <button class="btn btn-sm btn-danger" onclick="return confirm('Confirma exclusão?')">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

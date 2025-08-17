@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tipos de Chaves PIX - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Tipos', 'url': path('app_dashboard_tipos_index')}
+        ],
+        'current': 'Lista de Tipos de Chave PIX'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-qrcode"></i> Tipos de Chaves PIX</h1>
+                <a href="{{ path('app_tipo_chave_pix_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Tipo
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="80">ID</th>
+                                    <th>Tipo de Chave PIX</th>
+                                    <th width="200">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tipo_chave_pix in tipos_chaves_pix %}
+                                <tr>
+                                    <td>{{ tipo_chave_pix.id }}</td>
+                                    <td><strong>{{ tipo_chave_pix.tipo }}</strong></td>
+                                    <td>
+                                        <div class="btn-group-vertical btn-group-sm d-md-none" role="group">
+                                            <a href="{{ path('app_tipo_chave_pix_show', {'id': tipo_chave_pix.id}) }}" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_tipo_chave_pix_edit', {'id': tipo_chave_pix.id}) }}" 
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                        </div>
+                                        <div class="btn-group d-none d-md-flex" role="group">
+                                            <a href="{{ path('app_tipo_chave_pix_show', {'id': tipo_chave_pix.id}) }}" 
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_tipo_chave_pix_edit', {'id': tipo_chave_pix.id}) }}" 
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            <form method="post" 
+                                                  action="{{ path('app_tipo_chave_pix_delete', {'id': tipo_chave_pix.id}) }}" 
+                                                  style="display:inline-block"
+                                                  onsubmit="return confirm('Tem certeza que deseja excluir este tipo de chave PIX?')">
+                                                <input type="hidden" name="_token" 
+                                                       value="{{ csrf_token('delete' ~ tipo_chave_pix.id) }}">
+                                                <button class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Excluir
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum tipo de chave PIX cadastrado</span><br>
+                                        <small>Clique em "Novo Tipo" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

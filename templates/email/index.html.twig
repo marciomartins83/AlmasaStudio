@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Emails{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Lista de Emails'
+    } %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Emails</h1>
+        <a href="{{ path('app_email_new') }}" class="btn btn-primary">Novo Email</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Email</th>
+                    <th>ID Tipo</th>
+                    <th>Descrição</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for email in emails %}
+                <tr>
+                    <td>{{ email.id }}</td>
+                    <td>{{ email.email }}</td>
+                    <td>{{ email.idTipo }}</td>
+                    <td>{{ email.descricao ?? '-' }}</td>
+                    <td>
+                        <a href="{{ path('app_email_edit', {'id': email.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <form method="post" action="{{ path('app_email_delete', {'id': email.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ email.id) }}">
+                            <button class="btn btn-sm btn-danger" onclick="return confirm('Confirma exclusão?')">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

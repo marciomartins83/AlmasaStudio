@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo Locador{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Locadores', 'url': path('app_pessoa_locador_index')}
+        ],
+        'current': 'Novo Locador'
+    } %}
+    
+    <h1><i class="fas fa-plus"></i> Novo Locador</h1>
+    
+    {{ form_start(form) }}
+    {{ form_widget(form) }}
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    {{ form_end(form) }}
+</div>
+{% endblock %} 

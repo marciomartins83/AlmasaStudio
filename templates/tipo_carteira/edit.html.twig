@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Tipo de Carteira - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Tipos', 'url': path('app_dashboard_tipos_index')},
+            {'label': 'Lista de Tipos de Carteira', 'url': path('app_tipo_carteira_index')}
+        ],
+        'current': 'Editar Tipo de Carteira'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-edit"></i> Editar Tipo de Carteira</h1>
+                <a href="{{ path('app_tipo_carteira_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form_row(form.tipo) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.descricao) }}
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Atualizar
+                                </button>
+                                <a href="{{ path('app_tipo_carteira_index') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

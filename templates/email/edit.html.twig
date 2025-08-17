@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Email{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Editar Email</h1>
+        <a href="{{ path('app_email_index') }}" class="btn btn-secondary">Voltar</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="mb-3">
+                    {{ form_label(form.email) }}
+                    {{ form_widget(form.email) }}
+                    {{ form_errors(form.email) }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form_label(form.tipo) }}
+                    {{ form_widget(form.tipo) }}
+                    {{ form_errors(form.tipo) }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form_label(form.descricao) }}
+                    {{ form_widget(form.descricao) }}
+                    {{ form_errors(form.descricao) }}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Atualizar</button>
+                <a href="{{ path('app_email_index') }}" class="btn btn-secondary">Cancelar</a>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %} 

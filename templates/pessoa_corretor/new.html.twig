@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo Corretor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Lista de Corretores', 'url': path('app_pessoa_corretor_index')}
+        ],
+        'current': 'Novo Corretor'
+    } %}
+    <h1>Novo Corretor</h1>
+    <a href="{{ path('app_pessoa_corretor_index') }}" class="btn btn-secondary mb-3">Voltar</a>
+    
+    {{ form_start(form) }}
+    {{ form_widget(form) }}
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    {{ form_end(form) }}
+</div>
+{% endblock %} 
