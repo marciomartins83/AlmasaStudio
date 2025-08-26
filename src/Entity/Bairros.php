@@ -12,11 +12,14 @@ class Bairros
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
+
     #[ORM\ManyToOne(targetEntity: Cidades::class)]
     #[ORM\JoinColumn(name: "id_cidade", referencedColumnName: "id")]
     private Cidades $cidade;
+
     #[ORM\Column]
     private string $nome;
+
     #[ORM\Column(nullable: true)]
     private ?string $codigo = null;
 
@@ -36,11 +39,35 @@ class Bairros
         return $this;
     }
 
+    #[ORM\OneToMany(mappedBy: 'bairro', targetEntity: Logradouro::class, fetch: "LAZY")]
+    private iterable $logradouros;
+
+    public function __construct()
+    {
+        $this->logradouros = new \Doctrine\Common\Collections\ArrayCollection();
+    }
+
+    public function getIdCidade(): ?int
+    {
+        return $this->cidade->getId();
+    }
+
     public function getNome(): string
     {
         return $this->nome;
     }
 
+    public function getLogradouros(): iterable
+    {
+        return $this->logradouros;
+    }
+
+    public function setLogradouros(iterable $logradouros): self
+    {
+        $this->logradouros = $logradouros;
+        return $this;
+    }
+ 
     public function setNome(string $nome): self
     {
         $this->nome = $nome;
@@ -57,5 +84,4 @@ class Bairros
         $this->codigo = $codigo;
         return $this;
     }
-
 }

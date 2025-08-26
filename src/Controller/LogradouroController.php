@@ -11,23 +11,81 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\Response;
+use App\Form\LogradouroType;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class LogradouroController extends AbstractController
 {
     public function index(EntityManagerInterface $em): Response
     {
         $logradouros = $em->getRepository(Logradouro::class)->findAll();
-        
-        $bairros = $em->getRepository(Bairros::class)->findAll();
-        $bairrosMap = [];
-        foreach ($bairros as $bairro) {
-            $bairrosMap[$bairro->getId()] = $bairro;
-        }
 
         return $this->render('logradouro/index.html.twig', [
-            'logradouros' => $logradouros,
-            'bairros_map' => $bairrosMap
+            'logradouros' => $logradouros
         ]);
+    }
+
+    public function new(Request $request, EntityManagerInterface $em): Response
+    {
+        $logradouro = new Logradouro();
+        $form = $this->createForm(LogradouroType::class, $logradouro);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            if ($form->isValid()) {
+                try {
+                    $em->persist($logradouro);
+                    $em->flush();
+                    $this->addFlash('success', 'Logradouro criado com sucesso!');
+                    return $this->redirectToRoute('app_logradouro_index');
+                } catch (\Exception $e) {
+                    $this->addFlash('error', 'Erro ao salvar logradouro: '.$e->getMessage());
+                }
+            } else {
+                $this->addFlash('error', 'Por favor, corrija os erros no formulário.');
+            }
+        }
+
+        return $this->render('logradouro/new.html.twig', [
+            'form' => $form->createView(),
+        ]);
+    }
+
+    public function show(Logradouro $logradouro): Response
+    {
+        return $this->render('logradouro/show.html.twig', [
+            'logradouro' => $logradouro,
+        ]);
+    }
+
+    public function edit(Request $request, Logradouro $logradouro, EntityManagerInterface $em): Response
+    {
+        $form = $this->createForm(LogradouroType::class, $logradouro);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em->flush();
+
+            $this->addFlash('success', 'Logradouro atualizado com sucesso!');
+            return $this->redirectToRoute('app_logradouro_index');
+        }
+
+        return $this->render('logradouro/edit.html.twig', [
+            'form' => $form->createView(),
+            'logradouro' => $logradouro,
+        ]);
+    }
+
+    public function delete(Request $request, Logradouro $logradouro, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('delete' . $logradouro->getId(), $request->request->get('_token'))) {
+            $em->remove($logradouro);
+            $em->flush();
+            $this->addFlash('success', 'Logradouro excluído com sucesso!');
+        }
+
+        return $this->redirectToRoute('app_logradouro_index');
     }
 
     #[Route('/cep-lookup/{cep}', name: 'app_cep_lookup')]

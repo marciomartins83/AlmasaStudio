@@ -38,9 +38,9 @@
                                     <td>{{ cidade.id }}</td>
                                     <td><strong>{{ cidade.nome }}</strong></td>
                                     <td>
-                                        {% if estados_map[cidade.idEstado] is defined %}
-                                            <span class="badge bg-primary">{{ estados_map[cidade.idEstado].uf }}</span>
-                                            <br><small class="text-muted">{{ estados_map[cidade.idEstado].nome }}</small>
+                                        {% if estados_map[cidade.estado.id] is defined %}
+                                            <span class="badge bg-primary">{{ estados_map[cidade.estado.id].uf }}</span>
+                                            <br><small class="text-muted">{{ estados_map[cidade.estado.id].nome }}</small>
                                         {% else %}
                                             <span class="text-muted">Estado não encontrado</span>
                                         {% endif %}

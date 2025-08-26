@@ -61,4 +61,9 @@ class Cidades
         $this->codigo = $codigo;
         return $this;
     }
+
+    public function __toString(): string
+    {
+        return $this->nome;
+    }
 }

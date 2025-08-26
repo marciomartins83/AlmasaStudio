@@ -38,8 +38,8 @@
                                     <td>{{ bairro.id }}</td>
                                     <td><strong>{{ bairro.nome }}</strong></td>
                                     <td>
-                                        {% if cidades_map[bairro.idCidade] is defined %}
-                                            <span class="badge bg-success">{{ cidades_map[bairro.idCidade].nome }}</span>
+{% if cidades_map[bairro.cidade.id] is defined %}
+                                            <span class="badge bg-success">{{ bairro.cidade.nome }}</span>
                                         {% else %}
                                             <span class="text-muted">Cidade não encontrada</span>
                                         {% endif %}

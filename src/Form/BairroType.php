@@ -5,7 +5,7 @@ use App\Entity\Bairros;
 use App\Entity\Cidades;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -18,11 +18,12 @@ class BairroType extends AbstractType
                 'label' => 'Nome',
                 'attr' => ['class' => 'form-control']
             ])
-            ->add('cidade', ChoiceType::class, [
-                'choices' => $options['cidades'],
+            ->add('cidade', EntityType::class, [
+                'class' => Cidades::class,
                 'choice_label' => 'nome',
                 'label' => 'Cidade',
-                'attr' => ['class' => 'form-control']
+                'attr' => ['class' => 'form-control'],
+                'choices' => $options['cidades'] ?? []
             ])
             ->add('codigo', TextType::class, [
                 'label' => 'Código',
@@ -35,7 +36,9 @@ class BairroType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Bairros::class,
-            'cidades' => [], // Valor padrão para evitar erros
+            'cidades' => null
         ]);
+        
+        $resolver->setAllowedTypes('cidades', ['array', 'null']);
     }
 }

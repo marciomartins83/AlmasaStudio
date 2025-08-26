@@ -9,6 +9,27 @@ controllers:
 app_logradouro_index:
     path: /logradouro
     controller: App\Controller\LogradouroController::index
+    methods: [GET]
+
+app_logradouro_new:
+    path: /logradouro/new
+    controller: App\Controller\LogradouroController::new
+    methods: [GET, POST]
+
+app_logradouro_show:
+    path: /logradouro/{id}
+    controller: App\Controller\LogradouroController::show
+    methods: [GET]
+
+app_logradouro_edit:
+    path: /logradouro/{id}/edit
+    controller: App\Controller\LogradouroController::edit
+    methods: [GET, POST]
+
+app_logradouro_delete:
+    path: /logradouro/{id}/delete
+    controller: App\Controller\LogradouroController::delete
+    methods: [POST]
 
 app_cep_lookup:
     path: /api/cep/{cep}

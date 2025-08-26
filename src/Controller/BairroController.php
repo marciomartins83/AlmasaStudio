@@ -77,7 +77,9 @@ class BairroController extends AbstractController
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Bairros $bairro, EntityManagerInterface $entityManager): Response
     {
-        $form = $this->createForm(BairroType::class, $bairro);
+        $form = $this->createForm(BairroType::class, $bairro, [
+            'cidades' => $entityManager->getRepository(Cidades::class)->findAll()
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

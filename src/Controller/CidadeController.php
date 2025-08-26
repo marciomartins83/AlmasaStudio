@@ -59,7 +59,10 @@ class CidadeController extends AbstractController
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     public function show(Cidades $cidade, EstadosRepository $estadosRepository): Response
     {
-        $estado = $estadosRepository->find($cidade->getIdEstado());
+        $estado = $cidade->getEstado();
+        $idEstado = $estado ? $estado->getId() : null;
+
+        $estado = $estadosRepository->find($idEstado);
 
         return $this->render('cidade/show.html.twig', [
             'cidade' => $cidade,
@@ -77,7 +80,7 @@ class CidadeController extends AbstractController
             error_log("=== DEBUG CIDADE EDIT ===");
             error_log("ID: " . $cidade->getId());
             error_log("Nome: " . $cidade->getNome());
-            error_log("Estado ID: " . $cidade->getIdEstado());
+            error_log("Estado ID: " . ($cidade->getEstado() ? $cidade->getEstado()->getId() : 'null'));
             error_log("Código: " . $cidade->getCodigo());
             
             try {

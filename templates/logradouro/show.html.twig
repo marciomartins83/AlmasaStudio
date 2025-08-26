@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ logradouro.logradouro }} - {{ parent() }}{% endblock %}
+{% block title %}{{ logradouro.nome }} - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -14,9 +14,9 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1><i class="fas fa-road"></i> {{ logradouro.logradouro }}
-                    {% if bairro %}
-                        <small class="text-muted">({{ bairro.nome }})</small>
+                <h1><i class="fas fa-road"></i> {{ logradouro.nome }}
+                    {% if logradouro.bairro %}
+                        <small class="text-muted">({{ logradouro.bairro.nome }})</small>
                     {% endif %}
                 </h1>
                 <div>
@@ -40,13 +40,13 @@
                                 </tr>
                                 <tr>
                                     <th>Logradouro:</th>
-                                    <td><strong>{{ logradouro.logradouro }}</strong></td>
+                                    <td><strong>{{ logradouro.nome }}</strong></td>
                                 </tr>
                                 <tr>
                                     <th>Bairro:</th>
                                     <td>
-                                        {% if bairro %}
-                                            <span class="badge bg-info fs-6">{{ bairro.nome }}</span>
+                                        {% if logradouro.bairro %}
+                                            <span class="badge bg-info fs-6">{{ logradouro.bairro.nome }}</span>
                                         {% else %}
                                             <span class="text-muted">Bairro não encontrado</span>
                                         {% endif %}
