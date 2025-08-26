@@ -21,7 +21,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Email</th>
-                    <th>ID Tipo</th>
+                    <th>Tipo de Email</th>
                     <th>Descrição</th>
                     <th>Ações</th>
                 </tr>
@@ -31,7 +31,7 @@
                 <tr>
                     <td>{{ email.id }}</td>
                     <td>{{ email.email }}</td>
-                    <td>{{ email.idTipo }}</td>
+                    <td>{{ email.tipo.tipo ?? '-' }}</td>
                     <td>{{ email.descricao ?? '-' }}</td>
                     <td>
                         <a href="{{ path('app_email_edit', {'id': email.id}) }}" class="btn btn-sm btn-primary">Editar</a>
@@ -46,4 +46,4 @@
         </table>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

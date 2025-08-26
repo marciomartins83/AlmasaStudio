@@ -19,16 +19,16 @@ class EmailController extends AbstractController
     {
         $search = $request->query->get('search', '');
         $page = $request->query->getInt('page', 1);
-        
+
         $queryBuilder = $emailRepository->createQueryBuilder('e');
-            
+
         if ($search) {
             $queryBuilder->where('e.email LIKE :search')
                         ->setParameter('search', '%' . $search . '%');
         }
-        
+
         $queryBuilder->orderBy('e.id', 'DESC');
-        
+
         $emails = $queryBuilder->getQuery()
             ->setFirstResult(($page - 1) * 10)
             ->setMaxResults(10)
@@ -100,4 +100,4 @@ class EmailController extends AbstractController
 
         return $this->redirectToRoute('app_email_index');
     }
-} 
+}

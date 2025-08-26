@@ -1,39 +1,68 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Editar Email{% endblock %}
+{% block title %}Editar Email - {{ parent() }}{% endblock %}
 
-{% block body %}
+{% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Editar Email</h1>
-        <a href="{{ path('app_email_index') }}" class="btn btn-secondary">Voltar</a>
-    </div>
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Lista de Emails', 'url': path('app_email_index')}
+        ],
+        'current': 'Editar Email'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-edit"></i> Editar Email</h1>
+                <a href="{{ path('app_email_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
 
-    <div class="card">
-        <div class="card-body">
-            {{ form_start(form) }}
-                <div class="mb-3">
-                    {{ form_label(form.email) }}
-                    {{ form_widget(form.email) }}
-                    {{ form_errors(form.email) }}
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form_label(form.email, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.email) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.tipo, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.tipo, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.tipo) }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form_label(form.descricao, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.descricao, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.descricao) }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Atualizar
+                                </button>
+                                <a href="{{ path('app_email_index') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    {{ form_end(form) }}
                 </div>
-
-                <div class="mb-3">
-                    {{ form_label(form.tipo) }}
-                    {{ form_widget(form.tipo) }}
-                    {{ form_errors(form.tipo) }}
-                </div>
-
-                <div class="mb-3">
-                    {{ form_label(form.descricao) }}
-                    {{ form_widget(form.descricao) }}
-                    {{ form_errors(form.descricao) }}
-                </div>
-
-                <button type="submit" class="btn btn-primary">Atualizar</button>
-                <a href="{{ path('app_email_index') }}" class="btn btn-secondary">Cancelar</a>
-            {{ form_end(form) }}
+            </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

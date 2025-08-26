@@ -27,7 +27,7 @@
                                 <tr>
                                     <th width="80">ID</th>
                                     <th>Número</th>
-                                    <th>Tipo</th>
+                                    <th>Tipo de Telefone</th>
                                     <th width="200">Ações</th>
                                 </tr>
                             </thead>
@@ -36,7 +36,7 @@
                                 <tr>
                                     <td>{{ telefone.id }}</td>
                                     <td><strong>{{ telefone.numero }}</strong></td>
-                                    <td>{{ telefone.idTipo }}</td>
+                                    <td>{{ telefone.tipo.tipo }}</td>
                                     <td>
                                         <div class="btn-group-vertical btn-group-sm d-md-none" role="group">
                                             <a href="{{ path('app_telefone_show', {'id': telefone.id}) }}" 
@@ -87,4 +87,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

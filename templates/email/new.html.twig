@@ -32,22 +32,13 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    {{ form_label(form.idTipo, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.idTipo, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.idTipo) }}
+{{ form_label(form.tipo, null, {'label_attr': {'class': 'form-label'}}) }}
+{{ form_widget(form.tipo, {'attr': {'class': 'form-select'}}) }}
+{{ form_errors(form.tipo) }}
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="mb-3">
-                                    {{ form_label(form.descricao, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.descricao, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.descricao) }}
-                                </div>
-                            </div>
-                        </div>
                         
                         <div class="row mt-3">
                             <div class="col-12">
@@ -65,4 +56,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

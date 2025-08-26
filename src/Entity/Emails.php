@@ -14,8 +14,9 @@ class Emails
     private ?int $id = null;
     #[ORM\Column]
     private string $email;
-    #[ORM\Column(type: 'bigint')]
-    private int $idTipo;
+#[ORM\ManyToOne(targetEntity: TiposEmails::class)]
+#[ORM\JoinColumn(name: 'id_tipo', referencedColumnName: 'id')]
+private ?TiposEmails $tipo = null;
     #[ORM\Column(nullable: true)]
     private ?string $descricao = null;
 
@@ -35,16 +36,16 @@ class Emails
         return $this;
     }
 
-    public function getIdTipo(): int
-    {
-        return $this->idTipo;
-    }
+public function getTipo(): ?TiposEmails
+{
+    return $this->tipo;
+}
 
-    public function setIdTipo(int $idTipo): self
-    {
-        $this->idTipo = $idTipo;
-        return $this;
-    }
+public function setTipo(?TiposEmails $tipo): self
+{
+    $this->tipo = $tipo;
+    return $this;
+}
 
     public function getDescricao(): ?string
     {
