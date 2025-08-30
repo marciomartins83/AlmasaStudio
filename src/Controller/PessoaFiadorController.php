@@ -9,6 +9,7 @@ use App\Entity\TiposDocumentos;
 use App\Form\PessoaFiadorFormType;
 use App\Repository\PessoaFiadorRepository;
 use App\Repository\PessoaRepository;
+use App\Service\CepService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -653,6 +654,51 @@ class PessoaFiadorController extends AbstractController
                 'success' => false,
                 'message' => 'Erro na busca: ' . $e->getMessage()
             ], 500);
+        }
+    }
+    
+    #[Route('/buscar-cep', name: 'buscar_cep', methods: ['POST'])]
+    public function buscarCep(Request $request, CepService $cepService): JsonResponse
+    {
+        // Adicionar headers CORS para desenvolvimento
+        $response = new JsonResponse();
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+
+        // Handle preflight OPTIONS request
+        if ($request->getMethod() === 'OPTIONS') {
+            return $response;
+        }
+
+        try {
+            $data = json_decode($request->getContent(), true);
+            $cep = $data['cep'] ?? null;
+
+            if (!$cep) {
+                $response->setData(['success' => false, 'message' => 'CEP não informado']);
+                $response->setStatusCode(400);
+                return $response;
+            }
+
+            $endereco = $cepService->buscarEpersistirEndereco($cep);
+            $response->setData([
+                'success' => true,
+                'logradouro' => $endereco['logradouro'],
+                'bairro' => $endereco['bairro'],
+                'cidade' => $endereco['cidade'],
+                'estado' => $endereco['estado']
+            ]);
+            return $response;
+
+        } catch (\Exception $e) {
+            $response->setData([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $response->setStatusCode(500);
+            return $response;
         }
     }
 }

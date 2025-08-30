@@ -8,7 +8,7 @@ use App\Entity\Enderecos;
 use App\Entity\ContasBancarias;
 use App\Entity\ChavesPix;
 use App\Entity\Pessoas;
-use App\Service\CEPService;
+use App\Service\CepService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class ContactController extends AbstractController
 {
     #[Route('/cep/{cep}', name: 'api_cep', methods: ['GET'])]
-    public function buscarCEP(string $cep, CEPService $cepService): JsonResponse
+    public function buscarCEP(string $cep, CepService $cepService): JsonResponse
     {
         $result = $cepService->buscarCEP($cep);
         return new JsonResponse($result);

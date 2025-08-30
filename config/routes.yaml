@@ -191,6 +191,11 @@ app_pessoa_fiador_search_conjuge:
     controller: App\Controller\PessoaFiadorController::searchConjuge
     methods: [POST]
 
+app_pessoa_fiador_buscar_cep:
+    path: /pessoa-fiador/buscar-cep
+    controller: App\Controller\PessoaFiadorController::buscarCep
+    methods: [POST]
+
 # Rotas para Locadores
 app_pessoa_locador_index:
     path: /pessoa-locador/
@@ -500,3 +505,9 @@ app_logout:
 app_login:
     path: /login
     controller: App\Controller\SecurityController::login
+
+# Fallback para Chrome DevTools
+chrome_devtools_fallback:
+    path: /.well-known/appspecific/com.chrome.devtools.json
+    controller: App\Controller\DefaultController::emptyResponse
+    methods: [GET]

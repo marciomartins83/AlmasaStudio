@@ -12,10 +12,14 @@ class Logradouros
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[ORM\Column(type: 'bigint')]
-    private int $idBairro;
+
+    #[ORM\ManyToOne(targetEntity: Bairros::class)]
+    #[ORM\JoinColumn(name: "id_bairro", referencedColumnName: "id")]
+    private ?Bairros $bairro = null;
+
     #[ORM\Column]
     private string $logradouro;
+
     #[ORM\Column]
     private string $cep;
 
@@ -24,14 +28,14 @@ class Logradouros
         return $this->id;
     }
 
-    public function getIdBairro(): int
+    public function getBairro(): ?Bairros
     {
-        return $this->idBairro;
+        return $this->bairro;
     }
 
-    public function setIdBairro(int $idBairro): self
+    public function setBairro(?Bairros $bairro): self
     {
-        $this->idBairro = $idBairro;
+        $this->bairro = $bairro;
         return $this;
     }
 
@@ -57,4 +61,14 @@ class Logradouros
         return $this;
     }
 
+    public function getIdBairro(): int
+    {
+        return $this->bairro ? $this->bairro->getId() : 0;
+    }
+
+    public function setIdBairro(int $idBairro): self
+    {
+        // Método mantido para compatibilidade
+        return $this;
+    }
 }

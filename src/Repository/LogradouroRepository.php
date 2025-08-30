@@ -50,4 +50,9 @@ class LogradouroRepository extends ServiceEntityRepository
     {
         return $this->findBy(['cep' => $cep]);
     }
+
+    public function findOneByCep(string $cep): ?Logradouro
+    {
+        return $this->findOneBy(['cep' => $cep]);
+    }
 }
