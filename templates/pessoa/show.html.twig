@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Detalhes da Pessoa Corretor{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Detalhes da Pessoa Corretor</h1>
+        <div>
+            <a href="{{ path('app_pessoa_corretor_edit', {'id': pessoa_corretor.id}) }}" class="btn btn-warning">Editar</a>
+            <a href="{{ path('app_pessoa_corretor_index') }}" class="btn btn-secondary">Voltar</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">Informações da Pessoa Corretor</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>ID:</th>
+                            <td>{{ pessoa_corretor.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>ID Pessoa:</th>
+                            <td>{{ pessoa_corretor.idPessoa }}</td>
+                        </tr>
+                        <tr>
+                            <th>CRECI:</th>
+                            <td>{{ pessoa_corretor.creci ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Usuário:</th>
+                            <td>{{ pessoa_corretor.usuario ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>{{ pessoa_corretor.status ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Data de Cadastro:</th>
+                            <td>{{ pessoa_corretor.dataCadastro ? pessoa_corretor.dataCadastro|date('d/m/Y') : '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Ativo:</th>
+                            <td>{{ pessoa_corretor.ativo ? 'Sim' : 'Não' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

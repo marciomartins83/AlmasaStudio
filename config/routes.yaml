@@ -190,6 +190,8 @@ app_pessoa_fiador_search_conjuge:
     path: /pessoa-fiador/search-conjuge
     controller: App\Controller\PessoaFiadorController::searchConjuge
     methods: [POST]
+    options:
+        expose: true
 
 app_pessoa_fiador_buscar_cep:
     path: /pessoa-fiador/buscar-cep

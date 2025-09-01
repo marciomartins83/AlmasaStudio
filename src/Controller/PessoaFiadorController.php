@@ -309,7 +309,7 @@ class PessoaFiadorController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(PessoasFiadores $pessoaFiador): Response
     {
         return $this->render('pessoa_fiador/show.html.twig', [
@@ -317,10 +317,10 @@ class PessoaFiadorController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
+    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function edit(Request $request, PessoasFiadores $pessoaFiador, EntityManagerInterface $entityManager): Response
     {
-        $form = $this->createForm(PessoaFiadorCombinedType::class, $pessoaFiador);
+        $form = $this->createForm(PessoaFiadorFormType::class, $pessoaFiador);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -335,10 +335,10 @@ class PessoaFiadorController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    #[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(Request $request, PessoasFiadores $pessoaFiador, EntityManagerInterface $entityManager): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$pessoaFiador->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete'.$pessoaFiador->getIdPessoa(), $request->request->get('_token'))) {
             $entityManager->remove($pessoaFiador);
             $entityManager->flush();
             $this->addFlash('success', 'Fiador excluído com sucesso!');
@@ -451,7 +451,7 @@ class PessoaFiadorController extends AbstractController
                 if (!empty($telefoneData['tipo']) && !empty($telefoneData['numero'])) {
                     // Criar telefone
                     $telefone = new \App\Entity\Telefones();
-                    $telefone->setIdTipo((int)$telefoneData['tipo']);
+                    $telefone->setTipo($entityManager->getReference(\App\Entity\TiposTelefones::class, (int)$telefoneData['tipo']));
                     $telefone->setNumero($telefoneData['numero']);
                     $entityManager->persist($telefone);
                     $entityManager->flush(); // Para obter o ID
@@ -475,8 +475,8 @@ class PessoaFiadorController extends AbstractController
                     // Criar endereço
                     $endereco = new \App\Entity\Enderecos();
                     $endereco->setIdPessoa($pessoaId);
-                    $endereco->setIdLogradouro($logradouroId);
-                    $endereco->setIdTipo((int)$enderecoData['tipo']);
+                    $endereco->setLogradouro($entityManager->getReference(\App\Entity\Logradouro::class, $logradouroId));
+                    $endereco->setTipo($entityManager->getReference(\App\Entity\TipoEndereco::class, (int)$enderecoData['tipo']));
                     $endereco->setEndNumero((int)$enderecoData['numero']);
                     if (!empty($enderecoData['complemento'])) {
                         $endereco->setComplemento($enderecoData['complemento']);
@@ -493,7 +493,7 @@ class PessoaFiadorController extends AbstractController
                     // Criar email
                     $email = new \App\Entity\Emails();
                     $email->setEmail($emailData['email']);
-                    $email->setIdTipo((int)$emailData['tipo']);
+                    $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
                     $entityManager->persist($email);
                     $entityManager->flush(); // Para obter o ID
                     
@@ -571,7 +571,9 @@ class PessoaFiadorController extends AbstractController
                 // Por simplicidade, criar cidade genérica (idealmente buscar por CEP)
                 $cidade = new \App\Entity\Cidades();
                 $cidade->setNome($enderecoData['cidade']);
-                $cidade->setIdEstado(1); // São Paulo como padrão
+                // Buscar o estado de São Paulo (ID 1)
+                $estado = $entityManager->getRepository(\App\Entity\Estados::class)->find(1);
+                $cidade->setEstado($estado); // São Paulo como padrão
                 $entityManager->persist($cidade);
                 $entityManager->flush();
             }
@@ -579,7 +581,7 @@ class PessoaFiadorController extends AbstractController
             // Criar bairro
             $bairro = new \App\Entity\Bairros();
             $bairro->setNome($enderecoData['bairro']);
-            $bairro->setIdCidade($cidade->getId());
+            $bairro->setCidade($cidade);
             $entityManager->persist($bairro);
             $entityManager->flush();
         }
@@ -607,7 +609,8 @@ class PessoaFiadorController extends AbstractController
         return $logradouro->getId();
     }
 
-    #[Route('/search-conjuge', name: 'search_conjuge', methods: ['POST'])]
+    #[Route('/search-conjuge', name: 'app_pessoa_fiador_search_conjuge', methods: ['POST'],
+    options: ['expose' => true])]
     public function searchConjuge(Request $request, PessoaRepository $pessoaRepository): JsonResponse
     {
         try {
