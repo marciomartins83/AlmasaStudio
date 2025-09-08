@@ -1,20 +1,53 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const tipoSelect = document.getElementById('pessoa_tipoPessoa'); // id gerado pelo Symfony
+    const tipoSelect = document.getElementById('pessoa_form_tipoPessoa'); // ID gerado pelo Symfony
     const container  = document.getElementById('sub-form-container');
 
-    const loadSubForm = (tipo) => {
-        if (!tipo) { container.innerHTML = ''; return; }
+    // Verifica se os elementos essenciais existem antes de prosseguir
+    if (!tipoSelect || !container) {
+        console.error('Elemento select de tipo de pessoa ou container do sub-formulário não encontrado.');
+        return;
+    }
 
-        fetch(container.dataset.url, {          // rota injetada via data-*
+    const loadSubForm = (tipo) => {
+        // Se nenhum tipo for selecionado, limpa o contêiner
+        if (!tipo) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // Exibe um indicador de carregamento
+        container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+
+        fetch(window.ROUTES.subform, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tipo })
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new URLSearchParams({
+                'tipo': tipo
+            })
         })
-        .then(r => r.text())
-        .then(html => container.innerHTML = html)
-        .catch(console.error);
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Falha na requisição do sub-formulário.');
+            }
+            return response.text();
+        })
+        .then(html => {
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Erro ao carregar o sub-formulário:', error);
+            container.innerHTML = '<div class="alert alert-danger">Não foi possível carregar os campos adicionais. Tente novamente.</div>';
+        });
     };
 
-    tipoSelect?.addEventListener('change', () => loadSubForm(tipoSelect.value));
-    loadSubForm(tipoSelect?.value);           // inicial
+    // Adiciona o listener para o evento de mudança
+    tipoSelect.addEventListener('change', () => loadSubForm(tipoSelect.value));
+
+    // Carrega o sub-formulário inicial se já houver um valor selecionado
+    if (tipoSelect.value) {
+        loadSubForm(tipoSelect.value);
+    }
 });

@@ -23,6 +23,14 @@ class Bairros
     #[ORM\Column(nullable: true)]
     private ?string $codigo = null;
 
+    #[ORM\OneToMany(mappedBy: 'bairro', targetEntity: Logradouros::class, fetch: "LAZY")]
+    private iterable $logradouros;
+
+    public function __construct()
+    {
+        $this->logradouros = new \Doctrine\Common\Collections\ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -37,14 +45,6 @@ class Bairros
     {
         $this->cidade = $cidade;
         return $this;
-    }
-
-    #[ORM\OneToMany(mappedBy: 'bairro', targetEntity: Logradouro::class, fetch: "LAZY")]
-    private iterable $logradouros;
-
-    public function __construct()
-    {
-        $this->logradouros = new \Doctrine\Common\Collections\ArrayCollection();
     }
 
     public function getIdCidade(): ?int

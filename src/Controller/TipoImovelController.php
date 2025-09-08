@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\TipoImovel;
+use App\Entity\TiposImoveis;
 use App\Form\TipoImovelType;
-use App\Repository\TipoImovelRepository;
+use App\Repository\TiposImoveisRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,9 +15,9 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoImovelController extends AbstractController
 {
     private EntityManagerInterface $entityManager;
-    private TipoImovelRepository $tipoImovelRepository;
+    private TiposImoveisRepository $tipoImovelRepository;
 
-    public function __construct(EntityManagerInterface $entityManager, TipoImovelRepository $tipoImovelRepository)
+    public function __construct(EntityManagerInterface $entityManager, TiposImoveisRepository $tipoImovelRepository)
     {
         $this->entityManager = $entityManager;
         $this->tipoImovelRepository = $tipoImovelRepository;
@@ -34,7 +34,7 @@ class TipoImovelController extends AbstractController
     #[Route('/new', name: 'app_tipo_imovel_new', methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
-        $tipoImovel = new TipoImovel();
+        $tipoImovel = new TiposImoveis();
         $form = $this->createForm(TipoImovelType::class, $tipoImovel);
         $form->handleRequest($request);
 
@@ -52,7 +52,7 @@ class TipoImovelController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_tipo_imovel_show', methods: ['GET'])]
-    public function show(TipoImovel $tipoImovel): Response
+    public function show(TiposImoveis $tipoImovel): Response
     {
         return $this->render('tipo_imovel/show.html.twig', [
             'tipo_imovel' => $tipoImovel,
@@ -60,7 +60,7 @@ class TipoImovelController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_tipo_imovel_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TipoImovel $tipoImovel): Response
+    public function edit(Request $request, TiposImoveis $tipoImovel): Response
     {
         $form = $this->createForm(TipoImovelType::class, $tipoImovel);
         $form->handleRequest($request);
@@ -78,7 +78,7 @@ class TipoImovelController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_tipo_imovel_delete', methods: ['POST'])]
-    public function delete(Request $request, TipoImovel $tipoImovel): Response
+    public function delete(Request $request, TiposImoveis $tipoImovel): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoImovel->getId(), $request->request->get('_token'))) {
             $this->entityManager->remove($tipoImovel);

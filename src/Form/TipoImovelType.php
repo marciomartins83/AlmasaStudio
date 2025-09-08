@@ -2,7 +2,7 @@
 
 namespace App\Form;
 
-use App\Entity\TipoImovel;
+use App\Entity\TiposImoveis;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -29,7 +29,7 @@ class TipoImovelType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => TipoImovel::class,
+            'data_class' => TiposImoveis::class,
         ]);
     }
 }

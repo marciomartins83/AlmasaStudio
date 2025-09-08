@@ -12,16 +12,22 @@ class Enderecos
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[ORM\Column(type: 'bigint')]
-    private int $idPessoa;
-    #[ORM\ManyToOne(targetEntity: Logradouro::class)]
+
+    #[ORM\ManyToOne(targetEntity: Pessoas::class)]
+    #[ORM\JoinColumn(name: 'id_pessoa', referencedColumnName: 'idpessoa', nullable: false)]
+    private ?Pessoas $pessoa = null;
+
+    #[ORM\ManyToOne(targetEntity: Logradouros::class)]
     #[ORM\JoinColumn(name: 'id_logradouro', referencedColumnName: 'id', nullable: false)]
-    private ?Logradouro $logradouro = null;
-    #[ORM\ManyToOne(targetEntity: TipoEndereco::class)]
+    private ?Logradouros $logradouro = null;
+
+    #[ORM\ManyToOne(targetEntity: TiposEnderecos::class)]
     #[ORM\JoinColumn(name: 'id_tipo', referencedColumnName: 'id', nullable: false)]
-    private ?TipoEndereco $tipo = null;
+    private ?TiposEnderecos $tipo = null;
+
     #[ORM\Column]
     private int $endNumero;
+
     #[ORM\Column(nullable: true)]
     private ?string $complemento = null;
 
@@ -30,34 +36,34 @@ class Enderecos
         return $this->id;
     }
 
-    public function getIdPessoa(): int
+    public function getPessoa(): ?Pessoas
     {
-        return $this->idPessoa;
+        return $this->pessoa;
     }
 
-    public function setIdPessoa(int $idPessoa): self
+    public function setPessoa(?Pessoas $pessoa): self
     {
-        $this->idPessoa = $idPessoa;
+        $this->pessoa = $pessoa;
         return $this;
     }
 
-    public function getLogradouro(): ?Logradouro
+    public function getLogradouro(): ?Logradouros
     {
         return $this->logradouro;
     }
 
-    public function setLogradouro(?Logradouro $logradouro): self
+    public function setLogradouro(?Logradouros $logradouro): self
     {
         $this->logradouro = $logradouro;
         return $this;
     }
 
-    public function getTipo(): ?TipoEndereco
+    public function getTipo(): ?TiposEnderecos
     {
         return $this->tipo;
     }
 
-    public function setTipo(?TipoEndereco $tipo): self
+    public function setTipo(?TiposEnderecos $tipo): self
     {
         $this->tipo = $tipo;
         return $this;
@@ -84,5 +90,5 @@ class Enderecos
         $this->complemento = $complemento;
         return $this;
     }
-
 }
+

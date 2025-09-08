@@ -2,65 +2,105 @@
 
 namespace App\Entity;
 
+use App\Repository\PessoasPretendentesRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PessoasPretendentesRepository::class)]
 #[ORM\Table(name: 'pessoas_pretendentes')]
+#[ORM\HasLifecycleCallbacks]
 class PessoasPretendentes
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[ORM\Column(type: 'bigint')]
-    private int $idPessoa;
-    #[ORM\Column(type: 'bigint', nullable: true)]
-    private ?int $idTipoImovel = null;
-    #[ORM\Column(nullable: true)]
+
+    #[ORM\ManyToOne(targetEntity: Pessoas::class)]
+    #[ORM\JoinColumn(name: 'id_pessoa', referencedColumnName: 'idpessoa', nullable: false)]
+    private ?Pessoas $pessoa = null;
+
+    #[ORM\ManyToOne(targetEntity: TiposImoveis::class)]
+    #[ORM\JoinColumn(name: 'id_tipo_imovel', referencedColumnName: 'id')]
+    private ?TiposImoveis $tipoImovel = null;
+
+    #[ORM\Column(name: 'quartos_desejados', nullable: true)]
     private ?int $quartosDesejados = null;
-    #[ORM\Column(type: 'decimal', nullable: true)]
+
+    #[ORM\Column(name: 'aluguel_maximo', type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
     private ?string $aluguelMaximo = null;
-    #[ORM\Column(type: 'bigint', nullable: true)]
-    private ?int $idLogradouroDesejado = null;
-    #[ORM\Column(type: 'boolean')]
-    private bool $disponivel;
-    #[ORM\Column(type: 'boolean')]
-    private bool $procuraAluguel;
-    #[ORM\Column(type: 'boolean')]
-    private bool $procuraCompra;
-    #[ORM\Column(type: 'bigint', nullable: true)]
-    private ?int $idAtendente = null;
-    #[ORM\Column(type: 'bigint', nullable: true)]
-    private ?int $idTipoAtendimento = null;
-    #[ORM\Column(type: 'date', nullable: true)]
+
+    #[ORM\ManyToOne(targetEntity: Logradouros::class)]
+    #[ORM\JoinColumn(name: 'id_logradouro_desejado', referencedColumnName: 'id')]
+    private ?Logradouros $logradouroDesejado = null;
+
+    #[ORM\Column]
+    private ?bool $disponivel = null;
+
+    #[ORM\Column(name: 'procura_aluguel')]
+    private ?bool $procuraAluguel = null;
+
+    #[ORM\Column(name: 'procura_compra')]
+    private ?bool $procuraCompra = null;
+
+    #[ORM\ManyToOne(targetEntity: Users::class)]
+    #[ORM\JoinColumn(name: 'id_atendente', referencedColumnName: 'id')]
+    private ?Users $atendente = null;
+
+    #[ORM\ManyToOne(targetEntity: TiposAtendimento::class)]
+    #[ORM\JoinColumn(name: 'id_tipo_atendimento', referencedColumnName: 'id')]
+    private ?TiposAtendimento $tipoAtendimento = null;
+
+    #[ORM\Column(name: 'data_cadastro', type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dataCadastro = null;
-    #[ORM\Column(type: 'text', nullable: true)]
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $observacoes = null;
+    
+    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $createdAt = null;
+
+    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $updatedAt = null;
+
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        $this->createdAt = new \DateTime();
+        $this->updatedAt = new \DateTime();
+    }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updatedAt = new \DateTime();
+    }
+
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getIdPessoa(): int
+    public function getPessoa(): ?Pessoas
     {
-        return $this->idPessoa;
+        return $this->pessoa;
     }
 
-    public function setIdPessoa(int $idPessoa): self
+    public function setPessoa(?Pessoas $pessoa): self
     {
-        $this->idPessoa = $idPessoa;
+        $this->pessoa = $pessoa;
         return $this;
     }
 
-    public function getIdTipoImovel(): ?int
+    public function getTipoImovel(): ?TiposImoveis
     {
-        return $this->idTipoImovel;
+        return $this->tipoImovel;
     }
 
-    public function setIdTipoImovel(?int $idTipoImovel): self
+    public function setTipoImovel(?TiposImoveis $tipoImovel): self
     {
-        $this->idTipoImovel = $idTipoImovel;
+        $this->tipoImovel = $tipoImovel;
         return $this;
     }
 
@@ -86,18 +126,18 @@ class PessoasPretendentes
         return $this;
     }
 
-    public function getIdLogradouroDesejado(): ?int
+    public function getLogradouroDesejado(): ?Logradouros
     {
-        return $this->idLogradouroDesejado;
+        return $this->logradouroDesejado;
     }
 
-    public function setIdLogradouroDesejado(?int $idLogradouroDesejado): self
+    public function setLogradouroDesejado(?Logradouros $logradouroDesejado): self
     {
-        $this->idLogradouroDesejado = $idLogradouroDesejado;
+        $this->logradouroDesejado = $logradouroDesejado;
         return $this;
     }
 
-    public function getDisponivel(): bool
+    public function isDisponivel(): ?bool
     {
         return $this->disponivel;
     }
@@ -108,7 +148,7 @@ class PessoasPretendentes
         return $this;
     }
 
-    public function getProcuraAluguel(): bool
+    public function isProcuraAluguel(): ?bool
     {
         return $this->procuraAluguel;
     }
@@ -119,7 +159,7 @@ class PessoasPretendentes
         return $this;
     }
 
-    public function getProcuraCompra(): bool
+    public function isProcuraCompra(): ?bool
     {
         return $this->procuraCompra;
     }
@@ -130,25 +170,25 @@ class PessoasPretendentes
         return $this;
     }
 
-    public function getIdAtendente(): ?int
+    public function getAtendente(): ?Users
     {
-        return $this->idAtendente;
+        return $this->atendente;
     }
 
-    public function setIdAtendente(?int $idAtendente): self
+    public function setAtendente(?Users $atendente): self
     {
-        $this->idAtendente = $idAtendente;
+        $this->atendente = $atendente;
         return $this;
     }
 
-    public function getIdTipoAtendimento(): ?int
+    public function getTipoAtendimento(): ?TiposAtendimento
     {
-        return $this->idTipoAtendimento;
+        return $this->tipoAtendimento;
     }
 
-    public function setIdTipoAtendimento(?int $idTipoAtendimento): self
+    public function setTipoAtendimento(?TiposAtendimento $tipoAtendimento): self
     {
-        $this->idTipoAtendimento = $idTipoAtendimento;
+        $this->tipoAtendimento = $tipoAtendimento;
         return $this;
     }
 
@@ -174,4 +214,27 @@ class PessoasPretendentes
         return $this;
     }
 
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(\DateTimeInterface $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
 }

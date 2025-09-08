@@ -2,9 +2,9 @@
 
 namespace App\Controller;
 
-use App\Entity\TipoEndereco;
+use App\Entity\TiposEnderecos;
 use App\Form\TipoEnderecoType;
-use App\Repository\TipoEnderecoRepository;
+use App\Repository\TiposEnderecosRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,9 +14,9 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoEnderecoController extends AbstractController
 {
     private EntityManagerInterface $entityManager;
-    private TipoEnderecoRepository $tipoEnderecoRepository;
+    private TiposEnderecosRepository $tipoEnderecoRepository;
 
-    public function __construct(EntityManagerInterface $entityManager, TipoEnderecoRepository $tipoEnderecoRepository)
+    public function __construct(EntityManagerInterface $entityManager, TiposEnderecosRepository $tipoEnderecoRepository)
     {
         $this->entityManager = $entityManager;
         $this->tipoEnderecoRepository = $tipoEnderecoRepository;
@@ -35,7 +35,7 @@ class TipoEnderecoController extends AbstractController
     #[Route('/tipo/endereco/new', name: 'app_tipo_endereco_new', methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
-        $tipoEndereco = new TipoEndereco();
+        $tipoEndereco = new TiposEnderecos();
         $form = $this->createForm(TipoEnderecoType::class, $tipoEndereco);
         $form->handleRequest($request);
 
@@ -54,7 +54,7 @@ class TipoEnderecoController extends AbstractController
     }
 
     #[Route('/tipo/endereco/{id}', name: 'app_tipo_endereco_show', methods: ['GET'])]
-    public function show(TipoEndereco $tipoEndereco): Response
+    public function show(TiposEnderecos $tipoEndereco): Response
     {
         return $this->render('tipo_endereco/show.html.twig', [
             'tipo_endereco' => $tipoEndereco,
@@ -62,7 +62,7 @@ class TipoEnderecoController extends AbstractController
     }
 
     #[Route('/tipo/endereco/{id}/edit', name: 'app_tipo_endereco_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TipoEndereco $tipoEndereco): Response
+    public function edit(Request $request, TiposEnderecos $tipoEndereco): Response
     {
         $form = $this->createForm(TipoEnderecoType::class, $tipoEndereco);
         $form->handleRequest($request);
@@ -80,7 +80,7 @@ class TipoEnderecoController extends AbstractController
     }
 
     #[Route('/tipo/endereco/{id}', name: 'app_tipo_endereco_delete', methods: ['POST'])]
-    public function delete(Request $request, TipoEndereco $tipoEndereco): Response
+    public function delete(Request $request, TiposEnderecos $tipoEndereco): Response
     {
         // Consider adding CSRF protection here if not already handled by Symfony forms
         if ($this->isCsrfTokenValid('delete' . $tipoEndereco->getId(), $request->request->get('_token'))) {

@@ -1,0 +1,28 @@
+<div class="card mb-4">
+    <div class="card-header">
+        <h3><i class="fas fa-search-location"></i> Dados do Pretendente</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">{{ form_row(form.pretendente.tipoImovel) }}</div>
+            <div class="col-md-6">{{ form_row(form.pretendente.quartosDesejados) }}</div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">{{ form_row(form.pretendente.aluguelMaximo) }}</div>
+            <div class="col-md-6">{{ form_row(form.pretendente.logradouroDesejado) }}</div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">{{ form_row(form.pretendente.disponivel) }}</div>
+            <div class="col-md-4">{{ form_row(form.pretendente.procuraAluguel) }}</div>
+            <div class="col-md-4">{{ form_row(form.pretendente.procuraCompra) }}</div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">{{ form_row(form.pretendente.atendente) }}</div>
+            <div class="col-md-6">{{ form_row(form.pretendente.tipoAtendimento) }}</div>
+        </div>
+         <div class="row">
+            <div class="col-md-6">{{ form_row(form.pretendente.dataCadastro) }}</div>
+        </div>
+        {{ form_row(form.pretendente.observacoes) }}
+    </div>
+</div>
