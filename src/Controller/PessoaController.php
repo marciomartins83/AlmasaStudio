@@ -509,6 +509,15 @@ class PessoaController extends AbstractController
                 $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
                 $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
                 
+                // Buscar dados múltiplos da pessoa
+                $telefones = $this->getTelefonesByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                $enderecos = $this->getEnderecosByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                $emails = $this->getEmailsByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                $documentos = $this->getDocumentosByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                $chavesPix = $this->getChavesPixByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                $profissoes = $this->getProfissoesByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                $conjuge = $this->getConjugeByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                
                 return new JsonResponse([
                     'success' => true,
                     'pessoa' => [
@@ -525,6 +534,13 @@ class PessoaController extends AbstractController
                         'nomeMae' => $pessoa->getNomeMae(),
                         'renda' => $pessoa->getRenda(),
                         'observacoes' => $pessoa->getObservacoes(),
+                        'telefones' => $telefones,
+                        'enderecos' => $enderecos,
+                        'emails' => $emails,
+                        'documentos' => $documentos,
+                        'chavesPix' => $chavesPix,
+                        'profissoes' => $profissoes,
+                        'conjuge' => $conjuge
                     ]
                 ]);
             } else {
@@ -1313,15 +1329,4 @@ class PessoaController extends AbstractController
             $logradouro->setBairro($bairro);
             
             if (!empty($enderecoData['cep'])) {
-                $logradouro->setCep(preg_replace('/\D/', '', $enderecoData['cep']));
-            } else {
-                $logradouro->setCep('00000000');
-            }
-            
-            $entityManager->persist($logradouro);
-            $entityManager->flush();
-        }
-        
-        return $logradouro->getId();
-    }
-}
+                $logradouro->setCep
