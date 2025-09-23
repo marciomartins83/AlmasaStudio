@@ -60,9 +60,6 @@ class PessoaController extends AbstractController
         ]);
     }
 
-    /**
-     * Método new() ATUALIZADO com validações e melhor tratamento
-     */
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
@@ -70,64 +67,64 @@ class PessoaController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
+            $data = $form->getData(); // Isso é um objeto Pessoas agora
             $requestData = $request->request->all();
             $tipoPessoa = $form->get('tipoPessoa')->getData();
-            $pessoaId = $form->get('pessoaId')->getData();
-            $cpfCnpj = $requestData['pessoa_form']['searchTerm'] ?? '';
-            
-            // ========== VALIDAÇÃO DE DOCUMENTO DUPLICADO ==========
-            if (!empty($cpfCnpj)) {
-                $validacaoDoc = $this->validarDocumentoUnico($cpfCnpj, $pessoaId, $entityManager);
-                
-                if (!$validacaoDoc['valido']) {
-                    // Se o documento pertence a outra pessoa
-                    if ($validacaoDoc['pessoaExistente'] && (!$pessoaId || $pessoaId != $validacaoDoc['pessoaExistente']->getIdpessoa())) {
-                        $this->addFlash('error', $validacaoDoc['mensagem']);
-                        
-                        // Sugerir ao usuário editar a pessoa existente
-                        $this->addFlash('info', sprintf(
-                            'Você pode <a href="%s">editar a pessoa existente</a> ou remover o %s para criar uma nova pessoa.',
-                            $this->generateUrl('app_pessoa_edit', ['id' => $validacaoDoc['pessoaExistente']->getIdpessoa()]),
-                            strlen(preg_replace('/[^\d]/', '', $cpfCnpj)) === 11 ? 'CPF' : 'CNPJ'
-                        ));
-                        
-                        return $this->render('pessoa/new.html.twig', [
-                            'form' => $form->createView(),
-                        ]);
-                    }
-                }
-            }
-            // ========== FIM DA VALIDAÇÃO ==========
 
-            // VERIFICAR se é pessoa existente (edição) ou nova (criação)
+            // VERIFICAR se é pessoa existente - se for, processar como edição
+            $pessoaId = $form->get('pessoaId')->getData();
             if (!empty($pessoaId)) {
-                // ========== MODO EDIÇÃO ==========
+                // É uma pessoa existente - processar como edição aqui mesmo
                 $pessoa = $entityManager->getRepository(Pessoas::class)->find($pessoaId);
-                
                 if (!$pessoa) {
                     $this->addFlash('error', "Pessoa com ID {$pessoaId} não encontrada");
                     return $this->redirectToRoute('app_pessoa_new');
                 }
 
+                // Processar edição da pessoa existente
                 $entityManager->getConnection()->beginTransaction();
                 try {
-                    // Atualizar dados da pessoa existente
-                    $this->atualizarDadosPessoa($pessoa, $data, $requestData, $entityManager);
+                    // Para edição, usar dados do request, não do $data
+                    $formData = $requestData['pessoa_form'] ?? [];
                     
-                    // Verificar e salvar CPF/CNPJ se foi adicionado/alterado
-                    if (!empty($cpfCnpj)) {
-                        $this->salvarOuAtualizarDocumentoPrincipal($pessoa, $cpfCnpj, $entityManager);
+                    // Atualizar dados básicos
+                    if (isset($formData['nome'])) $pessoa->setNome($formData['nome']);
+                    if (isset($formData['dataNascimento'])) {
+                        $pessoa->setDataNascimento($formData['dataNascimento'] ? new \DateTime($formData['dataNascimento']) : null);
                     }
+                    if (isset($formData['estadoCivil']) && !empty($formData['estadoCivil'])) {
+                        $estadoCivil = $entityManager->getReference(EstadoCivil::class, $formData['estadoCivil']);
+                        $pessoa->setEstadoCivil($estadoCivil);
+                    }
+                    if (isset($formData['nacionalidade']) && !empty($formData['nacionalidade'])) {
+                        $nacionalidade = $entityManager->getReference(Nacionalidade::class, $formData['nacionalidade']);
+                        $pessoa->setNacionalidade($nacionalidade);
+                    }
+                    if (isset($formData['naturalidade']) && !empty($formData['naturalidade'])) {
+                        $naturalidade = $entityManager->getReference(Naturalidade::class, $formData['naturalidade']);
+                        $pessoa->setNaturalidade($naturalidade);
+                    }
+                    if (isset($formData['nomePai'])) $pessoa->setNomePai($formData['nomePai']);
+                    if (isset($formData['nomeMae'])) $pessoa->setNomeMae($formData['nomeMae']);
+                    if (isset($formData['renda'])) $pessoa->setRenda($formData['renda']);
+                    if (isset($formData['observacoes'])) $pessoa->setObservacoes($formData['observacoes']);
 
-                    // Atualizar tipo de pessoa se necessário
-                    $this->atualizarTipoPessoa($pessoa, $tipoPessoa, $entityManager);
-                    
-                    // Processar dados múltiplos (estratégia de substituição)
-                    $this->processarDadosMultiplos($pessoa->getIdpessoa(), $requestData, $entityManager, true);
+                    // Atualizar tipoPessoa se alterado
+                    if (is_string($tipoPessoa)) {
+                        $tipoPessoaId = $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
+                    } else {
+                        $tipoPessoaId = (int)$tipoPessoa;
+                    }
+                    $pessoa->setTipoPessoa($tipoPessoaId);
+
+                    $entityManager->persist($pessoa);
+                    $entityManager->flush();
+
+                    // Processar dados múltiplos (telefones, endereços, etc.)
+                    $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $requestData, $entityManager);
 
                     // Processar cônjuge
-                    $this->processarConjugeCompleto($pessoa, $requestData, $entityManager);
+                    $this->salvarConjuge($pessoa, $requestData, $entityManager);
 
                     $entityManager->flush();
                     $entityManager->getConnection()->commit();
@@ -138,326 +135,91 @@ class PessoaController extends AbstractController
                 } catch (\Exception $e) {
                     $entityManager->getConnection()->rollBack();
                     $this->addFlash('error', 'Erro ao atualizar pessoa: ' . $e->getMessage());
-                    error_log('Erro na edição: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+                    error_log('Erro na edição via new: ' . $e->getMessage());
+                }
+
+                // Se chegou aqui, houve erro - continuar no formulário
+                return $this->render('pessoa/new.html.twig', [
+                    'form' => $form->createView(),
+                ]);
+            }
+
+            // A partir daqui é APENAS criação de pessoa nova
+            $entityManager->getConnection()->beginTransaction();
+            try {
+                // 1. Criar nova pessoa
+                $pessoa = new Pessoas();
+                $pessoa->setDtCadastro(new \DateTime());
+                $pessoa->setStatus(true);
+
+                // 2. Definir dados da pessoa - $data é objeto, usar getters
+                $pessoa->setNome($data->getNome());
+                $pessoa->setDataNascimento($data->getDataNascimento());
+                $pessoa->setEstadoCivil($data->getEstadoCivil());
+                $pessoa->setNacionalidade($data->getNacionalidade());
+                $pessoa->setNaturalidade($data->getNaturalidade());
+                $pessoa->setNomePai($data->getNomePai());
+                $pessoa->setNomeMae($data->getNomeMae());
+                $pessoa->setRenda($data->getRenda());
+                $pessoa->setObservacoes($data->getObservacoes());
+
+                // Definir física/jurídica baseado no CPF/CNPJ do requestData
+                $cpfCnpj = $requestData['pessoa_form']['searchTerm'] ?? '';
+                $fisicaJuridica = 'fisica';
+                if (!empty($cpfCnpj)) {
+                    $cpfCnpj = preg_replace('/[^\d]/', '', $cpfCnpj);
+                    $fisicaJuridica = strlen($cpfCnpj) === 11 ? 'fisica' : 'juridica';
                 }
                 
-            } else {
-                // ========== MODO CRIAÇÃO ==========
-                $entityManager->getConnection()->beginTransaction();
-                try {
-                    // Criar nova pessoa
-                    $pessoa = new Pessoas();
-                    $pessoa->setDtCadastro(new \DateTime());
-                    $pessoa->setStatus(true);
-                    
-                    // Definir dados básicos
-                    $this->definirDadosPessoa($pessoa, $data, $requestData, $entityManager);
-                    
-                    // Definir tipo física/jurídica baseado no documento
-                    if (!empty($cpfCnpj)) {
-                        $cpfCnpjLimpo = preg_replace('/[^\d]/', '', $cpfCnpj);
-                        $pessoa->setFisicaJuridica(strlen($cpfCnpjLimpo) === 11 ? 'fisica' : 'juridica');
-                    } else {
-                        $pessoa->setFisicaJuridica('fisica'); // Padrão
-                    }
-                    
-                    // Converter e definir tipo de pessoa
-                    $tipoPessoaId = $this->resolverTipoPessoa($tipoPessoa, $entityManager);
-                    $pessoa->setTipoPessoa($tipoPessoaId);
-
-                    $entityManager->persist($pessoa);
-                    $entityManager->flush(); // Obter ID
-
-                    // Salvar CPF/CNPJ
-                    if (!empty($cpfCnpj)) {
-                        $this->salvarDocumentoPrincipal($pessoa, $cpfCnpj, $entityManager);
-                    }
-
-                    // Criar vinculação de tipo específico
-                    $this->salvarTipoEspecifico($pessoa, $tipoPessoa, $data, $entityManager);
-
-                    // Salvar dados múltiplos
-                    $this->processarDadosMultiplos($pessoa->getIdpessoa(), $requestData, $entityManager, false);
-
-                    // Processar cônjuge
-                    $this->processarConjugeCompleto($pessoa, $requestData, $entityManager);
-
-                    $entityManager->flush();
-                    $entityManager->getConnection()->commit();
-
-                    $this->addFlash('success', 'Pessoa cadastrada com sucesso!');
-                    return $this->redirectToRoute('app_pessoa_index');
-
-                } catch (\Exception $e) {
-                    $entityManager->getConnection()->rollBack();
-                    $this->addFlash('error', 'Erro ao cadastrar pessoa: ' . $e->getMessage());
-                    error_log('Erro na criação: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+                $pessoa->setFisicaJuridica($fisicaJuridica);
+                
+                // Converter tipoPessoa do formulário para ID
+                if (is_string($tipoPessoa)) {
+                    $tipoPessoaId = $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
+                } else {
+                    $tipoPessoaId = (int)$tipoPessoa;
                 }
+                $pessoa->setTipoPessoa($tipoPessoaId);
+
+                // 3. Persistir pessoa
+                $entityManager->persist($pessoa);
+
+                // 4. FLUSH para obter ID da pessoa
+                $entityManager->flush();
+                
+                // 5. Salvar CPF/CNPJ se informado
+                if (!empty($cpfCnpj)) {
+                    $this->salvarDocumentoPrincipal($pessoa, $cpfCnpj, $entityManager);
+                }
+
+                // 6. Criar vinculação de tipo específico
+                $this->salvarTipoEspecifico($pessoa, $tipoPessoa, $data, $entityManager);
+
+                // 7. Salvar dados múltiplos
+                $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $requestData, $entityManager);
+
+                // 8. Salvar cônjuge
+                $this->salvarConjuge($pessoa, $requestData, $entityManager);
+
+                // 9. FLUSH FINAL
+                $entityManager->flush();
+                $entityManager->getConnection()->commit();
+
+                $this->addFlash('success', 'Pessoa cadastrada com sucesso!');
+                return $this->redirectToRoute('app_pessoa_index');
+
+            } catch (\Exception $e) {
+                $entityManager->getConnection()->rollBack();
+                $this->addFlash('error', 'Erro ao cadastrar pessoa: ' . $e->getMessage());
+                
+                error_log('Erro detalhado na criação de pessoa: ' . $e->getMessage());
+                error_log('Trace: ' . $e->getTraceAsString());
             }
         }
 
         return $this->render('pessoa/new.html.twig', [
             'form' => $form->createView(),
         ]);
-    }
-
-    /**
-     * Remove relacionamento de cônjuge bidirecional
-     */
-    private function removerRelacionamentoConjuge(Pessoas $pessoa, RelacionamentosFamiliares $relacionamento, EntityManagerInterface $entityManager): void
-    {
-        // Buscar relacionamento inverso
-        $relacionamentoInverso = $entityManager->getRepository(RelacionamentosFamiliares::class)
-            ->findOneBy([
-                'idPessoaOrigem' => $relacionamento->getIdPessoaDestino(),
-                'idPessoaDestino' => $pessoa->getIdpessoa(),
-                'tipoRelacionamento' => 'Cônjuge'
-            ]);
-        
-        $entityManager->remove($relacionamento);
-        if ($relacionamentoInverso) {
-            $entityManager->remove($relacionamentoInverso);
-        }
-    }
-
-    private function processarConjugeCompleto(Pessoas $pessoa, array $requestData, EntityManagerInterface $entityManager): void
-    {
-        $temConjuge = !empty($requestData['novo_conjuge']) || !empty($requestData['conjuge_id']);
-        
-        // Verificar relacionamento existente
-        $relacionamentoExistente = $entityManager->getRepository(RelacionamentosFamiliares::class)
-            ->findOneBy([
-                'idPessoaOrigem' => $pessoa->getIdpessoa(),
-                'tipoRelacionamento' => 'Cônjuge',
-                'ativo' => true
-            ]);
-        
-        if (!$temConjuge && $relacionamentoExistente) {
-            // Remover relacionamento se desmarcou cônjuge
-            $this->removerRelacionamentoConjuge($pessoa, $relacionamentoExistente, $entityManager);
-            return;
-        }
-        
-        if ($temConjuge) {
-            // Processar cônjuge (novo ou existente)
-            $this->salvarConjuge($pessoa, $requestData, $entityManager);
-        }
-    }
-
-    /**
-     * Processa dados múltiplos com estratégia de substituição opcional
-     */
-    private function processarDadosMultiplos(int $pessoaId, array $requestData, EntityManagerInterface $entityManager, bool $substituir = false): void
-    {
-        if ($substituir) {
-            $this->limparDadosMultiplosExistentes($pessoaId, $entityManager);
-        }
-        
-        $this->salvarDadosMultiplosCorrigido($pessoaId, $requestData, $entityManager);
-    }
-
-    /**
-     * Salva ou atualiza documento principal (CPF/CNPJ)
-     */
-    private function salvarOuAtualizarDocumentoPrincipal(Pessoas $pessoa, string $documento, EntityManagerInterface $entityManager): void
-    {
-        $documento = preg_replace('/[^\d]/', '', $documento);
-        $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
-        
-        $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
-            ->findOneBy(['tipo' => $tipoDocumento]);
-        
-        if (!$tipoDocumentoEntity) {
-            return;
-        }
-        
-        // Verificar se já existe documento deste tipo
-        $documentoExistente = $entityManager->getRepository(PessoasDocumentos::class)
-            ->findOneBy([
-                'idPessoa' => $pessoa->getIdpessoa(),
-                'idTipoDocumento' => $tipoDocumentoEntity->getId()
-            ]);
-        
-        if ($documentoExistente) {
-            // Atualizar documento existente
-            $documentoExistente->setNumeroDocumento($documento);
-            $entityManager->persist($documentoExistente);
-        } else {
-            // Criar novo documento
-            $pessoaDocumento = new PessoasDocumentos();
-            $pessoaDocumento->setIdPessoa($pessoa->getIdpessoa());
-            $pessoaDocumento->setIdTipoDocumento($tipoDocumentoEntity->getId());
-            $pessoaDocumento->setNumeroDocumento($documento);
-            $pessoaDocumento->setAtivo(true);
-            $entityManager->persist($pessoaDocumento);
-        }
-    }
-
-    private function atualizarTipoPessoa(Pessoas $pessoa, $tipoPessoa, EntityManagerInterface $entityManager): void
-    {
-        $tipoPessoaId = $this->resolverTipoPessoa($tipoPessoa, $entityManager);
-        $tipoPessoaAtual = $pessoa->getTipoPessoa();
-        
-        if ($tipoPessoaId !== $tipoPessoaAtual) {
-            // Remover vinculação antiga
-            $this->removerVinculacaoTipo($pessoa, $entityManager);
-            
-            // Definir novo tipo
-            $pessoa->setTipoPessoa($tipoPessoaId);
-            $entityManager->persist($pessoa);
-            
-            // Criar nova vinculação
-            $this->salvarTipoEspecifico($pessoa, $tipoPessoa, [], $entityManager);
-        }
-    }
-
-    /**
-     * Remove vinculação de tipo anterior
-     */
-    private function removerVinculacaoTipo(Pessoas $pessoa, EntityManagerInterface $entityManager): void
-    {
-        $pessoaId = $pessoa->getIdpessoa();
-        
-        // Lista de todas as tabelas de vinculação
-        $entidadesVinculacao = [
-            PessoasFiadores::class,
-            PessoasCorretores::class,
-            PessoasLocadores::class,
-            PessoasPretendentes::class,
-            PessoasContratantes::class,
-            PessoasCorretoras::class
-        ];
-        
-        foreach ($entidadesVinculacao as $entidade) {
-            $registro = $entityManager->getRepository($entidade)
-                ->findOneBy(['idPessoa' => $pessoaId]);
-            
-            if ($registro) {
-                $entityManager->remove($registro);
-            }
-        }
-    }
-
-
-    /**
-     * Atualiza dados básicos da pessoa
-     */
-    private function atualizarDadosPessoa(Pessoas $pessoa, $data, array $requestData, EntityManagerInterface $entityManager): void
-    {
-        $formData = $requestData['pessoa_form'] ?? [];
-        
-        // Usar getters se $data for objeto, ou array access se for array
-        if (is_object($data)) {
-            $pessoa->setNome($data->getNome());
-            $pessoa->setDataNascimento($data->getDataNascimento());
-            $pessoa->setEstadoCivil($data->getEstadoCivil());
-            $pessoa->setNacionalidade($data->getNacionalidade());
-            $pessoa->setNaturalidade($data->getNaturalidade());
-            $pessoa->setNomePai($data->getNomePai());
-            $pessoa->setNomeMae($data->getNomeMae());
-            $pessoa->setRenda($data->getRenda());
-            $pessoa->setObservacoes($data->getObservacoes());
-        } else {
-            // Fallback para array (caso o form retorne array)
-            if (isset($formData['nome'])) $pessoa->setNome($formData['nome']);
-            if (isset($formData['dataNascimento'])) {
-                $pessoa->setDataNascimento($formData['dataNascimento'] ? new \DateTime($formData['dataNascimento']) : null);
-            }
-            // ... outros campos
-        }
-        
-        $entityManager->persist($pessoa);
-    }
-
-    /**
-     * Valida se um documento (CPF/CNPJ) já está cadastrado para outra pessoa
-     * 
-     * @param string $documento O documento a validar
-     * @param int|null $pessoaId ID da pessoa atual (para excluir da validação)
-     * @param EntityManagerInterface $entityManager
-     * @return array ['valido' => bool, 'mensagem' => string, 'pessoaExistente' => Pessoas|null]
-     */
-    private function validarDocumentoUnico(string $documento, ?int $pessoaId, EntityManagerInterface $entityManager): array
-    {
-        $documento = preg_replace('/[^\d]/', '', $documento);
-        
-        if (empty($documento)) {
-            return ['valido' => false, 'mensagem' => 'Documento inválido', 'pessoaExistente' => null];
-        }
-        
-        $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
-        
-        // Buscar tipo de documento
-        $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
-            ->findOneBy(['tipo' => $tipoDocumento]);
-        
-        if (!$tipoDocumentoEntity) {
-            return ['valido' => false, 'mensagem' => 'Tipo de documento não encontrado', 'pessoaExistente' => null];
-        }
-        
-        // Verificar se documento já existe
-        $queryBuilder = $entityManager->getRepository(PessoasDocumentos::class)
-            ->createQueryBuilder('pd')
-            ->where('pd.numeroDocumento = :doc')
-            ->andWhere('pd.idTipoDocumento = :tipo')
-            ->setParameter('doc', $documento)
-            ->setParameter('tipo', $tipoDocumentoEntity->getId());
-        
-        // Se está editando, excluir a própria pessoa da busca
-        if ($pessoaId !== null) {
-            $queryBuilder->andWhere('pd.idPessoa != :pessoaId')
-                ->setParameter('pessoaId', $pessoaId);
-        }
-        
-        $documentoExistente = $queryBuilder->getQuery()->getOneOrNullResult();
-        
-        if ($documentoExistente) {
-            // Buscar a pessoa dona do documento
-            $pessoaExistente = $entityManager->getRepository(Pessoas::class)
-                ->find($documentoExistente->getIdPessoa());
-            
-            return [
-                'valido' => false,
-                'mensagem' => sprintf(
-                    'Este %s já está cadastrado para %s (ID: %d)',
-                    $tipoDocumento,
-                    $pessoaExistente->getNome(),
-                    $pessoaExistente->getIdpessoa()
-                ),
-                'pessoaExistente' => $pessoaExistente
-            ];
-        }
-        
-        return ['valido' => true, 'mensagem' => 'Documento válido', 'pessoaExistente' => null];
-    }
-
-    private function definirDadosPessoa(Pessoas $pessoa, $data, array $requestData, EntityManagerInterface $entityManager): void
-    {
-        if (is_object($data)) {
-            $pessoa->setNome($data->getNome());
-            $pessoa->setDataNascimento($data->getDataNascimento());
-            $pessoa->setEstadoCivil($data->getEstadoCivil());
-            $pessoa->setNacionalidade($data->getNacionalidade());
-            $pessoa->setNaturalidade($data->getNaturalidade());
-            $pessoa->setNomePai($data->getNomePai());
-            $pessoa->setNomeMae($data->getNomeMae());
-            $pessoa->setRenda($data->getRenda());
-            $pessoa->setObservacoes($data->getObservacoes());
-        }
-    }
-
-    private function resolverTipoPessoa($tipoPessoa, EntityManagerInterface $entityManager): int
-    {
-        if (is_numeric($tipoPessoa)) {
-            return (int)$tipoPessoa;
-        }
-        
-        if (is_string($tipoPessoa)) {
-            return $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
-        }
-        
-        // Padrão: fiador
-        return 1;
     }
 
     /**
