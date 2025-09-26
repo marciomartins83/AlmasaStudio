@@ -25,7 +25,7 @@ class ChavePixType extends AbstractType
             ])
             ->add('idTipoChave', EntityType::class, [
                 'class'         => TiposChavesPix::class,
-                'choice_label'  => 'nome',
+                'choice_label'  => 'tipo',
                 'placeholder'   => 'Selecione o tipo',
                 'label'         => 'Tipo de Chave',
                 'attr'          => [

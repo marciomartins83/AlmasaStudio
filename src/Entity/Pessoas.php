@@ -9,8 +9,8 @@ use Doctrine\ORM\Mapping as ORM;
 class Pessoas
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(name: 'idpessoa')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]  
+    #[ORM\Column(name: 'idpessoa', type: 'integer')]
     private ?int $idpessoa = null;
     
     #[ORM\Column]

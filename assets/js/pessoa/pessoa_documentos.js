@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let contadorDocumento = 0;
 
     document.getElementById('add-documento')?.addEventListener('click', async function() {
-        const tipos = window.tiposDocumento || await carregarTipos('documento');
+        const tipos = window.tiposDocumento || await window.carregarTipos('documento'); // ✅ CORRIGIDO
         window.tiposDocumento = tipos;
         contadorDocumento++;
         const container = document.getElementById('documentos-container');
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="row">
                     <div class="col-md-3">
                         <label class="form-label">Tipo de Documento</label>
-                        ${criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`)}
+                        ${window.criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`)} 
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Número do Documento</label>
@@ -56,6 +56,62 @@ document.addEventListener('DOMContentLoaded', function() {
         container.insertAdjacentHTML('beforeend', documentoHtml);
     });
     
+    window.adicionarDocumentoExistente = async function(documento) {
+        const tipos = window.tiposDocumento || await window.carregarTipos('documento'); // ✅ CORRIGIDO
+        window.tiposDocumento = tipos;
+        contadorDocumento++;
+        const container = document.getElementById('documentos-container');
+        
+        if (container.querySelector('.text-muted')) {
+            container.innerHTML = '';
+        }
+        
+        const documentoHtml = `
+            <div class="border p-3 mb-3 documento-item" data-index="${contadorDocumento}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo de Documento</label>
+                        ${window.criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`, documento.tipo)} 
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Número</label>
+                        <input type="text" class="form-control" name="documentos[${contadorDocumento}][numero]" 
+                            value="${documento.numero || ''}" placeholder="Número do documento" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Órgão Emissor</label>
+                        <input type="text" class="form-control" name="documentos[${contadorDocumento}][orgao_emissor]" 
+                            value="${documento.orgaoEmissor || ''}" placeholder="SSP, DETRAN...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data de Emissão</label>
+                        <input type="date" class="form-control" name="documentos[${contadorDocumento}][data_emissao]" 
+                            value="${documento.dataEmissao || ''}">
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Data de Vencimento</label>
+                        <input type="date" class="form-control" name="documentos[${contadorDocumento}][data_vencimento]" 
+                            value="${documento.dataVencimento || ''}">
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label">Observações</label>
+                        <input type="text" class="form-control" name="documentos[${contadorDocumento}][observacoes]" 
+                            value="${documento.observacoes || ''}" placeholder="Observações adicionais">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger btn-sm w-100 mt-4" onclick="removerDocumento(${contadorDocumento})">
+                            <i class="fas fa-trash"></i> Remover
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', documentoHtml);
+    };
+
     window.removerDocumento = function(index) {
         const item = document.querySelector(`.documento-item[data-index="${index}"]`);
         if (item) {

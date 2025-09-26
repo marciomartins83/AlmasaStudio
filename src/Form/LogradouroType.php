@@ -1,7 +1,7 @@
 <?php
 namespace App\Form;
 
-use App\Entity\Logradouro;
+use App\Entity\Logradouros;
 use App\Entity\Bairros;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -15,7 +15,7 @@ class LogradouroType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('nome', TextType::class, [
+            ->add('logradouro', TextType::class, [
                 'label' => 'Logradouro',
                 'attr' => ['class' => 'form-control']
             ])
@@ -36,7 +36,7 @@ class LogradouroType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => Logradouro::class,
+            'data_class' => Logradouros::class,
         ]);
     }
 }

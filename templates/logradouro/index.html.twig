@@ -36,7 +36,7 @@
                                 {% for logradouro in logradouros %}
                                 <tr>
                                     <td>{{ logradouro.id }}</td>
-                                    <td><strong>{{ logradouro.nome }}</strong></td>
+                                    <td><strong>{{ logradouro.logradouro }}</strong></td>
                                     <td>
                                         {% if logradouro.bairro %}
                                             <span class="badge bg-info">{{ logradouro.bairro.nome }}</span>

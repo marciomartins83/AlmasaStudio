@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "symfony": {
+      "command": "python",
+      "args": ["mcp_symfony.py"],
+      "cwd": "."
+    }
+  }
+}

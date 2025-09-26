@@ -474,9 +474,9 @@ class PessoaFiadorController extends AbstractController
                     
                     // Criar endereço
                     $endereco = new \App\Entity\Enderecos();
-                    $endereco->setIdPessoa($pessoaId);
-                    $endereco->setLogradouro($entityManager->getReference(\App\Entity\Logradouro::class, $logradouroId));
-                    $endereco->setTipo($entityManager->getReference(\App\Entity\TipoEndereco::class, (int)$enderecoData['tipo']));
+                    //$endereco->setIdPessoa($pessoaId);
+                    $endereco->setLogradouro($entityManager->getReference(\App\Entity\Logradouros::class, $logradouroId));
+                    $endereco->setTipo($entityManager->getReference(\App\Entity\TiposEnderecos::class, (int)$enderecoData['tipo']));
                     $endereco->setEndNumero((int)$enderecoData['numero']);
                     if (!empty($enderecoData['complemento'])) {
                         $endereco->setComplemento($enderecoData['complemento']);
@@ -596,7 +596,7 @@ class PessoaFiadorController extends AbstractController
         if (!$logradouro) {
             $logradouro = new \App\Entity\Logradouros();
             $logradouro->setLogradouro($enderecoData['logradouro']);
-            $logradouro->setIdBairro($bairro->getId());
+            //$logradouro->setIdBairro($bairro->getId());
             if (!empty($enderecoData['cep'])) {
                 $logradouro->setCep(preg_replace('/\D/', '', $enderecoData['cep']));
             } else {

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\TiposEnderecosRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TiposEnderecosRepository::class)]
@@ -16,20 +17,31 @@ class TiposEnderecos
     private ?int $id = null;
 
     #[ORM\Column(length: 60)]
-    private string $tipo;
+    private ?string $tipo = null;
 
-    #[ORM\Column(name: 'created_at')]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, name: 'created_at')]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(name: 'updated_at')]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, name: 'updated_at')]
     private ?\DateTimeInterface $updatedAt = null;
+
+    /**
+     * Garante que as datas de criação e atualização sejam definidas
+     * assim que um novo objeto é instanciado em memória, resolvendo
+     * o erro na criação de formulários.
+     */
+    public function __construct()
+    {
+        $this->createdAt = new \DateTime();
+        $this->updatedAt = new \DateTime();
+    }
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getTipo(): string
+    public function getTipo(): ?string
     {
         return $this->tipo;
     }
@@ -50,16 +62,23 @@ class TiposEnderecos
         return $this->updatedAt;
     }
 
+    /**
+     * Garante que a data de atualização seja definida no momento da persistência.
+     * O createdAt já foi definido no construtor.
+     */
     #[ORM\PrePersist]
-    public function setCreatedAtValue(): void
+    public function onPrePersist(): void
     {
-        $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
     }
 
+    /**
+     * Garante que a data de atualização seja alterada a cada update.
+     */
     #[ORM\PreUpdate]
-    public function setUpdatedAtValue(): void
+    public function onPreUpdate(): void
     {
         $this->updatedAt = new \DateTime();
     }
 }
+

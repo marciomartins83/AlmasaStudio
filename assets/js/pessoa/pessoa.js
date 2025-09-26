@@ -53,10 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     /**
-     * Cria um select com opções de tipos - MELHORADA
-     * Parei aqui em 22/09/2025
+     * Cria um select com opções de tipos - CORRIGIDA PARA ACEITAR VALOR SELECIONADO
      */
-    window.criarSelectTipos = function(tipos, name, id, onNovoTipo) {
+    window.criarSelectTipos = function(tipos, name, id, onNovoTipo, selectedValue) {
         if (!Array.isArray(tipos) || tipos.length === 0) {
             console.warn(`⚠️ Nenhum tipo encontrado para ${name}`);
             return `
@@ -71,9 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
         
-        const options = tipos.map(tipo => 
-            `<option value="${tipo.id}">${tipo.tipo || tipo.nome}</option>`
-        ).join('');
+        const options = tipos.map(tipo => {
+            const isSelected = selectedValue && tipo.id == selectedValue ? 'selected' : '';
+            return `<option value="${tipo.id}" ${isSelected}>${tipo.tipo || tipo.nome}</option>`;
+        }).join('');
         
         return `
             <div class="input-group">

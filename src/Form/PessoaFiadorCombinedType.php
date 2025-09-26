@@ -18,7 +18,7 @@ class PessoaFiadorCombinedType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('pessoa', PessoaType::class, [
+            ->add('pessoa', Pessoas::class, [
                 'label' => 'Dados da Pessoa'
             ])
             ->add('idConjuge', EntityType::class, [

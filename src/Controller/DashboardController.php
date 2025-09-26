@@ -35,6 +35,6 @@ class DashboardController extends AbstractController
     public function listAddresses(): Response
     {
         // Implement logic to fetch and display addresses here
-        return $this->render('dashboard/enderecos.html.twig');
+        return $this->render('dashboard/enderecos/index.html.twig');
     }
 }

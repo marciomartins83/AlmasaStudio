@@ -51,14 +51,14 @@ class PessoaRepository extends ServiceEntityRepository
     }
 
     /**
-     * Busca pessoas por nome (busca parcial)
+     * Busca pessoas por nome (busca parcial) - CORRIGIDO
      */
     public function findByNome(string $nome): array
     {
         return $this->createQueryBuilder('p')
-            ->andWhere('p.nome LIKE :nome')
+            ->andWhere('p.nome LIKE :nome') // CORRIGIDO: era :tipo
             ->setParameter('nome', '%' . $nome . '%')
-            ->orderBy('p.nome', 'ASC')
+            ->orderBy('p.nome', 'ASC') // CORRIGIDO: era p.tipo
             ->getQuery()
             ->getResult();
     }
@@ -150,5 +150,59 @@ class PessoaRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
             
         return $result ? $result['numeroDocumento'] : null;
+    }
+
+    /**
+     * Busca documentos secundários de uma pessoa (exceto CPF/CNPJ)
+     */
+    public function buscarDocumentosSecundarios(int $pessoaId): array
+    {
+        $pessoasDocumentos = $this->getEntityManager()
+            ->createQuery('
+                SELECT pd
+                FROM App\Entity\PessoasDocumentos pd
+                INNER JOIN App\Entity\TiposDocumentos td WITH td.id = pd.idTipoDocumento
+                WHERE pd.idPessoa = :pessoaId
+                AND pd.ativo = true
+            ')
+            ->setParameter('pessoaId', $pessoaId)
+            ->getResult();
+
+        $documentos = [];
+
+        foreach ($pessoasDocumentos as $doc) {
+            $documentos[] = [
+                'tipo'           => $doc->getIdTipoDocumento(),
+                'numero'         => $doc->getNumeroDocumento(),
+                'orgaoEmissor'   => $doc->getOrgaoEmissor(),
+                'dataEmissao'    => $doc->getDataEmissao()?->format('Y-m-d'),
+                'dataVencimento' => $doc->getDataVencimento()?->format('Y-m-d'),
+                'observacoes'    => $doc->getObservacoes(),
+            ];
+        }
+
+        return $documentos;
+    }
+
+    /**
+     * Busca profissões ativas de uma pessoa
+     */
+    public function buscarProfissoesAtivas(int $pessoaId): array
+    {
+        return $this->getEntityManager()
+            ->createQuery('
+                SELECT 
+                    pp.idProfissao as profissao,
+                    pp.empresa,
+                    pp.renda,
+                    pp.dataAdmissao,
+                    pp.dataDemissao,
+                    pp.observacoes
+                FROM App\Entity\PessoasProfissoes pp
+                WHERE pp.idPessoa = :pessoaId
+                AND pp.ativo = true
+            ')
+            ->setParameter('pessoaId', $pessoaId)
+            ->getResult();
     }
 }

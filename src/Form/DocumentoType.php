@@ -19,7 +19,7 @@ class DocumentoType extends AbstractType
         $builder
             ->add('tipo', EntityType::class, [
                 'class'        => TiposDocumentos::class,
-                'choice_label' => 'nome',
+                'choice_label' => 'tipo',
                 'placeholder'  => 'Selecione o tipo',
                 'label'        => 'Tipo de Documento',
                 'attr'         => ['class' => 'form-select documento-tipo-select'],

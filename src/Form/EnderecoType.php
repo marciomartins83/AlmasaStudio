@@ -3,7 +3,7 @@
 namespace App\Form;
 
 use App\Entity\Enderecos;
-use App\Entity\TipoEndereco;
+use App\Entity\TiposEnderecos;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -59,7 +59,7 @@ class EnderecoType extends AbstractType
 
             // Campos da entidade Enderecos (relacionamentos e dados locais)
             ->add('idTipoEndereco', EntityType::class, [
-                'class' => TipoEndereco::class,
+                'class' => TiposEnderecos::class,
                 'choice_label' => 'tipo',
                 'label' => 'Tipo de Endereço',
                 'attr' => [

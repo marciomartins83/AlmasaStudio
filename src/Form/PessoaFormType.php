@@ -9,7 +9,6 @@ use App\Entity\Naturalidade;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
@@ -33,70 +32,130 @@ class PessoaFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('pessoaId', HiddenType::class, ['mapped' => false])
-            ->add('searchTerm', TextType::class, ['mapped' => false, 'label' => 'CPF/CNPJ'])
-            ->add('nome', TextType::class)
-            ->add('dataNascimento', DateType::class, ['widget' => 'single_text', 'required' => false])
+            // CAMPOS PARA BUSCA/EDIÇÃO (NÃO MAPEADOS)
+            ->add('pessoaId', HiddenType::class, [
+                'mapped' => false,
+                'attr' => ['class' => 'form-control']
+            ])
+            
+            ->add('searchTerm', TextType::class, [
+                'mapped' => false, 
+                'label' => 'CPF/CNPJ',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Digite CPF ou CNPJ para buscar'
+                ],
+                'required' => false
+            ])
+            
+            // CAMPOS QUE EXISTEM NA TABELA PESSOAS (MAPEADOS)
+            ->add('nome', TextType::class, [
+                'label' => 'Nome Completo',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Digite o nome completo'
+                ]
+            ])
+            
+            ->add('dataNascimento', DateType::class, [
+                'widget' => 'single_text',
+                'label' => 'Data de Nascimento',
+                'attr' => ['class' => 'form-control'],
+                'required' => false
+            ])
+            
             ->add('estadoCivil', EntityType::class, [
-                'class'        => EstadoCivil::class,
+                'class' => EstadoCivil::class,
                 'choice_label' => 'nome',
-                'placeholder'  => 'Selecione...',
-                'label'        => 'Estado Civil',
+                'placeholder' => 'Selecione...',
+                'label' => 'Estado Civil',
+                'attr' => ['class' => 'form-select'],
                 'required' => false,
             ])
+            
             ->add('nacionalidade', EntityType::class, [
-                'class'        => Nacionalidade::class,
+                'class' => Nacionalidade::class,
                 'choice_label' => 'nome',
-                'placeholder'  => 'Selecione...',
-                'label'        => 'Nacionalidade',
+                'placeholder' => 'Selecione...',
+                'label' => 'Nacionalidade',
+                'attr' => ['class' => 'form-select'],
                 'required' => false,
             ])
+            
             ->add('naturalidade', EntityType::class, [
-                'class'        => Naturalidade::class,
+                'class' => Naturalidade::class,
                 'choice_label' => 'nome',
-                'placeholder'  => 'Selecione...',
-                'label'        => 'Naturalidade',
+                'placeholder' => 'Selecione...',
+                'label' => 'Naturalidade',
+                'attr' => ['class' => 'form-select'],
                 'required' => false,
             ])
-            ->add('nomePai', TextType::class, ['required' => false])
-            ->add('nomeMae', TextType::class, ['required' => false])
-            ->add('renda', MoneyType::class, ['currency' => 'BRL', 'required' => false])
-            ->add('observacoes', TextareaType::class, ['required' => false])
+            
+            ->add('nomePai', TextType::class, [
+                'label' => 'Nome do Pai',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Digite o nome do pai'
+                ],
+                'required' => false
+            ])
+            
+            ->add('nomeMae', TextType::class, [
+                'label' => 'Nome da Mãe',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Digite o nome da mãe'
+                ],
+                'required' => false
+            ])
+            
+            ->add('renda', MoneyType::class, [
+                'currency' => 'BRL',
+                'label' => 'Renda',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => '0,00'
+                ],
+                'required' => false
+            ])
+            
+            ->add('observacoes', TextareaType::class, [
+                'label' => 'Observações',
+                'attr' => [
+                    'class' => 'form-control',
+                    'rows' => 3,
+                    'placeholder' => 'Digite observações sobre a pessoa'
+                ],
+                'required' => false
+            ])
 
-            /* Tipo de pessoa para carregar sub-formulário */
+            // TIPO DE PESSOA (NÃO MAPEADO - PROCESSADO PELO CONTROLLER)
             ->add('tipoPessoa', ChoiceType::class, [
                 'choices' => [
-                    'Selecione um tipo...' => null,
-                    'Fiador'       => 'fiador',
-                    'Corretor'     => 'corretor',
-                    'Corretora'    => 'corretora',
-                    'Locador'      => 'locador',
-                    'Pretendente'  => 'pretendente',
+                    'Selecione um tipo...' => '',
+                    'Fiador' => 'fiador',
+                    'Corretor' => 'corretor',
+                    'Corretora' => 'corretora',
+                    'Locador' => 'locador',
+                    'Pretendente' => 'pretendente',
+                    'Contratante' => 'contratante',
                 ],
                 'mapped' => false,
+                'label' => 'Tipo de Pessoa',
                 'attr' => [
+                    'class' => 'form-select',
                     'data-url' => $this->urlGenerator->generate('app_pessoa__subform'),
                 ]
             ])
 
-            /* Seções de contato */
-            ->add('telefones', CollectionType::class, [
-                'entry_type'   => TelefoneFormType::class, 'allow_add' => true, 'allow_delete' => true, 'by_reference' => false, 'label' => false,
-            ])
-            ->add('enderecos', CollectionType::class, [
-                'entry_type'   => EnderecoType::class, 'allow_add' => true, 'allow_delete' => true, 'by_reference' => false, 'label' => false,
-            ])
-            ->add('emails', CollectionType::class, [
-                'entry_type'   => EmailFormType::class, 'allow_add' => true, 'allow_delete' => true, 'by_reference' => false, 'label' => false,
-            ])
-            ->add('chavesPix', CollectionType::class, [
-                'entry_type'   => ChavePixType::class, 'allow_add' => true, 'allow_delete' => true, 'by_reference' => false, 'label' => false,
-            ])
-            ->add('documentos', CollectionType::class, [
-                'entry_type'   => DocumentoType::class, 'allow_add' => true, 'allow_delete' => true, 'by_reference' => false, 'label' => false,
-            ])
-            ->add('conjuge', HiddenType::class, ['required' => false, 'mapped' => false]); // Será tratado no controller
+            // CAMPOS PARA CÔNJUGE (NÃO MAPEADOS - PROCESSADOS VIA JAVASCRIPT/CONTROLLER)
+            ->add('conjuge', HiddenType::class, [
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control']
+            ]);
 
+        // LISTENER PARA SUB-FORMULÁRIOS
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
             $form = $event->getForm();
@@ -118,6 +177,7 @@ class PessoaFormType extends AbstractType
             if ($subFormType) {
                 $form->add($tipo, $subFormType, [
                     'label' => false,
+                    'mapped' => false,
                 ]);
             }
         });
@@ -126,8 +186,7 @@ class PessoaFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class'   => null, // Usaremos um DTO ou array, pois o formulário é complexo
+            'data_class' => Pessoas::class,
         ]);
     }
 }
-

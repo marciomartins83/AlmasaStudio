@@ -227,7 +227,7 @@ class PessoaController extends AbstractController
      */
     private function salvarDadosMultiplosCorrigido(int $pessoaId, array $requestData, EntityManagerInterface $entityManager): void
     {
-        // Salvar Telefones (SEM flush interno)
+        // Salvar Telefones (SEM flush interno) - CORRIGIDO
         if (isset($requestData['telefones']) && is_array($requestData['telefones'])) {
             foreach ($requestData['telefones'] as $telefoneData) {
                 if (!empty($telefoneData['tipo']) && !empty($telefoneData['numero'])) {
@@ -235,16 +235,17 @@ class PessoaController extends AbstractController
                     $telefone->setTipo($entityManager->getReference(\App\Entity\TiposTelefones::class, (int)$telefoneData['tipo']));
                     $telefone->setNumero($telefoneData['numero']);
                     $entityManager->persist($telefone);
+                    $entityManager->flush(); // FLUSH para obter ID
                     
                     $pessoaTelefone = new PessoasTelefones();
                     $pessoaTelefone->setIdPessoa($pessoaId);
-                    $pessoaTelefone->setIdTelefone($telefone->getId());
+                    $pessoaTelefone->setIdTelefone($telefone->getId()); // Agora tem ID
                     $entityManager->persist($pessoaTelefone);
                 }
             }
         }
 
-        // Salvar Emails (SEM flush interno)
+        // Salvar Emails (SEM flush interno) - CORRIGIDO
         if (isset($requestData['emails']) && is_array($requestData['emails'])) {
             foreach ($requestData['emails'] as $emailData) {
                 if (!empty($emailData['tipo']) && !empty($emailData['email'])) {
@@ -252,22 +253,24 @@ class PessoaController extends AbstractController
                     $email->setEmail($emailData['email']);
                     $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
                     $entityManager->persist($email);
+                    $entityManager->flush(); // FLUSH para obter ID
                     
                     $pessoaEmail = new PessoasEmails();
                     $pessoaEmail->setIdPessoa($pessoaId);
-                    $pessoaEmail->setIdEmail($email->getId());
+                    $pessoaEmail->setIdEmail($email->getId()); // Agora tem ID
                     $entityManager->persist($pessoaEmail);
                 }
             }
         }
 
-        // Salvar Endereços (SEM flush interno)
+        // Salvar Endereços (SEM flush interno) - CORRIGIDO
         if (isset($requestData['enderecos']) && is_array($requestData['enderecos'])) {
             foreach ($requestData['enderecos'] as $enderecoData) {
                 if (!empty($enderecoData['tipo']) && !empty($enderecoData['numero'])) {
                     $logradouroId = $this->buscarOuCriarLogradouro($enderecoData, $entityManager);
                     
                     $endereco = new Enderecos();
+                    $endereco->setPessoa($entityManager->getReference(Pessoas::class, $pessoaId)); // ✅ CORRIGIDO: Usar setPessoa
                     $endereco->setLogradouro($entityManager->getReference(Logradouros::class, $logradouroId));
                     $endereco->setTipo($entityManager->getReference(\App\Entity\TiposEnderecos::class, (int)$enderecoData['tipo']));
                     $endereco->setEndNumero((int)$enderecoData['numero']);
@@ -431,7 +434,7 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/search-pessoa-advanced', name: 'search_pessoa_advanced', methods: ['POST'])]
-    public function searchPessoaAdvanced(Request $request, PessoaRepository $pessoaRepository): JsonResponse
+    public function searchPessoaAdvanced(Request $request, PessoaRepository $pessoaRepository, EntityManagerInterface $entityManager): JsonResponse
     {
         try {
             $data = json_decode($request->getContent(), true);
@@ -509,14 +512,16 @@ class PessoaController extends AbstractController
                 $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
                 $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
                 
-                // Buscar dados múltiplos da pessoa
-                $telefones = $this->getTelefonesByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
-                $enderecos = $this->getEnderecosByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
-                $emails = $this->getEmailsByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
-                $documentos = $this->getDocumentosByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
-                $chavesPix = $this->getChavesPixByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
-                $profissoes = $this->getProfissoesByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
-                $conjuge = $this->getConjugeByPessoa($pessoa->getIdpessoa(), $pessoaRepository->getEntityManager());
+                // BUSCAR DADOS MÚLTIPLOS - ATIVANDO CHAVES PIX CORRIGIDAS
+                error_log("DEBUG: entro na bagaça"); 
+                $telefones = $this->buscarTelefonesPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
+                $emails = $this->buscarEmailsPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
+                $enderecos = $this->buscarEnderecosPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
+                $chavesPix = $this->buscarChavesPixPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ CORRIGIDO
+                $documentos = $this->buscarDocumentosPessoa($pessoa->getIdpessoa(), $entityManager);
+                error_log("DEBUG: Documentos encontrados para pessoa {$pessoa->getIdpessoa()}: " . json_encode($documentos)); 
+                $profissoes = []; // $this->buscarProfissoesPessoa($pessoa->getIdpessoa(), $entityManager);
+                $conjuge = null; // $this->buscarConjugePessoa($pessoa->getIdpessoa(), $entityManager);
                 
                 return new JsonResponse([
                     'success' => true,
@@ -558,6 +563,208 @@ class PessoaController extends AbstractController
                 'message' => 'Erro interno: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Busca telefones de uma pessoa
+     */
+    private function buscarTelefonesPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        $telefones = [];
+        
+        $pessoasTelefones = $entityManager->getRepository(PessoasTelefones::class)
+            ->findBy(['idPessoa' => $pessoaId]);
+        
+        foreach ($pessoasTelefones as $pessoaTelefone) {
+            $telefone = $entityManager->getRepository(Telefones::class)
+                ->find($pessoaTelefone->getIdTelefone());
+            
+            if ($telefone) {
+                $telefones[] = [
+                    'tipo' => $telefone->getTipo()->getId(),
+                    'numero' => $telefone->getNumero()
+                ];
+            }
+        }
+        
+        return $telefones;
+    }
+
+    /**
+     * Busca endereços de uma pessoa
+     */
+    private function buscarEnderecosPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        $enderecos = [];
+        
+        $enderecosEntidade = $entityManager->getRepository(Enderecos::class)
+            ->findBy(['pessoa' => $pessoaId]);
+        
+        foreach ($enderecosEntidade as $endereco) {
+            $logradouro = $endereco->getLogradouro();
+            $bairro = $logradouro ? $logradouro->getBairro() : null;
+            $cidade = $bairro ? $bairro->getCidade() : null;
+            $estado = $cidade ? $cidade->getEstado() : null;
+            
+            $enderecos[] = [
+                'tipo' => $endereco->getTipo()->getId(),
+                'cep' => $logradouro ? $logradouro->getCep() : '',
+                'logradouro' => $logradouro ? $logradouro->getLogradouro() : '',
+                'numero' => $endereco->getEndNumero(),
+                'complemento' => $endereco->getComplemento(),
+                'bairro' => $bairro ? $bairro->getNome() : '',
+                'cidade' => $cidade ? $cidade->getNome() : '',
+                'estado' => $estado ? $estado->getUf() : ''
+            ];
+        }
+        
+        return $enderecos;
+    }
+
+    /**
+     * Busca emails de uma pessoa
+     */
+    private function buscarEmailsPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        $emails = [];
+        
+        $pessoasEmails = $entityManager->getRepository(PessoasEmails::class)
+            ->findBy(['idPessoa' => $pessoaId]);
+        
+        foreach ($pessoasEmails as $pessoaEmail) {
+            $email = $entityManager->getRepository(Emails::class)
+                ->find($pessoaEmail->getIdEmail());
+            
+            if ($email) {
+                $emails[] = [
+                    'tipo' => $email->getTipo()->getId(),
+                    'email' => $email->getEmail()
+                ];
+            }
+        }
+        
+        return $emails;
+    }
+
+    /**
+     * Busca documentos de uma pessoa (usando Repository)
+     */
+    private function buscarDocumentosPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        error_log("🔍 DEBUG: Chamando Repository para pessoa ID: $pessoaId");
+        
+        $resultado = $entityManager->getRepository(Pessoas::class)
+            ->buscarDocumentosSecundarios($pessoaId);
+        // Debug via logs sem quebrar o JSON
+        error_log("🔍 DEBUG: Repository retornou: " . print_r($resultado, true));
+        error_log("🔍 DEBUG: Tipo do resultado: " . gettype($resultado));
+        error_log("🔍 DEBUG: Count do resultado: " . count($resultado));
+        
+        return $resultado;
+    }
+
+    /**
+     * Busca chaves PIX de uma pessoa
+     */
+    private function buscarChavesPixPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        $chavesPix = [];
+        error_log("Buscando chaves PIX para pessoa ID: " . var_export($pessoaId, true));  
+        $chavesPixEntidade = $entityManager->getRepository(ChavesPix::class)
+            ->findBy([
+                'idPessoa' => (int) $pessoaId, // ✅ Garantir int
+                'ativo' => true
+            ]);          
+        error_log("Chaves encontradas: " . count($chavesPixEntidade));
+        foreach ($chavesPixEntidade as $chavePix) {
+            $chavesPix[] = [
+                'tipo' => $chavePix->getIdTipoChave(),
+                'chave' => $chavePix->getChavePix(),
+                'principal' => $chavePix->getPrincipal()
+            ];
+        }
+
+        return $chavesPix;
+        
+    }
+
+    /**
+     * Busca profissões de uma pessoa
+     */
+    private function buscarProfissoesPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        $profissoes = [];
+        
+        $pessoasProfissoes = $entityManager->getRepository(PessoasProfissoes::class)
+            ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
+        
+        foreach ($pessoasProfissoes as $pessoaProfissao) {
+            $profissoes[] = [
+                'profissao' => $pessoaProfissao->getIdProfissao(),
+                'empresa' => $pessoaProfissao->getEmpresa(),
+                'renda' => $pessoaProfissao->getRenda(),
+                'dataAdmissao' => $pessoaProfissao->getDataAdmissao() ? $pessoaProfissao->getDataAdmissao()->format('Y-m-d') : null,
+                'dataDemissao' => $pessoaProfissao->getDataDemissao() ? $pessoaProfissao->getDataDemissao()->format('Y-m-d') : null,
+                'observacoes' => $pessoaProfissao->getObservacoes()
+            ];
+        }
+        
+        return $profissoes;
+    }
+
+    /**
+     * Busca cônjuge de uma pessoa
+     */
+    private function buscarConjugePessoa(int $pessoaId, EntityManagerInterface $entityManager): ?array
+    {
+        $relacionamento = $entityManager->getRepository(RelacionamentosFamiliares::class)
+            ->findOneBy([
+                'idPessoaOrigem' => $pessoaId,
+                'tipoRelacionamento' => 'Cônjuge',
+                'ativo' => true
+            ]);
+        
+        if (!$relacionamento) {
+            return null;
+        }
+        
+        $conjuge = $entityManager->getRepository(Pessoas::class)
+            ->find($relacionamento->getIdPessoaDestino());
+        
+        if (!$conjuge) {
+            return null;
+        }
+        
+        $pessoaRepository = $entityManager->getRepository(Pessoas::class);
+        $cpfConjuge = $pessoaRepository->getCpfByPessoa($conjuge->getIdpessoa());
+        
+        // Buscar todos os dados múltiplos do cônjuge também
+        $telefonesConjuge = $this->buscarTelefonesPessoa($conjuge->getIdpessoa(), $entityManager);
+        $enderecosConjuge = $this->buscarEnderecosPessoa($conjuge->getIdpessoa(), $entityManager);
+        $emailsConjuge = $this->buscarEmailsPessoa($conjuge->getIdpessoa(), $entityManager);
+        $documentosConjuge = $this->buscarDocumentosPessoa($conjuge->getIdpessoa(), $entityManager);
+        $chavesPixConjuge = $this->buscarChavesPixPessoa($conjuge->getIdpessoa(), $entityManager);
+        $profissoesConjuge = $this->buscarProfissoesPessoa($conjuge->getIdpessoa(), $entityManager);
+        
+        return [
+            'id' => $conjuge->getIdpessoa(),
+            'nome' => $conjuge->getNome(),
+            'cpf' => $cpfConjuge,
+            'dataNascimento' => $conjuge->getDataNascimento() ? $conjuge->getDataNascimento()->format('Y-m-d') : null,
+            'estadoCivil' => $conjuge->getEstadoCivil() ? $conjuge->getEstadoCivil()->getId() : null,
+            'nacionalidade' => $conjuge->getNacionalidade() ? $conjuge->getNacionalidade()->getId() : null,
+            'naturalidade' => $conjuge->getNaturalidade() ? $conjuge->getNaturalidade()->getId() : null,
+            'nomePai' => $conjuge->getNomePai(),
+            'nomeMae' => $conjuge->getNomeMae(),
+            'renda' => $conjuge->getRenda(),
+            'observacoes' => $conjuge->getObservacoes(),
+            'telefones' => $telefonesConjuge,
+            'enderecos' => $enderecosConjuge,
+            'emails' => $emailsConjuge,
+            'documentos' => $documentosConjuge,
+            'chavesPix' => $chavesPixConjuge,
+            'profissoes' => $profissoesConjuge
+        ];
     }
 
     #[Route('/load-tipos/{entidade}', name: 'load_tipos', methods: ['GET'])]
@@ -903,7 +1110,6 @@ class PessoaController extends AbstractController
         }
     }
 
-
     #[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(Request $request, Pessoas $pessoa, EntityManagerInterface $entityManager): Response
     {
@@ -975,13 +1181,385 @@ class PessoaController extends AbstractController
                 
             case 'contratante':
                 $contratante = new \App\Entity\PessoasContratantes();
-                $contratante->setPessoa($pessoa);
+                $contratante->setPessoa($pessoa); // CORRETO: Usar setPessoa
                 $entityManager->persist($contratante);
                 break;
                 
             case 'corretora':
                 $corretora = new \App\Entity\PessoasCorretoras();
-                $corretora->setPessoa($pessoa);
+                $corretora->setPessoa($pessoa); // CORRETO: Usar setPessoa
                 $entityManager->persist($corretora);
                 break;
         }
+    }
+
+    /**
+     * Processa alterações específicas do cônjuge na edição
+     */
+    private function processarConjugeEdicao(Pessoas $pessoa, array $requestData, EntityManagerInterface $entityManager): void
+    {
+        // Verificar se há relacionamento de cônjuge existente
+        $relacionamentoExistente = $entityManager->getRepository(RelacionamentosFamiliares::class)
+            ->findOneBy([
+                'idPessoaOrigem' => $pessoa->getIdpessoa(),
+                'tipoRelacionamento' => 'Cônjuge',
+                'ativo' => true
+            ]);
+
+        // Se existe cônjuge e usuário desmarcou, remover relacionamento
+        $temConjuge = !empty($requestData['novo_conjuge']) || !empty($requestData['conjuge_id']);
+        
+        if ($relacionamentoExistente && !$temConjuge) {
+            // Remover relacionamento bidirecional
+            $relacionamentoInverso = $entityManager->getRepository(RelacionamentosFamiliares::class)
+                ->findOneBy([
+                    'idPessoaOrigem' => $relacionamentoExistente->getIdPessoaDestino(),
+                    'idPessoaDestino' => $pessoa->getIdpessoa(),
+                    'tipoRelacionamento' => 'Cônjuge'
+                ]);
+            
+            $entityManager->remove($relacionamentoExistente);
+            if ($relacionamentoInverso) {
+                $entityManager->remove($relacionamentoInverso);
+            }
+        }
+        
+        // Se há dados de cônjuge, processar normalmente (novo ou alterado)
+        if ($temConjuge) {
+            $this->salvarConjuge($pessoa, $requestData, $entityManager);
+        }
+    }
+
+    private function salvarConjuge(Pessoas $pessoa, array $requestData, EntityManagerInterface $entityManager): void
+    {
+        // DEBUG: Vamos ver o que está sendo enviado
+        error_log('DEBUG salvarConjuge - requestData keys: ' . implode(', ', array_keys($requestData)));
+        error_log('DEBUG salvarConjuge - novo_conjuge: ' . json_encode($requestData['novo_conjuge'] ?? 'não definido'));
+        error_log('DEBUG salvarConjuge - conjuge_id: ' . json_encode($requestData['conjuge_id'] ?? 'não definido'));
+        
+        $pessoaRepository = $entityManager->getRepository(Pessoas::class);
+        $conjugeParaRelacionar = null;
+
+        // Caso 1: Tenta encontrar um cônjuge existente pelo ID vindo do formulário
+        $conjugeId = $requestData['conjuge']['id'] ?? $requestData['conjuge_id'] ?? null;
+        if ($conjugeId) {
+            error_log('DEBUG: Tentando encontrar cônjuge existente com ID: ' . $conjugeId);
+            $conjugeParaRelacionar = $pessoaRepository->find($conjugeId);
+        }
+
+        // Caso 2: Se não encontrou um existente, cria um novo cônjuge com os dados do formulário
+        $novoConjugeData = $requestData['novo_conjuge'] ?? null;
+        if (!$conjugeParaRelacionar && $novoConjugeData && !empty($novoConjugeData['nome']) && !empty($novoConjugeData['cpf'])) {
+            error_log('DEBUG: Criando novo cônjuge com dados: ' . json_encode($novoConjugeData));
+            $novoConjuge = new Pessoas();
+            $novoConjuge->setNome($novoConjugeData['nome']);
+            
+            if (!empty($novoConjugeData['data_nascimento'])) {
+                $novoConjuge->setDataNascimento(new \DateTime($novoConjugeData['data_nascimento']));
+            }
+            if (!empty($novoConjugeData['estado_civil'])) {
+                $estadoCivil = $entityManager->getReference(EstadoCivil::class, $novoConjugeData['estado_civil']);
+                $novoConjuge->setEstadoCivil($estadoCivil);
+            }
+            if (!empty($novoConjugeData['nacionalidade'])) {
+                $nacionalidade = $entityManager->getReference(Nacionalidade::class, $novoConjugeData['nacionalidade']);
+                $novoConjuge->setNacionalidade($nacionalidade);
+            }
+            if (!empty($novoConjugeData['naturalidade'])) {
+                $naturalidade = $entityManager->getReference(Naturalidade::class, $novoConjugeData['naturalidade']);
+                $novoConjuge->setNaturalidade($naturalidade);
+            }
+
+            $novoConjuge->setNomePai($novoConjugeData['nome_pai'] ?? null);
+            $novoConjuge->setNomeMae($novoConjugeData['nome_mae'] ?? null);
+            $novoConjuge->setRenda((float)($novoConjugeData['renda'] ?? 0.0));
+            $novoConjuge->setObservacoes($novoConjugeData['observacoes'] ?? null);
+            
+            $novoConjuge->setFisicaJuridica('fisica');
+            $novoConjuge->setDtCadastro(new \DateTime());
+            $novoConjuge->setStatus(true);
+            $novoConjuge->setTipoPessoa(1); // Tipo padrão para cônjuge
+
+            $entityManager->persist($novoConjuge);
+            $entityManager->flush(); // Flush para obter ID do cônjuge
+
+            // Salva o documento principal (CPF) do novo cônjuge
+            $this->salvarDocumentoPrincipalConjuge($novoConjuge->getIdpessoa(), $novoConjugeData['cpf'], $entityManager);
+            
+            // Salvar TODOS os dados do cônjuge como pessoa completa
+            $this->salvarDadosMultiplosConjuge($novoConjuge->getIdpessoa(), $requestData, $entityManager);
+            
+            $conjugeParaRelacionar = $novoConjuge;
+        }
+
+        // Se encontrou ou criou um cônjuge, estabelece o relacionamento familiar
+        if ($conjugeParaRelacionar) {
+            error_log('DEBUG: Estabelecendo relacionamento familiar com cônjuge ID: ' . $conjugeParaRelacionar->getIdpessoa());
+            $relacionamentoRepo = $entityManager->getRepository(RelacionamentosFamiliares::class);
+            
+            // Verifica se o relacionamento já existe para não duplicar
+            $existente = $relacionamentoRepo->findOneBy([
+                'idPessoaOrigem' => $pessoa->getIdpessoa(),
+                'idPessoaDestino' => $conjugeParaRelacionar->getIdpessoa(),
+                'tipoRelacionamento' => 'Cônjuge'
+            ]);
+
+            if (!$existente) {
+                $dataInicioRelacionamento = new \DateTime();
+
+                // Cria o relacionamento da pessoa principal para o cônjuge
+                $relacionamento1 = new RelacionamentosFamiliares();
+                $relacionamento1->setIdPessoaOrigem($pessoa->getIdpessoa());
+                $relacionamento1->setIdPessoaDestino($conjugeParaRelacionar->getIdpessoa());
+                $relacionamento1->setTipoRelacionamento('Cônjuge');
+                $relacionamento1->setAtivo(true);
+                $relacionamento1->setDataInicio($dataInicioRelacionamento);
+                $entityManager->persist($relacionamento1);
+
+                // Cria o relacionamento do cônjuge para a pessoa principal (bidirecional)
+                $relacionamento2 = new RelacionamentosFamiliares();
+                $relacionamento2->setIdPessoaOrigem($conjugeParaRelacionar->getIdpessoa());
+                $relacionamento2->setIdPessoaDestino($pessoa->getIdpessoa());
+                $relacionamento2->setTipoRelacionamento('Cônjuge');
+                $relacionamento2->setAtivo(true);
+                $relacionamento2->setDataInicio($dataInicioRelacionamento);
+                $entityManager->persist($relacionamento2);
+            }
+        } else {
+            error_log('DEBUG: Nenhum cônjuge para relacionar - saindo sem fazer nada');
+        }
+    }
+
+    /**
+     * Salvar documento principal do cônjuge
+     */
+    private function salvarDocumentoPrincipalConjuge(int $conjugeId, string $documento, EntityManagerInterface $entityManager): void
+    {
+        $documento = preg_replace('/[^\d]/', '', $documento);
+        $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
+        
+        $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
+            ->findOneBy(['tipo' => $tipoDocumento]);
+        
+        if ($tipoDocumentoEntity) {
+            $pessoaDocumento = new PessoasDocumentos();
+            $pessoaDocumento->setIdPessoa($conjugeId);
+            $pessoaDocumento->setIdTipoDocumento($tipoDocumentoEntity->getId());
+            $pessoaDocumento->setNumeroDocumento($documento);
+            $pessoaDocumento->setAtivo(true);
+            
+            $entityManager->persist($pessoaDocumento);
+        }
+    }
+
+    /**
+     * Salva todos os dados múltiplos específicos do cônjuge
+     */
+    private function salvarDadosMultiplosConjuge(int $conjugeId, array $requestData, EntityManagerInterface $entityManager): void
+    {
+        // Salvar Telefones do Cônjuge
+        if (isset($requestData['conjuge_telefones']) && is_array($requestData['conjuge_telefones'])) {
+            foreach ($requestData['conjuge_telefones'] as $telefoneData) {
+                if (!empty($telefoneData['tipo']) && !empty($telefoneData['numero'])) {
+                    $telefone = new Telefones();
+                    $telefone->setTipo($entityManager->getReference(\App\Entity\TiposTelefones::class, (int)$telefoneData['tipo']));
+                    $telefone->setNumero($telefoneData['numero']);
+                    $entityManager->persist($telefone);
+                    $entityManager->flush(); // FLUSH para obter ID
+                    
+                    $pessoaTelefone = new PessoasTelefones();
+                    $pessoaTelefone->setIdPessoa($conjugeId);
+                    $pessoaTelefone->setIdTelefone($telefone->getId());
+                    $entityManager->persist($pessoaTelefone);
+                }
+            }
+        }
+
+        // Salvar Emails do Cônjuge
+        if (isset($requestData['conjuge_emails']) && is_array($requestData['conjuge_emails'])) {
+            foreach ($requestData['conjuge_emails'] as $emailData) {
+                if (!empty($emailData['tipo']) && !empty($emailData['email'])) {
+                    $email = new Emails();
+                    $email->setEmail($emailData['email']);
+                    $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
+                    $entityManager->persist($email);
+                    $entityManager->flush(); // FLUSH para obter ID
+                    
+                    $pessoaEmail = new PessoasEmails();
+                    $pessoaEmail->setIdPessoa($conjugeId);
+                    $pessoaEmail->setIdEmail($email->getId());
+                    $entityManager->persist($pessoaEmail);
+                }
+            }
+        }
+
+        // Salvar Endereços do Cônjuge - REMOVIDO TEMPORARIAMENTE
+        // TODO: Corrigir quando souber o nome correto do setter
+        /*
+        if (isset($requestData['conjuge_enderecos']) && is_array($requestData['conjuge_enderecos'])) {
+            foreach ($requestData['conjuge_enderecos'] as $enderecoData) {
+                if (!empty($enderecoData['tipo']) && !empty($enderecoData['numero'])) {
+                    $logradouroId = $this->buscarOuCriarLogradouro($enderecoData, $entityManager);
+                    
+                    $endereco = new Enderecos();
+                    // $endereco->setIdPessoa($conjugeId); // CORRIGIR: verificar método correto
+                    $endereco->setLogradouro($entityManager->getReference(Logradouros::class, $logradouroId));
+                    $endereco->setTipo($entityManager->getReference(\App\Entity\TiposEnderecos::class, (int)$enderecoData['tipo']));
+                    $endereco->setEndNumero((int)$enderecoData['numero']);
+                    
+                    if (!empty($enderecoData['complemento'])) {
+                        $endereco->setComplemento($enderecoData['complemento']);
+                    }
+                    
+                    $entityManager->persist($endereco);
+                }
+            }
+        }
+        */
+
+        // Salvar Chaves PIX do Cônjuge
+        if (isset($requestData['conjuge_chaves_pix']) && is_array($requestData['conjuge_chaves_pix'])) {
+            foreach ($requestData['conjuge_chaves_pix'] as $pixData) {
+                if (!empty($pixData['tipo']) && !empty($pixData['chave'])) {
+                    $chavePix = new ChavesPix();
+                    $chavePix->setIdPessoa($conjugeId);
+                    $chavePix->setIdTipoChave((int)$pixData['tipo']);
+                    $chavePix->setChavePix($pixData['chave']);
+                    $chavePix->setPrincipal(!empty($pixData['principal']));
+                    $chavePix->setAtivo(true);
+                    $entityManager->persist($chavePix);
+                }
+            }
+        }
+
+        // Salvar Documentos do Cônjuge
+        if (isset($requestData['conjuge_documentos']) && is_array($requestData['conjuge_documentos'])) {
+            foreach ($requestData['conjuge_documentos'] as $documentoData) {
+                if (!empty($documentoData['tipo']) && !empty($documentoData['numero'])) {
+                    $documento = new PessoasDocumentos();
+                    $documento->setIdPessoa($conjugeId);
+                    $documento->setIdTipoDocumento((int)$documentoData['tipo']);
+                    $documento->setNumeroDocumento($documentoData['numero']);
+                    
+                    if (!empty($documentoData['orgao_emissor'])) {
+                        $documento->setOrgaoEmissor($documentoData['orgao_emissor']);
+                    }
+                    
+                    if (!empty($documentoData['data_emissao'])) {
+                        $documento->setDataEmissao(new \DateTime($documentoData['data_emissao']));
+                    }
+                    
+                    if (!empty($documentoData['data_vencimento'])) {
+                        $documento->setDataVencimento(new \DateTime($documentoData['data_vencimento']));
+                    }
+                    
+                    if (!empty($documentoData['observacoes'])) {
+                        $documento->setObservacoes($documentoData['observacoes']);
+                    }
+                    
+                    $documento->setAtivo(true);
+                    $entityManager->persist($documento);
+                }
+            }
+        }
+
+        // Salvar Profissões do Cônjuge
+        if (isset($requestData['conjuge_profissoes']) && is_array($requestData['conjuge_profissoes'])) {
+            foreach ($requestData['conjuge_profissoes'] as $profissaoData) {
+                if (!empty($profissaoData['profissao'])) {
+                    $pessoaProfissao = new \App\Entity\PessoasProfissoes();
+                    $pessoaProfissao->setIdPessoa($conjugeId);
+                    $pessoaProfissao->setIdProfissao((int)$profissaoData['profissao']);
+                    
+                    if (!empty($profissaoData['empresa'])) {
+                        $pessoaProfissao->setEmpresa($profissaoData['empresa']);
+                    }
+                    
+                    if (!empty($profissaoData['data_admissao'])) {
+                        $pessoaProfissao->setDataAdmissao(new \DateTime($profissaoData['data_admissao']));
+                    }
+                    
+                    if (!empty($profissaoData['data_demissao'])) {
+                        $pessoaProfissao->setDataDemissao(new \DateTime($profissaoData['data_demissao']));
+                    }
+                    
+                    if (!empty($profissaoData['renda'])) {
+                        $pessoaProfissao->setRenda((float)$profissaoData['renda']);
+                    }
+                    
+                    if (!empty($profissaoData['observacoes'])) {
+                        $pessoaProfissao->setObservacoes($profissaoData['observacoes']);
+                    }
+                    
+                    $pessoaProfissao->setAtivo(true);
+                    $entityManager->persist($pessoaProfissao);
+                }
+            }
+        }
+    }
+
+    private function buscarOuCriarLogradouro(array $enderecoData, EntityManagerInterface $entityManager): int
+    {
+        // Buscar bairro ou criar
+        $bairroRepository = $entityManager->getRepository(Bairros::class);
+        $bairro = $bairroRepository->findOneBy(['nome' => $enderecoData['bairro']]);
+        
+        if (!$bairro) {
+            // Buscar cidade ou criar
+            $cidadeRepository = $entityManager->getRepository(Cidades::class);
+            $cidade = $cidadeRepository->findOneBy(['nome' => $enderecoData['cidade']]);
+            
+            if (!$cidade) {
+                // Buscar ou criar estado
+                $estadoRepository = $entityManager->getRepository(Estados::class);
+                $estado = $estadoRepository->findOneBy(['uf' => $enderecoData['estado'] ?? 'SP']);
+                
+                if (!$estado) {
+                    $estado = new Estados();
+                    $estado->setUf($enderecoData['estado'] ?? 'SP');
+                    $estado->setNome($enderecoData['estado'] ?? 'São Paulo');
+                    $entityManager->persist($estado);
+                    $entityManager->flush();
+                }
+                
+                // Criar cidade
+                $cidade = new Cidades();
+                $cidade->setNome($enderecoData['cidade']);
+                $cidade->setEstado($estado);
+                $entityManager->persist($cidade);
+                $entityManager->flush();
+            }
+            
+            // Criar bairro
+            $bairro = new Bairros();
+            $bairro->setNome($enderecoData['bairro']);
+            $bairro->setCidade($cidade);
+            $entityManager->persist($bairro);
+            $entityManager->flush();
+        }
+        
+        // Buscar logradouro ou criar
+        $logradouroRepository = $entityManager->getRepository(Logradouros::class);
+        $logradouro = $logradouroRepository->findOneBy([
+            'logradouro' => $enderecoData['logradouro'],
+            'bairro' => $bairro
+        ]);
+        
+        if (!$logradouro) {
+            $logradouro = new Logradouros();
+            $logradouro->setLogradouro($enderecoData['logradouro']);
+            $logradouro->setBairro($bairro);
+            
+            if (!empty($enderecoData['cep'])) {
+                $logradouro->setCep(preg_replace('/\D/', '', $enderecoData['cep']));
+            } else {
+                $logradouro->setCep('00000000');
+            }
+            
+            $entityManager->persist($logradouro);
+            $entityManager->flush();
+        }
+        
+        return $logradouro->getId();
+    }
+}

@@ -4,25 +4,24 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-6">{{ form_row(form.pretendente.tipoImovel) }}</div>
-            <div class="col-md-6">{{ form_row(form.pretendente.quartosDesejados) }}</div>
+            <div class="col-md-4">{{ form_row(form.tipoImovel) }}</div>
+            <div class="col-md-4">{{ form_row(form.quartosDesejados) }}</div>
+            <div class="col-md-4">{{ form_row(form.logradouroDesejado) }}</div>
         </div>
         <div class="row">
-            <div class="col-md-6">{{ form_row(form.pretendente.aluguelMaximo) }}</div>
-            <div class="col-md-6">{{ form_row(form.pretendente.logradouroDesejado) }}</div>
+            <div class="col-md-4">{{ form_row(form.aluguelMaximo) }}</div>
+            <div class="col-md-4">{{ form_row(form.atendente) }}</div>
+            <div class="col-md-4">{{ form_row(form.tipoAtendimento) }}</div>
         </div>
         <div class="row">
-            <div class="col-md-4">{{ form_row(form.pretendente.disponivel) }}</div>
-            <div class="col-md-4">{{ form_row(form.pretendente.procuraAluguel) }}</div>
-            <div class="col-md-4">{{ form_row(form.pretendente.procuraCompra) }}</div>
+            <div class="col-md-4">{{ form_row(form.dataCadastro) }}</div>
         </div>
+        <hr>
         <div class="row">
-            <div class="col-md-6">{{ form_row(form.pretendente.atendente) }}</div>
-            <div class="col-md-6">{{ form_row(form.pretendente.tipoAtendimento) }}</div>
+            <div class="col-md-4">{{ form_row(form.disponivel) }}</div>
+            <div class="col-md-4">{{ form_row(form.procuraAluguel) }}</div>
+            <div class="col-md-4">{{ form_row(form.procuraCompra) }}</div>
         </div>
-         <div class="row">
-            <div class="col-md-6">{{ form_row(form.pretendente.dataCadastro) }}</div>
-        </div>
-        {{ form_row(form.pretendente.observacoes) }}
+        {{ form_row(form.observacoes) }}
     </div>
 </div>

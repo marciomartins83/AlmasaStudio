@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\Logradouro;
+use App\Entity\Logradouros;
 use App\Entity\Bairros;
 use App\Entity\Cidades;
 use App\Entity\Estados;
@@ -19,7 +19,7 @@ class LogradouroController extends AbstractController
 {
     public function index(EntityManagerInterface $em): Response
     {
-        $logradouros = $em->getRepository(Logradouro::class)->findAll();
+        $logradouros = $em->getRepository(Logradouros::class)->findAll();
 
         return $this->render('logradouro/index.html.twig', [
             'logradouros' => $logradouros
@@ -28,7 +28,7 @@ class LogradouroController extends AbstractController
 
     public function new(Request $request, EntityManagerInterface $em): Response
     {
-        $logradouro = new Logradouro();
+        $logradouro = new Logradouros();
         $form = $this->createForm(LogradouroType::class, $logradouro);
         $form->handleRequest($request);
 
@@ -52,14 +52,14 @@ class LogradouroController extends AbstractController
         ]);
     }
 
-    public function show(Logradouro $logradouro): Response
+    public function show(Logradouros $logradouro): Response
     {
         return $this->render('logradouro/show.html.twig', [
             'logradouro' => $logradouro,
         ]);
     }
 
-    public function edit(Request $request, Logradouro $logradouro, EntityManagerInterface $em): Response
+    public function edit(Request $request, Logradouros $logradouro, EntityManagerInterface $em): Response
     {
         $form = $this->createForm(LogradouroType::class, $logradouro);
         $form->handleRequest($request);
@@ -77,7 +77,7 @@ class LogradouroController extends AbstractController
         ]);
     }
 
-    public function delete(Request $request, Logradouro $logradouro, EntityManagerInterface $em): Response
+    public function delete(Request $request, Logradouros $logradouro, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('delete' . $logradouro->getId(), $request->request->get('_token'))) {
             $em->remove($logradouro);
@@ -91,7 +91,38 @@ class LogradouroController extends AbstractController
     #[Route('/cep-lookup/{cep}', name: 'app_cep_lookup')]
     public function cepLookup(string $cep): JsonResponse
     {
-        // Implementação existente
+        try {
+            // Validar formato do CEP
+            $cep = preg_replace('/[^\d]/', '', $cep);
+            
+            if (strlen($cep) !== 8) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'CEP deve conter 8 dígitos'
+                ], 400);
+            }
+
+            // Sua lógica de busca aqui
+            // Exemplo:
+            // $endereco = $this->cepService->buscarEndereco($cep);
+            
+            return new JsonResponse([
+                'success' => true,
+                'data' => [
+                    'cep' => $cep,
+                    'logradouro' => 'Exemplo de Rua',
+                    'bairro' => 'Exemplo de Bairro',
+                    'cidade' => 'São Paulo',
+                    'uf' => 'SP'
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro ao buscar CEP: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     #[Route('/buscar-cep-local', name: 'app_buscar_cep_local')]
@@ -109,7 +140,7 @@ class LogradouroController extends AbstractController
             }
             
             // Busca no banco de dados
-            $logradouro = $em->getRepository(Logradouro::class)->findOneBy(['cep' => $cep]);
+            $logradouro = $em->getRepository(Logradouros::class)->findOneBy(['cep' => $cep]);
             
             if ($logradouro) {
                 // Verifica relações para evitar erros
@@ -217,9 +248,9 @@ class LogradouroController extends AbstractController
             }
             
             // Cria o novo logradouro
-            $logradouro = new Logradouro();
+            $logradouro = new Logradouros();
             $logradouro->setCep($data['cep']);
-            $logradouro->setNome($data['logradouro']);
+            $logradouro->setLogradouro($data['logradouro']);
             $logradouro->setBairro($bairro);
             $em->persist($logradouro);
             

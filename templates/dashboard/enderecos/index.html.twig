@@ -4,7 +4,12 @@
 
 {% block content %}
 <div class="container my-4">
-    <a href="{{ path('app_dashboard') }}" class="btn btn-primary mb-3">← Voltar</a>
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Endereços'
+    } %}
     <h2 class="fs-3 fw-bold mb-4 text-dark">Lista de Endereços</h2>
 
     <p class="text-secondary">Aqui você pode gerenciar estados, cidades, bairros e logradouros.</p>
@@ -36,11 +41,5 @@
         {% endfor %}
     </div>
 </div>
-
-<script>
-    function toggleDetails(index) {
-        const details = document.getElementById("details-" + index);
-        details.classList.toggle("d-none");
-    }
-</script>
+<script src="{{ asset('js/dashboard/dashboard.js') }}"></script>
 {% endblock %}

@@ -12,7 +12,12 @@ class TiposChavesPix
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[ORM\Column]
+
+    /**
+     * Propriedade ajustada para corresponder à coluna 'tipo' da tabela no banco de dados.
+     * O tipo foi definido como não nulo para refletir a restrição 'not null' da tabela.
+     */
+    #[ORM\Column(name: 'tipo', length: 255)]
     private string $tipo;
 
     public function getId(): ?int
@@ -30,5 +35,5 @@ class TiposChavesPix
         $this->tipo = $tipo;
         return $this;
     }
-
 }
+

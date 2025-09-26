@@ -28,15 +28,18 @@ class PessoaPretendenteType extends AbstractType
                 'label' => 'Tipo de Imóvel Desejado',
                 'placeholder' => 'Selecione...',
                 'required' => false,
+                'attr' => ['class' => 'form-select']
             ])
             ->add('quartosDesejados', IntegerType::class, [
                 'label' => 'Quartos Desejados',
                 'required' => false,
+                'attr' => ['class' => 'form-control', 'min' => 0]
             ])
             ->add('aluguelMaximo', MoneyType::class, [
-                'label' => 'Aluguel Máximo',
+                'label' => 'Aluguel Máximo R$',
                 'currency' => 'BRL',
                 'required' => false,
+                'attr' => ['class' => 'form-control']
             ])
             ->add('logradouroDesejado', EntityType::class, [
                 'class' => Logradouros::class,
@@ -44,6 +47,7 @@ class PessoaPretendenteType extends AbstractType
                 'label' => 'Logradouro Desejado',
                 'placeholder' => 'Selecione...',
                 'required' => false,
+                'attr' => ['class' => 'form-select']
             ])
             ->add('disponivel', CheckboxType::class, [
                 'label' => 'Disponível para contato?',
@@ -59,10 +63,11 @@ class PessoaPretendenteType extends AbstractType
             ])
             ->add('atendente', EntityType::class, [
                 'class' => Users::class,
-                'choice_label' => 'name', // or 'email' depending on what's best
+                'choice_label' => 'name',
                 'label' => 'Atendente',
                 'placeholder' => 'Selecione...',
                 'required' => false,
+                'attr' => ['class' => 'form-select']
             ])
             ->add('tipoAtendimento', EntityType::class, [
                 'class' => TiposAtendimento::class,
@@ -70,15 +75,18 @@ class PessoaPretendenteType extends AbstractType
                 'label' => 'Tipo de Atendimento',
                 'placeholder' => 'Selecione...',
                 'required' => false,
+                'attr' => ['class' => 'form-select']
             ])
             ->add('dataCadastro', DateType::class, [
                 'widget' => 'single_text',
                 'label' => 'Data de Cadastro',
                 'required' => false,
+                'attr' => ['class' => 'form-control']
             ])
             ->add('observacoes', TextareaType::class, [
                 'label' => 'Observações',
                 'required' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 3]
             ]);
     }
 
