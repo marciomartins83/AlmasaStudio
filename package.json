@@ -1,5 +1,38 @@
 {
-  "dependencies": {
-    "bootstrap": "^5.3.3"
-  }
+  "name": "almasastudio",
+  "version": "1.0.0",
+  "description": "AlmasaStudio projeto Symfony",
+  "main": "webpack.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/preset-env": "^7.25.0",
+    "@hotwired/stimulus": "^3.2.2",
+    "@symfony/webpack-encore": "^5.2.0",
+    "babel-loader": "^9.2.1",
+    "bootstrap": "^5.3.8",
+    "core-js": "^3.46.0",
+    "regenerator-runtime": "^0.14.1",
+    "sass": "^1.93.2",
+    "sass-loader": "^16.0.5"
+  },
+  "scripts": {
+    "dev": "encore dev",
+    "build": "encore production",
+    "watch": "encore dev --watch",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marciomartins83/AlmasaStudio.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marciomartins83/AlmasaStudio/issues"
+  },
+  "homepage": "https://github.com/marciomartins83/AlmasaStudio#readme"
 }

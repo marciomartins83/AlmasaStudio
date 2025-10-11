@@ -1,14 +1,14 @@
-import './bootstrap.js';
-/*
- * Welcome to your app's main JavaScript file!
- *
- * This file will be included onto the page via the importmap() Twig function,
- * which should already be in your base.html.twig.
- */
-import './styles/app.css';
+// Importa estilos globais (SCSS com Bootstrap)
+import './styles/app.scss';
 
-// Importa os formulários JS customizados
-import './js/pessoa-form.js';
-import './js/fiador-form.js';
+// Importa Bootstrap 5 (JS)
+import 'bootstrap';
 
-console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
+// Importa Stimulus
+import { Application } from '@hotwired/stimulus';
+
+// Inicializa Stimulus
+const application = Application.start();
+
+// Log para debug
+console.log('%c[ALMASA] Frontend iniciado com sucesso ✅', 'color: #28a745; font-weight: bold;');
