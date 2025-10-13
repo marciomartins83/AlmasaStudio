@@ -49,6 +49,7 @@ use App\Entity\PessoasCorretoras;
 use App\Entity\PessoasProfissoes;
 
 
+
 #[Route('/pessoa', name: 'app_pessoa_')]
 class PessoaController extends AbstractController
 {
@@ -61,160 +62,109 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
+    #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $form = $this->createForm(PessoaFormType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData(); // Isso é um objeto Pessoas agora
+            $data        = $form->getData();           // objeto Pessoas
             $requestData = $request->request->all();
-            $tipoPessoa = $form->get('tipoPessoa')->getData();
+            $tipoPessoa  = $form->get('tipoPessoa')->getData();
 
-            // VERIFICAR se é pessoa existente - se for, processar como edição
-            $pessoaId = $form->get('pessoaId')->getData();
-            if (!empty($pessoaId)) {
-                // É uma pessoa existente - processar como edição aqui mesmo
-                $pessoa = $entityManager->getRepository(Pessoas::class)->find($pessoaId);
-                if (!$pessoa) {
-                    $this->addFlash('error', "Pessoa com ID {$pessoaId} não encontrada");
+            /* ---------- 1.  Verifica CPF duplicado ---------- */
+            $cpfNumero = null;
+            foreach ($data->getPessoasDocumentos() as $pd) {
+                $doc = $pd->getIdDocumento();
+                if ($doc && $doc->getTipo() === 1) {      // 1 = CPF
+                    $cpfNumero = $doc->getNumero();
+                    break;
+                }
+            }
+
+            if ($cpfNumero) {
+                $existente = $entityManager->getRepository(Pessoas::class)
+                    ->findByCpfDocumento($cpfNumero);
+                if ($existente) {
+                    error_log('[CPF DUPLICADO] ' . $cpfNumero);
+                    $this->addFlash('error', 'CPF já cadastrado.');
                     return $this->redirectToRoute('app_pessoa_new');
                 }
+            }
 
-                // Processar edição da pessoa existente
-                $entityManager->getConnection()->beginTransaction();
-                try {
-                    // Para edição, usar dados do request, não do $data
-                    $formData = $requestData['pessoa_form'] ?? [];
-                    
-                    // Atualizar dados básicos
-                    if (isset($formData['nome'])) $pessoa->setNome($formData['nome']);
-                    if (isset($formData['dataNascimento'])) {
-                        $pessoa->setDataNascimento($formData['dataNascimento'] ? new \DateTime($formData['dataNascimento']) : null);
-                    }
-                    if (isset($formData['estadoCivil']) && !empty($formData['estadoCivil'])) {
-                        $estadoCivil = $entityManager->getReference(EstadoCivil::class, $formData['estadoCivil']);
-                        $pessoa->setEstadoCivil($estadoCivil);
-                    }
-                    if (isset($formData['nacionalidade']) && !empty($formData['nacionalidade'])) {
-                        $nacionalidade = $entityManager->getReference(Nacionalidade::class, $formData['nacionalidade']);
-                        $pessoa->setNacionalidade($nacionalidade);
-                    }
-                    if (isset($formData['naturalidade']) && !empty($formData['naturalidade'])) {
-                        $naturalidade = $entityManager->getReference(Naturalidade::class, $formData['naturalidade']);
-                        $pessoa->setNaturalidade($naturalidade);
-                    }
-                    if (isset($formData['nomePai'])) $pessoa->setNomePai($formData['nomePai']);
-                    if (isset($formData['nomeMae'])) $pessoa->setNomeMae($formData['nomeMae']);
-                    if (isset($formData['renda'])) $pessoa->setRenda($formData['renda']);
-                    if (isset($formData['observacoes'])) $pessoa->setObservacoes($formData['observacoes']);
+            /* ---------- 2.  Telefones – sem duplicar ---------- */
+            $telRepo = $entityManager->getRepository(Telefones::class);
+            foreach ($data->getPessoasTelefones() as $pt) {
+                $tel = $pt->getIdTelefone();
+                if (!$tel) continue;
 
-                    // Atualizar tipoPessoa se alterado
-                    if (is_string($tipoPessoa)) {
-                        $tipoPessoaId = $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
-                    } else {
-                        $tipoPessoaId = (int)$tipoPessoa;
-                    }
-                    $pessoa->setTipoPessoa($tipoPessoaId);
-
-                    $entityManager->persist($pessoa);
-                    $entityManager->flush();
-
-                    // Processar dados múltiplos (telefones, endereços, etc.)
-                    $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $requestData, $entityManager);
-
-                    // Processar cônjuge
-                    $this->salvarConjuge($pessoa, $requestData, $entityManager);
-
-                    $entityManager->flush();
-                    $entityManager->getConnection()->commit();
-
-                    $this->addFlash('success', 'Pessoa atualizada com sucesso!');
-                    return $this->redirectToRoute('app_pessoa_index');
-
-                } catch (\Exception $e) {
-                    $entityManager->getConnection()->rollBack();
-                    $this->addFlash('error', 'Erro ao atualizar pessoa: ' . $e->getMessage());
-                    error_log('Erro na edição via new: ' . $e->getMessage());
+                $exist = $telRepo->findOneBy(['numero' => $tel->getNumero(), 'ativo' => true]);
+                if ($exist) {
+                    $pt->setIdTelefone($exist);
+                    $entityManager->remove($tel);
+                    error_log('[TELEFONE REUTILIZADO] ' . $tel->getNumero());
                 }
+            }
 
-                // Se chegou aqui, houve erro - continuar no formulário
-                return $this->render('pessoa/new.html.twig', [
-                    'form' => $form->createView(),
+            /* ---------- 3.  E-mails – sem duplicar ---------- */
+            $emailRepo = $entityManager->getRepository(Emails::class);
+            foreach ($data->getPessoasEmails() as $pe) {
+                $email = $pe->getIdEmail();
+                if (!$email) continue;
+
+                $exist = $emailRepo->findOneBy(['email' => $email->getEmail(), 'ativo' => true]);
+                if ($exist) {
+                    $pe->setIdEmail($exist);
+                    $entityManager->remove($email);
+                    error_log('[EMAIL REUTILIZADO] ' . $email->getEmail());
+                }
+            }
+
+            /* ---------- 4.  Endereços – sem duplicar ---------- */
+            $endRepo = $entityManager->getRepository(Enderecos::class);
+            foreach ($data->getPessoasEnderecos() as $pen) {
+                $end = $pen->getIdEndereco();
+                if (!$end) continue;
+
+                $exist = $endRepo->findOneBy([
+                    'logradouro' => $end->getLogradouro(),
+                    'numero'     => $end->getNumero(),
+                    'ativo'      => true
                 ]);
+                if ($exist) {
+                    $pen->setIdEndereco($exist);
+                    $entityManager->remove($end);
+                    error_log('[ENDERECO REUTILIZADO] ' . $end->getLogradouro() . ', ' . $end->getNumero());
+                }
             }
 
-            // A partir daqui é APENAS criação de pessoa nova
-            $entityManager->getConnection()->beginTransaction();
-            try {
-                // 1. Criar nova pessoa
-                $pessoa = new Pessoas();
-                $pessoa->setDtCadastro(new \DateTime());
-                $pessoa->setStatus(true);
+            /* ---------- 5.  Demais documentos – sem duplicar ---------- */
+            $docRepo = $entityManager->getRepository(\App\Entity\PessoasDocumentos::class);
+            foreach ($data->getPessoasDocumentos() as $pd) {
+                $tipo = $pd->getIdTipoDocumento();
+                $num  = $pd->getNumeroDocumento();
 
-                // 2. Definir dados da pessoa - $data é objeto, usar getters
-                $pessoa->setNome($data->getNome());
-                $pessoa->setDataNascimento($data->getDataNascimento());
-                $pessoa->setEstadoCivil($data->getEstadoCivil());
-                $pessoa->setNacionalidade($data->getNacionalidade());
-                $pessoa->setNaturalidade($data->getNaturalidade());
-                $pessoa->setNomePai($data->getNomePai());
-                $pessoa->setNomeMae($data->getNomeMae());
-                $pessoa->setRenda($data->getRenda());
-                $pessoa->setObservacoes($data->getObservacoes());
-
-                // Definir física/jurídica baseado no CPF/CNPJ do requestData
-                $cpfCnpj = $requestData['pessoa_form']['searchTerm'] ?? '';
-                $fisicaJuridica = 'fisica';
-                if (!empty($cpfCnpj)) {
-                    $cpfCnpj = preg_replace('/[^\d]/', '', $cpfCnpj);
-                    $fisicaJuridica = strlen($cpfCnpj) === 11 ? 'fisica' : 'juridica';
+                $exist = $docRepo->findOneBy([
+                    'idPessoa'         => $data->getIdpessoa(),
+                    'idTipoDocumento'  => $tipo,
+                    'numeroDocumento'  => $num,
+                    'ativo'            => true
+                ]);
+                if ($exist) {
+                    // reutiliza o existente e descarta o novo
+                    $entityManager->remove($pd);   // remove o objeto duplicado
+                    error_log('[DOCUMENTO REUTILIZADO] tipo=' . $tipo . ' numero=' . $num);
                 }
-                
-                $pessoa->setFisicaJuridica($fisicaJuridica);
-                
-                // Converter tipoPessoa do formulário para ID
-                if (is_string($tipoPessoa)) {
-                    $tipoPessoaId = $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
-                } else {
-                    $tipoPessoaId = (int)$tipoPessoa;
-                }
-                $pessoa->setTipoPessoa($tipoPessoaId);
-
-                // 3. Persistir pessoa
-                $entityManager->persist($pessoa);
-
-                // 4. FLUSH para obter ID da pessoa
-                $entityManager->flush();
-                
-                // 5. Salvar CPF/CNPJ se informado
-                if (!empty($cpfCnpj)) {
-                    $this->salvarDocumentoPrincipal($pessoa, $cpfCnpj, $entityManager);
-                }
-
-                // 6. Criar vinculação de tipo específico
-                $this->salvarTipoEspecifico($pessoa, $tipoPessoa, $data, $entityManager);
-
-                // 7. Salvar dados múltiplos
-                $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $requestData, $entityManager);
-
-                // 8. Salvar cônjuge
-                $this->salvarConjuge($pessoa, $requestData, $entityManager);
-
-                // 9. FLUSH FINAL
-                $entityManager->flush();
-                $entityManager->getConnection()->commit();
-
-                $this->addFlash('success', 'Pessoa cadastrada com sucesso!');
-                return $this->redirectToRoute('app_pessoa_index');
-
-            } catch (\Exception $e) {
-                $entityManager->getConnection()->rollBack();
-                $this->addFlash('error', 'Erro ao cadastrar pessoa: ' . $e->getMessage());
-                
-                error_log('Erro detalhado na criação de pessoa: ' . $e->getMessage());
-                error_log('Trace: ' . $e->getTraceAsString());
             }
+
+            /* ---------- 6.  Persiste ---------- */
+            $entityManager->persist($data);
+            $entityManager->flush();
+
+            error_log('[PESSOA SALVA] ID=' . $data->getIdpessoa());
+            $this->addFlash('success', 'Pessoa cadastrada com sucesso!');
+            return $this->redirectToRoute('app_pessoa_index');
         }
 
         return $this->render('pessoa/new.html.twig', [
@@ -236,7 +186,7 @@ class PessoaController extends AbstractController
                     $telefone->setNumero($telefoneData['numero']);
                     $entityManager->persist($telefone);
                     $entityManager->flush(); // FLUSH para obter ID
-                    
+
                     $pessoaTelefone = new PessoasTelefones();
                     $pessoaTelefone->setIdPessoa($pessoaId);
                     $pessoaTelefone->setIdTelefone($telefone->getId()); // Agora tem ID
@@ -254,7 +204,7 @@ class PessoaController extends AbstractController
                     $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
                     $entityManager->persist($email);
                     $entityManager->flush(); // FLUSH para obter ID
-                    
+
                     $pessoaEmail = new PessoasEmails();
                     $pessoaEmail->setIdPessoa($pessoaId);
                     $pessoaEmail->setIdEmail($email->getId()); // Agora tem ID
@@ -268,17 +218,17 @@ class PessoaController extends AbstractController
             foreach ($requestData['enderecos'] as $enderecoData) {
                 if (!empty($enderecoData['tipo']) && !empty($enderecoData['numero'])) {
                     $logradouroId = $this->buscarOuCriarLogradouro($enderecoData, $entityManager);
-                    
+
                     $endereco = new Enderecos();
                     $endereco->setPessoa($entityManager->getReference(Pessoas::class, $pessoaId)); // ✅ CORRIGIDO: Usar setPessoa
                     $endereco->setLogradouro($entityManager->getReference(Logradouros::class, $logradouroId));
                     $endereco->setTipo($entityManager->getReference(\App\Entity\TiposEnderecos::class, (int)$enderecoData['tipo']));
                     $endereco->setEndNumero((int)$enderecoData['numero']);
-                    
+
                     if (!empty($enderecoData['complemento'])) {
                         $endereco->setComplemento($enderecoData['complemento']);
                     }
-                    
+
                     $entityManager->persist($endereco);
                 }
             }
@@ -304,26 +254,32 @@ class PessoaController extends AbstractController
             foreach ($requestData['documentos'] as $documentoData) {
                 if (!empty($documentoData['tipo']) && !empty($documentoData['numero'])) {
                     $documento = new PessoasDocumentos();
-                    $documento->setIdPessoa($pessoaId);
-                    $documento->setIdTipoDocumento((int)$documentoData['tipo']);
+                    $pessoa = $entityManager->getRepository(Pessoas::class)->getIdpessoa($pessoaId);
+                    $documento->setPessoa($pessoa);
+                    $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
+                        ->findOneBy(['tipo' => 'CPF']); // ou 'CNPJ', depende do contexto
+
+                    if ($tipoDocumentoEntity) {
+                        $documento->setTipoDocumento($tipoDocumentoEntity);
+                    }
                     $documento->setNumeroDocumento($documentoData['numero']);
-                    
+
                     if (!empty($documentoData['orgao_emissor'])) {
                         $documento->setOrgaoEmissor($documentoData['orgao_emissor']);
                     }
-                    
+
                     if (!empty($documentoData['data_emissao'])) {
                         $documento->setDataEmissao(new \DateTime($documentoData['data_emissao']));
                     }
-                    
+
                     if (!empty($documentoData['data_vencimento'])) {
                         $documento->setDataVencimento(new \DateTime($documentoData['data_vencimento']));
                     }
-                    
+
                     if (!empty($documentoData['observacoes'])) {
                         $documento->setObservacoes($documentoData['observacoes']);
                     }
-                    
+
                     $documento->setAtivo(true);
                     $entityManager->persist($documento);
                 }
@@ -337,27 +293,27 @@ class PessoaController extends AbstractController
                     $pessoaProfissao = new \App\Entity\PessoasProfissoes();
                     $pessoaProfissao->setIdPessoa($pessoaId);
                     $pessoaProfissao->setIdProfissao((int)$profissaoData['profissao']);
-                    
+
                     if (!empty($profissaoData['empresa'])) {
                         $pessoaProfissao->setEmpresa($profissaoData['empresa']);
                     }
-                    
+
                     if (!empty($profissaoData['data_admissao'])) {
                         $pessoaProfissao->setDataAdmissao(new \DateTime($profissaoData['data_admissao']));
                     }
-                    
+
                     if (!empty($profissaoData['data_demissao'])) {
                         $pessoaProfissao->setDataDemissao(new \DateTime($profissaoData['data_demissao']));
                     }
-                    
+
                     if (!empty($profissaoData['renda'])) {
                         $pessoaProfissao->setRenda((float)$profissaoData['renda']);
                     }
-                    
+
                     if (!empty($profissaoData['observacoes'])) {
                         $pessoaProfissao->setObservacoes($profissaoData['observacoes']);
                     }
-                    
+
                     $pessoaProfissao->setAtivo(true);
                     $entityManager->persist($pessoaProfissao);
                 }
@@ -372,15 +328,15 @@ class PessoaController extends AbstractController
     {
         $tipoRepository = $entityManager->getRepository(\App\Entity\TiposPessoas::class);
         $tipo = $tipoRepository->findOneBy(['tipo' => $tipoPessoaString, 'ativo' => true]);
-        
+
         if ($tipo) {
             return $tipo->getId();
         }
-        
+
         // Fallback para fiador se não encontrar
         $fiador = $tipoRepository->findOneBy(['tipo' => 'fiador', 'ativo' => true]);
         return $fiador ? $fiador->getId() : 1;
-    }   
+    }
 
     #[Route('/_subform', name: '_subform', methods: ['POST'])]
     public function _subform(Request $request): Response
@@ -426,7 +382,6 @@ class PessoaController extends AbstractController
             return $this->render($template, [
                 'form' => $form->createView()
             ]);
-            
         } catch (\Exception $e) {
             error_log('Erro ao carregar sub-formulário: ' . $e->getMessage());
             return new Response('<div class="alert alert-danger">Erro ao carregar formulário: ' . $e->getMessage() . '</div>', 500);
@@ -438,7 +393,7 @@ class PessoaController extends AbstractController
     {
         try {
             $data = json_decode($request->getContent(), true);
-            
+
             if (!$data) {
                 return new JsonResponse(['success' => false, 'message' => 'Dados JSON inválidos'], 400);
             }
@@ -453,33 +408,33 @@ class PessoaController extends AbstractController
             }
 
             $pessoa = null;
-            
+
             switch ($criteria) {
                 case 'cpf':
                 case 'CPF':
                 case 'CPF (Pessoa Física)':
-                    $pessoa = $pessoaRepository->findByCpf($value);
+                    $pessoa = $pessoaRepository->findByCpfDocumento($value);
                     break;
-                
+
                 case 'cnpj':
                 case 'CNPJ':
                 case 'CNPJ (Pessoa Jurídica)':
-                    $pessoa = $pessoaRepository->findByCnpj($value);
+                    $pessoa = $pessoaRepository->findByCnpjDocumento($value);
                     break;
-                
+
                 case 'id':
                 case 'ID':
                 case 'Id Pessoa':
                     $pessoa = $pessoaRepository->find((int)$value);
                     break;
-                
+
                 case 'nome':
                 case 'Nome':
                 case 'Nome Completo':
                     if ($additionalDoc && $additionalDocType) {
                         $isDocCpf = (stripos($additionalDocType, 'cpf') !== false);
                         $isDocCnpj = (stripos($additionalDocType, 'cnpj') !== false);
-                        
+
                         if ($isDocCpf) {
                             $pessoaPorDoc = $pessoaRepository->findByCpf($additionalDoc);
                         } elseif ($isDocCnpj) {
@@ -497,13 +452,13 @@ class PessoaController extends AbstractController
                             $pessoa = $pessoas[0];
                         } elseif (count($pessoas) > 1) {
                             return new JsonResponse([
-                                'success' => false, 
+                                'success' => false,
                                 'message' => 'Múltiplas pessoas encontradas com este nome. Por favor, informe o CPF ou CNPJ para especificar.'
                             ]);
                         }
                     }
                     break;
-                
+
                 default:
                     return new JsonResponse(['success' => false, 'message' => 'Critério de busca inválido'], 400);
             }
@@ -511,18 +466,18 @@ class PessoaController extends AbstractController
             if ($pessoa) {
                 $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
                 $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
-                
+
                 // BUSCAR DADOS MÚLTIPLOS - ATIVANDO CHAVES PIX CORRIGIDAS
-                error_log("DEBUG: entro na bagaça"); 
+                error_log("DEBUG: entro na bagaça");
                 $telefones = $this->buscarTelefonesPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
                 $emails = $this->buscarEmailsPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
                 $enderecos = $this->buscarEnderecosPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
                 $chavesPix = $this->buscarChavesPixPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ CORRIGIDO
                 $documentos = $this->buscarDocumentosPessoa($pessoa->getIdpessoa(), $entityManager);
-                error_log("DEBUG: Documentos encontrados para pessoa {$pessoa->getIdpessoa()}: " . json_encode($documentos)); 
+                error_log("DEBUG: Documentos encontrados para pessoa {$pessoa->getIdpessoa()}: " . json_encode($documentos));
                 $profissoes = []; // $this->buscarProfissoesPessoa($pessoa->getIdpessoa(), $entityManager);
                 $conjuge = null; // $this->buscarConjugePessoa($pessoa->getIdpessoa(), $entityManager);
-                
+
                 return new JsonResponse([
                     'success' => true,
                     'pessoa' => [
@@ -555,11 +510,10 @@ class PessoaController extends AbstractController
                     'message' => 'Pessoa não encontrada'
                 ]);
             }
-
         } catch (\Exception $e) {
             error_log('Erro na busca de pessoa: ' . $e->getMessage());
             return new JsonResponse([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Erro interno: ' . $e->getMessage()
             ], 500);
         }
@@ -571,14 +525,14 @@ class PessoaController extends AbstractController
     private function buscarTelefonesPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
     {
         $telefones = [];
-        
+
         $pessoasTelefones = $entityManager->getRepository(PessoasTelefones::class)
             ->findBy(['idPessoa' => $pessoaId]);
-        
+
         foreach ($pessoasTelefones as $pessoaTelefone) {
             $telefone = $entityManager->getRepository(Telefones::class)
                 ->find($pessoaTelefone->getIdTelefone());
-            
+
             if ($telefone) {
                 $telefones[] = [
                     'tipo' => $telefone->getTipo()->getId(),
@@ -586,7 +540,7 @@ class PessoaController extends AbstractController
                 ];
             }
         }
-        
+
         return $telefones;
     }
 
@@ -596,16 +550,16 @@ class PessoaController extends AbstractController
     private function buscarEnderecosPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
     {
         $enderecos = [];
-        
+
         $enderecosEntidade = $entityManager->getRepository(Enderecos::class)
             ->findBy(['pessoa' => $pessoaId]);
-        
+
         foreach ($enderecosEntidade as $endereco) {
             $logradouro = $endereco->getLogradouro();
             $bairro = $logradouro ? $logradouro->getBairro() : null;
             $cidade = $bairro ? $bairro->getCidade() : null;
             $estado = $cidade ? $cidade->getEstado() : null;
-            
+
             $enderecos[] = [
                 'tipo' => $endereco->getTipo()->getId(),
                 'cep' => $logradouro ? $logradouro->getCep() : '',
@@ -617,7 +571,7 @@ class PessoaController extends AbstractController
                 'estado' => $estado ? $estado->getUf() : ''
             ];
         }
-        
+
         return $enderecos;
     }
 
@@ -627,14 +581,14 @@ class PessoaController extends AbstractController
     private function buscarEmailsPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
     {
         $emails = [];
-        
+
         $pessoasEmails = $entityManager->getRepository(PessoasEmails::class)
             ->findBy(['idPessoa' => $pessoaId]);
-        
+
         foreach ($pessoasEmails as $pessoaEmail) {
             $email = $entityManager->getRepository(Emails::class)
                 ->find($pessoaEmail->getIdEmail());
-            
+
             if ($email) {
                 $emails[] = [
                     'tipo' => $email->getTipo()->getId(),
@@ -642,7 +596,7 @@ class PessoaController extends AbstractController
                 ];
             }
         }
-        
+
         return $emails;
     }
 
@@ -652,14 +606,14 @@ class PessoaController extends AbstractController
     private function buscarDocumentosPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
     {
         error_log("🔍 DEBUG: Chamando Repository para pessoa ID: $pessoaId");
-        
+
         $resultado = $entityManager->getRepository(Pessoas::class)
             ->buscarDocumentosSecundarios($pessoaId);
         // Debug via logs sem quebrar o JSON
         error_log("🔍 DEBUG: Repository retornou: " . print_r($resultado, true));
         error_log("🔍 DEBUG: Tipo do resultado: " . gettype($resultado));
         error_log("🔍 DEBUG: Count do resultado: " . count($resultado));
-        
+
         return $resultado;
     }
 
@@ -669,12 +623,12 @@ class PessoaController extends AbstractController
     private function buscarChavesPixPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
     {
         $chavesPix = [];
-        error_log("Buscando chaves PIX para pessoa ID: " . var_export($pessoaId, true));  
+        error_log("Buscando chaves PIX para pessoa ID: " . var_export($pessoaId, true));
         $chavesPixEntidade = $entityManager->getRepository(ChavesPix::class)
             ->findBy([
                 'idPessoa' => (int) $pessoaId, // ✅ Garantir int
                 'ativo' => true
-            ]);          
+            ]);
         error_log("Chaves encontradas: " . count($chavesPixEntidade));
         foreach ($chavesPixEntidade as $chavePix) {
             $chavesPix[] = [
@@ -685,7 +639,6 @@ class PessoaController extends AbstractController
         }
 
         return $chavesPix;
-        
     }
 
     /**
@@ -694,10 +647,10 @@ class PessoaController extends AbstractController
     private function buscarProfissoesPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
     {
         $profissoes = [];
-        
+
         $pessoasProfissoes = $entityManager->getRepository(PessoasProfissoes::class)
             ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
-        
+
         foreach ($pessoasProfissoes as $pessoaProfissao) {
             $profissoes[] = [
                 'profissao' => $pessoaProfissao->getIdProfissao(),
@@ -708,7 +661,7 @@ class PessoaController extends AbstractController
                 'observacoes' => $pessoaProfissao->getObservacoes()
             ];
         }
-        
+
         return $profissoes;
     }
 
@@ -723,21 +676,21 @@ class PessoaController extends AbstractController
                 'tipoRelacionamento' => 'Cônjuge',
                 'ativo' => true
             ]);
-        
+
         if (!$relacionamento) {
             return null;
         }
-        
+
         $conjuge = $entityManager->getRepository(Pessoas::class)
             ->find($relacionamento->getIdPessoaDestino());
-        
+
         if (!$conjuge) {
             return null;
         }
-        
+
         $pessoaRepository = $entityManager->getRepository(Pessoas::class);
         $cpfConjuge = $pessoaRepository->getCpfByPessoa($conjuge->getIdpessoa());
-        
+
         // Buscar todos os dados múltiplos do cônjuge também
         $telefonesConjuge = $this->buscarTelefonesPessoa($conjuge->getIdpessoa(), $entityManager);
         $enderecosConjuge = $this->buscarEnderecosPessoa($conjuge->getIdpessoa(), $entityManager);
@@ -745,7 +698,7 @@ class PessoaController extends AbstractController
         $documentosConjuge = $this->buscarDocumentosPessoa($conjuge->getIdpessoa(), $entityManager);
         $chavesPixConjuge = $this->buscarChavesPixPessoa($conjuge->getIdpessoa(), $entityManager);
         $profissoesConjuge = $this->buscarProfissoesPessoa($conjuge->getIdpessoa(), $entityManager);
-        
+
         return [
             'id' => $conjuge->getIdpessoa(),
             'nome' => $conjuge->getNome(),
@@ -807,7 +760,6 @@ class PessoaController extends AbstractController
             }
 
             return new JsonResponse(['tipos' => $tiposArray]);
-
         } catch (\Exception $e) {
             return new JsonResponse(['error' => 'Erro interno: ' . $e->getMessage()], 500);
         }
@@ -818,19 +770,19 @@ class PessoaController extends AbstractController
     {
         try {
             $data = json_decode($request->getContent(), true);
-            
+
             if (!$data || !isset($data['tipo'])) {
                 return new JsonResponse(['success' => false, 'message' => 'Dados inválidos'], 400);
             }
-            
+
             $tipoNome = trim($data['tipo']);
             if (empty($tipoNome)) {
                 return new JsonResponse(['success' => false, 'message' => 'Nome do tipo é obrigatório'], 400);
             }
-            
+
             $novoTipo = null;
             $isProfissao = ($entidade === 'profissao');
-            
+
             switch ($entidade) {
                 case 'telefone':
                     $novoTipo = new TiposTelefones();
@@ -853,17 +805,17 @@ class PessoaController extends AbstractController
                 default:
                     return new JsonResponse(['success' => false, 'message' => 'Entidade não reconhecida'], 400);
             }
-            
+
             if ($isProfissao) {
                 $novoTipo->setNome($tipoNome);
                 $novoTipo->setAtivo(true);
             } else {
                 $novoTipo->setTipo($tipoNome);
             }
-            
+
             $entityManager->persist($novoTipo);
             $entityManager->flush();
-            
+
             return new JsonResponse([
                 'success' => true,
                 'tipo' => [
@@ -871,7 +823,6 @@ class PessoaController extends AbstractController
                     'tipo' => $isProfissao ? $novoTipo->getNome() : $novoTipo->getTipo()
                 ]
             ]);
-            
         } catch (\Exception $e) {
             return new JsonResponse(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
         }
@@ -889,7 +840,7 @@ class PessoaController extends AbstractController
             }
 
             $endereco = $cepService->buscarEpersistirEndereco($cep);
-            
+
             return new JsonResponse([
                 'success' => true,
                 'logradouro' => $endereco['logradouro'],
@@ -897,7 +848,6 @@ class PessoaController extends AbstractController
                 'cidade' => $endereco['cidade'],
                 'estado' => $endereco['estado']
             ]);
-
         } catch (\Exception $e) {
             return new JsonResponse([
                 'success' => false,
@@ -911,20 +861,20 @@ class PessoaController extends AbstractController
     {
         try {
             $data = json_decode($request->getContent(), true);
-            
+
             if (!$data || !isset($data['termo'])) {
                 return new JsonResponse(['success' => false, 'message' => 'Termo de busca não informado'], 400);
             }
 
             $termo = trim($data['termo']);
-            
+
             if (strlen($termo) < 3) {
                 return new JsonResponse(['success' => false, 'message' => 'Digite pelo menos 3 caracteres para buscar'], 400);
             }
 
             $pessoas = $pessoaRepository->createQueryBuilder('p')
                 ->where('p.nome LIKE :termo')
-                ->setParameter('termo', '%'.$termo.'%')
+                ->setParameter('termo', '%' . $termo . '%')
                 ->andWhere('p.fisicaJuridica = :fisica')
                 ->setParameter('fisica', 'fisica')
                 ->getQuery()
@@ -933,7 +883,7 @@ class PessoaController extends AbstractController
             $result = [];
             foreach ($pessoas as $pessoa) {
                 $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
-                
+
                 $result[] = [
                     'id' => $pessoa->getIdpessoa(),
                     'nome' => $pessoa->getNome(),
@@ -943,12 +893,11 @@ class PessoaController extends AbstractController
                     'naturalidade' => $pessoa->getNaturalidade() ? $pessoa->getNaturalidade()->getNome() : null
                 ];
             }
-            
+
             return new JsonResponse([
                 'success' => true,
                 'pessoas' => $result
             ]);
-            
         } catch (\Exception $e) {
             return new JsonResponse([
                 'success' => false,
@@ -956,7 +905,7 @@ class PessoaController extends AbstractController
             ], 500);
         }
     }
-    
+
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(Pessoas $pessoa): Response
     {
@@ -996,7 +945,7 @@ class PessoaController extends AbstractController
                     $fisicaJuridica = strlen($cpfCnpj) === 11 ? 'fisica' : 'juridica';
                     $pessoa->setFisicaJuridica($fisicaJuridica);
                 }
-                
+
                 // Atualizar tipoPessoa se alterado
                 if (is_string($tipoPessoa)) {
                     $tipoPessoaId = $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
@@ -1029,11 +978,10 @@ class PessoaController extends AbstractController
 
                 $this->addFlash('success', 'Pessoa atualizada com sucesso!');
                 return $this->redirectToRoute('app_pessoa_index');
-
             } catch (\Exception $e) {
                 $entityManager->getConnection()->rollBack();
                 $this->addFlash('error', 'Erro ao atualizar pessoa: ' . $e->getMessage());
-                
+
                 error_log('Erro detalhado na edição de pessoa: ' . $e->getMessage());
                 error_log('Trace: ' . $e->getTraceAsString());
             }
@@ -1113,7 +1061,7 @@ class PessoaController extends AbstractController
     #[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(Request $request, Pessoas $pessoa, EntityManagerInterface $entityManager): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$pessoa->getIdpessoa(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $pessoa->getIdpessoa(), $request->request->get('_token'))) {
             $entityManager->remove($pessoa);
             $entityManager->flush();
             $this->addFlash('success', 'Pessoa excluída com sucesso.');
@@ -1133,17 +1081,22 @@ class PessoaController extends AbstractController
     {
         $documento = preg_replace('/[^\d]/', '', $documento);
         $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
-        
+
         $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
             ->findOneBy(['tipo' => $tipoDocumento]);
-        
+
         if ($tipoDocumentoEntity) {
             $pessoaDocumento = new PessoasDocumentos();
-            $pessoaDocumento->setIdPessoa($pessoa->getIdpessoa());
-            $pessoaDocumento->setIdTipoDocumento($tipoDocumentoEntity->getId());
+            $pessoaDocumento->setPessoa($pessoa);
+            $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
+                ->findOneBy(['tipo' => 'CPF']); // ou 'CNPJ', depende do contexto
+
+            if ($tipoDocumentoEntity) {
+                $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+            }
             $pessoaDocumento->setNumeroDocumento($documento);
             $pessoaDocumento->setAtivo(true);
-            
+
             $entityManager->persist($pessoaDocumento);
         }
     }
@@ -1160,31 +1113,31 @@ class PessoaController extends AbstractController
                 $fiador->setIdPessoa($pessoa->getIdpessoa());
                 $entityManager->persist($fiador);
                 break;
-                
+
             case 'corretor':
                 $corretor = new \App\Entity\PessoasCorretores();
                 $corretor->setPessoa($pessoa);
                 $entityManager->persist($corretor);
                 break;
-                
+
             case 'locador':
                 $locador = new \App\Entity\PessoasLocadores();
                 $locador->setPessoa($pessoa);
                 $entityManager->persist($locador);
                 break;
-                
+
             case 'pretendente':
                 $pretendente = new \App\Entity\PessoasPretendentes();
                 $pretendente->setPessoa($pessoa);
                 $entityManager->persist($pretendente);
                 break;
-                
+
             case 'contratante':
                 $contratante = new \App\Entity\PessoasContratantes();
                 $contratante->setPessoa($pessoa); // CORRETO: Usar setPessoa
                 $entityManager->persist($contratante);
                 break;
-                
+
             case 'corretora':
                 $corretora = new \App\Entity\PessoasCorretoras();
                 $corretora->setPessoa($pessoa); // CORRETO: Usar setPessoa
@@ -1208,7 +1161,7 @@ class PessoaController extends AbstractController
 
         // Se existe cônjuge e usuário desmarcou, remover relacionamento
         $temConjuge = !empty($requestData['novo_conjuge']) || !empty($requestData['conjuge_id']);
-        
+
         if ($relacionamentoExistente && !$temConjuge) {
             // Remover relacionamento bidirecional
             $relacionamentoInverso = $entityManager->getRepository(RelacionamentosFamiliares::class)
@@ -1217,13 +1170,13 @@ class PessoaController extends AbstractController
                     'idPessoaDestino' => $pessoa->getIdpessoa(),
                     'tipoRelacionamento' => 'Cônjuge'
                 ]);
-            
+
             $entityManager->remove($relacionamentoExistente);
             if ($relacionamentoInverso) {
                 $entityManager->remove($relacionamentoInverso);
             }
         }
-        
+
         // Se há dados de cônjuge, processar normalmente (novo ou alterado)
         if ($temConjuge) {
             $this->salvarConjuge($pessoa, $requestData, $entityManager);
@@ -1236,7 +1189,7 @@ class PessoaController extends AbstractController
         error_log('DEBUG salvarConjuge - requestData keys: ' . implode(', ', array_keys($requestData)));
         error_log('DEBUG salvarConjuge - novo_conjuge: ' . json_encode($requestData['novo_conjuge'] ?? 'não definido'));
         error_log('DEBUG salvarConjuge - conjuge_id: ' . json_encode($requestData['conjuge_id'] ?? 'não definido'));
-        
+
         $pessoaRepository = $entityManager->getRepository(Pessoas::class);
         $conjugeParaRelacionar = null;
 
@@ -1253,7 +1206,7 @@ class PessoaController extends AbstractController
             error_log('DEBUG: Criando novo cônjuge com dados: ' . json_encode($novoConjugeData));
             $novoConjuge = new Pessoas();
             $novoConjuge->setNome($novoConjugeData['nome']);
-            
+
             if (!empty($novoConjugeData['data_nascimento'])) {
                 $novoConjuge->setDataNascimento(new \DateTime($novoConjugeData['data_nascimento']));
             }
@@ -1274,7 +1227,7 @@ class PessoaController extends AbstractController
             $novoConjuge->setNomeMae($novoConjugeData['nome_mae'] ?? null);
             $novoConjuge->setRenda((float)($novoConjugeData['renda'] ?? 0.0));
             $novoConjuge->setObservacoes($novoConjugeData['observacoes'] ?? null);
-            
+
             $novoConjuge->setFisicaJuridica('fisica');
             $novoConjuge->setDtCadastro(new \DateTime());
             $novoConjuge->setStatus(true);
@@ -1285,10 +1238,10 @@ class PessoaController extends AbstractController
 
             // Salva o documento principal (CPF) do novo cônjuge
             $this->salvarDocumentoPrincipalConjuge($novoConjuge->getIdpessoa(), $novoConjugeData['cpf'], $entityManager);
-            
+
             // Salvar TODOS os dados do cônjuge como pessoa completa
             $this->salvarDadosMultiplosConjuge($novoConjuge->getIdpessoa(), $requestData, $entityManager);
-            
+
             $conjugeParaRelacionar = $novoConjuge;
         }
 
@@ -1296,7 +1249,7 @@ class PessoaController extends AbstractController
         if ($conjugeParaRelacionar) {
             error_log('DEBUG: Estabelecendo relacionamento familiar com cônjuge ID: ' . $conjugeParaRelacionar->getIdpessoa());
             $relacionamentoRepo = $entityManager->getRepository(RelacionamentosFamiliares::class);
-            
+
             // Verifica se o relacionamento já existe para não duplicar
             $existente = $relacionamentoRepo->findOneBy([
                 'idPessoaOrigem' => $pessoa->getIdpessoa(),
@@ -1337,17 +1290,23 @@ class PessoaController extends AbstractController
     {
         $documento = preg_replace('/[^\d]/', '', $documento);
         $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
-        
+
         $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
             ->findOneBy(['tipo' => $tipoDocumento]);
-        
+
         if ($tipoDocumentoEntity) {
             $pessoaDocumento = new PessoasDocumentos();
-            $pessoaDocumento->setIdPessoa($conjugeId);
-            $pessoaDocumento->setIdTipoDocumento($tipoDocumentoEntity->getId());
+            $conjuge = $entityManager->getRepository(Pessoas::class)->getIdpessoa($conjugeId);
+            $pessoaDocumento->setPessoa($conjuge);
+            $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
+                ->findOneBy(['tipo' => 'CPF']); // ou 'CNPJ'
+
+            if ($tipoDocumentoEntity) {
+                $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+            }
             $pessoaDocumento->setNumeroDocumento($documento);
             $pessoaDocumento->setAtivo(true);
-            
+
             $entityManager->persist($pessoaDocumento);
         }
     }
@@ -1366,7 +1325,7 @@ class PessoaController extends AbstractController
                     $telefone->setNumero($telefoneData['numero']);
                     $entityManager->persist($telefone);
                     $entityManager->flush(); // FLUSH para obter ID
-                    
+
                     $pessoaTelefone = new PessoasTelefones();
                     $pessoaTelefone->setIdPessoa($conjugeId);
                     $pessoaTelefone->setIdTelefone($telefone->getId());
@@ -1384,7 +1343,7 @@ class PessoaController extends AbstractController
                     $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
                     $entityManager->persist($email);
                     $entityManager->flush(); // FLUSH para obter ID
-                    
+
                     $pessoaEmail = new PessoasEmails();
                     $pessoaEmail->setIdPessoa($conjugeId);
                     $pessoaEmail->setIdEmail($email->getId());
@@ -1437,26 +1396,32 @@ class PessoaController extends AbstractController
             foreach ($requestData['conjuge_documentos'] as $documentoData) {
                 if (!empty($documentoData['tipo']) && !empty($documentoData['numero'])) {
                     $documento = new PessoasDocumentos();
-                    $documento->setIdPessoa($conjugeId);
-                    $documento->setIdTipoDocumento((int)$documentoData['tipo']);
+                    $conjuge = $entityManager->getRepository(Pessoas::class)->getIdpessoa($conjugeId);
+                    $documento->setPessoa($conjuge);
+                    $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
+                        ->findOneBy(['tipo' => 'CPF']); // ou 'CNPJ', depende do contexto
+
+                    if ($tipoDocumentoEntity) {
+                        $documento->setTipoDocumento($tipoDocumentoEntity);
+                    }
                     $documento->setNumeroDocumento($documentoData['numero']);
-                    
+
                     if (!empty($documentoData['orgao_emissor'])) {
                         $documento->setOrgaoEmissor($documentoData['orgao_emissor']);
                     }
-                    
+
                     if (!empty($documentoData['data_emissao'])) {
                         $documento->setDataEmissao(new \DateTime($documentoData['data_emissao']));
                     }
-                    
+
                     if (!empty($documentoData['data_vencimento'])) {
                         $documento->setDataVencimento(new \DateTime($documentoData['data_vencimento']));
                     }
-                    
+
                     if (!empty($documentoData['observacoes'])) {
                         $documento->setObservacoes($documentoData['observacoes']);
                     }
-                    
+
                     $documento->setAtivo(true);
                     $entityManager->persist($documento);
                 }
@@ -1470,27 +1435,27 @@ class PessoaController extends AbstractController
                     $pessoaProfissao = new \App\Entity\PessoasProfissoes();
                     $pessoaProfissao->setIdPessoa($conjugeId);
                     $pessoaProfissao->setIdProfissao((int)$profissaoData['profissao']);
-                    
+
                     if (!empty($profissaoData['empresa'])) {
                         $pessoaProfissao->setEmpresa($profissaoData['empresa']);
                     }
-                    
+
                     if (!empty($profissaoData['data_admissao'])) {
                         $pessoaProfissao->setDataAdmissao(new \DateTime($profissaoData['data_admissao']));
                     }
-                    
+
                     if (!empty($profissaoData['data_demissao'])) {
                         $pessoaProfissao->setDataDemissao(new \DateTime($profissaoData['data_demissao']));
                     }
-                    
+
                     if (!empty($profissaoData['renda'])) {
                         $pessoaProfissao->setRenda((float)$profissaoData['renda']);
                     }
-                    
+
                     if (!empty($profissaoData['observacoes'])) {
                         $pessoaProfissao->setObservacoes($profissaoData['observacoes']);
                     }
-                    
+
                     $pessoaProfissao->setAtivo(true);
                     $entityManager->persist($pessoaProfissao);
                 }
@@ -1503,17 +1468,17 @@ class PessoaController extends AbstractController
         // Buscar bairro ou criar
         $bairroRepository = $entityManager->getRepository(Bairros::class);
         $bairro = $bairroRepository->findOneBy(['nome' => $enderecoData['bairro']]);
-        
+
         if (!$bairro) {
             // Buscar cidade ou criar
             $cidadeRepository = $entityManager->getRepository(Cidades::class);
             $cidade = $cidadeRepository->findOneBy(['nome' => $enderecoData['cidade']]);
-            
+
             if (!$cidade) {
                 // Buscar ou criar estado
                 $estadoRepository = $entityManager->getRepository(Estados::class);
                 $estado = $estadoRepository->findOneBy(['uf' => $enderecoData['estado'] ?? 'SP']);
-                
+
                 if (!$estado) {
                     $estado = new Estados();
                     $estado->setUf($enderecoData['estado'] ?? 'SP');
@@ -1521,7 +1486,7 @@ class PessoaController extends AbstractController
                     $entityManager->persist($estado);
                     $entityManager->flush();
                 }
-                
+
                 // Criar cidade
                 $cidade = new Cidades();
                 $cidade->setNome($enderecoData['cidade']);
@@ -1529,7 +1494,7 @@ class PessoaController extends AbstractController
                 $entityManager->persist($cidade);
                 $entityManager->flush();
             }
-            
+
             // Criar bairro
             $bairro = new Bairros();
             $bairro->setNome($enderecoData['bairro']);
@@ -1537,29 +1502,29 @@ class PessoaController extends AbstractController
             $entityManager->persist($bairro);
             $entityManager->flush();
         }
-        
+
         // Buscar logradouro ou criar
         $logradouroRepository = $entityManager->getRepository(Logradouros::class);
         $logradouro = $logradouroRepository->findOneBy([
             'logradouro' => $enderecoData['logradouro'],
             'bairro' => $bairro
         ]);
-        
+
         if (!$logradouro) {
             $logradouro = new Logradouros();
             $logradouro->setLogradouro($enderecoData['logradouro']);
             $logradouro->setBairro($bairro);
-            
+
             if (!empty($enderecoData['cep'])) {
                 $logradouro->setCep(preg_replace('/\D/', '', $enderecoData['cep']));
             } else {
                 $logradouro->setCep('00000000');
             }
-            
+
             $entityManager->persist($logradouro);
             $entityManager->flush();
         }
-        
+
         return $logradouro->getId();
     }
 }

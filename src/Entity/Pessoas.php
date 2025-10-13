@@ -3,64 +3,101 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: 'App\Repository\PessoaRepository')]
 #[ORM\Table(name: 'pessoas')]
 class Pessoas
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'AUTO')]  
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     #[ORM\Column(name: 'idpessoa', type: 'integer')]
     private ?int $idpessoa = null;
-    
+
     #[ORM\Column]
     private string $nome;
-    
+
     #[ORM\Column(type: 'datetime')]
     private \DateTimeInterface $dtCadastro;
-    
+
     #[ORM\Column]
     private int $tipoPessoa;
-    
+
     #[ORM\Column(type: 'boolean')]
     private bool $status;
-    
+
     #[ORM\Column]
     private string $fisicaJuridica;
-    
+
     #[ORM\Column(type: 'date', nullable: true)]
     private ?\DateTimeInterface $dataNascimento = null;
-    
+
     #[ORM\ManyToOne(targetEntity: EstadoCivil::class)]
     #[ORM\JoinColumn(name: 'estado_civil_id', referencedColumnName: 'id', nullable: true)]
     private ?EstadoCivil $estadoCivil = null;
-    
+
     #[ORM\ManyToOne(targetEntity: Nacionalidade::class)]
     #[ORM\JoinColumn(name: 'nacionalidade_id', referencedColumnName: 'id', nullable: true)]
     private ?Nacionalidade $nacionalidade = null;
-    
+
     #[ORM\ManyToOne(targetEntity: Naturalidade::class)]
     #[ORM\JoinColumn(name: 'naturalidade_id', referencedColumnName: 'id', nullable: true)]
     private ?Naturalidade $naturalidade = null;
-    
+
     #[ORM\Column(nullable: true)]
     private ?string $nomePai = null;
-    
+
     #[ORM\Column(nullable: true)]
     private ?string $nomeMae = null;
-    
+
     #[ORM\Column(type: 'decimal', nullable: true)]
     private ?string $renda = null;
-    
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $observacoes = null;
-    
+
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $themeLight = true;
-    
+
     #[ORM\OneToOne(targetEntity: Users::class, inversedBy: 'pessoa')]
     #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: true)]
     private ?Users $user = null;
+
+    #[ORM\OneToMany(targetEntity: PessoasDocumentos::class, mappedBy: 'pessoa', cascade: ['persist', 'remove'])]
+    private Collection $pessoasDocumentos;
+
+    public function __construct()
+    {
+        $this->pessoasDocumentos = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection<int, PessoasDocumentos>
+     */
+    public function getPessoasDocumentos(): Collection
+    {
+        return $this->pessoasDocumentos;
+    }
+
+    public function addPessoasDocumento(PessoasDocumentos $pessoasDocumento): self
+    {
+        if (!$this->pessoasDocumentos->contains($pessoasDocumento)) {
+            $this->pessoasDocumentos->add($pessoasDocumento);
+            $pessoasDocumento->setPessoa($this);
+        }
+        return $this;
+    }
+
+    public function removePessoasDocumento(PessoasDocumentos $pessoasDocumento): self
+    {
+        if ($this->pessoasDocumentos->removeElement($pessoasDocumento)) {
+            if ($pessoasDocumento->getPessoa() === $this) {
+                $pessoasDocumento->setPessoa(null);
+            }
+        }
+        return $this;
+    }
 
     public function getIdpessoa(): ?int
     {
@@ -272,5 +309,4 @@ class Pessoas
     {
         return $this->fisicaJuridica === 'juridica';
     }
-
 }

@@ -19,16 +19,16 @@ class PessoaRepository extends ServiceEntityRepository
     /**
      * Busca pessoa por CPF através da tabela de documentos
      */
-    public function findByCpf(string $cpf): ?Pessoas
+    public function findByCpfDocumento(string $numeroCpf): ?Pessoas
     {
         return $this->createQueryBuilder('p')
-            ->innerJoin('App\Entity\PessoasDocumentos', 'pd', 'WITH', 'pd.idPessoa = p.idpessoa')
-            ->innerJoin('App\Entity\TiposDocumentos', 'td', 'WITH', 'td.id = pd.idTipoDocumento')
-            ->andWhere('td.tipo = :tipoCpf')
-            ->andWhere('pd.numeroDocumento = :cpf')
+            ->join('p.pessoasDocumentos', 'pd')   // tabela de ligação
+            ->join('pd.tipoDocumento', 'd')        // tabela Documentos
+            ->andWhere('d.tipo = :tipoCpf')       // 1 = CPF
+            ->andWhere('pd.numeroDocumento = :numero')
             ->andWhere('pd.ativo = true')
-            ->setParameter('tipoCpf', 'CPF')
-            ->setParameter('cpf', $cpf)
+            ->setParameter('tipoCpf', 1)
+            ->setParameter('numero', $numeroCpf)
             ->getQuery()
             ->getOneOrNullResult();
     }
@@ -69,31 +69,31 @@ class PessoaRepository extends ServiceEntityRepository
     public function searchPessoa(string $searchTerm): array
     {
         $qb = $this->createQueryBuilder('p');
-        
+
         // Se for numérico e tem 11 dígitos, busca por CPF
         if (ctype_digit($searchTerm) && strlen($searchTerm) === 11) {
             $qb->andWhere('p.cpf = :searchTerm')
-               ->setParameter('searchTerm', $searchTerm);
+                ->setParameter('searchTerm', $searchTerm);
         }
         // Se for numérico e tem 14 dígitos, busca por CNPJ
         elseif (ctype_digit($searchTerm) && strlen($searchTerm) === 14) {
             $qb->andWhere('p.cnpj = :searchTerm')
-               ->setParameter('searchTerm', $searchTerm);
+                ->setParameter('searchTerm', $searchTerm);
         }
         // Se for numérico e menor que 11 dígitos, busca por ID
         elseif (ctype_digit($searchTerm) && strlen($searchTerm) < 11) {
             $qb->andWhere('p.idpessoa = :searchTerm')
-               ->setParameter('searchTerm', (int)$searchTerm);
+                ->setParameter('searchTerm', (int)$searchTerm);
         }
         // Caso contrário, busca por nome
         else {
             $qb->andWhere('p.nome LIKE :searchTerm')
-               ->setParameter('searchTerm', '%' . $searchTerm . '%');
+                ->setParameter('searchTerm', '%' . $searchTerm . '%');
         }
-        
+
         return $qb->orderBy('p.nome', 'ASC')
-                  ->getQuery()
-                  ->getResult();
+            ->getQuery()
+            ->getResult();
     }
 
     /**
@@ -106,7 +106,7 @@ class PessoaRepository extends ServiceEntityRepository
         } elseif ($cnpj) {
             return $this->findByCnpj($cnpj);
         }
-        
+
         return null;
     }
 
@@ -127,7 +127,7 @@ class PessoaRepository extends ServiceEntityRepository
             ->setParameter('pessoaId', $pessoaId)
             ->setParameter('tipoCpf', 'CPF')
             ->getOneOrNullResult();
-            
+
         return $result ? $result['numeroDocumento'] : null;
     }
 
@@ -148,7 +148,7 @@ class PessoaRepository extends ServiceEntityRepository
             ->setParameter('pessoaId', $pessoaId)
             ->setParameter('tipoCnpj', 'CNPJ')
             ->getOneOrNullResult();
-            
+
         return $result ? $result['numeroDocumento'] : null;
     }
 
