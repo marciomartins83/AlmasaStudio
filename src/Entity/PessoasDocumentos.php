@@ -12,10 +12,12 @@ class PessoasDocumentos
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[ORM\Column(name: 'id_pessoa', type: 'bigint')]
-    private int $idPessoa;
-    #[ORM\Column(name: 'id_tipo_documento', type: 'bigint')]
-    private int $idTipoDocumento;
+    #[ORM\ManyToOne(targetEntity: Pessoas::class)]
+    #[ORM\JoinColumn(name: 'id_pessoa', referencedColumnName: 'idpessoa')]
+    private ?Pessoas $pessoa = null;
+    #[ORM\ManyToOne(targetEntity: TiposDocumentos::class)]
+    #[ORM\JoinColumn(name: 'id_tipo_documento', referencedColumnName: 'id')]
+    private ?TiposDocumentos $tipoDocumento = null;
     #[ORM\Column(name: 'numero_documento')]
     private string $numeroDocumento;
     #[ORM\Column(name: 'data_emissao', type: 'date', nullable: true)]
@@ -34,25 +36,25 @@ class PessoasDocumentos
         return $this->id;
     }
 
-    public function getIdPessoa(): int
+    public function getPessoa(): ?Pessoas
     {
-        return $this->idPessoa;
+        return $this->pessoa;
     }
 
-    public function setIdPessoa(int $idPessoa): self
+    public function setPessoa(?Pessoas $pessoa): self
     {
-        $this->idPessoa = $idPessoa;
+        $this->pessoa = $pessoa;
         return $this;
     }
 
-    public function getIdTipoDocumento(): int
+    public function getTipoDocumento(): ?TiposDocumentos
     {
-        return $this->idTipoDocumento;
+        return $this->tipoDocumento;
     }
 
-    public function setIdTipoDocumento(int $idTipoDocumento): self
+    public function setTipoDocumento(?TiposDocumentos $tipoDocumento): self
     {
-        $this->idTipoDocumento = $idTipoDocumento;
+        $this->tipoDocumento = $tipoDocumento;
         return $this;
     }
 
@@ -121,5 +123,4 @@ class PessoasDocumentos
         $this->ativo = $ativo;
         return $this;
     }
-
 }
