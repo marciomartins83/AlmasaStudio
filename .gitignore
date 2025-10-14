@@ -1,3 +1,14 @@
+###> sistema operacional ###
+.DS_Store
+Thumbs.db
+###< sistema operacional ###
+
+###> IDE ###
+.idea/
+.vscode/
+*.swp
+*.swo
+###< IDE ###
 
 ###> symfony/framework-bundle ###
 /.env.local
@@ -14,18 +25,10 @@
 .phpunit.result.cache
 ###< phpunit/phpunit ###
 
-###> symfony/phpunit-bridge ###
-.phpunit.result.cache
-/phpunit.xml
-###< symfony/phpunit-bridge ###
-
 ###> symfony/asset-mapper ###
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
-yay/
-.aider*
-.env
 
 ###> symfony/webpack-encore-bundle ###
 /node_modules/
@@ -33,3 +36,9 @@ yay/
 npm-debug.log
 yarn-error.log
 ###< symfony/webpack-encore-bundle ###
+
+###> logs e cache de ferramentas ###
+.aider*
+.env
+yay/
+###< logs e cache de ferramentas ###
