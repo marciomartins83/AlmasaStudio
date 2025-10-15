@@ -1,15 +1,16 @@
-# see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
-
-    # Note that the session will be started ONLY if you read or write from it.
-    session: true
-
-    #esi: true
-    #fragments: true
-
-when@test:
-    framework:
-        test: true
-        session:
-            storage_factory_id: session.storage.factory.mock_file
+    csrf_protection: true
+    session:
+        handler_id: session.handler.native_file
+        save_path: '%kernel.cache_dir%/sessions'
+        cookie_secure: false  # Desative em desenvolvimento
+        cookie_samesite: lax
+    php_errors:
+        log: true
+    trusted_proxies: '127.0.0.1,REMOTE_ADDR'
+    trusted_hosts: '^localhost$|^127\.0\.0\.1$|^\[::1\]$|^your-codespace-url$'  # Adicione a URL do seu Codespace
+    router:
+        http_port: 8000
+        https_port: 8000
+        default_uri: 'http://127.0.0.1:8000'  # Use http em desenvolvimento

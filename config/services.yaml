@@ -31,3 +31,6 @@ services:
     # please note that last definitions always *replace* previous ones
 
     App\Repository\TiposEnderecosRepository: ~
+    Symfony\Component\Security\Csrf\CsrfTokenManagerInterface:
+        alias: security.csrf.token_manager
+        public: true
