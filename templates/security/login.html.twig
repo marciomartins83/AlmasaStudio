@@ -1,32 +1,24 @@
 {% extends 'base.html.twig' %}
-
-{% block title %}Login - Almasa
-{% endblock %}
-
+{% block title %}Login - Almasa{% endblock %}
 {% block content %}
 	<div class="d-flex justify-content-center align-items-center min-vh-100" style="background: var(--almasa-light-gray)">
 		<div class="almasa-card p-4" style="width: 100%; max-width: 400px;">
 			<h1 class="almasa-text-gradient fs-4 fw-bold text-center mb-3">Bem-vindo ao Almasa</h1>
-
 			{% if error %}
 				<div class="almasa-alert almasa-alert-danger" role="alert">
 					Usuário ou senha inválidos.
 				</div>
 			{% endif %}
-
 			<form method="post">
-				<input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-
+				<input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
 				<div class="almasa-form-group">
 					<label class="almasa-form-label">E-mail</label>
-					<input type="email" name="email" class="almasa-form-control" required autofocus>
+					<input type="email" name="email" class="almasa-form-control" required autofocus value="{{ last_username }}">
 				</div>
-
 				<div class="almasa-form-group">
 					<label class="almasa-form-label">Senha</label>
 					<input type="password" name="password" class="almasa-form-control" required>
 				</div>
-
 				<button type="submit" class="btn btn-almasa-primary w-100">
 					Entrar
 				</button>
