@@ -22,12 +22,12 @@ class PessoaRepository extends ServiceEntityRepository
     public function findByCpfDocumento(string $numeroCpf): ?Pessoas
     {
         return $this->createQueryBuilder('p')
-            ->join('p.pessoasDocumentos', 'pd')   // tabela de ligação
-            ->join('pd.tipoDocumento', 'd')        // tabela Documentos
-            ->andWhere('d.tipo = :tipoCpf')       // 1 = CPF
+            ->join('p.pessoasDocumentos', 'pd')
+            ->join('pd.idDocumento', 'd')
+            ->andWhere('d.nome = :tipoCpf')
             ->andWhere('pd.numeroDocumento = :numero')
             ->andWhere('pd.ativo = true')
-            ->setParameter('tipoCpf', 1)
+            ->setParameter('tipoCpf', 'CPF')
             ->setParameter('numero', $numeroCpf)
             ->getQuery()
             ->getOneOrNullResult();
