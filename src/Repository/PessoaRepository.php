@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Pessoas;
+use App\Entity\PessoasDocumentos;
+use App\Entity\TiposDocumentos;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -23,8 +25,8 @@ class PessoaRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('p')
             ->join('p.pessoasDocumentos', 'pd')
-            ->join('pd.idDocumento', 'd')
-            ->andWhere('d.nome = :tipoCpf')
+            ->join('pd.tipoDocumento', 'td')
+            ->andWhere('td.tipo = :tipoCpf')
             ->andWhere('pd.numeroDocumento = :numero')
             ->andWhere('pd.ativo = true')
             ->setParameter('tipoCpf', 'CPF')
@@ -116,19 +118,19 @@ class PessoaRepository extends ServiceEntityRepository
     public function getCpfByPessoa(int $pessoaId): ?string
     {
         $result = $this->getEntityManager()
-            ->createQuery('
-                SELECT pd.numeroDocumento 
-                FROM App\Entity\PessoasDocumentos pd
-                INNER JOIN App\Entity\TiposDocumentos td WITH td.id = pd.idTipoDocumento
-                WHERE pd.idPessoa = :pessoaId 
-                AND td.tipo = :tipoCpf 
-                AND pd.ativo = true
-            ')
+            ->createQueryBuilder()
+            ->select('pd.numeroDocumento')
+            ->from(PessoasDocumentos::class, 'pd')
+            ->join('pd.tipoDocumento', 'td')
+            ->andWhere('pd.pessoa = :pessoaId')
+            ->andWhere('td.tipo = :tipoCpf')
+            ->andWhere('pd.ativo = true')
             ->setParameter('pessoaId', $pessoaId)
             ->setParameter('tipoCpf', 'CPF')
+            ->getQuery()
             ->getOneOrNullResult();
 
-        return $result ? $result['numeroDocumento'] : null;
+        return $result['numeroDocumento'] ?? null;
     }
 
     /**
@@ -137,19 +139,20 @@ class PessoaRepository extends ServiceEntityRepository
     public function getCnpjByPessoa(int $pessoaId): ?string
     {
         $result = $this->getEntityManager()
-            ->createQuery('
-                SELECT pd.numeroDocumento 
-                FROM App\Entity\PessoasDocumentos pd
-                INNER JOIN App\Entity\TiposDocumentos td WITH td.id = pd.idTipoDocumento
-                WHERE pd.idPessoa = :pessoaId 
-                AND td.tipo = :tipoCnpj 
-                AND pd.ativo = true
-            ')
+            ->createQueryBuilder()
+            ->select('pd.numeroDocumento')
+            ->from(PessoasDocumentos::class, 'pd')
+            ->join('pd.tipoDocumento', 'td')
+            ->andWhere('pd.pessoa = :pessoaId')
+            ->andWhere('td.tipo = :tipoCnpj')
+            ->andWhere('pd.ativo = true')
             ->setParameter('pessoaId', $pessoaId)
             ->setParameter('tipoCnpj', 'CNPJ')
-            ->getOneOrNullResult();
+            ->getQuery()
+            ->getOneOrNullResult()['numeroDocumento'] ?? null;
 
-        return $result ? $result['numeroDocumento'] : null;
+            return $result['numeroDocumento'] ?? null;
+
     }
 
     /**
@@ -157,31 +160,29 @@ class PessoaRepository extends ServiceEntityRepository
      */
     public function buscarDocumentosSecundarios(int $pessoaId): array
     {
-        $pessoasDocumentos = $this->getEntityManager()
-            ->createQuery('
-                SELECT pd
-                FROM App\Entity\PessoasDocumentos pd
-                INNER JOIN App\Entity\TiposDocumentos td WITH td.id = pd.idTipoDocumento
-                WHERE pd.idPessoa = :pessoaId
-                AND pd.ativo = true
-            ')
+        $docs = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('pd, td')
+            ->from(PessoasDocumentos::class, 'pd')
+            ->join('pd.tipoDocumento', 'td')
+            ->andWhere('pd.pessoa = :pessoaId')
+            ->andWhere('pd.ativo = true')
             ->setParameter('pessoaId', $pessoaId)
+            ->getQuery()
             ->getResult();
 
-        $documentos = [];
-
-        foreach ($pessoasDocumentos as $doc) {
-            $documentos[] = [
-                'tipo'           => $doc->getIdTipoDocumento(),
-                'numero'         => $doc->getNumeroDocumento(),
-                'orgaoEmissor'   => $doc->getOrgaoEmissor(),
-                'dataEmissao'    => $doc->getDataEmissao()?->format('Y-m-d'),
-                'dataVencimento' => $doc->getDataVencimento()?->format('Y-m-d'),
-                'observacoes'    => $doc->getObservacoes(),
+        $ret = [];
+        foreach ($docs as $d) {
+            $ret[] = [
+                'tipo'           => $d->getTipoDocumento()->getTipo(),
+                'numero'         => $d->getNumeroDocumento(),
+                'orgaoEmissor'   => $d->getOrgaoEmissor(),
+                'dataEmissao'    => $d->getDataEmissao()?->format('Y-m-d'),
+                'dataVencimento' => $d->getDataVencimento()?->format('Y-m-d'),
+                'observacoes'    => $d->getObservacoes(),
             ];
         }
-
-        return $documentos;
+        return $ret;
     }
 
     /**

@@ -108,13 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
 
-                // Verificar se a resposta é JSON válida
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Resposta não é JSON válida');
+                // PROTEÇÃO CONTRA RESPOSTAS INESPERADAS
+                let data;
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Resposta não-JSON:', text);
+                    throw new Error('Resposta inválida do servidor – veja o console.');
                 }
-
-                const data = await response.json();
 
                 if (searchResultsDiv) {
                     searchResultsDiv.style.display = 'block';

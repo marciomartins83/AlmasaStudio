@@ -40,6 +40,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Psr\Log\LoggerInterface;
 use App\Entity\PessoasFiadores;
 use App\Entity\PessoasCorretores;
 use App\Entity\PessoasLocadores;
@@ -389,9 +390,15 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/search-pessoa-advanced', name: 'search_pessoa_advanced', methods: ['POST'])]
-    public function searchPessoaAdvanced(Request $request, PessoaRepository $pessoaRepository, EntityManagerInterface $entityManager): JsonResponse
+    public function searchPessoaAdvanced(
+        Request $request, 
+        PessoaRepository $pessoaRepository, 
+        EntityManagerInterface $entityManager,
+        LoggerInterface $logger  // ✅ ADICIONE ISTO
+    ): JsonResponse
     {
         try {
+            $logger->info("🔵 DEBUG: Iniciando searchPessoaAdvanced");
             $data = json_decode($request->getContent(), true);
 
             if (!$data) {
@@ -464,20 +471,63 @@ class PessoaController extends AbstractController
             }
 
             if ($pessoa) {
+                $logger->info("✅ Pessoa encontrada: " . $pessoa->getIdpessoa());
+                
+                $logger->info("🔵 DEBUG: Busca cpf");
                 $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
+                $logger->info("🔵 DEBUG: busca cnpj");
                 $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
 
-                // BUSCAR DADOS MÚLTIPLOS - ATIVANDO CHAVES PIX CORRIGIDAS
-                error_log("DEBUG: entro na bagaça");
-                $telefones = $this->buscarTelefonesPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
-                $emails = $this->buscarEmailsPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
-                $enderecos = $this->buscarEnderecosPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ FUNCIONANDO
-                $chavesPix = $this->buscarChavesPixPessoa($pessoa->getIdpessoa(), $entityManager); // ✅ CORRIGIDO
-                $documentos = $this->buscarDocumentosPessoa($pessoa->getIdpessoa(), $entityManager);
-                error_log("DEBUG: Documentos encontrados para pessoa {$pessoa->getIdpessoa()}: " . json_encode($documentos));
-                $profissoes = []; // $this->buscarProfissoesPessoa($pessoa->getIdpessoa(), $entityManager);
-                $conjuge = null; // $this->buscarConjugePessoa($pessoa->getIdpessoa(), $entityManager);
+                // BUSCAR DADOS MÚLTIPLOS
+                $logger->info("🔵 Iniciando buscarTelefonesPessoa");
+                try {
+                    $telefones = $this->buscarTelefonesPessoa($pessoa->getIdpessoa(), $entityManager);
+                    $logger->info("✅ Telefones obtidos: " . count($telefones));
+                } catch (\Exception $e) {
+                    $logger->error("❌ ERRO em buscarTelefonesPessoa: " . $e->getMessage());
+                    throw $e;
+                }
 
+                $logger->info("🔵 Iniciando buscarEmailsPessoa");
+                try {
+                    $emails = $this->buscarEmailsPessoa($pessoa->getIdpessoa(), $entityManager);
+                    $logger->info("✅ Emails obtidos: " . count($emails));
+                } catch (\Exception $e) {
+                    $logger->error("❌ ERRO em buscarEmailsPessoa: " . $e->getMessage());
+                    throw $e;
+                }
+
+                $logger->info("🔵 Iniciando buscarEnderecosPessoa");
+                try {
+                    $enderecos = $this->buscarEnderecosPessoa($pessoa->getIdpessoa(), $entityManager);
+                    $logger->info("✅ Endereços obtidos: " . count($enderecos));
+                } catch (\Exception $e) {
+                    $logger->error("❌ ERRO em buscarEnderecosPessoa: " . $e->getMessage());
+                    throw $e;
+                }
+
+                $logger->info("🔵 Iniciando buscarChavesPixPessoa");
+                try {
+                    $chavesPix = $this->buscarChavesPixPessoa($pessoa->getIdpessoa(), $entityManager);
+                    $logger->info("✅ Chaves PIX obtidas: " . count($chavesPix));
+                } catch (\Exception $e) {
+                    $logger->error("❌ ERRO em buscarChavesPixPessoa: " . $e->getMessage());
+                    throw $e;
+                }
+
+                $logger->info("🔵 Iniciando buscarDocumentosPessoa");
+                try {
+                    $documentos = $this->buscarDocumentosPessoa($pessoa->getIdpessoa(), $entityManager);
+                    $logger->info("✅ Documentos obtidos: " . count($documentos));
+                } catch (\Exception $e) {
+                    $logger->error("❌ ERRO em buscarDocumentosPessoa: " . $e->getMessage());
+                    throw $e;
+                }
+
+                $profissoes = [];
+                $conjuge = null;
+
+                $logger->info("✅ Retornando resposta com sucesso");
                 return new JsonResponse([
                     'success' => true,
                     'pessoa' => [
@@ -504,6 +554,7 @@ class PessoaController extends AbstractController
                     ]
                 ]);
             } else {
+                $logger->info("⚠️ Pessoa não encontrada com critério: $criteria = $value");
                 return new JsonResponse([
                     'success' => true,
                     'pessoa' => null,
@@ -511,7 +562,7 @@ class PessoaController extends AbstractController
                 ]);
             }
         } catch (\Exception $e) {
-            error_log('Erro na busca de pessoa: ' . $e->getMessage());
+            $logger->error("🔴 ERRO CRÍTICO em searchPessoaAdvanced: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
             return new JsonResponse([
                 'success' => false,
                 'message' => 'Erro interno: ' . $e->getMessage()
