@@ -8,7 +8,6 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PessoasPretendentesRepository::class)]
 #[ORM\Table(name: 'pessoas_pretendentes')]
-#[ORM\HasLifecycleCallbacks]
 class PessoasPretendentes
 {
     #[ORM\Id]
@@ -56,26 +55,6 @@ class PessoasPretendentes
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $observacoes = null;
-    
-    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
-
-    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $updatedAt = null;
-
-    #[ORM\PrePersist]
-    public function onPrePersist(): void
-    {
-        $this->createdAt = new \DateTime();
-        $this->updatedAt = new \DateTime();
-    }
-
-    #[ORM\PreUpdate]
-    public function onPreUpdate(): void
-    {
-        $this->updatedAt = new \DateTime();
-    }
-
 
     public function getId(): ?int
     {
@@ -211,30 +190,6 @@ class PessoasPretendentes
     public function setObservacoes(?string $observacoes): self
     {
         $this->observacoes = $observacoes;
-        return $this;
-    }
-
-    public function getCreatedAt(): ?\DateTimeInterface
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeInterface
-    {
-        return $this->updatedAt;
-    }
-
-    public function setUpdatedAt(\DateTimeInterface $updatedAt): static
-    {
-        $this->updatedAt = $updatedAt;
-
         return $this;
     }
 }

@@ -391,182 +391,153 @@ class PessoaController extends AbstractController
 
     #[Route('/search-pessoa-advanced', name: 'search_pessoa_advanced', methods: ['POST'])]
     public function searchPessoaAdvanced(
-        Request $request, 
-        PessoaRepository $pessoaRepository, 
+        Request $request,
+        PessoaRepository $pessoaRepository,
         EntityManagerInterface $entityManager,
-        LoggerInterface $logger  // ✅ ADICIONE ISTO
-    ): JsonResponse
-    {
+        LoggerInterface $logger
+    ): JsonResponse {
         try {
-            $logger->info("🔵 DEBUG: Iniciando searchPessoaAdvanced");
+            $logger->info('🔵 DEBUG: Iniciando searchPessoaAdvanced');
             $data = json_decode($request->getContent(), true);
-
             if (!$data) {
                 return new JsonResponse(['success' => false, 'message' => 'Dados JSON inválidos'], 400);
             }
 
-            $criteria = $data['criteria'] ?? '';
-            $value = $data['value'] ?? '';
-            $additionalDoc = $data['additionalDoc'] ?? null;
+            $criteria = strtolower($data['criteria'] ?? '');
+            $value    = $data['value'] ?? '';
+            $additionalDoc     = $data['additionalDoc'] ?? null;
             $additionalDocType = $data['additionalDocType'] ?? null;
 
             if (empty($criteria) || empty($value)) {
                 return new JsonResponse(['success' => false, 'message' => 'Critério e valor são obrigatórios'], 400);
             }
 
-            $pessoa = null;
+            // --- BUSCA DA PESSOA -------------------------------------------------
+            $pessoa = match ($criteria) {
+                'cpf', 'cpf (pessoa física)' => $pessoaRepository->findByCpfDocumento($value),
+                'cnpj', 'cnpj (pessoa jurídica)' => $pessoaRepository->findByCnpjDocumento($value),
+                'id', 'id pessoa' => $pessoaRepository->find((int)$value),
+                'nome', 'nome completo' => $this->buscaPorNome($logger, $pessoaRepository, $value, $additionalDoc, $additionalDocType),
+                default => null,
+            };
 
-            switch ($criteria) {
-                case 'cpf':
-                case 'CPF':
-                case 'CPF (Pessoa Física)':
-                    $pessoa = $pessoaRepository->findByCpfDocumento($value);
-                    break;
-
-                case 'cnpj':
-                case 'CNPJ':
-                case 'CNPJ (Pessoa Jurídica)':
-                    $pessoa = $pessoaRepository->findByCnpjDocumento($value);
-                    break;
-
-                case 'id':
-                case 'ID':
-                case 'Id Pessoa':
-                    $pessoa = $pessoaRepository->find((int)$value);
-                    break;
-
-                case 'nome':
-                case 'Nome':
-                case 'Nome Completo':
-                    if ($additionalDoc && $additionalDocType) {
-                        $isDocCpf = (stripos($additionalDocType, 'cpf') !== false);
-                        $isDocCnpj = (stripos($additionalDocType, 'cnpj') !== false);
-
-                        if ($isDocCpf) {
-                            $pessoaPorDoc = $pessoaRepository->findByCpf($additionalDoc);
-                        } elseif ($isDocCnpj) {
-                            $pessoaPorDoc = $pessoaRepository->findByCnpj($additionalDoc);
-                        } else {
-                            $pessoaPorDoc = null;
-                        }
-
-                        if ($pessoaPorDoc && stripos($pessoaPorDoc->getNome(), $value) !== false) {
-                            $pessoa = $pessoaPorDoc;
-                        }
-                    } else {
-                        $pessoas = $pessoaRepository->findByNome($value);
-                        if (count($pessoas) === 1) {
-                            $pessoa = $pessoas[0];
-                        } elseif (count($pessoas) > 1) {
-                            return new JsonResponse([
-                                'success' => false,
-                                'message' => 'Múltiplas pessoas encontradas com este nome. Por favor, informe o CPF ou CNPJ para especificar.'
-                            ]);
-                        }
-                    }
-                    break;
-
-                default:
-                    return new JsonResponse(['success' => false, 'message' => 'Critério de busca inválido'], 400);
+            if (!$pessoa) {
+                $logger->info("⚠️ Pessoa não encontrada: $criteria = $value");
+                return new JsonResponse(['success' => true, 'pessoa' => null, 'message' => 'Pessoa não encontrada']);
             }
 
-            if ($pessoa) {
-                $logger->info("✅ Pessoa encontrada: " . $pessoa->getIdpessoa());
-                
-                $logger->info("🔵 DEBUG: Busca cpf");
-                $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
-                $logger->info("🔵 DEBUG: busca cnpj");
-                $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
+            $logger->info('✅ Pessoa encontrada: ' . $pessoa->getIdpessoa());
 
-                // BUSCAR DADOS MÚLTIPLOS
-                $logger->info("🔵 Iniciando buscarTelefonesPessoa");
-                try {
-                    $telefones = $this->buscarTelefonesPessoa($pessoa->getIdpessoa(), $entityManager);
-                    $logger->info("✅ Telefones obtidos: " . count($telefones));
-                } catch (\Exception $e) {
-                    $logger->error("❌ ERRO em buscarTelefonesPessoa: " . $e->getMessage());
-                    throw $e;
-                }
+            // --- DADOS PRINCIPAIS (com logs) -------------------------------------
+            $logger->info('🔵 DEBUG: Busca cpf');
+            $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
 
-                $logger->info("🔵 Iniciando buscarEmailsPessoa");
-                try {
-                    $emails = $this->buscarEmailsPessoa($pessoa->getIdpessoa(), $entityManager);
-                    $logger->info("✅ Emails obtidos: " . count($emails));
-                } catch (\Exception $e) {
-                    $logger->error("❌ ERRO em buscarEmailsPessoa: " . $e->getMessage());
-                    throw $e;
-                }
+            $logger->info('🔵 DEBUG: Busca cnpj');
+            $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
 
-                $logger->info("🔵 Iniciando buscarEnderecosPessoa");
-                try {
-                    $enderecos = $this->buscarEnderecosPessoa($pessoa->getIdpessoa(), $entityManager);
-                    $logger->info("✅ Endereços obtidos: " . count($enderecos));
-                } catch (\Exception $e) {
-                    $logger->error("❌ ERRO em buscarEnderecosPessoa: " . $e->getMessage());
-                    throw $e;
-                }
+            $logger->info('🔵 Busca tipos + dados completos');
+            $tiposComDados = $pessoaRepository->findTiposComDados($pessoa->getIdpessoa());
+            $tiposComDados['tipos']       = $tiposComDados['tipos']       ?? [];
+            $tiposComDados['tiposDados']  = $tiposComDados['tiposDados']  ?? [];
 
-                $logger->info("🔵 Iniciando buscarChavesPixPessoa");
-                try {
-                    $chavesPix = $this->buscarChavesPixPessoa($pessoa->getIdpessoa(), $entityManager);
-                    $logger->info("✅ Chaves PIX obtidas: " . count($chavesPix));
-                } catch (\Exception $e) {
-                    $logger->error("❌ ERRO em buscarChavesPixPessoa: " . $e->getMessage());
-                    throw $e;
-                }
+            // ✅ NOVO: Mapeia o tipo string para o ID do select
+            $tipoParaId = [
+                'contratante' => 6,
+                'fiador'      => 1,
+                'locador'     => 4,
+                'corretor'    => 2,
+                'corretora'   => 3,
+                'pretendente' => 5,
+            ];
+            $ativos = array_keys(array_filter($tiposComDados['tipos']));
+            $tipoId = $ativos ? ($tipoParaId[$ativos[0]] ?? null) : null;
 
-                $logger->info("🔵 Iniciando buscarDocumentosPessoa");
-                try {
-                    $documentos = $this->buscarDocumentosPessoa($pessoa->getIdpessoa(), $entityManager);
-                    $logger->info("✅ Documentos obtidos: " . count($documentos));
-                } catch (\Exception $e) {
-                    $logger->error("❌ ERRO em buscarDocumentosPessoa: " . $e->getMessage());
-                    throw $e;
-                }
 
-                $profissoes = [];
-                $conjuge = null;
+            // --- DADOS MÚLTIPLOS (com logs individuais) --------------------------
+            $telefones  = $this->buscaComLog($logger, 'Telefones', fn() => $this->buscarTelefonesPessoa($pessoa->getIdpessoa(), $entityManager));
+            $emails     = $this->buscaComLog($logger, 'Emails',    fn() => $this->buscarEmailsPessoa($pessoa->getIdpessoa(), $entityManager));
+            $enderecos  = $this->buscaComLog($logger, 'Endereços', fn() => $this->buscarEnderecosPessoa($pessoa->getIdpessoa(), $entityManager));
+            $chavesPix  = $this->buscaComLog($logger, 'ChavesPix', fn() => $this->buscarChavesPixPessoa($pessoa->getIdpessoa(), $entityManager));
+            $documentos = $this->buscaComLog($logger, 'Documentos',fn() => $this->buscarDocumentosPessoa($pessoa->getIdpessoa(), $entityManager));
 
-                $logger->info("✅ Retornando resposta com sucesso");
-                return new JsonResponse([
-                    'success' => true,
-                    'pessoa' => [
-                        'id' => $pessoa->getIdpessoa(),
-                        'nome' => $pessoa->getNome(),
-                        'cpf' => $cpf,
-                        'cnpj' => $cnpj,
-                        'fisicaJuridica' => $pessoa->getFisicaJuridica(),
-                        'dataNascimento' => $pessoa->getDataNascimento() ? $pessoa->getDataNascimento()->format('Y-m-d') : null,
-                        'estadoCivil' => $pessoa->getEstadoCivil() ? $pessoa->getEstadoCivil()->getId() : null,
-                        'nacionalidade' => $pessoa->getNacionalidade() ? $pessoa->getNacionalidade()->getId() : null,
-                        'naturalidade' => $pessoa->getNaturalidade() ? $pessoa->getNaturalidade()->getId() : null,
-                        'nomePai' => $pessoa->getNomePai(),
-                        'nomeMae' => $pessoa->getNomeMae(),
-                        'renda' => $pessoa->getRenda(),
-                        'observacoes' => $pessoa->getObservacoes(),
-                        'telefones' => $telefones,
-                        'enderecos' => $enderecos,
-                        'emails' => $emails,
-                        'documentos' => $documentos,
-                        'chavesPix' => $chavesPix,
-                        'profissoes' => $profissoes,
-                        'conjuge' => $conjuge
-                    ]
-                ]);
-            } else {
-                $logger->info("⚠️ Pessoa não encontrada com critério: $criteria = $value");
-                return new JsonResponse([
-                    'success' => true,
-                    'pessoa' => null,
-                    'message' => 'Pessoa não encontrada'
-                ]);
-            }
-        } catch (\Exception $e) {
-            $logger->error("🔴 ERRO CRÍTICO em searchPessoaAdvanced: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
+            $logger->info('✅ Montando resposta final');
+
             return new JsonResponse([
-                'success' => false,
-                'message' => 'Erro interno: ' . $e->getMessage()
-            ], 500);
+                'success' => true,
+                'pessoa'  => [
+                    'id'              => $pessoa->getIdpessoa(),
+                    'nome'            => $pessoa->getNome(),
+                    'cpf'             => $cpf,
+                    'cnpj'            => $cnpj,
+                    'fisicaJuridica'  => $pessoa->getFisicaJuridica(),
+                    'dataNascimento'  => $pessoa->getDataNascimento()?->format('Y-m-d'),
+                    'estadoCivil'     => $pessoa->getEstadoCivil()?->getId(),
+                    'nacionalidade'   => $pessoa->getNacionalidade()?->getId(),
+                    'naturalidade'    => $pessoa->getNaturalidade()?->getId(),
+                    'nomePai'         => $pessoa->getNomePai(),
+                    'nomeMae'         => $pessoa->getNomeMae(),
+                    'renda'           => $pessoa->getRenda(),
+                    'observacoes'     => $pessoa->getObservacoes(),
+                    'telefones'       => $telefones,
+                    'enderecos'       => $enderecos,
+                    'emails'          => $emails,
+                    'documentos'      => $documentos,
+                    'chavesPix'       => $chavesPix,
+                    'profissoes'      => [],      // placeholder
+                    'conjuge'         => null,    // placeholder
+                    'tipos'           => $tiposComDados['tipos'],      // boolean
+                    'tiposDados'      => $tiposComDados['tiposDados'], // objetos
+                    'tipoPessoaId'    => $tipoId, // ✅ NOVO: ID numérico para o select
+                ],
+            ]);
+        } catch (\Exception $e) {
+            $logger->error('🔴 ERRO CRÍTICO em searchPessoaAdvanced: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
+            return new JsonResponse(['success' => false, 'message' => 'Erro interno'], 500);
+        }
+    }
+
+    /* ---------- Métodos auxiliares privados ---------- */
+
+    private function buscaPorNome(
+        LoggerInterface $logger,
+        PessoaRepository $repo,
+        string $nome,
+        ?string $doc,
+        ?string $docType
+    ): ?Pessoas {
+        if ($doc && $docType) {
+            $pessoa = stripos($docType, 'cpf') !== false
+                ? $repo->findByCpfDocumento($doc)
+                : $repo->findByCnpjDocumento($doc);
+
+            if ($pessoa && stripos($pessoa->getNome(), $nome) !== false) {
+                return $pessoa;
+            }
+            return null;
+        }
+
+        $pessoas = $repo->findByNome($nome);
+        return match (count($pessoas)) {
+            1 => $pessoas[0],
+            0 => null,
+            default => throw new \RuntimeException('Múltiplas pessoas encontradas. Informe CPF/CNPJ.'),
+        };
+    }
+
+    /**
+     * Executa $callable dentro de try/catch e loga.
+     * Re-lança exceção para não esconder erro.
+     */
+    private function buscaComLog(LoggerInterface $logger, string $label, callable $callable): array
+    {
+        $logger->info("🔵 Iniciando buscar{$label}");
+        try {
+            $result = $callable();
+            $logger->info("✅ {$label} obtidos: " . count($result));
+            return $result;
+        } catch (\Exception $e) {
+            $logger->error("❌ ERRO em buscar{$label}: " . $e->getMessage());
+            throw $e;
         }
     }
 

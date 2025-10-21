@@ -135,6 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         searchMessageSpan.textContent = 'Pessoa encontrada! Formulário preenchido.';
                     }
                     preencherFormulario(data.pessoa);
+                    if (data.pessoa && data.pessoa.tiposDados) {
+                        const ativos = Object.keys(data.pessoa.tipos).filter(t => data.pessoa.tipos[t]);
+                        ativos.forEach(tipo => {
+                            // aguarda o card ser inserido
+                            const aguarda = setInterval(() => {
+                                const card = document.getElementById(`campos-${tipo}`);
+                                if (card && data.pessoa.tiposDados[tipo]) {
+                                    clearInterval(aguarda);
+                                    preencheSubForm(tipo, data.pessoa.tiposDados[tipo]);
+                                }
+                            }, 50);
+                        });
+                    }
                 } else {
                     if (searchMessageContainer) {
                         searchMessageContainer.className = 'alert alert-info';
@@ -406,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function preencherFormulario(pessoa) {
         console.log('📝 Preenchendo formulário com pessoa encontrada:', pessoa);
-        
+
         // Status de pessoa existente
         const pessoaStatus = document.querySelector('#pessoa-status');
         if (pessoaStatus) {
@@ -414,8 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
             pessoaStatus.classList.remove('text-success');
             pessoaStatus.classList.add('text-warning');
         }
-        
-        // Preencher campos básicos
+
+        // Dados básicos
         window.setFormValue(window.FORM_IDS.pessoaId, pessoa.id);
         window.setFormValue(window.FORM_IDS.nome, pessoa.nome);
         window.setFormValue(window.FORM_IDS.searchTerm, pessoa.cpf || pessoa.cnpj || '');
@@ -424,32 +437,29 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setFormValue(window.FORM_IDS.nomeMae, pessoa.nomeMae || '');
         window.setFormValue(window.FORM_IDS.renda, pessoa.renda || '');
         window.setFormValue(window.FORM_IDS.observacoes, pessoa.observacoes || '');
-        
-        // Preencher selects
+
+        // Selects
         window.setSelectValue(window.FORM_IDS.estadoCivil, pessoa.estadoCivil || '');
         window.setSelectValue(window.FORM_IDS.nacionalidade, pessoa.nacionalidade || '');
         window.setSelectValue(window.FORM_IDS.naturalidade, pessoa.naturalidade || '');
-        
-        // Configurar tipo de pessoa (física ou jurídica)
+
+        // Física / Jurídica
         const tipoFisicaJuridica = pessoa.fisicaJuridica || (pessoa.cpf ? 'fisica' : 'juridica');
         configurarTipoPessoa(tipoFisicaJuridica);
-        
-        // Definir tipo de pessoa se houver
-        if (pessoa.tipoPessoa) {
-            const tipoPessoaSelect = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
-            if (tipoPessoaSelect) {
-                tipoPessoaSelect.value = pessoa.tipoPessoa;
-                
-                // Disparar evento change para carregar sub-formulário
-                const changeEvent = new Event('change', { bubbles: true });
-                tipoPessoaSelect.dispatchEvent(changeEvent);
+
+        // ✅ NOVO: usa o ID que existe no select
+        if (pessoa.tipoPessoaId) {
+            const select = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
+            if (select) {
+                select.value = pessoa.tipoPessoaId; // ex: 6, 1, 4...
+                select.dispatchEvent(new Event('change')); // Dispara o evento para carregar o sub-formulário
             }
         }
-        
-        // Carregar dados múltiplos se existirem
+
+        // Dados múltiplos
         carregarDadosMultiplos(pessoa);
-        
-        // Carregar cônjuge se existir
+
+        // Cônjuge
         if (pessoa.conjuge) {
             carregarDadosConjuge(pessoa.conjuge);
         }
@@ -705,6 +715,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pessoaStatus) {
             pessoaStatus.textContent = isPessoaFisica ? 'Pessoa Física' : 'Pessoa Jurídica';
         }
+    }
+
+    function preencheSubForm(tipo, dados) {
+        if (!dados) return;
+        const prefixo = tipo === 'corretora' ? 'corretora' : tipo; // evita duplo "corretora"
+        Object.entries(dados).forEach(([campo, valor]) => {
+            const name = `${prefixo}[${campo}]`;
+            const input = document.querySelector(`[name="${name}"]`);
+            if (!input) return;
+            if (input.type === 'checkbox') {
+                input.checked = !!valor;
+            } else if (valor instanceof Date || campo.includes('Date') || campo.includes('data')) {
+                input.value = valor ? valor.split(' ')[0] : ''; // Y-m-d
+            } else {
+                input.value = valor ?? '';
+            }
+        });
     }
     
     console.log('✅ new.js: Todas as funcionalidades configuradas');

@@ -3,10 +3,17 @@
 namespace App\Repository;
 
 use App\Entity\Pessoas;
+use App\Entity\PessoasContratantes;
+use App\Entity\PessoasFiadores;
+use App\Entity\PessoasLocadores;
+use App\Entity\PessoasCorretores;
+use App\Entity\PessoasCorretoras;
+use App\Entity\PessoasPretendentes;
 use App\Entity\PessoasDocumentos;
 use App\Entity\TiposDocumentos;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use App\Entity\PessoasTipos;
 
 /**
  * @extends ServiceEntityRepository<Pessoas>
@@ -17,6 +24,7 @@ class PessoaRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Pessoas::class);
     }
+    
 
     /**
      * Busca pessoa por CPF através da tabela de documentos
@@ -111,6 +119,114 @@ class PessoaRepository extends ServiceEntityRepository
 
         return null;
     }
+
+    public function findTiposByPessoaId(int $pessoaId): array
+    {
+        $ids = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('pt.idTipoPessoa')
+            ->from(PessoasTipos::class, 'pt')
+            ->where('pt.idPessoa = :id')
+            ->andWhere('pt.ativo = true')
+            ->setParameter('id', $pessoaId)
+            ->getQuery()
+            ->getScalarResult(); // devolve [[idTipoPessoa => 6], ...]
+
+        $ids = array_column($ids, 'idTipoPessoa'); // [6, 2, ...]
+
+        return [
+            'contratante' => in_array(6, $ids),
+            'fiador'      => in_array(1, $ids),
+            'locador'     => in_array(4, $ids),
+            'corretor'    => in_array(2, $ids),
+            'corretora'   => in_array(3, $ids),
+            'pretendente' => in_array(5, $ids),
+        ];
+    }
+
+
+    public function findTiposComDados(int $pessoaId): array
+    {
+        $em = $this->getEntityManager();
+
+        // 1) Tipos ativos (boolean)
+        $tipos = $this->findTiposByPessoaId($pessoaId);
+
+        // 2) Objetos completos (null se não existe)
+        $tipos['contratanteObj'] = $em->createQueryBuilder()
+            ->select('c')->from(PessoasContratantes::class, 'c')
+            ->where('c.pessoa = :id')->setParameter('id', $pessoaId)
+            ->getQuery()->getOneOrNullResult();
+
+        $tipos['fiadorObj'] = $em->createQueryBuilder()
+            ->select('f')->from(PessoasFiadores::class, 'f')
+            ->where('f.idPessoa = :id')->setParameter('id', $pessoaId)
+            ->getQuery()->getOneOrNullResult();
+
+        $tipos['locadorObj'] = $em->createQueryBuilder()
+            ->select('l')->from(PessoasLocadores::class, 'l')
+            ->where('l.pessoa = :id')->setParameter('id', $pessoaId)
+            ->getQuery()->getOneOrNullResult();
+
+        $tipos['corretorObj'] = $em->createQueryBuilder()
+            ->select('r')->from(PessoasCorretores::class, 'r')
+            ->where('r.pessoa = :id')->setParameter('id', $pessoaId)
+            ->getQuery()->getOneOrNullResult();
+
+        $tipos['corretoraObj'] = $em->createQueryBuilder()
+            ->select('rr')->from(PessoasCorretoras::class, 'rr')
+            ->where('rr.pessoa = :id')->setParameter('id', $pessoaId)
+            ->getQuery()->getOneOrNullResult();
+
+        $tipos['pretendenteObj'] = $em->createQueryBuilder()
+            ->select('p')->from(PessoasPretendentes::class, 'p')
+            ->where('p.pessoa = :id')->setParameter('id', $pessoaId)
+            ->getQuery()->getOneOrNullResult();
+
+        return $tipos;
+    }
+
+    /** Array vazio para quando a pessoa não existe */
+    private function emptyTiposArray(): array
+    {
+        return [
+            'contratante' => null, 'fiador' => null, 'locador' => null,
+            'corretor'    => null, 'corretora' => null, 'pretendente' => null,
+        ];
+    }
+
+    /**
+     * Converte qualquer entidade em array associativo simples.
+     * Ignora propriedades que não tenham getter.
+     */
+    private function entityToArray(?object $entity): ?array
+    {
+        if (!$entity) {
+            return null;
+        }
+
+        $refl  = new \ReflectionObject($entity);
+        $props = [];
+
+        foreach ($refl->getProperties() as $prop) {
+            $getter = 'get' . ucfirst($prop->getName());
+            if (!method_exists($entity, $getter)) {
+                continue;
+            }
+
+            $value = $entity->$getter();
+
+            $props[$prop->getName()] = match (true) {
+                $value instanceof \DateTimeInterface => $value->format('Y-m-d H:i:s'),
+                is_object($value) && method_exists($value, 'getId') => $value->getId(),
+                default => $value,
+            };
+        }
+
+        return $props;
+    }
+
+
 
     /**
      * Busca o CPF de uma pessoa específica
