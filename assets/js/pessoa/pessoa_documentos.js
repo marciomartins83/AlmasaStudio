@@ -6,7 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let contadorDocumento = 0;
 
     document.getElementById('add-documento')?.addEventListener('click', async function() {
-        const tipos = window.tiposDocumento || await window.carregarTipos('documento'); // ✅ CORRIGIDO
+        console.log('Carregando tipos de documento...');
+        const tipos = window.tiposDocumento || await window.carregarTipos('documento');
+        console.log('Tipos recebidos:', tipos);
         window.tiposDocumento = tipos;
         contadorDocumento++;
         const container = document.getElementById('documentos-container');
@@ -20,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="row">
                     <div class="col-md-3">
                         <label class="form-label">Tipo de Documento</label>
-                        ${window.criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`)} 
+                        ${window.criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`, null)}
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Número do Documento</label>
@@ -57,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     window.adicionarDocumentoExistente = async function(documento) {
-        const tipos = window.tiposDocumento || await window.carregarTipos('documento'); // ✅ CORRIGIDO
+        const tipos = window.tiposDocumento || await window.carregarTipos('documento');
         window.tiposDocumento = tipos;
         contadorDocumento++;
         const container = document.getElementById('documentos-container');
@@ -66,12 +68,16 @@ document.addEventListener('DOMContentLoaded', function() {
             container.innerHTML = '';
         }
         
+        // Converte tipo string (ex: 'CPF') → id numérico
+        const tipoEncontrado = tipos.find(t => t.tipo === documento.tipo);
+        const tipoId = tipoEncontrado ? tipoEncontrado.id : null;
+        
         const documentoHtml = `
-            <div class="border p-3 mb-3 documento-item" data-index="${contadorDocumento}">
+            <div class="border p-3 mb-3 documento-item" data-index="${contadorDocumento}" data-id="${documento.id || ''}">
                 <div class="row">
                     <div class="col-md-3">
                         <label class="form-label">Tipo de Documento</label>
-                        ${window.criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`, documento.tipo)} 
+                        ${window.criarSelectTipos(tipos, `documentos[${contadorDocumento}][tipo]`, `documento_tipo_${contadorDocumento}`, `abrirModalTipoDocumento(${contadorDocumento})`, tipoId)}
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Número</label>
@@ -112,14 +118,46 @@ document.addEventListener('DOMContentLoaded', function() {
         container.insertAdjacentHTML('beforeend', documentoHtml);
     };
 
-    window.removerDocumento = function(index) {
+    window.removerDocumento = async function (index) {
         const item = document.querySelector(`.documento-item[data-index="${index}"]`);
-        if (item) {
+        if (!item) return;
+
+        const id = item.dataset.id;
+        if (!id) {
             item.remove();
             const container = document.getElementById('documentos-container');
             if (container.children.length === 0) {
                 container.innerHTML = '<p class="text-muted">Nenhum documento adicionado.</p>';
             }
+            return;
+        }
+
+        if (!confirm('Excluir este documento?')) return;
+
+        try {
+            const res = await fetch(`/pessoa/documento/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!res.ok) throw new Error(res.statusText);
+
+            const data = await res.json();
+            if (data.success) {
+                item.remove();
+                const container = document.getElementById('documentos-container');
+                if (container.children.length === 0) {
+                    container.innerHTML = '<p class="text-muted">Nenhum documento adicionado.</p>';
+                }
+            } else {
+                alert(data.message || 'Erro ao excluir');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro de rede – veja o console (F12).');
         }
     };
     

@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container.querySelector('.text-muted')) container.innerHTML = '';
 
         const pixHtml = `
-            <div class="border p-3 mb-3 pix-item" data-index="${contadorPix}">
+            <div class="border p-3 mb-3 pix-item" data-index="${contadorPix}" data-id="${chavePix.id || ''}">
                 <div class="row align-items-end">
                     <div class="col-md-3">
                         <label class="form-label">Tipo de Chave</label>
@@ -82,14 +82,46 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     /* ----------  Remoção (única função)  ---------- */
-    window.removerPix = function(index) {
+    window.removerPix = async function (index) {
         const item = document.querySelector(`.pix-item[data-index="${index}"]`);
-        if (item) {
+        if (!item) return;
+
+        const id = item.dataset.id; // ← agora vem do JSON
+        if (!id) { // chave nova – só limpa
             item.remove();
             const container = document.getElementById('pix-container');
             if (container.children.length === 0) {
                 container.innerHTML = '<p class="text-muted">Nenhuma chave PIX adicionada.</p>';
             }
+            return;
+        }
+
+        if (!confirm('Excluir esta chave PIX?')) return;
+
+        try {
+            const res = await fetch(`/pessoa/chave-pix/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!res.ok) throw new Error(res.statusText);
+
+            const data = await res.json();
+            if (data.success) {
+                item.remove();
+                const container = document.getElementById('pix-container');
+                if (container.children.length === 0) {
+                    container.innerHTML = '<p class="text-muted">Nenhuma chave PIX adicionada.</p>';
+                }
+            } else {
+                alert(data.message || 'Erro ao excluir');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro de rede – veja o console (F12).');
         }
     };
 

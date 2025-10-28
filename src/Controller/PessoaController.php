@@ -483,7 +483,7 @@ class PessoaController extends AbstractController
                     'emails'          => $emails,
                     'documentos'      => $documentos,
                     'chavesPix'       => $chavesPix,
-                    'profissoes'      => [],      // placeholder
+                    'profissoes'      => $this->buscarProfissoesPessoa($pessoa->getIdpessoa(), $entityManager),
                     'conjuge'         => null,    // placeholder
                     'tipos'           => $tiposComDados['tipos'],      // boolean
                     'tiposDados'      => $tiposComDados['tiposDados'], // objetos
@@ -557,6 +557,7 @@ class PessoaController extends AbstractController
 
             if ($telefone) {
                 $telefones[] = [
+                    'id'     => $telefone->getId(),
                     'tipo' => $telefone->getTipo()->getId(),
                     'numero' => $telefone->getNumero()
                 ];
@@ -583,6 +584,7 @@ class PessoaController extends AbstractController
             $estado = $cidade ? $cidade->getEstado() : null;
 
             $enderecos[] = [
+                'id'          => $endereco->getId(),
                 'tipo' => $endereco->getTipo()->getId(),
                 'cep' => $logradouro ? $logradouro->getCep() : '',
                 'logradouro' => $logradouro ? $logradouro->getLogradouro() : '',
@@ -613,6 +615,7 @@ class PessoaController extends AbstractController
 
             if ($email) {
                 $emails[] = [
+                    'id'    => $email->getId(),
                     'tipo' => $email->getTipo()->getId(),
                     'email' => $email->getEmail()
                 ];
@@ -636,7 +639,15 @@ class PessoaController extends AbstractController
         error_log("🔍 DEBUG: Tipo do resultado: " . gettype($resultado));
         error_log("🔍 DEBUG: Count do resultado: " . count($resultado));
 
-        return $resultado;
+        return array_map(fn($doc) => [
+            'id'               => $doc['id'],
+            'tipo'             => $doc['tipo'],
+            'numero'           => $doc['numero'],
+            'orgaoEmissor'     => $doc['orgaoEmissor'],
+            'dataEmissao'      => $doc['dataEmissao'],
+            'dataVencimento'   => $doc['dataVencimento'],
+            'observacoes'      => $doc['observacoes'],
+        ], $resultado);
     }
 
     /**
@@ -654,6 +665,7 @@ class PessoaController extends AbstractController
         error_log("Chaves encontradas: " . count($chavesPixEntidade));
         foreach ($chavesPixEntidade as $chavePix) {
             $chavesPix[] = [
+                'id'        => $chavePix->getId(),
                 'tipo' => $chavePix->getIdTipoChave(),
                 'chave' => $chavePix->getChavePix(),
                 'principal' => $chavePix->getPrincipal()
@@ -675,6 +687,7 @@ class PessoaController extends AbstractController
 
         foreach ($pessoasProfissoes as $pessoaProfissao) {
             $profissoes[] = [
+                'id'            => $pessoaProfissao->getId(),
                 'profissao' => $pessoaProfissao->getIdProfissao(),
                 'empresa' => $pessoaProfissao->getEmpresa(),
                 'renda' => $pessoaProfissao->getRenda(),
@@ -1548,5 +1561,150 @@ class PessoaController extends AbstractController
         }
 
         return $logradouro->getId();
+    }
+
+    #[Route('/endereco/{id}', name: 'delete_endereco', methods: ['DELETE'])]
+    public function deleteEndereco(
+        int $id,
+        EntityManagerInterface $em,
+        LoggerInterface $logger,
+        Request $request
+    ): JsonResponse {
+        // segurança CSRF (opcional mas recomendado)
+        $logger->info('🔵 DEBUG: Iniciando Exclusão de Pessoa!');
+        $token = $request->headers->get('X-CSRF-Token');
+            if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+                return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+            }
+
+            $end = $em->getRepository(Enderecos::class)->find($id);
+            if (!$end) return new JsonResponse(['success' => false, 'message' => 'Endereço não encontrado'], 404);
+
+            $em->remove($end);
+            $em->flush();
+
+            return new JsonResponse(['success' => true]);
+        }
+    
+    #[Route('/telefone/{id}', name: 'delete_telefone', methods: ['DELETE'])]
+    public function deleteTelefone(
+        int $id,
+        EntityManagerInterface $em,
+        Request $request
+    ): JsonResponse {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        $telefone = $em->getRepository(Telefones::class)->find($id);
+        if (!$telefone) {
+            return new JsonResponse(['success' => false, 'message' => 'Telefone não encontrado'], 404);
+        }
+
+        // Remove também a tabela pivot PessoasTelefones
+        $pivot = $em->getRepository(PessoasTelefones::class)->findOneBy(['idTelefone' => $id]);
+        if ($pivot) {
+            $em->remove($pivot);
+        }
+
+        $em->remove($telefone);
+        $em->flush();
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    #[Route('/email/{id}', name: 'delete_email', methods: ['DELETE'])]
+    public function deleteEmail(
+        int $id,
+        EntityManagerInterface $em,
+        Request $request
+    ): JsonResponse {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        $email = $em->getRepository(Emails::class)->find($id);
+        if (!$email) {
+            return new JsonResponse(['success' => false, 'message' => 'Email não encontrado'], 404);
+        }
+
+        // Remove também a tabela pivot PessoasEmails
+        $pivot = $em->getRepository(PessoasEmails::class)->findOneBy(['idEmail' => $id]);
+        if ($pivot) {
+            $em->remove($pivot);
+        }
+
+        $em->remove($email);
+        $em->flush();
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    #[Route('/chave-pix/{id}', name: 'delete_chave_pix', methods: ['DELETE'])]
+    public function deleteChavePix(
+        int $id,
+        EntityManagerInterface $em,
+        Request $request
+    ): JsonResponse {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        $chavePix = $em->getRepository(ChavesPix::class)->find($id);
+        if (!$chavePix) {
+            return new JsonResponse(['success' => false, 'message' => 'Chave PIX não encontrada'], 404);
+        }
+
+        $em->remove($chavePix);
+        $em->flush();
+
+        return new JsonResponse(['success' => true]);
+    }    
+
+    #[Route('/documento/{id}', name: 'delete_documento', methods: ['DELETE'])]
+    public function deleteDocumento(
+        int $id,
+        EntityManagerInterface $em,
+        Request $request
+    ): JsonResponse {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        $documento = $em->getRepository(PessoasDocumentos::class)->find($id);
+        if (!$documento) {
+            return new JsonResponse(['success' => false, 'message' => 'Documento não encontrado'], 404);
+        }
+
+        $em->remove($documento);
+        $em->flush();
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    #[Route('/profissao/{id}', name: 'delete_profissao', methods: ['DELETE'])]
+    public function deleteProfissao(
+        int $id,
+        EntityManagerInterface $em,
+        Request $request
+    ): JsonResponse {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        $profissao = $em->getRepository(PessoasProfissoes::class)->find($id);
+        if (!$profissao) {
+            return new JsonResponse(['success' => false, 'message' => 'Profissão não encontrada'], 404);
+        }
+
+        $em->remove($profissao);
+        $em->flush();
+
+        return new JsonResponse(['success' => true]);
     }
 }

@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const enderecoHtml = `
-            <div class="border p-3 mb-3 endereco-item" data-index="${contadorEndereco}">
+            <div class="border p-3 mb-3 endereco-item" data-index="${contadorEndereco}" data-id="">
                 <input type="hidden" class="estado-field" name="enderecos[${contadorEndereco}][estado]">
                 <div class="row">
                     <div class="col-md-3">
@@ -68,14 +68,47 @@ document.addEventListener('DOMContentLoaded', function() {
         container.insertAdjacentHTML('beforeend', enderecoHtml);
     });
 
-    window.removerEndereco = function(index) {
-        const item = document.querySelector(`.endereco-item[data-index="${index}"]`);
-        if (item) {
+    window.removerEndereco = async function (index) {
+        console.log('removerEndereco chamado – index:', index);
+
+        const item  = document.querySelector(`.endereco-item[data-index="${index}"]`);
+        if (!item) return;
+
+        const id    = item.dataset.id;
+        console.log('data-id encontrado:', id);
+
+        if (!id) {                 // endereço novo – só limpa a tela
             item.remove();
-            const container = document.getElementById('enderecos-container');
-            if (container.children.length === 0) {
-                container.innerHTML = '<p class="text-muted">Nenhum endereço adicionado.</p>';
+            return;
+        }
+
+        if (!confirm('Excluir este endereço?')) return;
+
+        const url   = `/pessoa/endereco/${id}`;   // mesma rota que aparece no debug:router
+        console.log('Enviando DELETE para:', url);
+
+        try {
+            const res = await fetch(url, {
+                method : 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            console.log('Status da resposta:', res.status);
+
+            if (!res.ok) throw new Error(res.statusText);
+
+            const data = await res.json();
+            if (data.success) {
+                item.remove();
+            } else {
+                alert(data.message || 'Erro ao excluir');
             }
+        } catch (e) {
+            console.error('Erro na requisição:', e);
+            alert('Erro de rede – veja o console (F12).');
         }
     };
 
@@ -88,9 +121,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container.querySelector('.text-muted')) {
             container.innerHTML = '';
         }
-
+        console.log('endereco recebido:', endereco);
         const enderecoHtml = `
-            <div class="border p-3 mb-3 endereco-item" data-index="${contadorEndereco}">
+            <div class="border p-3 mb-3 endereco-item" data-index="${contadorEndereco}" data-id="${endereco.id_endereco || endereco.id || ''}">
                 <input type="hidden" class="estado-field" name="enderecos[${contadorEndereco}][estado]" value="${endereco.estado || ''}">
                 <div class="row">
                     <div class="col-md-3">

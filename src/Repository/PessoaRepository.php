@@ -290,6 +290,7 @@ class PessoaRepository extends ServiceEntityRepository
         $ret = [];
         foreach ($docs as $d) {
             $ret[] = [
+                'id'               => $d->getId(), 
                 'tipo'           => $d->getTipoDocumento()->getTipo(),
                 'numero'         => $d->getNumeroDocumento(),
                 'orgaoEmissor'   => $d->getOrgaoEmissor(),

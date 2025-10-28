@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const profissaoHtml = `
-            <div class="border p-3 mb-3 profissao-item" data-index="${contadorProfissao}">
+            <div class="border p-3 mb-3 profissao-item" data-index="${contadorProfissao}" data-id="${profissao.id || ''}">
                 <div class="row">
                     <div class="col-md-4">
                         <label class="form-label">Profissão</label>
@@ -121,14 +121,46 @@ document.addEventListener('DOMContentLoaded', function() {
         container.insertAdjacentHTML('beforeend', profissaoHtml);
     };
 
-    window.removerProfissao = function(index) {
+    window.removerProfissao = async function (index) {
         const item = document.querySelector(`.profissao-item[data-index="${index}"]`);
-        if (item) {
+        if (!item) return;
+
+        const id = item.dataset.id;
+        if (!id) { // profissão nova – só limpa
             item.remove();
             const container = document.getElementById('profissoes-container');
             if (container.children.length === 0) {
                 container.innerHTML = '<p class="text-muted">Nenhuma profissão adicionada.</p>';
             }
+            return;
+        }
+
+        if (!confirm('Excluir esta profissão?')) return;
+
+        try {
+            const res = await fetch(`/pessoa/profissao/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!res.ok) throw new Error(res.statusText);
+
+            const data = await res.json();
+            if (data.success) {
+                item.remove();
+                const container = document.getElementById('profissoes-container');
+                if (container.children.length === 0) {
+                    container.innerHTML = '<p class="text-muted">Nenhuma profissão adicionada.</p>';
+                }
+            } else {
+                alert(data.message || 'Erro ao excluir');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro de rede – veja o console (F12).');
         }
     };
     
