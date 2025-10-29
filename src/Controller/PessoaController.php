@@ -405,7 +405,7 @@ class PessoaController extends AbstractController
 
             $criteria = strtolower($data['criteria'] ?? '');
             $value    = $data['value'] ?? '';
-            $additionalDoc     = $data['additionalDoc'] ?? null;
+            $additionalDoc       = $data['additionalDoc'] ?? null;
             $additionalDocType = $data['additionalDocType'] ?? null;
 
             if (empty($criteria) || empty($value)) {
@@ -415,7 +415,7 @@ class PessoaController extends AbstractController
             // --- BUSCA DA PESSOA -------------------------------------------------
             $pessoa = match ($criteria) {
                 'cpf', 'cpf (pessoa física)' => $pessoaRepository->findByCpfDocumento($value),
-                'cnpj', 'cnpj (pessoa jurídica)' => $pessoaRepository->findByCnpjDocumento($value),
+                'cnpj', 'cnpj (pessoa jurídica)' => $pessoaRepository->findByCnpjDocumento($value), // Supondo que exista
                 'id', 'id pessoa' => $pessoaRepository->find((int)$value),
                 'nome', 'nome completo' => $this->buscaPorNome($logger, $pessoaRepository, $value, $additionalDoc, $additionalDocType),
                 default => null,
@@ -436,11 +436,12 @@ class PessoaController extends AbstractController
             $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
 
             $logger->info('🔵 Busca tipos + dados completos');
+            // $tiposComDados agora retorna ['tipos' => [...], 'tiposDados' => [...]]
             $tiposComDados = $pessoaRepository->findTiposComDados($pessoa->getIdpessoa());
-            $tiposComDados['tipos']       = $tiposComDados['tipos']       ?? [];
+            $tiposComDados['tipos']       = $tiposComDados['tipos']      ?? [];
             $tiposComDados['tiposDados']  = $tiposComDados['tiposDados']  ?? [];
 
-            // ✅ NOVO: Mapeia o tipo string para o ID do select
+            // ✅ Mapeia o tipo string para o ID (mantido para referência)
             $tipoParaId = [
                 'contratante' => 6,
                 'fiador'      => 1,
@@ -449,8 +450,11 @@ class PessoaController extends AbstractController
                 'corretora'   => 3,
                 'pretendente' => 5,
             ];
+
+            // ✅ CORREÇÃO APLICADA AQUI
             $ativos = array_keys(array_filter($tiposComDados['tipos']));
-            $tipoId = $ativos ? ($tipoParaId[$ativos[0]] ?? null) : null;
+            $tipoString = $ativos ? $ativos[0] : null; // (ex: "contratante")
+            $tipoId = $tipoString ? ($tipoParaId[$tipoString] ?? null) : null; // (ex: 6)
 
 
             // --- DADOS MÚLTIPLOS (com logs individuais) --------------------------
@@ -465,10 +469,10 @@ class PessoaController extends AbstractController
             return new JsonResponse([
                 'success' => true,
                 'pessoa'  => [
-                    'id'              => $pessoa->getIdpessoa(),
-                    'nome'            => $pessoa->getNome(),
-                    'cpf'             => $cpf,
-                    'cnpj'            => $cnpj,
+                    'id'            => $pessoa->getIdpessoa(),
+                    'nome'          => $pessoa->getNome(),
+                    'cpf'           => $cpf,
+                    'cnpj'          => $cnpj,
                     'fisicaJuridica'  => $pessoa->getFisicaJuridica(),
                     'dataNascimento'  => $pessoa->getDataNascimento()?->format('Y-m-d'),
                     'estadoCivil'     => $pessoa->getEstadoCivil()?->getId(),
@@ -478,16 +482,19 @@ class PessoaController extends AbstractController
                     'nomeMae'         => $pessoa->getNomeMae(),
                     'renda'           => $pessoa->getRenda(),
                     'observacoes'     => $pessoa->getObservacoes(),
-                    'telefones'       => $telefones,
-                    'enderecos'       => $enderecos,
-                    'emails'          => $emails,
-                    'documentos'      => $documentos,
-                    'chavesPix'       => $chavesPix,
-                    'profissoes'      => $this->buscarProfissoesPessoa($pessoa->getIdpessoa(), $entityManager),
-                    'conjuge'         => null,    // placeholder
-                    'tipos'           => $tiposComDados['tipos'],      // boolean
-                    'tiposDados'      => $tiposComDados['tiposDados'], // objetos
-                    'tipoPessoaId'    => $tipoId, // ✅ NOVO: ID numérico para o select
+                    'telefones'     => $telefones,
+                    'enderecos'     => $enderecos,
+                    'emails'        => $emails,
+                    'documentos'    => $documentos,
+                    'chavesPix'     => $chavesPix,
+                    'profissoes'    => $this->buscarProfissoesPessoa($pessoa->getIdpessoa(), $entityManager),
+                    'conjuge'       => null,     // placeholder
+                    'tipos'         => $tiposComDados['tipos'],      // boolean
+                    'tiposDados'    => $tiposComDados['tiposDados'], // objetos
+                    
+                    // ✅ CORREÇÃO APLICADA AQUI (Ambos os valores são enviados)
+                    'tipoPessoaId'     => $tipoId,     // ID numérico (ex: 6)
+                    'tipoPessoaString' => $tipoString  // String (ex: "contratante")
                 ],
             ]);
         } catch (\Exception $e) {
@@ -508,7 +515,7 @@ class PessoaController extends AbstractController
         if ($doc && $docType) {
             $pessoa = stripos($docType, 'cpf') !== false
                 ? $repo->findByCpfDocumento($doc)
-                : $repo->findByCnpjDocumento($doc);
+                : $repo->findByCnpjDocumento($doc); // Supondo que exista
 
             if ($pessoa && stripos($pessoa->getNome(), $nome) !== false) {
                 return $pessoa;

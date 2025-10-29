@@ -448,12 +448,21 @@ document.addEventListener('DOMContentLoaded', () => {
         configurarTipoPessoa(tipoFisicaJuridica);
 
         // ✅ NOVO: usa o ID que existe no select
-        if (pessoa.tipoPessoaId) {
+        if (pessoa.tipoPessoaString) {
             const select = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
             if (select) {
-                select.value = pessoa.tipoPessoaId; // ex: 6, 1, 4...
+                select.value = pessoa.tipoPessoaString; // ex: "contratante", "fiador"...
                 select.dispatchEvent(new Event('change')); // Dispara o evento para carregar o sub-formulário
+            } else {
+                console.warn('⚠️ Select tipoPessoa não encontrado para preencher');
             }
+        } else {
+             // Se não vier string, dispara o 'change' com o valor que estiver (provavelmente vazio)
+             // para garantir que o subform (vazio) seja carregado.
+             const select = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
+             if (select) {
+                 select.dispatchEvent(new Event('change'));
+             }
         }
 
         // Dados múltiplos

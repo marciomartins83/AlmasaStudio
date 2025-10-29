@@ -150,40 +150,67 @@ class PessoaRepository extends ServiceEntityRepository
         $em = $this->getEntityManager();
 
         // 1) Tipos ativos (boolean)
-        $tipos = $this->findTiposByPessoaId($pessoaId);
+        // [REMOVIDO] $tipos = $this->findTiposByPessoaId($pessoaId);
+        // Esta era a linha que buscava da tabela antiga (PessoasTipos) e causava o bug.
 
-        // 2) Objetos completos (null se não existe)
-        $tipos['contratanteObj'] = $em->createQueryBuilder()
+        // 2) Objetos completos (null se não existe) - Lógica NOVA
+        $contratanteObj = $em->createQueryBuilder()
             ->select('c')->from(PessoasContratantes::class, 'c')
             ->where('c.pessoa = :id')->setParameter('id', $pessoaId)
             ->getQuery()->getOneOrNullResult();
 
-        $tipos['fiadorObj'] = $em->createQueryBuilder()
+        $fiadorObj = $em->createQueryBuilder()
             ->select('f')->from(PessoasFiadores::class, 'f')
             ->where('f.idPessoa = :id')->setParameter('id', $pessoaId)
             ->getQuery()->getOneOrNullResult();
 
-        $tipos['locadorObj'] = $em->createQueryBuilder()
+        $locadorObj = $em->createQueryBuilder()
             ->select('l')->from(PessoasLocadores::class, 'l')
             ->where('l.pessoa = :id')->setParameter('id', $pessoaId)
             ->getQuery()->getOneOrNullResult();
 
-        $tipos['corretorObj'] = $em->createQueryBuilder()
+        $corretorObj = $em->createQueryBuilder()
             ->select('r')->from(PessoasCorretores::class, 'r')
             ->where('r.pessoa = :id')->setParameter('id', $pessoaId)
             ->getQuery()->getOneOrNullResult();
 
-        $tipos['corretoraObj'] = $em->createQueryBuilder()
+        $corretoraObj = $em->createQueryBuilder()
             ->select('rr')->from(PessoasCorretoras::class, 'rr')
             ->where('rr.pessoa = :id')->setParameter('id', $pessoaId)
             ->getQuery()->getOneOrNullResult();
 
-        $tipos['pretendenteObj'] = $em->createQueryBuilder()
+        $pretendenteObj = $em->createQueryBuilder()
             ->select('p')->from(PessoasPretendentes::class, 'p')
             ->where('p.pessoa = :id')->setParameter('id', $pessoaId)
             ->getQuery()->getOneOrNullResult();
 
-        return $tipos;
+        // 3. [NOVO] Montar os arrays na estrutura que o Controller espera
+        
+        // Array de dados (objetos ou null)
+        $tiposDados = [
+            'contratante' => $contratanteObj,
+            'fiador'      => $fiadorObj,
+            'locador'     => $locadorObj,
+            'corretor'    => $corretorObj,
+            'corretora'   => $corretoraObj,
+            'pretendente' => $pretendenteObj,
+        ];
+
+        // Array de booleanos (derivado dos objetos acima)
+        $tipos = [
+            'contratante' => ($contratanteObj !== null),
+            'fiador'      => ($fiadorObj !== null),
+            'locador'     => ($locadorObj !== null),
+            'corretor'    => ($corretorObj !== null),
+            'corretora'   => ($corretoraObj !== null),
+            'pretendente' => ($pretendenteObj !== null),
+        ];
+
+        // 4. [NOVO] Retornar a estrutura correta (aninhada)
+        return [
+            'tipos'      => $tipos,
+            'tiposDados' => $tiposDados,
+        ];
     }
 
     /** Array vazio para quando a pessoa não existe */
