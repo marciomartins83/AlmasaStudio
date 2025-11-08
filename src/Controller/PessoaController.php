@@ -27,6 +27,7 @@ use App\Entity\Naturalidade;
 use App\Entity\TiposPessoas;
 use App\Form\PessoaFormType;
 use App\Repository\PessoaRepository;
+use App\Repository\PessoasDocumentosRepository;
 use App\Form\PessoaCorretorType;
 use App\Form\PessoaContratanteType;
 use App\Form\PessoaFiadorType;
@@ -172,83 +173,88 @@ class PessoaController extends AbstractController
     /**
      * MÉTODO CORRIGIDO: Dados múltiplos sem flush internos - COMPLETO
      */
-    private function salvarDadosMultiplosCorrigido(int $pessoaId, array $requestData, EntityManagerInterface $entityManager): void
-    {
-        // Salvar Telefones (COM deduplicação Find-or-Create)
+    private function salvarDadosMultiplosCorrigido(
+        int $pessoaId,
+        array $requestData,
+        EntityManagerInterface $entityManager
+    ): void {
+        // -------- Telefones (find-or-create + pivot) --------
         if (isset($requestData['telefones']) && is_array($requestData['telefones'])) {
-            // Obter o repositório uma vez, fora do loop
-            $telRepo = $entityManager->getRepository(Telefones::class);
-            
+            $telRepo = $entityManager->getRepository(\App\Entity\Telefones::class);
+
             foreach ($requestData['telefones'] as $telefoneData) {
                 if (!empty($telefoneData['tipo']) && !empty($telefoneData['numero'])) {
-                    
-                    // Lógica de Deduplicação (Find-or-Create)
                     $numeroLimpo = preg_replace('/\D/', '', $telefoneData['numero']);
-                    $telefone = $telRepo->findOneBy(['numero' => $numeroLimpo, 'ativo' => true]);
+
+                    // tenta achar telefone ativo pelo número (se sua entidade não tem "ativo", remova o critério)
+                    $criteria = ['numero' => $numeroLimpo];
+                    if (property_exists(\App\Entity\Telefones::class, 'ativo')) {
+                        $criteria['ativo'] = true;
+                    }
+                    $telefone = $telRepo->findOneBy($criteria);
 
                     if (!$telefone) {
-                        // Se não encontrou, cria um novo
-                        $telefone = new Telefones();
+                        $telefone = new \App\Entity\Telefones();
                         $telefone->setTipo($entityManager->getReference(\App\Entity\TiposTelefones::class, (int)$telefoneData['tipo']));
-                        $telefone->setNumero($numeroLimpo); // Salva o número limpo
+                        $telefone->setNumero($numeroLimpo);
+                        if (method_exists($telefone, 'setAtivo')) {
+                            $telefone->setAtivo(true);
+                        }
                         $entityManager->persist($telefone);
-                        $entityManager->flush(); // FLUSH é necessário aqui para obter o ID para a tabela pivot
+                        $entityManager->flush(); // precisamos do ID para a pivot
                     }
-                    // Se encontrou, $telefone já está preenchido
 
-                    // Cria a ligação na tabela pivot (PessoasTelefones)
-                    $pessoaTelefone = new PessoasTelefones();
-                    $pessoaTelefone->setIdPessoa($pessoaId);
-                    $pessoaTelefone->setIdTelefone($telefone->getId()); // Usa o ID do telefone (novo ou existente)
-                    $entityManager->persist($pessoaTelefone);
+                    $pivot = new \App\Entity\PessoasTelefones();
+                    $pivot->setIdPessoa($pessoaId);
+                    $pivot->setIdTelefone($telefone->getId());
+                    $entityManager->persist($pivot);
                 }
             }
         }
 
-        // Salvar Emails (COM deduplicação Find-or-Create)
+        // -------- Emails (find-or-create + pivot) --------
         if (isset($requestData['emails']) && is_array($requestData['emails'])) {
-            // Obter o repositório uma vez, fora do loop
-            $emailRepo = $entityManager->getRepository(Emails::class);
-            
+            $emailRepo = $entityManager->getRepository(\App\Entity\Emails::class);
+
             foreach ($requestData['emails'] as $emailData) {
                 if (!empty($emailData['tipo']) && !empty($emailData['email'])) {
-                    
-                    // Lógica de Deduplicação (Find-or-Create)
                     $emailLimpo = strtolower(trim($emailData['email']));
-                    $email = $emailRepo->findOneBy(['email' => $emailLimpo, 'ativo' => true]);
-                    
-                    if (!$email) {
-                        // Se não encontrou, cria um novo
-                        $email = new Emails();
-                        $email->setEmail($emailLimpo); // Salva o email limpo
-                        $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
-                        $entityManager->persist($email);
-                        $entityManager->flush(); // FLUSH é necessário aqui para obter o ID para a tabela pivot
+                    $criteria   = ['email' => $emailLimpo];
+                    if (property_exists(\App\Entity\Emails::class, 'ativo')) {
+                        $criteria['ativo'] = true;
                     }
-                    // Se encontrou, $email já está preenchido
+                    $email = $emailRepo->findOneBy($criteria);
 
-                    // Cria a ligação na tabela pivot (PessoasEmails)
-                    $pessoaEmail = new PessoasEmails();
-                    $pessoaEmail->setIdPessoa($pessoaId);
-                    $pessoaEmail->setIdEmail($email->getId()); // Usa o ID do email (novo ou existente)
-                    $entityManager->persist($pessoaEmail);
+                    if (!$email) {
+                        $email = new \App\Entity\Emails();
+                        $email->setEmail($emailLimpo);
+                        $email->setTipo($entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
+                        if (method_exists($email, 'setAtivo')) {
+                            $email->setAtivo(true);
+                        }
+                        $entityManager->persist($email);
+                        $entityManager->flush(); // precisamos do ID para a pivot
+                    }
+
+                    $pivot = new \App\Entity\PessoasEmails();
+                    $pivot->setIdPessoa($pessoaId);
+                    $pivot->setIdEmail($email->getId());
+                    $entityManager->persist($pivot);
                 }
             }
         }
 
-        // Salvar Endereços (Lógica original mantida)
-        // Nota: Esta lógica não faz deduplicação da entidade Enderecos.
+        // -------- Endereços (relação direta com pessoa) --------
         if (isset($requestData['enderecos']) && is_array($requestData['enderecos'])) {
             foreach ($requestData['enderecos'] as $enderecoData) {
                 if (!empty($enderecoData['tipo']) && !empty($enderecoData['numero'])) {
                     $logradouroId = $this->buscarOuCriarLogradouro($enderecoData, $entityManager);
 
-                    $endereco = new Enderecos();
-                    $endereco->setPessoa($entityManager->getReference(Pessoas::class, $pessoaId)); // ✅ CORRIGIDO: Usar setPessoa
-                    $endereco->setLogradouro($entityManager->getReference(Logradouros::class, $logradouroId));
+                    $endereco = new \App\Entity\Enderecos();
+                    $endereco->setPessoa($entityManager->getReference(\App\Entity\Pessoas::class, $pessoaId));
+                    $endereco->setLogradouro($entityManager->getReference(\App\Entity\Logradouros::class, $logradouroId));
                     $endereco->setTipo($entityManager->getReference(\App\Entity\TiposEnderecos::class, (int)$enderecoData['tipo']));
                     $endereco->setEndNumero((int)$enderecoData['numero']);
-
                     if (!empty($enderecoData['complemento'])) {
                         $endereco->setComplemento($enderecoData['complemento']);
                     }
@@ -258,66 +264,60 @@ class PessoaController extends AbstractController
             }
         }
 
-        // Salvar Chaves PIX (Lógica original mantida)
-        // Nota: Esta tabela não tem pivot, a relação é direta (idPessoa)
+        // -------- Chaves PIX --------
         if (isset($requestData['chaves_pix']) && is_array($requestData['chaves_pix'])) {
             foreach ($requestData['chaves_pix'] as $pixData) {
                 if (!empty($pixData['tipo']) && !empty($pixData['chave'])) {
-                    $chavePix = new ChavesPix();
+                    $chavePix = new \App\Entity\ChavesPix();
                     $chavePix->setIdPessoa($pessoaId);
                     $chavePix->setIdTipoChave((int)$pixData['tipo']);
                     $chavePix->setChavePix($pixData['chave']);
                     $chavePix->setPrincipal(!empty($pixData['principal']));
-                    $chavePix->setAtivo(true);
+                    if (method_exists($chavePix, 'setAtivo')) {
+                        $chavePix->setAtivo(true);
+                    }
                     $entityManager->persist($chavePix);
                 }
             }
         }
 
-        // Salvar Documentos (Lógica original mantida)
-        // Nota: Esta tabela não tem pivot, a relação é direta (idPessoa)
+        // -------- Documentos (secundários) --------
         if (isset($requestData['documentos']) && is_array($requestData['documentos'])) {
             foreach ($requestData['documentos'] as $documentoData) {
                 if (!empty($documentoData['tipo']) && !empty($documentoData['numero'])) {
-                    $documento = new PessoasDocumentos();
-                    
-                    // NOTA: $entityManager->getRepository(Pessoas::class)->getIdpessoa($pessoaId) não existe.
-                    // Substituindo por $entityManager->getReference(Pessoas::class, $pessoaId)
-                    $pessoaRef = $entityManager->getReference(Pessoas::class, $pessoaId);
+                    $documento = new \App\Entity\PessoasDocumentos();
+                    $pessoaRef = $entityManager->getReference(\App\Entity\Pessoas::class, $pessoaId);
                     $documento->setPessoa($pessoaRef);
-                    
-                    // Esta lógica parece buscar o TipoDocumento pelo ID, não pelo nome 'CPF'
-                    $tipoDocumentoEntity = $entityManager->getReference(TiposDocumentos::class, (int)$documentoData['tipo']); 
 
-                    if ($tipoDocumentoEntity) {
-                        $documento->setTipoDocumento($tipoDocumentoEntity);
-                    }
+                    // Aqui o tipo vem por ID do tipo_documento (ex.: 1=CPF, 2=RG, etc.)
+                    $tipoDocumentoEntity = $entityManager->getReference(\App\Entity\TiposDocumentos::class, (int)$documentoData['tipo']);
+                    $documento->setTipoDocumento($tipoDocumentoEntity);
+
                     $documento->setNumeroDocumento($documentoData['numero']);
 
                     if (!empty($documentoData['orgao_emissor'])) {
                         $documento->setOrgaoEmissor($documentoData['orgao_emissor']);
                     }
-
                     if (!empty($documentoData['data_emissao'])) {
                         $documento->setDataEmissao(new \DateTime($documentoData['data_emissao']));
                     }
-
                     if (!empty($documentoData['data_vencimento'])) {
                         $documento->setDataVencimento(new \DateTime($documentoData['data_vencimento']));
                     }
-
                     if (!empty($documentoData['observacoes'])) {
                         $documento->setObservacoes($documentoData['observacoes']);
                     }
 
-                    $documento->setAtivo(true);
+                    if (method_exists($documento, 'setAtivo')) {
+                        $documento->setAtivo(true);
+                    }
+
                     $entityManager->persist($documento);
                 }
             }
         }
 
-        // Salvar Profissões (Lógica original mantida)
-        // Nota: Esta tabela não tem pivot, a relação é direta (idPessoa)
+        // -------- Profissões --------
         if (isset($requestData['profissoes']) && is_array($requestData['profissoes'])) {
             foreach ($requestData['profissoes'] as $profissaoData) {
                 if (!empty($profissaoData['profissao'])) {
@@ -328,24 +328,23 @@ class PessoaController extends AbstractController
                     if (!empty($profissaoData['empresa'])) {
                         $pessoaProfissao->setEmpresa($profissaoData['empresa']);
                     }
-
                     if (!empty($profissaoData['data_admissao'])) {
                         $pessoaProfissao->setDataAdmissao(new \DateTime($profissaoData['data_admissao']));
                     }
-
                     if (!empty($profissaoData['data_demissao'])) {
                         $pessoaProfissao->setDataDemissao(new \DateTime($profissaoData['data_demissao']));
                     }
-
                     if (!empty($profissaoData['renda'])) {
                         $pessoaProfissao->setRenda((float)$profissaoData['renda']);
                     }
-
                     if (!empty($profissaoData['observacoes'])) {
                         $pessoaProfissao->setObservacoes($profissaoData['observacoes']);
                     }
 
-                    $pessoaProfissao->setAtivo(true);
+                    if (method_exists($pessoaProfissao, 'setAtivo')) {
+                        $pessoaProfissao->setAtivo(true);
+                    }
+
                     $entityManager->persist($pessoaProfissao);
                 }
             }
@@ -465,11 +464,14 @@ class PessoaController extends AbstractController
             $logger->info('🔵 DEBUG: Busca cnpj');
             $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
 
+            // --- BUSCA DOS TIPOS ---
             $logger->info('🔵 Busca tipos + dados completos');
-            // $tiposComDados agora retorna ['tipos' => [...], 'tiposDados' => [...]]
             $tiposComDados = $pessoaRepository->findTiposComDados($pessoa->getIdpessoa());
-            $tiposComDados['tipos']       = $tiposComDados['tipos']      ?? [];
-            $tiposComDados['tiposDados']  = $tiposComDados['tiposDados']  ?? [];
+            $tiposComDados['tipos'] = $tiposComDados['tipos'] ?? [];
+
+            // ✅ CORREÇÃO: Buscar dados REAIS dos tipos de pessoa
+            $tiposComDados['tiposDados'] = $this->buscarDadosTiposPessoa($pessoa->getIdpessoa(), $entityManager);
+            $logger->info('✅ Dados dos tipos carregados: ' . json_encode(array_keys($tiposComDados['tiposDados'])));
 
             // ✅ Mapeia o tipo string para o ID (mantido para referência)
             $tipoParaId = [
@@ -496,7 +498,7 @@ class PessoaController extends AbstractController
 
             $logger->info('✅ Montando resposta final');
 
-            return new JsonResponse([
+            $valorRetorno = new JsonResponse([
                 'success' => true,
                 'pessoa'  => [
                     'id'            => $pessoa->getIdpessoa(),
@@ -527,6 +529,7 @@ class PessoaController extends AbstractController
                     'tipoPessoaString' => $tipoString  // String (ex: "contratante")
                 ],
             ]);
+            return $valorRetorno;
         } catch (\Exception $e) {
             $logger->error('🔴 ERRO CRÍTICO em searchPessoaAdvanced: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
             return new JsonResponse(['success' => false, 'message' => 'Erro interno'], 500);
@@ -993,67 +996,76 @@ class PessoaController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
+            // Sempre leia o pacote aninhado do formulário (nome do form = pessoa_form)
             $requestData = $request->request->all();
-            $tipoPessoa = $form->get('tipoPessoa')->getData();
+            $formData    = $requestData['pessoa_form'] ?? $requestData;
+
+            // Pode vir string ("fiador") ou id (numérico)
+            $tipoPessoa  = $form->get('tipoPessoa')->getData();
 
             $entityManager->getConnection()->beginTransaction();
             try {
-                // 1. Atualizar dados básicos da pessoa
-                $pessoa->setNome($data['nome']);
-                $pessoa->setDataNascimento($data['dataNascimento']);
-                $pessoa->setEstadoCivil($data['estadoCivil']);
-                $pessoa->setNacionalidade($data['nacionalidade']);
-                $pessoa->setNaturalidade($data['naturalidade']);
-                $pessoa->setNomePai($data['nomePai']);
-                $pessoa->setNomeMae($data['nomeMae']);
-                $pessoa->setRenda($data['renda']);
-                $pessoa->setObservacoes($data['observacoes']);
+                // 1) Documento principal vindo do campo não mapeado "searchTerm"
+                $cpfCnpj = $form->has('searchTerm')
+                    ? (string) $form->get('searchTerm')->getData()
+                    : (string) ($formData['searchTerm'] ?? '');
 
-                // Atualizar física/jurídica baseado no CPF/CNPJ se informado
-                $cpfCnpj = $data['searchTerm'] ?? '';
-                if (!empty($cpfCnpj)) {
-                    $cpfCnpj = preg_replace('/[^\d]/', '', $cpfCnpj);
-                    $fisicaJuridica = strlen($cpfCnpj) === 11 ? 'fisica' : 'juridica';
-                    $pessoa->setFisicaJuridica($fisicaJuridica);
+                if ($cpfCnpj !== '') {
+                    $cpfCnpjDigits = preg_replace('/\D/', '', $cpfCnpj);
+
+                    // 1.1) Verificação de duplicidade (ignora a própria pessoa)
+                    $repo  = $entityManager->getRepository(\App\Entity\Pessoas::class);
+                    $outra = null;
+                    if (strlen($cpfCnpjDigits) === 11 && method_exists($repo, 'findByCpfDocumento')) {
+                        $outra = $repo->findByCpfDocumento($cpfCnpjDigits);
+                    } elseif (strlen($cpfCnpjDigits) > 11 && method_exists($repo, 'findByCnpjDocumento')) {
+                        $outra = $repo->findByCnpjDocumento($cpfCnpjDigits);
+                    }
+
+                    if ($outra && $outra->getIdpessoa() !== $pessoa->getIdpessoa()) {
+                        $entityManager->getConnection()->rollBack();
+                        $this->addFlash('error', 'Documento informado já está cadastrado para outra pessoa.');
+                        return $this->redirectToRoute('app_pessoa_edit', ['id' => $pessoa->getIdpessoa()]);
+                    }
+
+                    // 1.2) Ajusta física/jurídica coerente com o documento
+                    $pessoa->setFisicaJuridica(strlen($cpfCnpjDigits) === 11 ? 'fisica' : 'juridica');
                 }
 
-                // Atualizar tipoPessoa se alterado
+                // 2) Atualiza tipoPessoa (string -> id quando necessário)
                 if (is_string($tipoPessoa)) {
-                    $tipoPessoaId = $this->convertTipoPessoaToId($tipoPessoa, $entityManager);
+                    $pessoa->setTipoPessoa($this->convertTipoPessoaToId($tipoPessoa, $entityManager));
                 } else {
-                    $tipoPessoaId = (int)$tipoPessoa;
+                    $pessoa->setTipoPessoa((int) $tipoPessoa);
                 }
-                $pessoa->setTipoPessoa($tipoPessoaId);
 
-                // 2. Persistir alterações da pessoa
+                // 3) Persistir alterações básicas (o form já hidratou a entidade $pessoa)
                 $entityManager->persist($pessoa);
                 $entityManager->flush();
 
-                // 3. LIMPAR dados múltiplos existentes antes de salvar novos
-                $this->limparDadosMultiplosExistentes($pessoa->getIdpessoa(), $entityManager);
+                // 4) Limpeza "replace" SOMENTE das seções presentes no POST
+                $this->limparDadosMultiplosApenasSeEnviados($pessoa->getIdpessoa(), $formData, $entityManager);
 
-                // 4. Salvar CPF/CNPJ se informado (pode ser novo ou alterado)
+                // 5) (Re)salva documento principal se veio
                 if (!empty($cpfCnpj)) {
                     $this->salvarDocumentoPrincipal($pessoa, $cpfCnpj, $entityManager);
                 }
 
-                // 5. Salvar novos dados múltiplos
-                $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $requestData, $entityManager);
+                // 6) Salva dados múltiplos usando o array aninhado do form
+                $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $formData, $entityManager);
 
-                // 6. Processar alterações do cônjuge
-                $this->processarConjugeEdicao($pessoa, $requestData, $entityManager);
+                // 7) Processa cônjuge também com o array aninhado
+                $this->processarConjugeEdicao($pessoa, $formData, $entityManager);
 
-                // 7. FLUSH FINAL
+                // 8) Flush final e commit
                 $entityManager->flush();
                 $entityManager->getConnection()->commit();
 
                 $this->addFlash('success', 'Pessoa atualizada com sucesso!');
                 return $this->redirectToRoute('app_pessoa_index');
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $entityManager->getConnection()->rollBack();
                 $this->addFlash('error', 'Erro ao atualizar pessoa: ' . $e->getMessage());
-
                 error_log('Erro detalhado na edição de pessoa: ' . $e->getMessage());
                 error_log('Trace: ' . $e->getTraceAsString());
             }
@@ -1061,74 +1073,189 @@ class PessoaController extends AbstractController
 
         return $this->render('pessoa/edit.html.twig', [
             'pessoa' => $pessoa,
-            'form' => $form->createView(),
+            'form'   => $form->createView(),
         ]);
+    }
+
+
+
+    private function limparDadosMultiplosApenasSeEnviados(
+        int $pessoaId,
+        array $formData,
+        EntityManagerInterface $entityManager
+    ): void {
+        $pessoaRef = $entityManager->getReference(\App\Entity\Pessoas::class, $pessoaId);
+
+        $tem = static function (string $chave) use ($formData): bool {
+            return array_key_exists($chave, $formData) && is_array($formData[$chave]);
+        };
+
+        // Se nenhuma seção dinâmica veio no POST, não faça nada.
+        if (!($tem('telefones') || $tem('emails') || $tem('enderecos') || $tem('chaves_pix') || $tem('documentos') || $tem('profissoes'))) {
+            return;
+        }
+
+        // -------- Telefones (pivot + órfãos) --------
+        if ($tem('telefones')) {
+            $pessoasTelefonesRepo = $entityManager->getRepository(\App\Entity\PessoasTelefones::class);
+            $telefonesRepo        = $entityManager->getRepository(\App\Entity\Telefones::class);
+
+            $pivotsTel = $pessoasTelefonesRepo->findBy(['idPessoa' => $pessoaId]);
+            foreach ($pivotsTel as $pivot) {
+                $telefoneId = $pivot->getIdTelefone();
+                $entityManager->remove($pivot);
+
+                $existeOutroVinculo = $pessoasTelefonesRepo->findOneBy(['idTelefone' => $telefoneId]);
+                if (!$existeOutroVinculo) {
+                    if ($tel = $telefonesRepo->find($telefoneId)) {
+                        $entityManager->remove($tel);
+                    }
+                }
+            }
+        }
+
+        // -------- Emails (pivot + órfãos) --------
+        if ($tem('emails')) {
+            $pessoasEmailsRepo = $entityManager->getRepository(\App\Entity\PessoasEmails::class);
+            $emailsRepo        = $entityManager->getRepository(\App\Entity\Emails::class);
+
+            $pivotsEmail = $pessoasEmailsRepo->findBy(['idPessoa' => $pessoaId]);
+            foreach ($pivotsEmail as $pivot) {
+                $emailId = $pivot->getIdEmail();
+                $entityManager->remove($pivot);
+
+                $existeOutroVinculo = $pessoasEmailsRepo->findOneBy(['idEmail' => $emailId]);
+                if (!$existeOutroVinculo) {
+                    if ($email = $emailsRepo->find($emailId)) {
+                        $entityManager->remove($email);
+                    }
+                }
+            }
+        }
+
+        // -------- Endereços (relação direta: pessoa) --------
+        if ($tem('enderecos')) {
+            $enderecosRepo = $entityManager->getRepository(\App\Entity\Enderecos::class);
+            $enderecos     = $enderecosRepo->findBy(['pessoa' => $pessoaRef]); // associação, não idPessoa
+            foreach ($enderecos as $endereco) {
+                $entityManager->remove($endereco);
+            }
+        }
+
+        // -------- Chaves PIX --------
+        if ($tem('chaves_pix')) {
+            $pixRepo = $entityManager->getRepository(\App\Entity\ChavesPix::class);
+            $pix     = $pixRepo->findBy(['idPessoa' => $pessoaId]);
+            foreach ($pix as $ch) {
+                $entityManager->remove($ch);
+            }
+        }
+
+        // -------- Documentos (exceto CPF/CNPJ) --------
+        if ($tem('documentos')) {
+            $docsRepo = $entityManager->getRepository(\App\Entity\PessoasDocumentos::class);
+            if (method_exists($docsRepo, 'findSecundariosByPessoa')) {
+                $docsSecundarios = $docsRepo->findSecundariosByPessoa($pessoaRef);
+            } else {
+                // fallback sem DQL explícito
+                $docsSecundarios = array_filter(
+                    $docsRepo->findBy(['pessoa' => $pessoaRef]),
+                    static fn($doc) => !in_array($doc->getTipoDocumento()?->getTipo(), ['CPF','CNPJ'], true)
+                );
+            }
+            foreach ($docsSecundarios as $doc) {
+                $entityManager->remove($doc);
+            }
+        }
+
+        // -------- Profissões --------
+        if ($tem('profissoes')) {
+            $profRepo = $entityManager->getRepository(\App\Entity\PessoasProfissoes::class);
+            $prof     = $profRepo->findBy(['idPessoa' => $pessoaId]);
+            foreach ($prof as $p) {
+                $entityManager->remove($p);
+            }
+        }
     }
 
     /**
      * Limpa dados múltiplos existentes antes de salvar novos (estratégia replace)
+     * - Telefones/Emails: remove apenas a pivot; apaga a entidade se ficar órfã.
+     * - Endereços: relação direta via propriedade 'pessoa'.
+     * - Documentos: remove todos exceto CPF/CNPJ usando associação 'pessoa'.
+     * - PIX/Profissões: permanecem por idPessoa (conforme mapeamento atual).
      */
     private function limparDadosMultiplosExistentes(int $pessoaId, EntityManagerInterface $entityManager): void
     {
-        // Limpar telefones existentes
-        $telefonesExistentes = $entityManager->getRepository(PessoasTelefones::class)
-            ->findBy(['idPessoa' => $pessoaId]);
-        foreach ($telefonesExistentes as $pessoaTelefone) {
-            $telefone = $entityManager->getRepository(Telefones::class)
-                ->find($pessoaTelefone->getIdTelefone());
-            if ($telefone) {
-                $entityManager->remove($telefone);
+        // Referência leve
+        $pessoaRef = $entityManager->getReference(\App\Entity\Pessoas::class, $pessoaId);
+
+        // -------- Telefones (pivot + órfãos) --------
+        $pessoasTelefonesRepo = $entityManager->getRepository(\App\Entity\PessoasTelefones::class);
+        $telefonesRepo        = $entityManager->getRepository(\App\Entity\Telefones::class);
+
+        $pivotsTel = $pessoasTelefonesRepo->findBy(['idPessoa' => $pessoaId]);
+        foreach ($pivotsTel as $pivot) {
+            $telefoneId = $pivot->getIdTelefone();
+            $entityManager->remove($pivot);
+
+            $existeOutroVinculo = $pessoasTelefonesRepo->findOneBy(['idTelefone' => $telefoneId]);
+            if (!$existeOutroVinculo) {
+                if ($tel = $telefonesRepo->find($telefoneId)) {
+                    $entityManager->remove($tel);
+                }
             }
-            $entityManager->remove($pessoaTelefone);
         }
 
-        // Limpar emails existentes
-        $emailsExistentes = $entityManager->getRepository(PessoasEmails::class)
-            ->findBy(['idPessoa' => $pessoaId]);
-        foreach ($emailsExistentes as $pessoaEmail) {
-            $email = $entityManager->getRepository(Emails::class)
-                ->find($pessoaEmail->getIdEmail());
-            if ($email) {
-                $entityManager->remove($email);
+        // -------- Emails (pivot + órfãos) --------
+        $pessoasEmailsRepo = $entityManager->getRepository(\App\Entity\PessoasEmails::class);
+        $emailsRepo        = $entityManager->getRepository(\App\Entity\Emails::class);
+
+        $pivotsEmail = $pessoasEmailsRepo->findBy(['idPessoa' => $pessoaId]);
+        foreach ($pivotsEmail as $pivot) {
+            $emailId = $pivot->getIdEmail();
+            $entityManager->remove($pivot);
+
+            $existeOutroVinculo = $pessoasEmailsRepo->findOneBy(['idEmail' => $emailId]);
+            if (!$existeOutroVinculo) {
+                if ($email = $emailsRepo->find($emailId)) {
+                    $entityManager->remove($email);
+                }
             }
-            $entityManager->remove($pessoaEmail);
         }
 
-        // Limpar endereços existentes
-        $enderecosExistentes = $entityManager->getRepository(Enderecos::class)
-            ->findBy(['idPessoa' => $pessoaId]);
-        foreach ($enderecosExistentes as $endereco) {
+        // -------- Endereços (relação direta: pessoa) --------
+        $enderecosRepo = $entityManager->getRepository(\App\Entity\Enderecos::class);
+        $enderecos     = $enderecosRepo->findBy(['pessoa' => $pessoaRef]); // associação, não idPessoa
+        foreach ($enderecos as $endereco) {
             $entityManager->remove($endereco);
         }
 
-        // Limpar chaves PIX existentes
-        $pixExistentes = $entityManager->getRepository(ChavesPix::class)
-            ->findBy(['idPessoa' => $pessoaId]);
-        foreach ($pixExistentes as $chavePix) {
-            $entityManager->remove($chavePix);
+        // -------- Chaves PIX (idPessoa integer) --------
+        $pixRepo = $entityManager->getRepository(\App\Entity\ChavesPix::class);
+        $pix     = $pixRepo->findBy(['idPessoa' => $pessoaId]);
+        foreach ($pix as $ch) {
+            $entityManager->remove($ch);
         }
 
-        // Limpar documentos existentes (exceto CPF/CNPJ principal)
-        $documentosExistentes = $entityManager->getRepository(PessoasDocumentos::class)
-            ->createQueryBuilder('pd')
-            ->join('pd.tipoDocumento', 'td')
-            ->where('pd.idPessoa = :pessoaId')
-            ->andWhere('td.tipo NOT IN (:tiposPrincipais)')
-            ->setParameter('pessoaId', $pessoaId)
-            ->setParameter('tiposPrincipais', ['CPF', 'CNPJ'])
-            ->getQuery()
-            ->getResult();
-        foreach ($documentosExistentes as $documento) {
-            $entityManager->remove($documento);
+        // -------- Documentos (exceto CPF/CNPJ) --------
+        // 👉 agora a query está no Repository
+        $docsRepo = $entityManager->getRepository(\App\Entity\PessoasDocumentos::class);
+        if (method_exists($docsRepo, 'findSecundariosByPessoa')) {
+            $docsSecundarios = $docsRepo->findSecundariosByPessoa($pessoaRef);
+            foreach ($docsSecundarios as $doc) {
+                $entityManager->remove($doc);
+            }
         }
 
-        // Limpar profissões existentes
-        $profissoesExistentes = $entityManager->getRepository(PessoasProfissoes::class)
-            ->findBy(['idPessoa' => $pessoaId]);
-        foreach ($profissoesExistentes as $pessoaProfissao) {
-            $entityManager->remove($pessoaProfissao);
+        // -------- Profissões (idPessoa integer) --------
+        $profRepo = $entityManager->getRepository(\App\Entity\PessoasProfissoes::class);
+        $prof     = $profRepo->findBy(['idPessoa' => $pessoaId]);
+        foreach ($prof as $p) {
+            $entityManager->remove($p);
         }
     }
+
 
     #[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(Request $request, Pessoas $pessoa, EntityManagerInterface $entityManager): Response
@@ -1151,26 +1278,174 @@ class PessoaController extends AbstractController
      */
     private function salvarDocumentoPrincipal(Pessoas $pessoa, string $documento, EntityManagerInterface $entityManager): void
     {
-        $documento = preg_replace('/[^\d]/', '', $documento);
-        $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
+        // Normaliza o número
+        $numero = preg_replace('/\D/', '', (string) $documento);
+        if ($numero === '' || $numero === null) {
+            return;
+        }
 
-        $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
-            ->findOneBy(['tipo' => $tipoDocumento]);
+        $tipo = strlen($numero) === 11 ? 'CPF' : 'CNPJ';
 
-        if ($tipoDocumentoEntity) {
-            $pessoaDocumento = new PessoasDocumentos();
-            $pessoaDocumento->setPessoa($pessoa);
-            $tipoDocumentoEntity = $entityManager->getRepository(TiposDocumentos::class)
-                ->findOneBy(['tipo' => 'CPF']); // ou 'CNPJ', depende do contexto
+        // Busca o tipo de documento (CPF/CNPJ)
+        $tipoDocumentoEntity = $entityManager->getRepository(\App\Entity\TiposDocumentos::class)
+            ->findOneBy(['tipo' => $tipo]);
 
-            if ($tipoDocumentoEntity) {
-                $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+        if (!$tipoDocumentoEntity) {
+            // Sem tipo cadastrado, não prossegue para evitar quebra
+            return;
+        }
+
+        $docRepo = $entityManager->getRepository(\App\Entity\PessoasDocumentos::class);
+
+        // Procura documento existente desse tipo para a pessoa (ativo preferencialmente)
+        $pessoaDocumento = $docRepo->findOneBy([
+            'pessoa'        => $pessoa,
+            'tipoDocumento' => $tipoDocumentoEntity,
+            'ativo'         => true,
+        ]);
+
+        if (!$pessoaDocumento) {
+            // Se não há ativo, tenta qualquer um (para reaproveitar registro inativo)
+            $pessoaDocumento = $docRepo->findOneBy([
+                'pessoa'        => $pessoa,
+                'tipoDocumento' => $tipoDocumentoEntity,
+            ]);
+        }
+
+        if ($pessoaDocumento) {
+            // Atualiza o existente
+            $pessoaDocumento->setNumeroDocumento($numero);
+            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+            if (method_exists($pessoaDocumento, 'setAtivo')) {
+                $pessoaDocumento->setAtivo(true);
             }
-            $pessoaDocumento->setNumeroDocumento($documento);
-            $pessoaDocumento->setAtivo(true);
-
+        } else {
+            // Cria um novo
+            $pessoaDocumento = new \App\Entity\PessoasDocumentos();
+            $pessoaDocumento->setPessoa($pessoa);
+            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+            $pessoaDocumento->setNumeroDocumento($numero);
+            if (method_exists($pessoaDocumento, 'setAtivo')) {
+                $pessoaDocumento->setAtivo(true);
+            }
             $entityManager->persist($pessoaDocumento);
         }
+
+        // Desativa possíveis duplicatas do mesmo tipo para esta pessoa
+        $duplicatas = $docRepo->findBy([
+            'pessoa'        => $pessoa,
+            'tipoDocumento' => $tipoDocumentoEntity,
+        ]);
+
+        foreach ($duplicatas as $doc) {
+            if ($doc !== $pessoaDocumento && method_exists($doc, 'setAtivo')) {
+                $doc->setAtivo(false);
+            }
+        }
+    }
+
+    /**
+     * Busca dados específicos de cada tipo de pessoa
+     */
+    private function buscarDadosTiposPessoa(int $pessoaId, EntityManagerInterface $entityManager): array
+    {
+        $dados = [];
+        
+        // -------- FIADOR --------
+        $fiador = $entityManager->getRepository(PessoasFiadores::class)
+            ->findOneBy(['idPessoa' => $pessoaId]);
+        if ($fiador) {
+            $dados['fiador'] = [
+                'id' => $fiador->getId(),
+                'idConjuge' => $fiador->getIdConjuge(),
+                'motivoFianca' => $fiador->getMotivoFianca(),
+                'jaFoiFiador' => $fiador->getJaFoiFiador(),
+                'conjugeTrabalha' => $fiador->getConjugeTrabalha(),
+                'outros' => $fiador->getOutros(),
+                'idFormaRetirada' => $fiador->getIdFormaRetirada(),
+            ];
+        }
+        
+        // -------- CORRETOR --------
+        $corretor = $entityManager->getRepository(PessoasCorretores::class)
+            ->findOneBy(['pessoa' => $pessoaId]);
+        if ($corretor) {
+            $dados['corretor'] = [
+                'id' => $corretor->getId(),
+                'creci' => $corretor->getCreci(),
+                'usuario' => $corretor->getUsuario(),
+                'status' => $corretor->getStatus(),
+                'dataCadastro' => $corretor->getDataCadastro()?->format('Y-m-d'),
+                'ativo' => $corretor->isAtivo(),
+            ];
+        }
+        
+        // -------- LOCADOR --------
+        $locador = $entityManager->getRepository(PessoasLocadores::class)
+            ->findOneBy(['pessoa' => $pessoaId]);
+        if ($locador) {
+            $dados['locador'] = [
+                'id' => $locador->getId(),
+                'formaRetirada' => $locador->getFormaRetirada()?->getId(),  // ✅ ID da entidade
+                'dependentes' => $locador->getDependentes(),
+                'diaRetirada' => $locador->getDiaRetirada(),
+                'cobrarCpmf' => $locador->isCobrarCpmf(),
+                'situacao' => $locador->getSituacao(),
+                'codigoContabil' => $locador->getCodigoContabil(),
+                'etiqueta' => $locador->isEtiqueta(),
+                'cobrarTarifaRec' => $locador->isCobrarTarifaRec(),
+                'dataFechamento' => $locador->getDataFechamento()?->format('Y-m-d'),
+                'carencia' => $locador->getCarencia(),
+                'multaItau' => $locador->isMultaItau(),
+                'moraDiaria' => $locador->isMoraDiaria(),
+                'protesto' => $locador->getProtesto(),
+                'diasProtesto' => $locador->getDiasProtesto(),
+                'naoGerarJudicial' => $locador->isNaoGerarJudicial(),
+                'enderecoCobranca' => $locador->isEnderecoCobranca(),
+                'condominioConta' => $locador->isCondominioConta(),
+                'extEmail' => $locador->isExtEmail(),
+            ];
+        }
+        
+        // -------- PRETENDENTE --------
+        $pretendente = $entityManager->getRepository(PessoasPretendentes::class)
+            ->findOneBy(['pessoa' => $pessoaId]);
+        if ($pretendente) {
+            $dados['pretendente'] = [
+                'id' => $pretendente->getId(),
+                'tipoImovel' => $pretendente->getTipoImovel()?->getId(),
+                'quartosDesejados' => $pretendente->getQuartosDesejados(),
+                'aluguelMaximo' => $pretendente->getAluguelMaximo(),
+                'logradouroDesejado' => $pretendente->getLogradouroDesejado()?->getId(),
+                'disponivel' => $pretendente->isDisponivel(),
+                'procuraAluguel' => $pretendente->isProcuraAluguel(),
+                'procuraCompra' => $pretendente->isProcuraCompra(),
+                'atendente' => $pretendente->getAtendente()?->getId(),
+                'tipoAtendimento' => $pretendente->getTipoAtendimento()?->getId(),
+                'dataCadastro' => $pretendente->getDataCadastro()?->format('Y-m-d'),
+                'observacoes' => $pretendente->getObservacoes(),
+            ];
+        }
+        
+        // -------- CONTRATANTE --------
+        $contratante = $entityManager->getRepository(PessoasContratantes::class)
+            ->findOneBy(['pessoa' => $pessoaId]);
+        if ($contratante) {
+            $dados['contratante'] = [
+                'id' => $contratante->getId(),
+            ];
+        }
+        
+        // -------- CORRETORA --------
+        $corretora = $entityManager->getRepository(PessoasCorretoras::class)
+            ->findOneBy(['pessoa' => $pessoaId]);
+        if ($corretora) {
+            $dados['corretora'] = [
+                'id' => $corretora->getId(),
+            ];
+        }
+        
+        return $dados;
     }
 
     private function salvarTipoEspecifico(Pessoas $pessoa, string $tipoPessoa, array $data, EntityManagerInterface $entityManager): void

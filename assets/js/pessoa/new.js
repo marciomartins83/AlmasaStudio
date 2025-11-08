@@ -19,6 +19,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const temConjuge = document.getElementById('temConjuge');
     const camposConjuge = document.getElementById('campos-conjuge');
 
+    // --- CONTROLE DO ACTION DO FORM (NOVO) ---
+    function setFormActionToEdit(id) {
+        const formEl = document.querySelector('#main-form form');
+        if (formEl && window.ROUTES && window.ROUTES.editPessoa) {
+            formEl.setAttribute('action', window.ROUTES.editPessoa.replace('__ID__', id));
+            formEl.setAttribute('method', 'post'); // garantia
+            console.log('🛠️ Form action -> EDIT:', formEl.getAttribute('action'));
+        } else {
+            console.warn('⚠️ Não foi possível configurar action de edição.');
+        }
+    }
+
+    function setFormActionToNew() {
+        const formEl = document.querySelector('#main-form form');
+        if (formEl && window.ROUTES && window.ROUTES.newPessoa) {
+            formEl.setAttribute('action', window.ROUTES.newPessoa);
+            formEl.setAttribute('method', 'post'); // garantia
+            console.log('🛠️ Form action -> NEW:', formEl.getAttribute('action'));
+        } else {
+            console.warn('⚠️ Não foi possível configurar action de criação.');
+        }
+    }
+
     // Verificar elementos críticos
     const elementosCriticos = {
         searchCriteriaSelect,
@@ -213,6 +236,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (mainFormDiv) {
                 mainFormDiv.style.display = 'none';
             }
+
+            // Após limpar, volta o form para fluxo de criação
+            setFormActionToNew();
         });
     }
 
@@ -275,6 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- FUNÇÕES AUXILIARES ---
     function preencherDadosBusca(criteria, value, additionalDoc, additionalDocType) {
+        // Este fluxo é para CADASTRO NOVO
+        setFormActionToNew();
+
         console.log('📝 Preenchendo dados da busca:', { criteria, value, additionalDoc, additionalDocType });
         
         // Limpar o ID da pessoa pois é nova
@@ -419,6 +448,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function preencherFormulario(pessoa) {
         console.log('📝 Preenchendo formulário com pessoa encontrada:', pessoa);
+        
+        // 🐛 DEBUG CRÍTICO: Ver o que está chegando do backend
+        console.log('🔍 DADOS RECEBIDOS DO BACKEND:');
+        console.log('  - telefones:', pessoa.telefones);
+        console.log('  - emails:', pessoa.emails);
+        console.log('  - enderecos:', pessoa.enderecos);
+        console.log('  - chavesPix:', pessoa.chavesPix);
+        console.log('  - profissoes:', pessoa.profissoes);
+        console.log('  - documentos:', pessoa.documentos);
+        console.log('  - tipos:', pessoa.tipos);
+        console.log('  - tiposDados:', pessoa.tiposDados);
 
         // Status de pessoa existente
         const pessoaStatus = document.querySelector('#pessoa-status');
@@ -430,6 +470,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Dados básicos
         window.setFormValue(window.FORM_IDS.pessoaId, pessoa.id);
+        // Submissão deve ir para /pessoa/{id}/edit
+        setFormActionToEdit(pessoa.id);
+
         window.setFormValue(window.FORM_IDS.nome, pessoa.nome);
         window.setFormValue(window.FORM_IDS.searchTerm, pessoa.cpf || pessoa.cnpj || '');
         window.setFormValue(window.FORM_IDS.dataNascimento, pessoa.dataNascimento || '');
@@ -556,6 +599,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function carregarDadosMultiplosConjuge(conjuge) {
+        console.log('📦 Carregando dados múltiplos da pessoa:', pessoa.id);
+        
+        // 🐛 DEBUG: Verificar se as funções existem
+        console.log('🔍 Verificando funções disponíveis:');
+        console.log('  - adicionarTelefoneExistente:', typeof window.adicionarTelefoneExistente);
+        console.log('  - adicionarEnderecoExistente:', typeof window.adicionarEnderecoExistente);
+        console.log('  - adicionarEmailExistente:', typeof window.adicionarEmailExistente);
+        console.log('  - adicionarDocumentoExistente:', typeof window.adicionarDocumentoExistente);
+        console.log('  - adicionarChavePixExistente:', typeof window.adicionarChavePixExistente);
+        console.log('  - adicionarProfissaoExistente:', typeof window.adicionarProfissaoExistente);
+        
+        // Limpar containers antes de carregar
+        limparContainersDadosMultiplos();
         console.log('📦 Carregando dados múltiplos do cônjuge');
         
         // Carregar telefones do cônjuge
@@ -727,21 +783,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function preencheSubForm(tipo, dados) {
-        if (!dados) return;
-        const prefixo = tipo === 'corretora' ? 'corretora' : tipo; // evita duplo "corretora"
+        if (!dados) {
+            console.log(`⚠️ Sem dados para preencher sub-form do tipo: ${tipo}`);
+            return;
+        }
+        
+        console.log(`📝 Preenchendo sub-form do tipo: ${tipo}`, dados);
+        
+        // Tenta diferentes padrões de nome de campo
+        const prefixos = [
+            `pessoa_form[${tipo}]`,  // Padrão Symfony com nome do form
+            `${tipo}`,                // Sem prefixo do form
+            `form[${tipo}]`           // Outro padrão possível
+        ];
+        
         Object.entries(dados).forEach(([campo, valor]) => {
-            const name = `${prefixo}[${campo}]`;
-            const input = document.querySelector(`[name="${name}"]`);
-            if (!input) return;
+            let input = null;
+            
+            // Tenta encontrar o input com diferentes padrões
+            for (const prefixo of prefixos) {
+                const seletores = [
+                    `[name="${prefixo}[${campo}]"]`,
+                    `[id*="${tipo}_${campo}"]`,
+                    `[id$="_${campo}"]`
+                ];
+                
+                for (const seletor of seletores) {
+                    input = document.querySelector(seletor);
+                    if (input) {
+                        console.log(`✅ Campo encontrado: ${seletor}`, valor);
+                        break;
+                    }
+                }
+                
+                if (input) break;
+            }
+            
+            if (!input) {
+                console.warn(`⚠️ Campo não encontrado para: ${campo}`, valor);
+                return;
+            }
+            
+            // Preencher o valor baseado no tipo de input
             if (input.type === 'checkbox') {
                 input.checked = !!valor;
-            } else if (valor instanceof Date || campo.includes('Date') || campo.includes('data')) {
-                input.value = valor ? valor.split(' ')[0] : ''; // Y-m-d
+            } else if (input.tagName === 'SELECT') {
+                // Para selects (como formaRetirada)
+                input.value = valor ?? '';
+                // Disparar evento change para atualizar visualmente
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            } else if (valor instanceof Date || campo.toLowerCase().includes('date') || campo.toLowerCase().includes('data')) {
+                // Para datas, extrair apenas Y-m-d
+                input.value = valor ? valor.split(' ')[0] : '';
             } else {
                 input.value = valor ?? '';
             }
+            
+            console.log(`✅ Campo preenchido: ${campo} = ${valor}`);
         });
     }
     
     console.log('✅ new.js: Todas as funcionalidades configuradas');
+
+    // Estado inicial padrão: criação
+    setFormActionToNew();
 });

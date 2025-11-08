@@ -495,7 +495,10 @@
         loadTipos: '{{ path("app_pessoa_load_tipos", {"entidade": "__ENTIDADE__"}) }}',
         salvarTipo: '{{ path("app_pessoa_salvar_tipo", {"entidade": "__ENTIDADE__"}) }}',
         buscarCep: '{{ path("app_pessoa_buscar_cep") }}',
-        searchConjuge: '{{ path("app_pessoa_search_conjuge") }}'
+        searchConjuge: '{{ path("app_pessoa_search_conjuge") }}',
+        // 👇 NOVAS rotas para controlar destino do submit conforme modo (new/edit)
+        newPessoa: '{{ path("app_pessoa_new") }}',
+        editPessoa: '{{ path("app_pessoa_edit", {"id": 999999})|replace({"999999":"__ID__"}) }}'
     };
     
     window.FORM_IDS = {
@@ -515,17 +518,19 @@
 </script>
 
 <!-- Carrega os scripts na ordem correta -->
+<!-- ✅ ORDEM CORRIGIDA: Módulos ANTES do new.js -->
 <script src="{{ asset('js/pessoa/pessoa.js') }}"></script>
-<script src="{{ asset('js/pessoa/new.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_telefones.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_enderecos.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_emails.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_documentos.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_chave_pix.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}"></script> <!-- NOVO -->
-<script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_modals.js') }}"></script>
-<!-- JavaScripts do cônjuge (próximos a criar) -->
+<!-- ⚠️ NEW.JS POR ÚLTIMO (depois que todas as funções já existem) -->
+<script src="{{ asset('js/pessoa/new.js') }}"></script>
+<!-- Cônjuge também depois -->
+<script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_telefones.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_enderecos.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_emails.js') }}"></script>
