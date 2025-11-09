@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Nova Pessoa{% endblock %}
+{% block title %}Gestão de Pessoa{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -8,17 +8,17 @@
         'items': [
             {'label': 'Pessoas', 'url': path('app_pessoa_index')}
         ],
-        'current': 'Nova Pessoa'
+        'current': 'Gestão de Pessoa'
     } %}
     <div class="row">
         <div class="col-12">
-            <h1><i class="fas fa-user-plus"></i> Nova Pessoa</h1>
+            <h1><i class="fas fa-users"></i> Gestão de Pessoa</h1>
             
             <!-- Interface de Busca Inteligente -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h3><i class="fas fa-search"></i> Buscar Pessoa para Cadastro</h3>
-                    <small class="text-muted">Evite duplicatas buscando se a pessoa já está cadastrada no sistema</small>
+                    <h3><i class="fas fa-search"></i> Buscar Pessoa</h3>
+                    <small class="text-muted">Busque para editar ou criar uma nova pessoa</small>
                 </div>
                 <div class="card-body">
                     <!-- Critério de Busca -->
@@ -144,15 +144,34 @@
                     </div>
                 </div>
 
-                <!-- Tipo de Pessoa e Sub-formulário Dinâmico -->
+                <!-- NOVO: Múltiplos Tipos de Pessoa -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h3><i class="fas fa-briefcase"></i> Tipo de Pessoa</h3>
+                        <h3><i class="fas fa-tags"></i> Tipos de Pessoa</h3>
+                        <small class="text-muted">Uma pessoa pode ter múltiplos papéis no sistema</small>
                     </div>
                     <div class="card-body">
-                        {{ form_row(form.tipoPessoa) }}
-                        <div id="sub-form-container" class="mt-3">
-                            <!-- Sub-formulário será carregado aqui dinamicamente -->
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <select id="select-tipo-pessoa" class="form-select">
+                                    <option value="">Selecione um tipo para adicionar...</option>
+                                    <option value="fiador">Fiador</option>
+                                    <option value="corretor">Corretor</option>
+                                    <option value="corretora">Corretora</option>
+                                    <option value="locador">Locador</option>
+                                    <option value="pretendente">Pretendente</option>
+                                    <option value="contratante">Contratante</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-primary w-100" id="add-tipo-pessoa">
+                                    <i class="fas fa-plus"></i> Adicionar Tipo
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="tipos-pessoa-container">
+                            <p class="text-muted">Nenhum tipo selecionado. Adicione pelo menos um tipo de pessoa.</p>
                         </div>
                     </div>
                 </div>
@@ -251,7 +270,7 @@
                 <div class="card mb-4" id="conjuge-section" style="display: none;">
                     <div class="card-header">
                         <h3><i class="fas fa-heart"></i> Dados do Cônjuge</h3>
-                        <small class="text-muted">Aplicável apenas para pessoas físicas</small>
+                        <small class="text-muted">Aplicável apenas para pessoas físicas - Monogamia</small>
                     </div>
                     <div class="card-body">
                         <!-- Checkbox para ativar cônjuge -->
@@ -268,16 +287,20 @@
                         
                         <!-- Área que aparece quando marca "tem cônjuge" -->
                         <div id="campos-conjuge" style="display: none;">
+                            <!-- Campo hidden para ID do cônjuge quando selecionado/existente -->
+                            <input type="hidden" name="conjuge_id" value="">
                             
                             <!-- Busca de cônjuge existente -->
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle"></i>
                                 Você pode buscar um cônjuge já cadastrado ou criar um novo registro completo.
+                                <br>
+                                <small>Nota: O cônjuge não exibirá seus tipos (fiador, locador, etc.) nesta tela.</small>
                             </div>
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Buscar Cônjuge</label>
+                                    <label class="form-label">Buscar Cônjuge Existente</label>
                                     <input type="text" class="form-control" id="conjuge-search" placeholder="Digite o nome completo" maxlength="255">
                                 </div>
                                 <div class="col-md-6">
@@ -286,8 +309,11 @@
                                         <button type="button" class="btn btn-outline-primary" id="btn-search-conjuge">
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary" id="btn-new-conjuge">
-                                            <i class="fas fa-plus"></i> Novo
+                                        <button type="button" class="btn btn-outline-success" id="btn-new-conjuge">
+                                            <i class="fas fa-plus"></i> Novo Cônjuge
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" id="btn-remove-conjuge" style="display: none;">
+                                            <i class="fas fa-trash"></i> Remover Cônjuge
                                         </button>
                                     </div>
                                 </div>
@@ -299,6 +325,7 @@
                             <div class="card mt-3">
                                 <div class="card-header">
                                     <h5><i class="fas fa-user"></i> Dados Pessoais do Cônjuge</h5>
+                                    <small class="text-muted">Dados completos e independentes da pessoa principal</small>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
@@ -321,7 +348,9 @@
                                             <label class="form-label">Estado Civil</label>
                                             <select class="form-select" name="novo_conjuge[estado_civil]">
                                                 <option value="">Selecione...</option>
-                                                <!-- Populado via servidor ou JavaScript -->
+                                                {% for estado in form.estadoCivil.vars.choices %}
+                                                    <option value="{{ estado.value }}">{{ estado.label }}</option>
+                                                {% endfor %}
                                             </select>
                                         </div>
                                     </div>
@@ -331,14 +360,18 @@
                                             <label class="form-label">Nacionalidade</label>
                                             <select class="form-select" name="novo_conjuge[nacionalidade]">
                                                 <option value="">Selecione...</option>
-                                                <!-- Populado via servidor ou JavaScript -->
+                                                {% for nac in form.nacionalidade.vars.choices %}
+                                                    <option value="{{ nac.value }}">{{ nac.label }}</option>
+                                                {% endfor %}
                                             </select>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Naturalidade</label>
                                             <select class="form-select" name="novo_conjuge[naturalidade]">
                                                 <option value="">Selecione...</option>
-                                                <!-- Populado via servidor ou JavaScript -->
+                                                {% for nat in form.naturalidade.vars.choices %}
+                                                    <option value="{{ nat.value }}">{{ nat.label }}</option>
+                                                {% endfor %}
                                             </select>
                                         </div>
                                     </div>
@@ -472,7 +505,7 @@
                                     <i class="fas fa-arrow-left"></i> Voltar
                                 </a>
                                 <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-save"></i> Salvar Pessoa
+                                    <i class="fas fa-save"></i> Salvar
                                 </button>
                             </div>
                         </div>
@@ -488,7 +521,7 @@
 {% include 'pessoa/partials/_modals.html.twig' %}
 
 <script>
-    // Rotas corrigidas - incluindo as que faltavam
+    // Rotas completas
     window.ROUTES = {
         subform: '{{ path("app_pessoa__subform") }}',
         searchPessoa: '{{ path("app_pessoa_search_pessoa_advanced") }}',
@@ -496,7 +529,6 @@
         salvarTipo: '{{ path("app_pessoa_salvar_tipo", {"entidade": "__ENTIDADE__"}) }}',
         buscarCep: '{{ path("app_pessoa_buscar_cep") }}',
         searchConjuge: '{{ path("app_pessoa_search_conjuge") }}',
-        // 👇 NOVAS rotas para controlar destino do submit conforme modo (new/edit)
         newPessoa: '{{ path("app_pessoa_new") }}',
         editPessoa: '{{ path("app_pessoa_edit", {"id": 999999})|replace({"999999":"__ID__"}) }}'
     };
@@ -518,8 +550,8 @@
 </script>
 
 <!-- Carrega os scripts na ordem correta -->
-<!-- ✅ ORDEM CORRIGIDA: Módulos ANTES do new.js -->
 <script src="{{ asset('js/pessoa/pessoa.js') }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_tipos.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_telefones.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_enderecos.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_emails.js') }}"></script>
@@ -527,9 +559,7 @@
 <script src="{{ asset('js/pessoa/pessoa_chave_pix.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_modals.js') }}"></script>
-<!-- ⚠️ NEW.JS POR ÚLTIMO (depois que todas as funções já existem) -->
 <script src="{{ asset('js/pessoa/new.js') }}"></script>
-<!-- Cônjuge também depois -->
 <script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_telefones.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_enderecos.js') }}"></script>

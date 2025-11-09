@@ -10,8 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchMessageContainer = document.getElementById('search-message').parentElement;
     const searchMessageSpan = document.getElementById('search-message');
     const mainFormDiv = document.getElementById('main-form');
-    const tipoPessoaSelect = document.querySelector('[id$="tipoPessoa"]'); // Busca por ID que termine com tipoPessoa
-    const subFormContainer = document.getElementById('sub-form-container');
     const additionalDocumentRow = document.getElementById('additionalDocumentRow');
     const additionalDocumentValue = document.getElementById('additionalDocumentValue');
     const camposPessoaFisica = document.getElementById('campos-pessoa-fisica');
@@ -19,12 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const temConjuge = document.getElementById('temConjuge');
     const camposConjuge = document.getElementById('campos-conjuge');
 
-    // --- CONTROLE DO ACTION DO FORM (NOVO) ---
+    // --- CONTROLE DO ACTION DO FORM ---
     function setFormActionToEdit(id) {
         const formEl = document.querySelector('#main-form form');
         if (formEl && window.ROUTES && window.ROUTES.editPessoa) {
             formEl.setAttribute('action', window.ROUTES.editPessoa.replace('__ID__', id));
-            formEl.setAttribute('method', 'post'); // garantia
+            formEl.setAttribute('method', 'post');
             console.log('🛠️ Form action -> EDIT:', formEl.getAttribute('action'));
         } else {
             console.warn('⚠️ Não foi possível configurar action de edição.');
@@ -35,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formEl = document.querySelector('#main-form form');
         if (formEl && window.ROUTES && window.ROUTES.newPessoa) {
             formEl.setAttribute('action', window.ROUTES.newPessoa);
-            formEl.setAttribute('method', 'post'); // garantia
+            formEl.setAttribute('method', 'post');
             console.log('🛠️ Form action -> NEW:', formEl.getAttribute('action'));
         } else {
             console.warn('⚠️ Não foi possível configurar action de criação.');
@@ -50,9 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearButton,
         searchResultsDiv,
         searchMessageSpan,
-        mainFormDiv,
-        tipoPessoaSelect,
-        subFormContainer
+        mainFormDiv
     };
     
     const elementosFaltando = Object.entries(elementosCriticos)
@@ -84,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
             searchValueInput.placeholder = selectedValue ? `Digite o ${selectedOptionText}` : 'Selecione um critério primeiro';
             searchButton.disabled = true;
             
-            // Mostrar/ocultar campo adicional de documento para busca por nome
             if (additionalDocumentRow) {
                 additionalDocumentRow.style.display = selectedValue === 'nome' ? 'block' : 'none';
             }
@@ -95,10 +90,18 @@ document.addEventListener('DOMContentLoaded', () => {
             let minLength = 0;
             
             switch(criteria) {
-                case 'cpf': minLength = 11; break;
-                case 'cnpj': minLength = 14; break;
-                case 'nome': minLength = 3; break;
-                case 'id': minLength = 1; break;
+                case 'cpf': 
+                    minLength = 11; 
+                    break;
+                case 'cnpj': 
+                    minLength = 14; 
+                    break;
+                case 'nome': 
+                    minLength = 3; 
+                    break;
+                case 'id': 
+                    minLength = 1; 
+                    break;
             }
             
             searchButton.disabled = searchValueInput.value.trim().length < minLength;
@@ -111,7 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const additionalDocType = document.getElementById('additionalDocumentType') ? 
                                     document.getElementById('additionalDocumentType').value : null;
             
-            if (!value) return;
+            if (!value) {
+                return;
+            }
 
             searchButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
             searchButton.disabled = true;
@@ -131,7 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
 
-                // PROTEÇÃO CONTRA RESPOSTAS INESPERADAS
                 let data;
                 const contentType = response.headers.get('content-type') || '';
                 if (contentType.includes('application/json')) {
@@ -139,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const text = await response.text();
                     console.error('Resposta não-JSON:', text);
-                    throw new Error('Resposta inválida do servidor – veja o console.');
+                    throw new Error('Resposta inválida do servidor');
                 }
 
                 if (searchResultsDiv) {
@@ -158,14 +162,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         searchMessageSpan.textContent = 'Pessoa encontrada! Formulário preenchido.';
                     }
                     preencherFormulario(data.pessoa);
+                    
                     if (data.pessoa && data.pessoa.tiposDados) {
-                        const ativos = Object.keys(data.pessoa.tipos).filter(t => data.pessoa.tipos[t]);
-                        ativos.forEach(tipo => {
-                            // aguarda o card ser inserido
-                            const aguarda = setInterval(() => {
+                        const tiposAtivos = Object.keys(data.pessoa.tipos).filter(tipo => data.pessoa.tipos[tipo]);
+                        tiposAtivos.forEach(tipo => {
+                            const intervaloAguarda = setInterval(() => {
                                 const card = document.getElementById(`campos-${tipo}`);
                                 if (card && data.pessoa.tiposDados[tipo]) {
-                                    clearInterval(aguarda);
+                                    clearInterval(intervaloAguarda);
                                     preencheSubForm(tipo, data.pessoa.tiposDados[tipo]);
                                 }
                             }, 50);
@@ -193,18 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 if (searchMessageSpan) {
-                    let errorMessage = 'Erro ao realizar a busca. ';
-                    if (error.message.includes('500')) {
-                        errorMessage += 'Erro interno do servidor.';
-                    } else if (error.message.includes('não é JSON válida')) {
-                        errorMessage += 'Resposta inválida do servidor.';
-                    } else {
-                        errorMessage += 'Tente novamente.';
-                    }
-                    searchMessageSpan.textContent = errorMessage;
+                    searchMessageSpan.textContent = 'Erro ao realizar a busca. Tente novamente.';
                 }
                 
-                // Ainda assim abrir o formulário para cadastro
                 if (mainFormDiv) {
                     mainFormDiv.style.display = 'block';
                 }
@@ -237,59 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainFormDiv.style.display = 'none';
             }
 
-            // Após limpar, volta o form para fluxo de criação
+            const tiposContainer = document.getElementById('tipos-pessoa-container');
+            if (tiposContainer) {
+                tiposContainer.innerHTML = '<p class="text-muted">Nenhum tipo selecionado. Adicione pelo menos um tipo de pessoa.</p>';
+            }
+
             setFormActionToNew();
         });
-    }
-
-    // --- LÓGICA DO SUB-FORMULÁRIO DINÂMICO ---
-    if (tipoPessoaSelect && subFormContainer) {
-        const loadSubForm = async (tipo) => {
-        console.log('Carregando sub-formulário para tipo:', tipo); // DEBUG
-        
-        if (!tipo) {
-            subFormContainer.innerHTML = '';
-            return;
-        }
-        
-        subFormContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-
-        try {
-            console.log('Fazendo requisição para:', window.ROUTES.subform); // DEBUG
-            
-            const response = await fetch(window.ROUTES.subform, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/x-www-form-urlencoded', 
-                    'X-Requested-With': 'XMLHttpRequest' 
-                },
-                body: new URLSearchParams({ tipo })
-            });
-
-            console.log('Status da resposta:', response.status); // DEBUG
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const html = await response.text();
-            console.log('HTML recebido:', html); // DEBUG
-            subFormContainer.innerHTML = html;
-
-        } catch (error) {
-            console.error('Erro ao carregar o sub-formulário:', error);
-            subFormContainer.innerHTML = '<div class="alert alert-danger">Não foi possível carregar os campos adicionais.</div>';
-        }
-    };
-
-        tipoPessoaSelect.addEventListener('change', () => {
-            loadSubForm(tipoPessoaSelect.value);
-        });
-
-        // Carregar sub-formulário se já tiver valor selecionado
-        if (tipoPessoaSelect.value) {
-            loadSubForm(tipoPessoaSelect.value);
-        }
     }
     
     // --- CONTROLE DO CÔNJUGE ---
@@ -301,15 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- FUNÇÕES AUXILIARES ---
     function preencherDadosBusca(criteria, value, additionalDoc, additionalDocType) {
-        // Este fluxo é para CADASTRO NOVO
         setFormActionToNew();
 
         console.log('📝 Preenchendo dados da busca:', { criteria, value, additionalDoc, additionalDocType });
         
-        // Limpar o ID da pessoa pois é nova
         window.setFormValue(window.FORM_IDS.pessoaId, '');
         
-        // Status de nova pessoa
         const pessoaStatus = document.querySelector('#pessoa-status');
         if (pessoaStatus) {
             pessoaStatus.textContent = 'Nova pessoa - será cadastrada';
@@ -317,100 +263,52 @@ document.addEventListener('DOMContentLoaded', () => {
             pessoaStatus.classList.add('text-success');
         }
         
-        // Preencher baseado no critério de busca
         switch(criteria) {
             case 'cpf':
-                // Busca por CPF - preencher searchTerm e configurar como pessoa física
                 window.setFormValue(window.FORM_IDS.searchTerm, value);
                 configurarTipoPessoa('fisica');
-                
-                // Definir tipo de pessoa padrão para física
-                const tipoPessoaSelectCPF = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
-                if (tipoPessoaSelectCPF) {
-                    // Se não tem valor ainda, definir padrão
-                    if (!tipoPessoaSelectCPF.value) {
-                        tipoPessoaSelectCPF.value = 'fiador'; // Padrão para pessoa física
-                        
-                        // Disparar evento change para carregar sub-formulário
-                        const changeEvent = new Event('change', { bubbles: true });
-                        tipoPessoaSelectCPF.dispatchEvent(changeEvent);
-                    }
-                }
                 break;
                 
             case 'cnpj':
-                // Busca por CNPJ - preencher searchTerm e configurar como pessoa jurídica
                 window.setFormValue(window.FORM_IDS.searchTerm, value);
                 configurarTipoPessoa('juridica');
-                
-                // Definir tipo de pessoa padrão para jurídica
-                const tipoPessoaSelectCNPJ = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
-                if (tipoPessoaSelectCNPJ) {
-                    // Se não tem valor ainda, definir padrão
-                    if (!tipoPessoaSelectCNPJ.value) {
-                        tipoPessoaSelectCNPJ.value = 'corretora'; // Padrão para pessoa jurídica
-                        
-                        // Disparar evento change para carregar sub-formulário
-                        const changeEvent = new Event('change', { bubbles: true });
-                        tipoPessoaSelectCNPJ.dispatchEvent(changeEvent);
-                    }
-                }
                 break;
                 
             case 'nome':
-                // Busca por nome - preencher o nome
                 window.setFormValue(window.FORM_IDS.nome, value);
                 
-                // Se forneceu documento adicional, processar
                 if (additionalDoc) {
                     window.setFormValue(window.FORM_IDS.searchTerm, additionalDoc);
-                    
-                    // Determinar tipo baseado no documento adicional
                     const tipoDocumento = additionalDocType === 'cpf' ? 'fisica' : 'juridica';
                     configurarTipoPessoa(tipoDocumento);
-                    
-                    // Definir tipo de pessoa baseado no documento
-                    const tipoPessoaSelectNome = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
-                    if (tipoPessoaSelectNome) {
-                        if (!tipoPessoaSelectNome.value) {
-                            tipoPessoaSelectNome.value = tipoDocumento === 'fisica' ? 'fiador' : 'corretora';
-                            
-                            // Disparar evento change
-                            const changeEvent = new Event('change', { bubbles: true });
-                            tipoPessoaSelectNome.dispatchEvent(changeEvent);
-                        }
-                    }
                 }
                 break;
                 
             case 'id':
-                // Busca por ID que não encontrou - não fazer nada especial
                 console.log('ID não encontrado:', value);
                 break;
         }
         
-        // Limpar containers de dados múltiplos (telefones, endereços, etc.)
         limparContainersDadosMultiplos();
-        
-        // Limpar dados do cônjuge se existir
         limparDadosConjuge();
+        
+        const tiposContainer = document.getElementById('tipos-pessoa-container');
+        if (tiposContainer) {
+            tiposContainer.innerHTML = '<p class="text-muted">Nenhum tipo selecionado. Adicione pelo menos um tipo de pessoa.</p>';
+        }
     }
-
 
     function limparDadosConjuge() {
         console.log('🧹 Limpando dados do cônjuge');
         
-        // Desmarcar checkbox
         const temConjugeCheckbox = document.getElementById('temConjuge');
         if (temConjugeCheckbox) {
             temConjugeCheckbox.checked = false;
             
-            // Disparar evento para ocultar campos
             const changeEvent = new Event('change', { bubbles: true });
             temConjugeCheckbox.dispatchEvent(changeEvent);
         }
         
-        // Limpar campos do cônjuge
         const camposConjuge = document.querySelectorAll('[name^="novo_conjuge["], [name^="conjuge_"]');
         camposConjuge.forEach(campo => {
             if (campo.type === 'checkbox') {
@@ -420,13 +318,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Limpar containers do cônjuge
         const containersConjuge = [
             'conjuge-telefones-container',
             'conjuge-enderecos-container',
             'conjuge-emails-container',
             'conjuge-documentos-container',
-            'conjuge-chaves-pix-container',
+            'conjuge-pix-container',
             'conjuge-profissoes-container'
         ];
         
@@ -437,30 +334,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Resetar contadores do cônjuge se existirem
-        if (typeof window.contadorConjugeTelefone !== 'undefined') window.contadorConjugeTelefone = 0;
-        if (typeof window.contadorConjugeEndereco !== 'undefined') window.contadorConjugeEndereco = 0;
-        if (typeof window.contadorConjugeEmail !== 'undefined') window.contadorConjugeEmail = 0;
-        if (typeof window.contadorConjugeDocumento !== 'undefined') window.contadorConjugeDocumento = 0;
-        if (typeof window.contadorConjugeChavePix !== 'undefined') window.contadorConjugeChavePix = 0;
-        if (typeof window.contadorConjugeProfissao !== 'undefined') window.contadorConjugeProfissao = 0;
+        if (typeof window.contadorConjugeTelefone !== 'undefined') {
+            window.contadorConjugeTelefone = 0;
+        }
+        if (typeof window.contadorConjugeEndereco !== 'undefined') {
+            window.contadorConjugeEndereco = 0;
+        }
+        if (typeof window.contadorConjugeEmail !== 'undefined') {
+            window.contadorConjugeEmail = 0;
+        }
+        if (typeof window.contadorConjugeDocumento !== 'undefined') {
+            window.contadorConjugeDocumento = 0;
+        }
+        if (typeof window.contadorConjugeChavePix !== 'undefined') {
+            window.contadorConjugeChavePix = 0;
+        }
+        if (typeof window.contadorConjugeProfissao !== 'undefined') {
+            window.contadorConjugeProfissao = 0;
+        }
     }
     
     function preencherFormulario(pessoa) {
         console.log('📝 Preenchendo formulário com pessoa encontrada:', pessoa);
         
-        // 🐛 DEBUG CRÍTICO: Ver o que está chegando do backend
-        console.log('🔍 DADOS RECEBIDOS DO BACKEND:');
-        console.log('  - telefones:', pessoa.telefones);
-        console.log('  - emails:', pessoa.emails);
-        console.log('  - enderecos:', pessoa.enderecos);
-        console.log('  - chavesPix:', pessoa.chavesPix);
-        console.log('  - profissoes:', pessoa.profissoes);
-        console.log('  - documentos:', pessoa.documentos);
-        console.log('  - tipos:', pessoa.tipos);
-        console.log('  - tiposDados:', pessoa.tiposDados);
-
-        // Status de pessoa existente
         const pessoaStatus = document.querySelector('#pessoa-status');
         if (pessoaStatus) {
             pessoaStatus.textContent = `Pessoa existente (ID: ${pessoa.id}) - será atualizada`;
@@ -468,9 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pessoaStatus.classList.add('text-warning');
         }
 
-        // Dados básicos
         window.setFormValue(window.FORM_IDS.pessoaId, pessoa.id);
-        // Submissão deve ir para /pessoa/{id}/edit
         setFormActionToEdit(pessoa.id);
 
         window.setFormValue(window.FORM_IDS.nome, pessoa.nome);
@@ -481,37 +375,33 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setFormValue(window.FORM_IDS.renda, pessoa.renda || '');
         window.setFormValue(window.FORM_IDS.observacoes, pessoa.observacoes || '');
 
-        // Selects
         window.setSelectValue(window.FORM_IDS.estadoCivil, pessoa.estadoCivil || '');
         window.setSelectValue(window.FORM_IDS.nacionalidade, pessoa.nacionalidade || '');
         window.setSelectValue(window.FORM_IDS.naturalidade, pessoa.naturalidade || '');
 
-        // Física / Jurídica
         const tipoFisicaJuridica = pessoa.fisicaJuridica || (pessoa.cpf ? 'fisica' : 'juridica');
         configurarTipoPessoa(tipoFisicaJuridica);
 
-        // ✅ NOVO: usa o ID que existe no select
-        if (pessoa.tipoPessoaString) {
-            const select = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
-            if (select) {
-                select.value = pessoa.tipoPessoaString; // ex: "contratante", "fiador"...
-                select.dispatchEvent(new Event('change')); // Dispara o evento para carregar o sub-formulário
-            } else {
-                console.warn('⚠️ Select tipoPessoa não encontrado para preencher');
+        if (pessoa.tipos) {
+            const tiposContainer = document.getElementById('tipos-pessoa-container');
+            if (tiposContainer) {
+                tiposContainer.innerHTML = '';
             }
-        } else {
-             // Se não vier string, dispara o 'change' com o valor que estiver (provavelmente vazio)
-             // para garantir que o subform (vazio) seja carregado.
-             const select = document.getElementById(window.FORM_IDS.tipoPessoa || 'pessoa_form_tipoPessoa');
-             if (select) {
-                 select.dispatchEvent(new Event('change'));
-             }
+            
+            const tiposAtivos = {};
+            Object.entries(pessoa.tipos).forEach(([tipo, ativo]) => {
+                if (ativo) {
+                    tiposAtivos[tipo] = pessoa.tiposDados ? pessoa.tiposDados[tipo] : true;
+                }
+            });
+            
+            if (typeof window.carregarTiposExistentes === 'function') {
+                window.carregarTiposExistentes(tiposAtivos);
+            }
         }
 
-        // Dados múltiplos
         carregarDadosMultiplos(pessoa);
 
-        // Cônjuge
         if (pessoa.conjuge) {
             carregarDadosConjuge(pessoa.conjuge);
         }
@@ -532,36 +422,43 @@ document.addEventListener('DOMContentLoaded', () => {
         containers.forEach(containerId => {
             const container = document.getElementById(containerId);
             if (container) {
-                // ✅ APENAS limpa se estiver vazio ou com mensagem padrão
                 if (container.children.length === 0 || container.querySelector('.text-muted')) {
                     container.innerHTML = '<p class="text-muted">Nenhum item adicionado.</p>';
                 }
             }
         });
 
-        // Resetar contadores
-        if (typeof window.contadorTelefone !== 'undefined') window.contadorTelefone = 0;
-        if (typeof window.contadorEndereco !== 'undefined') window.contadorEndereco = 0;
-        if (typeof window.contadorEmail !== 'undefined') window.contadorEmail = 0;
-        if (typeof window.contadorDocumento !== 'undefined') window.contadorDocumento = 0;
-        if (typeof window.contadorChavePix !== 'undefined') window.contadorChavePix = 0;
-        if (typeof window.contadorProfissao !== 'undefined') window.contadorProfissao = 0;
+        if (typeof window.contadorTelefone !== 'undefined') {
+            window.contadorTelefone = 0;
+        }
+        if (typeof window.contadorEndereco !== 'undefined') {
+            window.contadorEndereco = 0;
+        }
+        if (typeof window.contadorEmail !== 'undefined') {
+            window.contadorEmail = 0;
+        }
+        if (typeof window.contadorDocumento !== 'undefined') {
+            window.contadorDocumento = 0;
+        }
+        if (typeof window.contadorChavePix !== 'undefined') {
+            window.contadorChavePix = 0;
+        }
+        if (typeof window.contadorProfissao !== 'undefined') {
+            window.contadorProfissao = 0;
+        }
     }
 
     function carregarDadosConjuge(conjuge) {
         console.log('👫 Carregando dados do cônjuge:', conjuge);
         
-        // Marcar checkbox de tem cônjuge
         const temConjugeCheckbox = document.getElementById('temConjuge');
         if (temConjugeCheckbox) {
             temConjugeCheckbox.checked = true;
             
-            // Disparar evento change para mostrar campos
             const changeEvent = new Event('change', { bubbles: true });
             temConjugeCheckbox.dispatchEvent(changeEvent);
         }
         
-        // Se cônjuge é um ID, apenas definir o campo hidden
         if (typeof conjuge === 'number' || typeof conjuge === 'string') {
             const conjugeIdInput = document.querySelector('input[name="conjuge_id"]');
             if (conjugeIdInput) {
@@ -570,9 +467,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Se cônjuge é um objeto com dados
         if (typeof conjuge === 'object' && conjuge !== null) {
-            // Preencher campos do cônjuge
+            const conjugeIdInput = document.querySelector('input[name="conjuge_id"]');
+            if (conjugeIdInput && conjuge.id) {
+                conjugeIdInput.value = conjuge.id;
+            }
+            
             const campos = {
                 'novo_conjuge[nome]': conjuge.nome,
                 'novo_conjuge[cpf]': conjuge.cpf,
@@ -593,96 +493,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Carregar dados múltiplos do cônjuge
             carregarDadosMultiplosConjuge(conjuge);
+            
+            const camposConjugeForm = document.querySelectorAll('#campos-conjuge input, #campos-conjuge select, #campos-conjuge textarea');
+            camposConjugeForm.forEach(campo => {
+                campo.dataset.conjugeId = conjuge.id;
+            });
         }
     }
-
-    function carregarDadosMultiplosConjuge(conjuge) {
-        console.log('📦 Carregando dados múltiplos da pessoa:', pessoa.id);
-        
-        // 🐛 DEBUG: Verificar se as funções existem
-        console.log('🔍 Verificando funções disponíveis:');
-        console.log('  - adicionarTelefoneExistente:', typeof window.adicionarTelefoneExistente);
-        console.log('  - adicionarEnderecoExistente:', typeof window.adicionarEnderecoExistente);
-        console.log('  - adicionarEmailExistente:', typeof window.adicionarEmailExistente);
-        console.log('  - adicionarDocumentoExistente:', typeof window.adicionarDocumentoExistente);
-        console.log('  - adicionarChavePixExistente:', typeof window.adicionarChavePixExistente);
-        console.log('  - adicionarProfissaoExistente:', typeof window.adicionarProfissaoExistente);
-        
-        // Limpar containers antes de carregar
-        limparContainersDadosMultiplos();
-        console.log('📦 Carregando dados múltiplos do cônjuge');
-        
-        // Carregar telefones do cônjuge
-        if (conjuge.telefones && Array.isArray(conjuge.telefones)) {
-            const container = document.getElementById('conjuge-telefones-container');
-            if (container && typeof window.adicionarConjugeTelefoneExistente === 'function') {
-                conjuge.telefones.forEach(telefone => {
-                    window.adicionarConjugeTelefoneExistente(telefone);
-                });
-            }
-        }
-        
-        // Carregar endereços do cônjuge
-        if (conjuge.enderecos && Array.isArray(conjuge.enderecos)) {
-            const container = document.getElementById('conjuge-enderecos-container');
-            if (container && typeof window.adicionarConjugeEnderecoExistente === 'function') {
-                conjuge.enderecos.forEach(endereco => {
-                    window.adicionarConjugeEnderecoExistente(endereco);
-                });
-            }
-        }
-        
-        // Carregar emails do cônjuge
-        if (conjuge.emails && Array.isArray(conjuge.emails)) {
-            const container = document.getElementById('conjuge-emails-container');
-            if (container && typeof window.adicionarConjugeEmailExistente === 'function') {
-                conjuge.emails.forEach(email => {
-                    window.adicionarConjugeEmailExistente(email);
-                });
-            }
-        }
-        
-        // Carregar documentos do cônjuge
-        if (conjuge.documentos && Array.isArray(conjuge.documentos)) {
-            const container = document.getElementById('conjuge-documentos-container');
-            if (container && typeof window.adicionarConjugeDocumentoExistente === 'function') {
-                conjuge.documentos.forEach(documento => {
-                    window.adicionarConjugeDocumentoExistente(documento);
-                });
-            }
-        }
-        
-        // Carregar chaves PIX do cônjuge
-        if (conjuge.chavesPix && Array.isArray(conjuge.chavesPix)) {
-            const container = document.getElementById('conjuge-chaves-pix-container');
-            if (container && typeof window.adicionarConjugeChavePixExistente === 'function') {
-                conjuge.chavesPix.forEach(chavePix => {
-                    window.adicionarConjugeChavePixExistente(chavePix);
-                });
-            }
-        }
-        
-        // Carregar profissões do cônjuge
-        if (conjuge.profissoes && Array.isArray(conjuge.profissoes)) {
-            const container = document.getElementById('conjuge-profissoes-container');
-            if (container && typeof window.adicionarConjugeProfissaoExistente === 'function') {
-                conjuge.profissoes.forEach(profissao => {
-                    window.adicionarConjugeProfissaoExistente(profissao);
-                });
-            }
-        }
-    }
-
 
     function carregarDadosMultiplos(pessoa) {
         console.log('📦 Carregando dados múltiplos da pessoa:', pessoa.id);
         
-        // Limpar containers antes de carregar
         limparContainersDadosMultiplos();
         
-        // Carregar telefones
         if (pessoa.telefones && Array.isArray(pessoa.telefones)) {
             const telefonesContainer = document.getElementById('telefones-container');
             if (telefonesContainer && typeof window.adicionarTelefoneExistente === 'function') {
@@ -692,7 +516,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Carregar endereços
         if (pessoa.enderecos && Array.isArray(pessoa.enderecos)) {
             const enderecosContainer = document.getElementById('enderecos-container');
             if (enderecosContainer && typeof window.adicionarEnderecoExistente === 'function') {
@@ -702,7 +525,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Carregar emails
         if (pessoa.emails && Array.isArray(pessoa.emails)) {
             const emailsContainer = document.getElementById('emails-container');
             if (emailsContainer && typeof window.adicionarEmailExistente === 'function') {
@@ -712,38 +534,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Carregar documentos
-        // --- DEBUG DOCUMENTOS ---
-        console.log('📄 DEBUG: Iniciando carregamento de documentos...');
-        console.log('📄 DEBUG: pessoa.documentos =', pessoa.documentos);
-        console.log('📄 DEBUG: Tipo de pessoa.documentos =', typeof pessoa.documentos);
-        console.log('📄 DEBUG: É array?', Array.isArray(pessoa.documentos));
-
         if (pessoa.documentos && Array.isArray(pessoa.documentos)) {
-            console.log('📄 DEBUG: Quantidade de documentos =', pessoa.documentos.length);
-            
             const documentosContainer = document.getElementById('documentos-container');
-            console.log('📄 DEBUG: Container encontrado?', documentosContainer);
-            console.log('📄 DEBUG: Função adicionarDocumentoExistente existe?', typeof window.adicionarDocumentoExistente);
-
             if (documentosContainer && typeof window.adicionarDocumentoExistente === 'function') {
-                console.log('📄 DEBUG: Iniciando loop foreach...');
-                
-                pessoa.documentos.forEach((documento, index) => {
-                    console.log(`📄 DEBUG: Processando documento ${index} =`, documento);
+                pessoa.documentos.forEach(documento => {
                     window.adicionarDocumentoExistente(documento);
-                    console.log(`📄 DEBUG: Documento ${index} processado com sucesso`);
                 });
-                
-                console.log('📄 DEBUG: Todos os documentos foram processados');
-            } else {
-                console.warn('📄 DEBUG: Container ou função não encontrada');
             }
-        } else {
-            console.warn('📄 DEBUG: pessoa.documentos não é array ou está vazio');
         }
-                
-        // Carregar chaves PIX
+        
         if (pessoa.chavesPix && Array.isArray(pessoa.chavesPix)) {
             const pixContainer = document.getElementById('pix-container');
             if (pixContainer && typeof window.adicionarChavePixExistente === 'function') {
@@ -753,7 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Carregar profissões
         if (pessoa.profissoes && Array.isArray(pessoa.profissoes)) {
             const profissoesContainer = document.getElementById('profissoes-container');
             if (profissoesContainer && typeof window.adicionarProfissaoExistente === 'function') {
@@ -764,6 +562,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function carregarDadosMultiplosConjuge(conjuge) {
+        console.log('📦 Carregando dados múltiplos do cônjuge');
+        
+        if (conjuge.telefones && Array.isArray(conjuge.telefones)) {
+            const container = document.getElementById('conjuge-telefones-container');
+            if (container && typeof window.adicionarConjugeTelefoneExistente === 'function') {
+                container.innerHTML = '';
+                conjuge.telefones.forEach(telefone => {
+                    window.adicionarConjugeTelefoneExistente(telefone);
+                });
+            }
+        }
+        
+        if (conjuge.enderecos && Array.isArray(conjuge.enderecos)) {
+            const container = document.getElementById('conjuge-enderecos-container');
+            if (container && typeof window.adicionarConjugeEnderecoExistente === 'function') {
+                container.innerHTML = '';
+                conjuge.enderecos.forEach(endereco => {
+                    window.adicionarConjugeEnderecoExistente(endereco);
+                });
+            }
+        }
+        
+        if (conjuge.emails && Array.isArray(conjuge.emails)) {
+            const container = document.getElementById('conjuge-emails-container');
+            if (container && typeof window.adicionarConjugeEmailExistente === 'function') {
+                container.innerHTML = '';
+                conjuge.emails.forEach(email => {
+                    window.adicionarConjugeEmailExistente(email);
+                });
+            }
+        }
+        
+        if (conjuge.documentos && Array.isArray(conjuge.documentos)) {
+            const container = document.getElementById('conjuge-documentos-container');
+            if (container && typeof window.adicionarConjugeDocumentoExistente === 'function') {
+                container.innerHTML = '';
+                conjuge.documentos.forEach(documento => {
+                    window.adicionarConjugeDocumentoExistente(documento);
+                });
+            }
+        }
+        
+        if (conjuge.chavesPix && Array.isArray(conjuge.chavesPix)) {
+            const container = document.getElementById('conjuge-pix-container');
+            if (container && typeof window.adicionarConjugeChavePixExistente === 'function') {
+                container.innerHTML = '';
+                conjuge.chavesPix.forEach(chavePix => {
+                    window.adicionarConjugeChavePixExistente(chavePix);
+                });
+            }
+        }
+        
+        if (conjuge.profissoes && Array.isArray(conjuge.profissoes)) {
+            const container = document.getElementById('conjuge-profissoes-container');
+            if (container && typeof window.adicionarConjugeProfissaoExistente === 'function') {
+                container.innerHTML = '';
+                conjuge.profissoes.forEach(profissao => {
+                    window.adicionarConjugeProfissaoExistente(profissao);
+                });
+            }
+        }
+    }
     
     function configurarTipoPessoa(tipo) {
         const isPessoaFisica = tipo === 'fisica';
@@ -778,7 +639,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const pessoaStatus = document.querySelector('#pessoa-status');
         if (pessoaStatus) {
-            pessoaStatus.textContent = isPessoaFisica ? 'Pessoa Física' : 'Pessoa Jurídica';
+            const statusText = pessoaStatus.textContent;
+            if (!statusText.includes('existente') && !statusText.includes('será')) {
+                pessoaStatus.textContent = isPessoaFisica ? 'Pessoa Física' : 'Pessoa Jurídica';
+            }
         }
     }
 
@@ -790,17 +654,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log(`📝 Preenchendo sub-form do tipo: ${tipo}`, dados);
         
-        // Tenta diferentes padrões de nome de campo
         const prefixos = [
-            `pessoa_form[${tipo}]`,  // Padrão Symfony com nome do form
-            `${tipo}`,                // Sem prefixo do form
-            `form[${tipo}]`           // Outro padrão possível
+            `pessoa_form[${tipo}]`,
+            `${tipo}`,
+            `form[${tipo}]`
         ];
         
         Object.entries(dados).forEach(([campo, valor]) => {
             let input = null;
             
-            // Tenta encontrar o input com diferentes padrões
             for (const prefixo of prefixos) {
                 const seletores = [
                     `[name="${prefixo}[${campo}]"]`,
@@ -816,7 +678,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                if (input) break;
+                if (input) {
+                    break;
+                }
             }
             
             if (!input) {
@@ -824,16 +688,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Preencher o valor baseado no tipo de input
             if (input.type === 'checkbox') {
                 input.checked = !!valor;
             } else if (input.tagName === 'SELECT') {
-                // Para selects (como formaRetirada)
                 input.value = valor ?? '';
-                // Disparar evento change para atualizar visualmente
                 input.dispatchEvent(new Event('change', { bubbles: true }));
             } else if (valor instanceof Date || campo.toLowerCase().includes('date') || campo.toLowerCase().includes('data')) {
-                // Para datas, extrair apenas Y-m-d
                 input.value = valor ? valor.split(' ')[0] : '';
             } else {
                 input.value = valor ?? '';
@@ -842,9 +702,39 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`✅ Campo preenchido: ${campo} = ${valor}`);
         });
     }
+
+    const formEl = document.querySelector('#main-form form');
+    if (formEl) {
+        formEl.addEventListener('submit', function(event) {
+            if (typeof window.validarTiposPessoa === 'function') {
+                if (!window.validarTiposPessoa()) {
+                    event.preventDefault();
+                    alert('Por favor, adicione pelo menos um tipo de pessoa.');
+                    return false;
+                }
+            }
+            
+            const nomeInput = document.getElementById(window.FORM_IDS.nome);
+            if (nomeInput && !nomeInput.value.trim()) {
+                event.preventDefault();
+                alert('O nome é obrigatório.');
+                nomeInput.focus();
+                return false;
+            }
+            
+            const searchTermInput = document.getElementById(window.FORM_IDS.searchTerm);
+            if (searchTermInput && !searchTermInput.value.trim()) {
+                event.preventDefault();
+                alert('CPF ou CNPJ é obrigatório.');
+                searchTermInput.focus();
+                return false;
+            }
+            
+            return true;
+        });
+    }
     
     console.log('✅ new.js: Todas as funcionalidades configuradas');
 
-    // Estado inicial padrão: criação
     setFormActionToNew();
 });
