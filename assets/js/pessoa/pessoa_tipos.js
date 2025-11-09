@@ -187,30 +187,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Carregar tipos existentes (para edição)
-    window.carregarTiposExistentes = function(tiposData) {
-        if (!tiposData || typeof tiposData !== 'object') return;
+    // ✅ CORREÇÃO: Carregar tipos existentes (para edição) - RECEBE 2 PARÂMETROS
+    window.carregarTiposExistentes = function(tipos, tiposDados) {
+        console.log('🔄 Carregando tipos existentes:', tipos, tiposDados);
+        
+        if (!tipos || typeof tipos !== 'object') {
+            console.warn('⚠️ Parâmetro tipos inválido:', tipos);
+            return;
+        }
         
         const container = document.getElementById('tipos-pessoa-container');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ Container tipos-pessoa-container não encontrado');
+            return;
+        }
         
         container.innerHTML = '';
         
-        Object.entries(tiposData).forEach(([tipo, dados]) => {
-            if (dados === true || (dados && typeof dados === 'object')) {
-                // Simular clique no botão adicionar
-                const selectTipos = document.getElementById('select-tipo-pessoa');
-                if (selectTipos) {
-                    selectTipos.value = tipo;
-                    document.getElementById('add-tipo-pessoa')?.click();
+        // Iterar pelos tipos ativos
+        Object.entries(tipos).forEach(([tipo, ativo]) => {
+            if (!ativo) {
+                console.log(`⏭️ Tipo ${tipo} não está ativo, pulando...`);
+                return;
+            }
+            
+            console.log(`✅ Carregando tipo: ${tipo}`);
+            
+            // Simular clique no botão adicionar
+            const selectTipos = document.getElementById('select-tipo-pessoa');
+            if (selectTipos) {
+                selectTipos.value = tipo;
+                const btnAdd = document.getElementById('add-tipo-pessoa');
+                if (btnAdd) {
+                    btnAdd.click();
                     
-                    // Se houver dados, preencher após carregamento
-                    if (typeof dados === 'object') {
+                    // Se houver dados específicos para este tipo, preencher após carregamento
+                    if (tiposDados && tiposDados[tipo]) {
+                        console.log(`📝 Agendando preenchimento dos dados do tipo ${tipo}:`, tiposDados[tipo]);
+                        
                         setTimeout(() => {
-                            preencherDadosTipo(tipo, dados);
+                            preencherDadosTipo(tipo, tiposDados[tipo]);
                         }, 500);
+                    } else {
+                        console.log(`ℹ️ Tipo ${tipo} não possui dados específicos (tiposDados)`);
                     }
+                } else {
+                    console.error('❌ Botão add-tipo-pessoa não encontrado');
                 }
+            } else {
+                console.error('❌ Select select-tipo-pessoa não encontrado');
             }
         });
     };
@@ -218,9 +243,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Preencher dados do tipo
     function preencherDadosTipo(tipo, dados) {
         const container = document.getElementById(`campos-${tipo}`);
-        if (!container) return;
+        if (!container) {
+            console.warn(`⚠️ Container campos-${tipo} não encontrado`);
+            return;
+        }
+        
+        console.log(`📝 Preenchendo dados do tipo ${tipo}:`, dados);
+        
+        // Lista de campos que devem ser IGNORADOS (campos de sistema/banco)
+        const camposIgnorados = ['id', 'created_at', 'updated_at', 'createdAt', 'updatedAt', 'pessoa_id', 'pessoaId'];
         
         Object.entries(dados).forEach(([campo, valor]) => {
+            // IGNORAR campos de sistema
+            if (camposIgnorados.includes(campo)) {
+                console.log(`⏭️ Ignorando campo de sistema: ${campo}`);
+                return;
+            }
+            
             const input = container.querySelector(`[name*="${campo}"]`);
             if (input) {
                 if (input.type === 'checkbox') {
@@ -230,6 +269,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     input.value = valor || '';
                 }
+                console.log(`✅ Campo preenchido: ${campo} = ${valor}`);
+            } else {
+                console.warn(`⚠️ Campo ${campo} não encontrado no container`);
             }
         });
     }

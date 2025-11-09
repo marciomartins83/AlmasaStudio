@@ -356,6 +356,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function preencherFormulario(pessoa) {
         console.log('📝 Preenchendo formulário com pessoa encontrada:', pessoa);
+        console.log('🔍 DEBUG pessoa.tipos:', pessoa.tipos);
+        console.log('🔍 DEBUG pessoa.tiposDados:', pessoa.tiposDados);
+        console.log('🔍 DEBUG typeof window.carregarTiposExistentes:', typeof window.carregarTiposExistentes);
         
         const pessoaStatus = document.querySelector('#pessoa-status');
         if (pessoaStatus) {
@@ -382,21 +385,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipoFisicaJuridica = pessoa.fisicaJuridica || (pessoa.cpf ? 'fisica' : 'juridica');
         configurarTipoPessoa(tipoFisicaJuridica);
 
+        // ✅ CORREÇÃO: Chamar carregarTiposExistentes com os 2 parâmetros corretos
         if (pessoa.tipos) {
             const tiposContainer = document.getElementById('tipos-pessoa-container');
             if (tiposContainer) {
                 tiposContainer.innerHTML = '';
             }
             
-            const tiposAtivos = {};
-            Object.entries(pessoa.tipos).forEach(([tipo, ativo]) => {
-                if (ativo) {
-                    tiposAtivos[tipo] = pessoa.tiposDados ? pessoa.tiposDados[tipo] : true;
-                }
-            });
+            console.log('🎯 CHAMANDO carregarTiposExistentes com:', pessoa.tipos, pessoa.tiposDados);
             
             if (typeof window.carregarTiposExistentes === 'function') {
-                window.carregarTiposExistentes(tiposAtivos);
+                window.carregarTiposExistentes(pessoa.tipos, pessoa.tiposDados);
+            } else {
+                console.error('❌ Função carregarTiposExistentes não encontrada!');
             }
         }
 
@@ -646,6 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ✅ CORREÇÃO: Adicionar lista de campos ignorados
     function preencheSubForm(tipo, dados) {
         if (!dados) {
             console.log(`⚠️ Sem dados para preencher sub-form do tipo: ${tipo}`);
@@ -654,6 +656,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log(`📝 Preenchendo sub-form do tipo: ${tipo}`, dados);
         
+        // Lista de campos que devem ser IGNORADOS (campos de sistema/banco)
+        const camposIgnorados = ['id', 'created_at', 'updated_at', 'createdAt', 'updatedAt', 'pessoa_id', 'pessoaId'];
+        
         const prefixos = [
             `pessoa_form[${tipo}]`,
             `${tipo}`,
@@ -661,6 +666,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         
         Object.entries(dados).forEach(([campo, valor]) => {
+            // IGNORAR campos de sistema
+            if (camposIgnorados.includes(campo)) {
+                console.log(`⏭️ Ignorando campo de sistema: ${campo}`);
+                return;
+            }
+            
             let input = null;
             
             for (const prefixo of prefixos) {
