@@ -141,7 +141,7 @@ class PessoaController extends AbstractController
 
             $pessoa = match ($criteria) {
                 'cpf', 'cpf (pessoa física)' => $pessoaRepository->findByCpfDocumento($value),
-                'cnpj', 'cnpj (pessoa jurídica)' => $pessoaRepository->findByCnpjDocumento($value),
+                'cnpj', 'cnpj (pessoa jurídica)' => $pessoaRepository->findByCnpj($value),
                 'id', 'id pessoa' => $pessoaRepository->find((int)$value),
                 'nome', 'nome completo' => $this->pessoaService->buscaPorNome($value, $additionalDoc, $additionalDocType),
                 default => null,
@@ -154,13 +154,23 @@ class PessoaController extends AbstractController
 
             $this->logger->info('✅ Pessoa encontrada: ' . $pessoa->getIdpessoa());
 
-            $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
-            $cnpj = $pessoaRepository->getCnpjByPessoa($pessoa->getIdpessoa());
+            $pessoaId = $pessoa->getIdpessoa();
+            $cpf = $pessoaRepository->getCpfByPessoa($pessoaId);
+            $cnpj = $pessoaRepository->getCnpjByPessoa($pessoaId);
             
-            $tiposComDados = $pessoaRepository->findTiposComDados($pessoa->getIdpessoa());
-            $tiposComDados['tipos'] = $tiposComDados['tipos'] ?? [];
-            $tiposComDados['tiposDados'] = $this->pessoaService->buscarDadosTiposPessoa($pessoa->getIdpessoa());
+            // ✅ CORREÇÃO: Usar o método do repository que JÁ FUNCIONAVA
+            $tiposComDados = $pessoaRepository->findTiposComDados($pessoaId);
+            
+            // Garantir que as chaves existem
+            $tipos = $tiposComDados['tipos'] ?? [];
+            
+            // Usar o service para buscar os dados formatados (arrays, não objetos)
+            $tiposDados = $this->pessoaService->buscarDadosTiposPessoa($pessoaId);
 
+            $this->logger->info('🔵 DEBUG: Tipos encontrados: ' . json_encode($tipos));
+            $this->logger->info('🔵 DEBUG: Dados dos tipos: ' . json_encode(array_keys($tiposDados)));
+
+            // Manter compatibilidade com código existente
             $tipoParaId = [
                 'contratante' => 6,
                 'fiador' => 1,
@@ -170,49 +180,54 @@ class PessoaController extends AbstractController
                 'pretendente' => 5,
             ];
 
-            $ativos = array_keys(array_filter($tiposComDados['tipos']));
+            $ativos = array_keys(array_filter($tipos));
             $tipoString = $ativos ? $ativos[0] : null;
             $tipoId = $tipoString ? ($tipoParaId[$tipoString] ?? null) : null;
 
-            $telefones = $this->pessoaService->buscarTelefonesPessoa($pessoa->getIdpessoa());
-            $emails = $this->pessoaService->buscarEmailsPessoa($pessoa->getIdpessoa());
-            $enderecos = $this->pessoaService->buscarEnderecosPessoa($pessoa->getIdpessoa());
-            $chavesPix = $this->pessoaService->buscarChavesPixPessoa($pessoa->getIdpessoa());
-            $documentos = $this->pessoaService->buscarDocumentosPessoa($pessoa->getIdpessoa());
-            $profissoes = $this->pessoaService->buscarProfissoesPessoa($pessoa->getIdpessoa());
+            $telefones = $this->pessoaService->buscarTelefonesPessoa($pessoaId);
+            $emails = $this->pessoaService->buscarEmailsPessoa($pessoaId);
+            $enderecos = $this->pessoaService->buscarEnderecosPessoa($pessoaId);
+            $chavesPix = $this->pessoaService->buscarChavesPixPessoa($pessoaId);
+            $documentos = $this->pessoaService->buscarDocumentosPessoa($pessoaId);
+            $profissoes = $this->pessoaService->buscarProfissoesPessoa($pessoaId);
+            $conjuge = $this->pessoaService->buscarConjugePessoa($pessoaId);
 
-            return new JsonResponse([
-                'success' => true,
-                'pessoa' => [
-                    'id' => $pessoa->getIdpessoa(),
-                    'nome' => $pessoa->getNome(),
-                    'cpf' => $cpf,
-                    'cnpj' => $cnpj,
-                    'fisicaJuridica' => $pessoa->getFisicaJuridica(),
-                    'dataNascimento' => $pessoa->getDataNascimento()?->format('Y-m-d'),
-                    'estadoCivil' => $pessoa->getEstadoCivil()?->getId(),
-                    'nacionalidade' => $pessoa->getNacionalidade()?->getId(),
-                    'naturalidade' => $pessoa->getNaturalidade()?->getId(),
-                    'nomePai' => $pessoa->getNomePai(),
-                    'nomeMae' => $pessoa->getNomeMae(),
-                    'renda' => $pessoa->getRenda(),
-                    'observacoes' => $pessoa->getObservacoes(),
-                    'telefones' => $telefones,
-                    'enderecos' => $enderecos,
-                    'emails' => $emails,
-                    'documentos' => $documentos,
-                    'chavesPix' => $chavesPix,
-                    'profissoes' => $profissoes,
-                    'conjuge' => null,
-                    'tipos' => $tiposComDados['tipos'],
-                    'tiposDados' => $tiposComDados['tiposDados'],
-                    'tipoPessoaId' => $tipoId,
-                    'tipoPessoaString' => $tipoString
-                ],
-            ]);
+            $pessoaData = [
+                'id' => $pessoaId,
+                'nome' => $pessoa->getNome(),
+                'cpf' => $cpf,
+                'cnpj' => $cnpj,
+                'fisicaJuridica' => $pessoa->getFisicaJuridica(),
+                'dataNascimento' => $pessoa->getDataNascimento()?->format('Y-m-d'),
+                'estadoCivil' => $pessoa->getEstadoCivil()?->getId(),
+                'nacionalidade' => $pessoa->getNacionalidade()?->getId(),
+                'naturalidade' => $pessoa->getNaturalidade()?->getId(),
+                'nomePai' => $pessoa->getNomePai(),
+                'nomeMae' => $pessoa->getNomeMae(),
+                'renda' => $pessoa->getRenda(),
+                'observacoes' => $pessoa->getObservacoes(),
+                'telefones' => $telefones,
+                'enderecos' => $enderecos,
+                'emails' => $emails,
+                'documentos' => $documentos,
+                'chavesPix' => $chavesPix,
+                'profissoes' => $profissoes,
+                'conjuge' => $conjuge,
+                // ✅ CORREÇÃO: Adicionar tipos e tiposDados ao JSON de resposta
+                'tipos' => $tipos,
+                'tiposDados' => $tiposDados,
+                'tipoPessoaId' => $tipoId,
+                'tipoPessoaString' => $tipoString
+            ];
+
+            $this->logger->info('🔵 DEBUG: Resposta final - tipos: ' . json_encode($tipos));
+
+            return new JsonResponse(['success' => true, 'pessoa' => $pessoaData]);
+            
         } catch (\Exception $e) {
             $this->logger->error('🔴 ERRO CRÍTICO em searchPessoaAdvanced: ' . $e->getMessage());
-            return new JsonResponse(['success' => false, 'message' => 'Erro interno'], 500);
+            $this->logger->error('🔴 STACK TRACE: ' . $e->getTraceAsString());
+            return new JsonResponse(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
         }
     }
 
