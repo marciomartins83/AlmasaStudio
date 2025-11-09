@@ -8,27 +8,16 @@ use App\Entity\Nacionalidade;
 use App\Entity\Naturalidade;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormEvent;
-use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class PessoaFormType extends AbstractType
 {
-    private UrlGeneratorInterface $urlGenerator;
-
-    public function __construct(UrlGeneratorInterface $urlGenerator)
-    {
-        $this->urlGenerator = $urlGenerator;
-    }
-
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -43,7 +32,7 @@ class PessoaFormType extends AbstractType
                 'label' => 'CPF/CNPJ',
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Digite CPF ou CNPJ para buscar'
+                    'placeholder' => 'Digite CPF ou CNPJ'
                 ],
                 'required' => false
             ])
@@ -124,63 +113,20 @@ class PessoaFormType extends AbstractType
                 'attr' => [
                     'class' => 'form-control',
                     'rows' => 3,
-                    'placeholder' => 'Digite observações sobre a pessoa'
+                    'placeholder' => 'Digite observações'
                 ],
                 'required' => false
             ])
 
-            // TIPO DE PESSOA (NÃO MAPEADO - PROCESSADO PELO CONTROLLER)
-            ->add('tipoPessoa', ChoiceType::class, [
-                'choices' => [
-                    'Selecione um tipo...' => '',
-                    'Fiador' => 'fiador',
-                    'Corretor' => 'corretor',
-                    'Corretora' => 'corretora',
-                    'Locador' => 'locador',
-                    'Pretendente' => 'pretendente',
-                    'Contratante' => 'contratante',
-                ],
-                'mapped' => false,
-                'label' => 'Tipo de Pessoa',
-                'attr' => [
-                    'class' => 'form-select',
-                    'data-url' => $this->urlGenerator->generate('app_pessoa__subform'),
-                ]
-            ])
-
-            // CAMPOS PARA CÔNJUGE (NÃO MAPEADOS - PROCESSADOS VIA JAVASCRIPT/CONTROLLER)
+            // CAMPO PARA CÔNJUGE
             ->add('conjuge', HiddenType::class, [
                 'required' => false,
                 'mapped' => false,
                 'attr' => ['class' => 'form-control']
             ]);
 
-        // LISTENER PARA SUB-FORMULÁRIOS
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
-            $data = $event->getData();
-            $form = $event->getForm();
-            $tipo = $data['tipoPessoa'] ?? null;
-
-            if (!$tipo) {
-                return;
-            }
-
-            $subFormType = match ($tipo) {
-                'fiador' => PessoaFiadorType::class,
-                'corretor' => PessoaCorretorType::class,
-                'corretora' => PessoaCorretoraType::class,
-                'locador' => PessoaLocadorType::class,
-                'pretendente' => PessoaPretendenteType::class,
-                default => null,
-            };
-
-            if ($subFormType) {
-                $form->add($tipo, $subFormType, [
-                    'label' => false,
-                    'mapped' => false,
-                ]);
-            }
-        });
+        // ❌ REMOVIDO: tipoPessoa e listeners
+        // Agora usamos o sistema de múltiplos tipos via JavaScript
     }
 
     public function configureOptions(OptionsResolver $resolver): void
