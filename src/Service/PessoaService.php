@@ -23,6 +23,7 @@ use App\Entity\PessoasPretendentes;
 use App\Entity\PessoasContratantes;
 use App\Entity\PessoasCorretoras;
 use App\Entity\PessoasProfissoes;
+use App\Entity\PessoasTipos;
 use App\Repository\PessoaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -43,7 +44,7 @@ class PessoaService
         $this->pessoaRepository = $pessoaRepository;
     }
 
-    public function criarPessoa(Pessoas $pessoa, array $formData, string $tipoPessoa): void
+    public function criarPessoa(Pessoas $pessoa, array $formData, $tiposPessoa): void
     {
         $cpfCnpjNumero = $formData['searchTerm'] ?? null;
         $cpfNumero = null;
@@ -72,8 +73,9 @@ class PessoaService
             $pessoaId = $pessoa->getIdpessoa();
             $this->logger->info('[PESSOA SALVA - ID] ' . $pessoaId);
 
-            $this->salvarDadosMultiplosCorrigido($pessoaId, $formData);
-            $this->salvarTipoEspecifico($pessoa, $tipoPessoa, $formData);
+            $this->salvarDadosMultiplos($pessoaId, $formData, '');
+            
+            $this->salvarMultiplosTipos($pessoa, $tiposPessoa, $formData);
 
             if (!empty($formData['temConjuge']) || !empty($formData['novo_conjuge']['nome'])) {
                 $this->salvarConjuge($pessoa, $formData);
@@ -90,7 +92,7 @@ class PessoaService
         }
     }
 
-    public function atualizarPessoa(Pessoas $pessoa, array $formData, string $tipoPessoa): void
+    public function atualizarPessoa(Pessoas $pessoa, array $formData, $tiposPessoa): void
     {
         $cpfCnpj = $formData['searchTerm'] ?? '';
         
@@ -114,22 +116,19 @@ class PessoaService
         $this->entityManager->getConnection()->beginTransaction();
         
         try {
-            if (is_string($tipoPessoa)) {
-                $pessoa->setTipoPessoa($this->convertTipoPessoaToId($tipoPessoa));
-            } else {
-                $pessoa->setTipoPessoa((int) $tipoPessoa);
-            }
-
             $this->entityManager->persist($pessoa);
             $this->entityManager->flush();
 
-            $this->limparDadosMultiplosApenasSeEnviados($pessoa->getIdpessoa(), $formData);
+            $this->limparDadosMultiplosApenasSeEnviados($pessoa->getIdpessoa(), $formData, '');
 
             if (!empty($cpfCnpj)) {
                 $this->salvarDocumentoPrincipal($pessoa, $cpfCnpj);
             }
 
-            $this->salvarDadosMultiplosCorrigido($pessoa->getIdpessoa(), $formData);
+            $this->salvarDadosMultiplos($pessoa->getIdpessoa(), $formData, '');
+            
+            $this->atualizarMultiplosTipos($pessoa, $tiposPessoa, $formData);
+            
             $this->processarConjugeEdicao($pessoa, $formData);
 
             $this->entityManager->flush();
@@ -143,15 +142,24 @@ class PessoaService
         }
     }
 
-    private function salvarDadosMultiplosCorrigido(int $pessoaId, array $requestData): void
+    /**
+     * ✅ REFATORADO: Método unificado para salvar dados múltiplos (Pessoa Principal OU Cônjuge)
+     * @param int $pessoaId ID da pessoa (principal ou cônjuge)
+     * @param array $requestData Dados do formulário
+     * @param string $prefixo Prefixo dos campos ('conjuge_' para cônjuge, '' para pessoa principal)
+     */
+    private function salvarDadosMultiplos(int $pessoaId, array $requestData, string $prefixo = ''): void
     {
-        if (isset($requestData['telefones']) && is_array($requestData['telefones'])) {
+        // Telefones
+        $chaveTelefones = $prefixo . 'telefones';
+        if (isset($requestData[$chaveTelefones]) && is_array($requestData[$chaveTelefones])) {
             $telRepo = $this->entityManager->getRepository(Telefones::class);
 
-            foreach ($requestData['telefones'] as $telefoneData) {
+            foreach ($requestData[$chaveTelefones] as $telefoneData) {
                 if (!empty($telefoneData['tipo']) && !empty($telefoneData['numero'])) {
                     $numeroLimpo = preg_replace('/\D/', '', $telefoneData['numero']);
 
+                    // ✅ CORREÇÃO: Sempre buscar antes de criar
                     $criteria = ['numero' => $numeroLimpo];
                     if (property_exists(Telefones::class, 'ativo')) {
                         $criteria['ativo'] = true;
@@ -177,13 +185,17 @@ class PessoaService
             }
         }
 
-        if (isset($requestData['emails']) && is_array($requestData['emails'])) {
+        // Emails
+        $chaveEmails = $prefixo . 'emails';
+        if (isset($requestData[$chaveEmails]) && is_array($requestData[$chaveEmails])) {
             $emailRepo = $this->entityManager->getRepository(Emails::class);
 
-            foreach ($requestData['emails'] as $emailData) {
+            foreach ($requestData[$chaveEmails] as $emailData) {
                 if (!empty($emailData['tipo']) && !empty($emailData['email'])) {
                     $emailLimpo = strtolower(trim($emailData['email']));
-                    $criteria   = ['email' => $emailLimpo];
+                    
+                    // ✅ CORREÇÃO: Sempre buscar antes de criar
+                    $criteria = ['email' => $emailLimpo];
                     if (property_exists(Emails::class, 'ativo')) {
                         $criteria['ativo'] = true;
                     }
@@ -208,8 +220,10 @@ class PessoaService
             }
         }
 
-        if (isset($requestData['enderecos']) && is_array($requestData['enderecos'])) {
-            foreach ($requestData['enderecos'] as $enderecoData) {
+        // Endereços
+        $chaveEnderecos = $prefixo . 'enderecos';
+        if (isset($requestData[$chaveEnderecos]) && is_array($requestData[$chaveEnderecos])) {
+            foreach ($requestData[$chaveEnderecos] as $enderecoData) {
                 if (!empty($enderecoData['tipo']) && !empty($enderecoData['numero'])) {
                     $logradouroId = $this->buscarOuCriarLogradouro($enderecoData);
 
@@ -227,8 +241,10 @@ class PessoaService
             }
         }
 
-        if (isset($requestData['chaves_pix']) && is_array($requestData['chaves_pix'])) {
-            foreach ($requestData['chaves_pix'] as $pixData) {
+        // Chaves PIX
+        $chavePixArray = $prefixo . 'chaves_pix';
+        if (isset($requestData[$chavePixArray]) && is_array($requestData[$chavePixArray])) {
+            foreach ($requestData[$chavePixArray] as $pixData) {
                 if (!empty($pixData['tipo']) && !empty($pixData['chave'])) {
                     $chavePix = new ChavesPix();
                     $chavePix->setIdPessoa($pessoaId);
@@ -243,8 +259,10 @@ class PessoaService
             }
         }
 
-        if (isset($requestData['documentos']) && is_array($requestData['documentos'])) {
-            foreach ($requestData['documentos'] as $documentoData) {
+        // Documentos
+        $chaveDocumentos = $prefixo . 'documentos';
+        if (isset($requestData[$chaveDocumentos]) && is_array($requestData[$chaveDocumentos])) {
+            foreach ($requestData[$chaveDocumentos] as $documentoData) {
                 if (!empty($documentoData['tipo']) && !empty($documentoData['numero'])) {
                     $documento = new PessoasDocumentos();
                     $pessoaRef = $this->entityManager->getReference(Pessoas::class, $pessoaId);
@@ -276,8 +294,10 @@ class PessoaService
             }
         }
 
-        if (isset($requestData['profissoes']) && is_array($requestData['profissoes'])) {
-            foreach ($requestData['profissoes'] as $profissaoData) {
+        // Profissões
+        $chaveProfissoes = $prefixo . 'profissoes';
+        if (isset($requestData[$chaveProfissoes]) && is_array($requestData[$chaveProfissoes])) {
+            foreach ($requestData[$chaveProfissoes] as $profissaoData) {
                 if (!empty($profissaoData['profissao'])) {
                     $pessoaProfissao = new PessoasProfissoes();
                     $pessoaProfissao->setIdPessoa($pessoaId);
@@ -309,401 +329,16 @@ class PessoaService
         }
     }
 
-    private function convertTipoPessoaToId(string $tipoPessoaString): int
-    {
-        $tipoRepository = $this->entityManager->getRepository(\App\Entity\TiposPessoas::class);
-        $tipo = $tipoRepository->findOneBy(['tipo' => $tipoPessoaString, 'ativo' => true]);
-
-        if ($tipo) {
-            return $tipo->getId();
-        }
-
-        $fiador = $tipoRepository->findOneBy(['tipo' => 'fiador', 'ativo' => true]);
-        return $fiador ? $fiador->getId() : 1;
-    }
-
-    private function salvarDocumentoPrincipal(Pessoas $pessoa, string $documento): void
-    {
-        $numero = preg_replace('/\D/', '', (string) $documento);
-        if ($numero === '' || $numero === null) {
-            return;
-        }
-
-        $tipo = strlen($numero) === 11 ? 'CPF' : 'CNPJ';
-
-        $tipoDocumentoEntity = $this->entityManager->getRepository(\App\Entity\TiposDocumentos::class)
-            ->findOneBy(['tipo' => $tipo]);
-
-        if (!$tipoDocumentoEntity) {
-            return;
-        }
-
-        $docRepo = $this->entityManager->getRepository(PessoasDocumentos::class);
-
-        $pessoaDocumento = $docRepo->findOneBy([
-            'pessoa'        => $pessoa,
-            'tipoDocumento' => $tipoDocumentoEntity,
-            'ativo'         => true,
-        ]);
-
-        if (!$pessoaDocumento) {
-            $pessoaDocumento = $docRepo->findOneBy([
-                'pessoa'        => $pessoa,
-                'tipoDocumento' => $tipoDocumentoEntity,
-            ]);
-        }
-
-        if ($pessoaDocumento) {
-            $pessoaDocumento->setNumeroDocumento($numero);
-            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
-            if (method_exists($pessoaDocumento, 'setAtivo')) {
-                $pessoaDocumento->setAtivo(true);
-            }
-        } else {
-            $pessoaDocumento = new PessoasDocumentos();
-            $pessoaDocumento->setPessoa($pessoa);
-            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
-            $pessoaDocumento->setNumeroDocumento($numero);
-            if (method_exists($pessoaDocumento, 'setAtivo')) {
-                $pessoaDocumento->setAtivo(true);
-            }
-            $this->entityManager->persist($pessoaDocumento);
-        }
-
-        $duplicatas = $docRepo->findBy([
-            'pessoa'        => $pessoa,
-            'tipoDocumento' => $tipoDocumentoEntity,
-        ]);
-
-        foreach ($duplicatas as $doc) {
-            if ($doc !== $pessoaDocumento && method_exists($doc, 'setAtivo')) {
-                $doc->setAtivo(false);
-            }
-        }
-    }
-
-    private function salvarTipoEspecifico(Pessoas $pessoa, string $tipoPessoa, array $data): void
-    {
-        if (!$tipoPessoa) {
-            return;
-        }
-
-        switch ($tipoPessoa) {
-            case 'fiador':
-                $fiador = new PessoasFiadores();
-                $fiador->setIdPessoa($pessoa->getIdpessoa());
-                $this->entityManager->persist($fiador);
-                break;
-
-            case 'corretor':
-                $corretor = new PessoasCorretores();
-                $corretor->setPessoa($pessoa);
-                $this->entityManager->persist($corretor);
-                break;
-
-            case 'locador':
-                $locador = new PessoasLocadores();
-                $locador->setPessoa($pessoa);
-                $this->entityManager->persist($locador);
-                break;
-
-            case 'pretendente':
-                $pretendente = new PessoasPretendentes();
-                $pretendente->setPessoa($pessoa);
-                $this->entityManager->persist($pretendente);
-                break;
-
-            case 'contratante':
-                $contratante = new PessoasContratantes();
-                $contratante->setPessoa($pessoa);
-                $this->entityManager->persist($contratante);
-                break;
-
-            case 'corretora':
-                $corretora = new PessoasCorretoras();
-                $corretora->setPessoa($pessoa);
-                $this->entityManager->persist($corretora);
-                break;
-        }
-    }
-
-    private function salvarConjuge(Pessoas $pessoa, array $requestData): void
-    {
-        $this->logger->info('DEBUG salvarConjuge - requestData keys: ' . implode(', ', array_keys($requestData)));
-
-        $conjugeParaRelacionar = null;
-
-        $conjugeId = $requestData['conjuge']['id'] ?? $requestData['conjuge_id'] ?? null;
-        if ($conjugeId) {
-            $this->logger->info('DEBUG: Tentando encontrar cônjuge existente com ID: ' . $conjugeId);
-            $conjugeParaRelacionar = $this->pessoaRepository->find($conjugeId);
-        }
-
-        $novoConjugeData = $requestData['novo_conjuge'] ?? null;
-        if (!$conjugeParaRelacionar && $novoConjugeData && !empty($novoConjugeData['nome']) && !empty($novoConjugeData['cpf'])) {
-            $this->logger->info('DEBUG: Criando novo cônjuge');
-            $novoConjuge = new Pessoas();
-            $novoConjuge->setNome($novoConjugeData['nome']);
-
-            if (!empty($novoConjugeData['data_nascimento'])) {
-                $novoConjuge->setDataNascimento(new \DateTime($novoConjugeData['data_nascimento']));
-            }
-            if (!empty($novoConjugeData['estado_civil'])) {
-                $estadoCivil = $this->entityManager->getReference(\App\Entity\EstadoCivil::class, $novoConjugeData['estado_civil']);
-                $novoConjuge->setEstadoCivil($estadoCivil);
-            }
-            if (!empty($novoConjugeData['nacionalidade'])) {
-                $nacionalidade = $this->entityManager->getReference(\App\Entity\Nacionalidade::class, $novoConjugeData['nacionalidade']);
-                $novoConjuge->setNacionalidade($nacionalidade);
-            }
-            if (!empty($novoConjugeData['naturalidade'])) {
-                $naturalidade = $this->entityManager->getReference(\App\Entity\Naturalidade::class, $novoConjugeData['naturalidade']);
-                $novoConjuge->setNaturalidade($naturalidade);
-            }
-
-            $novoConjuge->setNomePai($novoConjugeData['nome_pai'] ?? null);
-            $novoConjuge->setNomeMae($novoConjugeData['nome_mae'] ?? null);
-            $novoConjuge->setRenda((float)($novoConjugeData['renda'] ?? 0.0));
-            $novoConjuge->setObservacoes($novoConjugeData['observacoes'] ?? null);
-            $novoConjuge->setFisicaJuridica('fisica');
-            $novoConjuge->setDtCadastro(new \DateTime());
-            $novoConjuge->setStatus(true);
-            $novoConjuge->setTipoPessoa(1);
-
-            $this->entityManager->persist($novoConjuge);
-            $this->entityManager->flush();
-
-            $this->salvarDocumentoPrincipalConjuge($novoConjuge->getIdpessoa(), $novoConjugeData['cpf']);
-            $this->salvarDadosMultiplosConjuge($novoConjuge->getIdpessoa(), $requestData);
-
-            $conjugeParaRelacionar = $novoConjuge;
-        }
-
-        if ($conjugeParaRelacionar) {
-            $this->logger->info('DEBUG: Estabelecendo relacionamento familiar');
-            $relacionamentoRepo = $this->entityManager->getRepository(RelacionamentosFamiliares::class);
-
-            $existente = $relacionamentoRepo->findOneBy([
-                'idPessoaOrigem' => $pessoa->getIdpessoa(),
-                'idPessoaDestino' => $conjugeParaRelacionar->getIdpessoa(),
-                'tipoRelacionamento' => 'Cônjuge'
-            ]);
-
-            if (!$existente) {
-                $dataInicioRelacionamento = new \DateTime();
-
-                $relacionamento1 = new RelacionamentosFamiliares();
-                $relacionamento1->setIdPessoaOrigem($pessoa->getIdpessoa());
-                $relacionamento1->setIdPessoaDestino($conjugeParaRelacionar->getIdpessoa());
-                $relacionamento1->setTipoRelacionamento('Cônjuge');
-                $relacionamento1->setAtivo(true);
-                $relacionamento1->setDataInicio($dataInicioRelacionamento);
-                $this->entityManager->persist($relacionamento1);
-
-                $relacionamento2 = new RelacionamentosFamiliares();
-                $relacionamento2->setIdPessoaOrigem($conjugeParaRelacionar->getIdpessoa());
-                $relacionamento2->setIdPessoaDestino($pessoa->getIdpessoa());
-                $relacionamento2->setTipoRelacionamento('Cônjuge');
-                $relacionamento2->setAtivo(true);
-                $relacionamento2->setDataInicio($dataInicioRelacionamento);
-                $this->entityManager->persist($relacionamento2);
-            }
-        }
-    }
-
-    private function salvarDocumentoPrincipalConjuge(int $conjugeId, string $documento): void
-    {
-        $documento = preg_replace('/[^\d]/', '', $documento);
-        $tipoDocumento = strlen($documento) === 11 ? 'CPF' : 'CNPJ';
-
-        $tipoDocumentoEntity = $this->entityManager->getRepository(TiposDocumentos::class)
-            ->findOneBy(['tipo' => $tipoDocumento]);
-
-        if ($tipoDocumentoEntity) {
-            $pessoaDocumento = new PessoasDocumentos();
-            $conjuge = $this->entityManager->getRepository(Pessoas::class)->find($conjugeId);
-            $pessoaDocumento->setPessoa($conjuge);
-            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
-            $pessoaDocumento->setNumeroDocumento($documento);
-            $pessoaDocumento->setAtivo(true);
-
-            $this->entityManager->persist($pessoaDocumento);
-        }
-    }
-
-    private function salvarDadosMultiplosConjuge(int $conjugeId, array $requestData): void
-    {
-        if (isset($requestData['conjuge_telefones']) && is_array($requestData['conjuge_telefones'])) {
-            foreach ($requestData['conjuge_telefones'] as $telefoneData) {
-                if (!empty($telefoneData['tipo']) && !empty($telefoneData['numero'])) {
-                    $telefone = new Telefones();
-                    $telefone->setTipo($this->entityManager->getReference(\App\Entity\TiposTelefones::class, (int)$telefoneData['tipo']));
-                    $telefone->setNumero($telefoneData['numero']);
-                    $this->entityManager->persist($telefone);
-                    $this->entityManager->flush();
-
-                    $pessoaTelefone = new PessoasTelefones();
-                    $pessoaTelefone->setIdPessoa($conjugeId);
-                    $pessoaTelefone->setIdTelefone($telefone->getId());
-                    $this->entityManager->persist($pessoaTelefone);
-                }
-            }
-        }
-
-        if (isset($requestData['conjuge_emails']) && is_array($requestData['conjuge_emails'])) {
-            foreach ($requestData['conjuge_emails'] as $emailData) {
-                if (!empty($emailData['tipo']) && !empty($emailData['email'])) {
-                    $email = new Emails();
-                    $email->setEmail($emailData['email']);
-                    $email->setTipo($this->entityManager->getReference(\App\Entity\TiposEmails::class, (int)$emailData['tipo']));
-                    $this->entityManager->persist($email);
-                    $this->entityManager->flush();
-
-                    $pessoaEmail = new PessoasEmails();
-                    $pessoaEmail->setIdPessoa($conjugeId);
-                    $pessoaEmail->setIdEmail($email->getId());
-                    $this->entityManager->persist($pessoaEmail);
-                }
-            }
-        }
-
-        if (isset($requestData['conjuge_enderecos']) && is_array($requestData['conjuge_enderecos'])) {
-            foreach ($requestData['conjuge_enderecos'] as $enderecoData) {
-                if (!empty($enderecoData['tipo']) && !empty($enderecoData['numero'])) {
-                    $logradouroId = $this->buscarOuCriarLogradouro($enderecoData);
-
-                    $endereco = new Enderecos();
-                    $endereco->setPessoa($this->entityManager->getReference(Pessoas::class, $conjugeId));
-                    $endereco->setLogradouro($this->entityManager->getReference(Logradouros::class, $logradouroId));
-                    $endereco->setTipo($this->entityManager->getReference(\App\Entity\TiposEnderecos::class, (int)$enderecoData['tipo']));
-                    $endereco->setEndNumero((int)$enderecoData['numero']);
-                    if (!empty($enderecoData['complemento'])) {
-                        $endereco->setComplemento($enderecoData['complemento']);
-                    }
-
-                    $this->entityManager->persist($endereco);
-                }
-            }
-        }
-
-        if (isset($requestData['conjuge_chaves_pix']) && is_array($requestData['conjuge_chaves_pix'])) {
-            foreach ($requestData['conjuge_chaves_pix'] as $pixData) {
-                if (!empty($pixData['tipo']) && !empty($pixData['chave'])) {
-                    $chavePix = new ChavesPix();
-                    $chavePix->setIdPessoa($conjugeId);
-                    $chavePix->setIdTipoChave((int)$pixData['tipo']);
-                    $chavePix->setChavePix($pixData['chave']);
-                    $chavePix->setPrincipal(!empty($pixData['principal']));
-                    if (method_exists($chavePix, 'setAtivo')) {
-                        $chavePix->setAtivo(true);
-                    }
-                    $this->entityManager->persist($chavePix);
-                }
-            }
-        }
-
-        if (isset($requestData['conjuge_documentos']) && is_array($requestData['conjuge_documentos'])) {
-            foreach ($requestData['conjuge_documentos'] as $documentoData) {
-                if (!empty($documentoData['tipo']) && !empty($documentoData['numero'])) {
-                    $documento = new PessoasDocumentos();
-                    $conjugeRef = $this->entityManager->getReference(Pessoas::class, $conjugeId);
-                    $documento->setPessoa($conjugeRef);
-
-                    $tipoDocumentoEntity = $this->entityManager->getReference(\App\Entity\TiposDocumentos::class, (int)$documentoData['tipo']);
-                    $documento->setTipoDocumento($tipoDocumentoEntity);
-                    $documento->setNumeroDocumento($documentoData['numero']);
-
-                    if (!empty($documentoData['orgao_emissor'])) {
-                        $documento->setOrgaoEmissor($documentoData['orgao_emissor']);
-                    }
-                    if (!empty($documentoData['data_emissao'])) {
-                        $documento->setDataEmissao(new \DateTime($documentoData['data_emissao']));
-                    }
-                    if (!empty($documentoData['data_vencimento'])) {
-                        $documento->setDataVencimento(new \DateTime($documentoData['data_vencimento']));
-                    }
-                    if (!empty($documentoData['observacoes'])) {
-                        $documento->setObservacoes($documentoData['observacoes']);
-                    }
-
-                    if (method_exists($documento, 'setAtivo')) {
-                        $documento->setAtivo(true);
-                    }
-
-                    $this->entityManager->persist($documento);
-                }
-            }
-        }
-
-        if (isset($requestData['conjuge_profissoes']) && is_array($requestData['conjuge_profissoes'])) {
-            foreach ($requestData['conjuge_profissoes'] as $profissaoData) {
-                if (!empty($profissaoData['profissao'])) {
-                    $pessoaProfissao = new PessoasProfissoes();
-                    $pessoaProfissao->setIdPessoa($conjugeId);
-                    $pessoaProfissao->setIdProfissao((int)$profissaoData['profissao']);
-
-                    if (!empty($profissaoData['empresa'])) {
-                        $pessoaProfissao->setEmpresa($profissaoData['empresa']);
-                    }
-                    if (!empty($profissaoData['data_admissao'])) {
-                        $pessoaProfissao->setDataAdmissao(new \DateTime($profissaoData['data_admissao']));
-                    }
-                    if (!empty($profissaoData['data_demissao'])) {
-                        $pessoaProfissao->setDataDemissao(new \DateTime($profissaoData['data_demissao']));
-                    }
-                    if (!empty($profissaoData['renda'])) {
-                        $pessoaProfissao->setRenda((float)$profissaoData['renda']);
-                    }
-                    if (!empty($profissaoData['observacoes'])) {
-                        $pessoaProfissao->setObservacoes($profissaoData['observacoes']);
-                    }
-
-                    if (method_exists($pessoaProfissao, 'setAtivo')) {
-                        $pessoaProfissao->setAtivo(true);
-                    }
-
-                    $this->entityManager->persist($pessoaProfissao);
-                }
-            }
-        }
-    }
-
-    private function processarConjugeEdicao(Pessoas $pessoa, array $requestData): void
-    {
-        $relacionamentoExistente = $this->entityManager->getRepository(RelacionamentosFamiliares::class)
-            ->findOneBy([
-                'idPessoaOrigem' => $pessoa->getIdpessoa(),
-                'tipoRelacionamento' => 'Cônjuge',
-                'ativo' => true
-            ]);
-
-        $temConjuge = !empty($requestData['novo_conjuge']) || !empty($requestData['conjuge_id']);
-
-        if ($relacionamentoExistente && !$temConjuge) {
-            $relacionamentoInverso = $this->entityManager->getRepository(RelacionamentosFamiliares::class)
-                ->findOneBy([
-                    'idPessoaOrigem' => $relacionamentoExistente->getIdPessoaDestino(),
-                    'idPessoaDestino' => $pessoa->getIdpessoa(),
-                    'tipoRelacionamento' => 'Cônjuge'
-                ]);
-
-            $this->entityManager->remove($relacionamentoExistente);
-            if ($relacionamentoInverso) {
-                $this->entityManager->remove($relacionamentoInverso);
-            }
-        }
-
-        if ($temConjuge) {
-            $this->salvarConjuge($pessoa, $requestData);
-        }
-    }
-
-    private function limparDadosMultiplosApenasSeEnviados(int $pessoaId, array $formData): void
+    /**
+     * ✅ REFATORADO: Método unificado para limpar dados múltiplos (Pessoa Principal OU Cônjuge)
+     */
+    private function limparDadosMultiplosApenasSeEnviados(int $pessoaId, array $formData, string $prefixo = ''): void
     {
         $pessoaRef = $this->entityManager->getReference(Pessoas::class, $pessoaId);
 
-        $tem = static function (string $chave) use ($formData): bool {
-            return array_key_exists($chave, $formData) && is_array($formData[$chave]);
+        $tem = static function (string $chave) use ($formData, $prefixo): bool {
+            $chaveCompleta = $prefixo . $chave;
+            return array_key_exists($chaveCompleta, $formData) && is_array($formData[$chaveCompleta]);
         };
 
         if (!($tem('telefones') || $tem('emails') || $tem('enderecos') || $tem('chaves_pix') || $tem('documentos') || $tem('profissoes'))) {
@@ -779,6 +414,538 @@ class PessoaService
             foreach ($profs as $prof) {
                 $this->entityManager->remove($prof);
             }
+        }
+    }
+
+    /**
+     * ✅ REFATORADO: Método unificado para salvar documento principal (CPF/CNPJ)
+     * Agora serve tanto para Pessoa Principal quanto para Cônjuge
+     */
+    private function salvarDocumentoPrincipal(Pessoas $pessoa, string $documento): void
+    {
+        $numero = preg_replace('/\D/', '', (string) $documento);
+        if ($numero === '' || $numero === null) {
+            return;
+        }
+
+        $tipo = strlen($numero) === 11 ? 'CPF' : 'CNPJ';
+
+        $tipoDocumentoEntity = $this->entityManager->getRepository(\App\Entity\TiposDocumentos::class)
+            ->findOneBy(['tipo' => $tipo]);
+
+        if (!$tipoDocumentoEntity) {
+            return;
+        }
+
+        $docRepo = $this->entityManager->getRepository(PessoasDocumentos::class);
+
+        $pessoaDocumento = $docRepo->findOneBy([
+            'pessoa'        => $pessoa,
+            'tipoDocumento' => $tipoDocumentoEntity,
+            'ativo'         => true,
+        ]);
+
+        if (!$pessoaDocumento) {
+            $pessoaDocumento = $docRepo->findOneBy([
+                'pessoa'        => $pessoa,
+                'tipoDocumento' => $tipoDocumentoEntity,
+            ]);
+        }
+
+        if ($pessoaDocumento) {
+            $pessoaDocumento->setNumeroDocumento($numero);
+            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+            if (method_exists($pessoaDocumento, 'setAtivo')) {
+                $pessoaDocumento->setAtivo(true);
+            }
+        } else {
+            $pessoaDocumento = new PessoasDocumentos();
+            $pessoaDocumento->setPessoa($pessoa);
+            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
+            $pessoaDocumento->setNumeroDocumento($numero);
+            if (method_exists($pessoaDocumento, 'setAtivo')) {
+                $pessoaDocumento->setAtivo(true);
+            }
+            $this->entityManager->persist($pessoaDocumento);
+        }
+
+        $duplicatas = $docRepo->findBy([
+            'pessoa'        => $pessoa,
+            'tipoDocumento' => $tipoDocumentoEntity,
+        ]);
+
+        foreach ($duplicatas as $doc) {
+            if ($doc !== $pessoaDocumento && method_exists($doc, 'setAtivo')) {
+                $doc->setAtivo(false);
+            }
+        }
+    }
+
+    /**
+     * ✅ Salvar múltiplos tipos de pessoa
+     */
+    private function salvarMultiplosTipos(Pessoas $pessoa, $tiposPessoa, array $formData): void
+    {
+        if (is_string($tiposPessoa)) {
+            $tiposPessoa = [$tiposPessoa];
+        }
+
+        if (!is_array($tiposPessoa) || empty($tiposPessoa)) {
+            return;
+        }
+
+        $pessoaId = $pessoa->getIdpessoa();
+        $dataInicio = new \DateTime();
+
+        foreach ($tiposPessoa as $tipo) {
+            $tipoId = $this->convertTipoPessoaToId($tipo);
+            
+            $pessoaTipo = new PessoasTipos();
+            $pessoaTipo->setIdPessoa($pessoaId);
+            $pessoaTipo->setIdTipoPessoa($tipoId);
+            $pessoaTipo->setDataInicio($dataInicio);
+            $pessoaTipo->setAtivo(true);
+            $this->entityManager->persist($pessoaTipo);
+
+            $this->salvarTipoEspecifico($pessoa, $tipo, $formData);
+        }
+    }
+
+    /**
+     * ✅ Atualizar múltiplos tipos de pessoa
+     */
+    private function atualizarMultiplosTipos(Pessoas $pessoa, $tiposPessoa, array $formData): void
+    {
+        if (is_string($tiposPessoa)) {
+            $tiposPessoa = [$tiposPessoa];
+        }
+
+        if (!is_array($tiposPessoa) || empty($tiposPessoa)) {
+            return;
+        }
+
+        $pessoaId = $pessoa->getIdpessoa();
+        
+        $tiposAtivos = $this->entityManager->getRepository(PessoasTipos::class)
+            ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
+
+        $tiposAtivosIds = array_map(fn($pt) => $pt->getIdTipoPessoa(), $tiposAtivos);
+        
+        $novosIds = array_map(fn($tipo) => $this->convertTipoPessoaToId($tipo), $tiposPessoa);
+
+        foreach ($tiposAtivos as $tipoAtivo) {
+            if (!in_array($tipoAtivo->getIdTipoPessoa(), $novosIds)) {
+                $tipoAtivo->setAtivo(false);
+                $tipoAtivo->setDataFim(new \DateTime());
+            }
+        }
+
+        foreach ($tiposPessoa as $tipo) {
+            $tipoId = $this->convertTipoPessoaToId($tipo);
+            
+            if (!in_array($tipoId, $tiposAtivosIds)) {
+                $pessoaTipo = new PessoasTipos();
+                $pessoaTipo->setIdPessoa($pessoaId);
+                $pessoaTipo->setIdTipoPessoa($tipoId);
+                $pessoaTipo->setDataInicio(new \DateTime());
+                $pessoaTipo->setAtivo(true);
+                $this->entityManager->persist($pessoaTipo);
+
+                $this->salvarTipoEspecifico($pessoa, $tipo, $formData);
+            } else {
+                $this->atualizarTipoEspecifico($pessoa, $tipo, $formData);
+            }
+        }
+    }
+
+    private function convertTipoPessoaToId(string $tipoPessoaString): int
+    {
+        $tipoRepository = $this->entityManager->getRepository(\App\Entity\TiposPessoas::class);
+        $tipo = $tipoRepository->findOneBy(['tipo' => $tipoPessoaString, 'ativo' => true]);
+
+        if ($tipo) {
+            return $tipo->getId();
+        }
+
+        $fiador = $tipoRepository->findOneBy(['tipo' => 'fiador', 'ativo' => true]);
+        return $fiador ? $fiador->getId() : 1;
+    }
+
+    private function salvarTipoEspecifico(Pessoas $pessoa, string $tipoPessoa, array $data): void
+    {
+        if (!$tipoPessoa) {
+            return;
+        }
+
+        switch ($tipoPessoa) {
+            case 'fiador':
+                $fiador = new PessoasFiadores();
+                $fiador->setIdPessoa($pessoa->getIdpessoa());
+                
+                if (isset($data['fiador']) && is_array($data['fiador'])) {
+                    $this->preencherDadosFiador($fiador, $data['fiador']);
+                }
+                
+                $this->entityManager->persist($fiador);
+                break;
+
+            case 'corretor':
+                $corretor = new PessoasCorretores();
+                $corretor->setPessoa($pessoa);
+                
+                if (isset($data['corretor']) && is_array($data['corretor'])) {
+                    $this->preencherDadosCorretor($corretor, $data['corretor']);
+                }
+                
+                $this->entityManager->persist($corretor);
+                break;
+
+            case 'locador':
+                $locador = new PessoasLocadores();
+                $locador->setPessoa($pessoa);
+                
+                if (isset($data['locador']) && is_array($data['locador'])) {
+                    $this->preencherDadosLocador($locador, $data['locador']);
+                }
+                
+                $this->entityManager->persist($locador);
+                break;
+
+            case 'pretendente':
+                $pretendente = new PessoasPretendentes();
+                $pretendente->setPessoa($pessoa);
+                
+                if (isset($data['pretendente']) && is_array($data['pretendente'])) {
+                    $this->preencherDadosPretendente($pretendente, $data['pretendente']);
+                }
+                
+                $this->entityManager->persist($pretendente);
+                break;
+
+            case 'contratante':
+                $contratante = new PessoasContratantes();
+                $contratante->setPessoa($pessoa);
+                $this->entityManager->persist($contratante);
+                break;
+
+            case 'corretora':
+                $corretora = new PessoasCorretoras();
+                $corretora->setPessoa($pessoa);
+                $this->entityManager->persist($corretora);
+                break;
+        }
+    }
+
+    private function atualizarTipoEspecifico(Pessoas $pessoa, string $tipoPessoa, array $data): void
+    {
+        $pessoaId = $pessoa->getIdpessoa();
+
+        switch ($tipoPessoa) {
+            case 'fiador':
+                $fiador = $this->entityManager->getRepository(PessoasFiadores::class)
+                    ->findOneBy(['idPessoa' => $pessoaId]);
+                    
+                if ($fiador && isset($data['fiador']) && is_array($data['fiador'])) {
+                    $this->preencherDadosFiador($fiador, $data['fiador']);
+                }
+                break;
+
+            case 'corretor':
+                $corretor = $this->entityManager->getRepository(PessoasCorretores::class)
+                    ->findOneBy(['pessoa' => $pessoaId]);
+                    
+                if ($corretor && isset($data['corretor']) && is_array($data['corretor'])) {
+                    $this->preencherDadosCorretor($corretor, $data['corretor']);
+                }
+                break;
+
+            case 'locador':
+                $locador = $this->entityManager->getRepository(PessoasLocadores::class)
+                    ->findOneBy(['pessoa' => $pessoaId]);
+                    
+                if ($locador && isset($data['locador']) && is_array($data['locador'])) {
+                    $this->preencherDadosLocador($locador, $data['locador']);
+                }
+                break;
+
+            case 'pretendente':
+                $pretendente = $this->entityManager->getRepository(PessoasPretendentes::class)
+                    ->findOneBy(['pessoa' => $pessoaId]);
+                    
+                if ($pretendente && isset($data['pretendente']) && is_array($data['pretendente'])) {
+                    $this->preencherDadosPretendente($pretendente, $data['pretendente']);
+                }
+                break;
+        }
+    }
+
+    private function preencherDadosFiador(PessoasFiadores $fiador, array $data): void
+    {
+        if (isset($data['motivoFianca'])) {
+            $fiador->setMotivoFianca($data['motivoFianca']);
+        }
+        if (isset($data['jaFoiFiador'])) {
+            $fiador->setJaFoiFiador((bool)$data['jaFoiFiador']);
+        }
+        if (isset($data['conjugeTrabalha'])) {
+            $fiador->setConjugeTrabalha((bool)$data['conjugeTrabalha']);
+        }
+        if (isset($data['outros'])) {
+            $fiador->setOutros($data['outros']);
+        }
+        if (isset($data['idFormaRetirada'])) {
+            $fiador->setIdFormaRetirada((int)$data['idFormaRetirada']);
+        }
+    }
+
+    private function preencherDadosCorretor(PessoasCorretores $corretor, array $data): void
+    {
+        if (isset($data['creci'])) {
+            $corretor->setCreci($data['creci']);
+        }
+        if (isset($data['usuario'])) {
+            $corretor->setUsuario($data['usuario']);
+        }
+        if (isset($data['status'])) {
+            $corretor->setStatus($data['status']);
+        }
+        if (isset($data['dataCadastro'])) {
+            $corretor->setDataCadastro(new \DateTime($data['dataCadastro']));
+        }
+        if (isset($data['ativo'])) {
+            $corretor->setAtivo((bool)$data['ativo']);
+        }
+    }
+
+    private function preencherDadosLocador(PessoasLocadores $locador, array $data): void
+    {
+        if (isset($data['formaRetirada'])) {
+            $formaRetirada = $this->entityManager->getReference(\App\Entity\FormasRetirada::class, (int)$data['formaRetirada']);
+            $locador->setFormaRetirada($formaRetirada);
+        }
+        if (isset($data['dependentes'])) {
+            $locador->setDependentes((int)$data['dependentes']);
+        }
+        if (isset($data['diaRetirada'])) {
+            $locador->setDiaRetirada((int)$data['diaRetirada']);
+        }
+        if (isset($data['dataFechamento'])) {
+            $locador->setDataFechamento(new \DateTime($data['dataFechamento']));
+        }
+        if (isset($data['carencia'])) {
+            $locador->setCarencia((int)$data['carencia']);
+        }
+        if (isset($data['situacao'])) {
+            $locador->setSituacao((int)$data['situacao']);
+        }
+        if (isset($data['codigoContabil'])) {
+            $locador->setCodigoContabil((int)$data['codigoContabil']);
+        }
+        if (isset($data['protesto'])) {
+            $locador->setProtesto((int)$data['protesto']);
+        }
+        if (isset($data['diasProtesto'])) {
+            $locador->setDiasProtesto((int)$data['diasProtesto']);
+        }
+        
+        $locador->setCobrarCpmf($data['cobrarCpmf'] ?? false);
+        $locador->setEtiqueta($data['etiqueta'] ?? true);
+        $locador->setCobrarTarifaRec($data['cobrarTarifaRec'] ?? false);
+        $locador->setMultaItau($data['multaItau'] ?? false);
+        $locador->setMoraDiaria($data['moraDiaria'] ?? false);
+        $locador->setNaoGerarJudicial($data['naoGerarJudicial'] ?? false);
+        $locador->setEnderecoCobranca($data['enderecoCobranca'] ?? false);
+        $locador->setCondominioConta($data['condominioConta'] ?? false);
+        $locador->setExtEmail($data['extEmail'] ?? false);
+    }
+
+    private function preencherDadosPretendente(PessoasPretendentes $pretendente, array $data): void
+    {
+        if (isset($data['tipoImovel'])) {
+            $tipoImovel = $this->entityManager->getReference(\App\Entity\TiposImoveis::class, (int)$data['tipoImovel']);
+            $pretendente->setTipoImovel($tipoImovel);
+        }
+        if (isset($data['quartosDesejados'])) {
+            $pretendente->setQuartosDesejados((int)$data['quartosDesejados']);
+        }
+        if (isset($data['aluguelMaximo'])) {
+            $pretendente->setAluguelMaximo($data['aluguelMaximo']);
+        }
+        if (isset($data['logradouroDesejado'])) {
+            $logradouro = $this->entityManager->getReference(\App\Entity\Logradouros::class, (int)$data['logradouroDesejado']);
+            $pretendente->setLogradouroDesejado($logradouro);
+        }
+        if (isset($data['atendente'])) {
+            $atendente = $this->entityManager->getReference(\App\Entity\Users::class, (int)$data['atendente']);
+            $pretendente->setAtendente($atendente);
+        }
+        if (isset($data['tipoAtendimento'])) {
+            $tipoAtendimento = $this->entityManager->getReference(\App\Entity\TiposAtendimento::class, (int)$data['tipoAtendimento']);
+            $pretendente->setTipoAtendimento($tipoAtendimento);
+        }
+        if (isset($data['dataCadastro'])) {
+            $pretendente->setDataCadastro(new \DateTime($data['dataCadastro']));
+        }
+        if (isset($data['observacoes'])) {
+            $pretendente->setObservacoes($data['observacoes']);
+        }
+        
+        $pretendente->setDisponivel($data['disponivel'] ?? false);
+        $pretendente->setProcuraAluguel($data['procuraAluguel'] ?? false);
+        $pretendente->setProcuraCompra($data['procuraCompra'] ?? false);
+    }
+
+    /**
+     * ✅ CORRIGIDO: Salvar/atualizar cônjuge com relacionamento bidirecional
+     * Agora suporta criação, linkagem E alteração de cônjuge existente
+     */
+    private function salvarConjuge(Pessoas $pessoa, array $requestData): void
+    {
+        $this->logger->info('DEBUG salvarConjuge - requestData keys: ' . implode(', ', array_keys($requestData)));
+
+        $conjugeParaRelacionar = null;
+
+        // Verificar se foi selecionado cônjuge existente
+        $conjugeId = $requestData['conjuge'] ?? $requestData['conjuge_id'] ?? null;
+        if ($conjugeId) {
+            $this->logger->info('DEBUG: Tentando encontrar cônjuge existente com ID: ' . $conjugeId);
+            $conjugeParaRelacionar = $this->pessoaRepository->find($conjugeId);
+        }
+
+        // Ou criar novo cônjuge
+        $novoConjugeData = $requestData['novo_conjuge'] ?? null;
+        if (!$conjugeParaRelacionar && $novoConjugeData && !empty($novoConjugeData['nome']) && !empty($novoConjugeData['cpf'])) {
+            $this->logger->info('DEBUG: Criando novo cônjuge');
+            
+            $novoConjuge = new Pessoas();
+            $novoConjuge->setNome($novoConjugeData['nome']);
+
+            if (!empty($novoConjugeData['data_nascimento'])) {
+                $novoConjuge->setDataNascimento(new \DateTime($novoConjugeData['data_nascimento']));
+            }
+            if (!empty($novoConjugeData['estado_civil'])) {
+                $estadoCivil = $this->entityManager->getReference(\App\Entity\EstadoCivil::class, $novoConjugeData['estado_civil']);
+                $novoConjuge->setEstadoCivil($estadoCivil);
+            }
+            if (!empty($novoConjugeData['nacionalidade'])) {
+                $nacionalidade = $this->entityManager->getReference(\App\Entity\Nacionalidade::class, $novoConjugeData['nacionalidade']);
+                $novoConjuge->setNacionalidade($nacionalidade);
+            }
+            if (!empty($novoConjugeData['naturalidade'])) {
+                $naturalidade = $this->entityManager->getReference(\App\Entity\Naturalidade::class, $novoConjugeData['naturalidade']);
+                $novoConjuge->setNaturalidade($naturalidade);
+            }
+
+            $novoConjuge->setNomePai($novoConjugeData['nome_pai'] ?? null);
+            $novoConjuge->setNomeMae($novoConjugeData['nome_mae'] ?? null);
+            $novoConjuge->setRenda((float)($novoConjugeData['renda'] ?? 0.0));
+            $novoConjuge->setObservacoes($novoConjugeData['observacoes'] ?? null);
+            $novoConjuge->setFisicaJuridica('fisica');
+            $novoConjuge->setDtCadastro(new \DateTime());
+            $novoConjuge->setStatus(true);
+            $novoConjuge->setTipoPessoa(1);
+
+            $this->entityManager->persist($novoConjuge);
+            $this->entityManager->flush();
+
+            // ✅ CORREÇÃO: Usar método unificado
+            $this->salvarDocumentoPrincipal($novoConjuge, $novoConjugeData['cpf']);
+
+            $conjugeParaRelacionar = $novoConjuge;
+        }
+
+        // ✅ NOVO: Atualizar dados do cônjuge (seja ele novo ou existente)
+        if ($conjugeParaRelacionar) {
+            $conjugeId = $conjugeParaRelacionar->getIdpessoa();
+            
+            // Limpar dados antigos do cônjuge se houver dados novos no formulário
+            $this->limparDadosMultiplosApenasSeEnviados($conjugeId, $requestData, 'conjuge_');
+            
+            // Salvar novos dados múltiplos do cônjuge
+            $this->salvarDadosMultiplos($conjugeId, $requestData, 'conjuge_');
+            
+            // Estabelecer relacionamento bidirecional
+            $this->logger->info('DEBUG: Estabelecendo relacionamento familiar bidirecional');
+            $this->estabelecerRelacionamentoConjugal($pessoa->getIdpessoa(), $conjugeId);
+        }
+    }
+
+    /**
+     * ✅ Estabelecer relacionamento conjugal bidirecional
+     */
+    private function estabelecerRelacionamentoConjugal(int $pessoaId1, int $pessoaId2): void
+    {
+        $relacionamentoRepo = $this->entityManager->getRepository(RelacionamentosFamiliares::class);
+
+        $existente1 = $relacionamentoRepo->findOneBy([
+            'idPessoaOrigem' => $pessoaId1,
+            'idPessoaDestino' => $pessoaId2,
+            'tipoRelacionamento' => 'Cônjuge',
+            'ativo' => true
+        ]);
+
+        $existente2 = $relacionamentoRepo->findOneBy([
+            'idPessoaOrigem' => $pessoaId2,
+            'idPessoaDestino' => $pessoaId1,
+            'tipoRelacionamento' => 'Cônjuge',
+            'ativo' => true
+        ]);
+
+        if (!$existente1) {
+            $relacionamento1 = new RelacionamentosFamiliares();
+            $relacionamento1->setIdPessoaOrigem($pessoaId1);
+            $relacionamento1->setIdPessoaDestino($pessoaId2);
+            $relacionamento1->setTipoRelacionamento('Cônjuge');
+            $relacionamento1->setAtivo(true);
+            $relacionamento1->setDataInicio(new \DateTime());
+            $this->entityManager->persist($relacionamento1);
+        }
+
+        if (!$existente2) {
+            $relacionamento2 = new RelacionamentosFamiliares();
+            $relacionamento2->setIdPessoaOrigem($pessoaId2);
+            $relacionamento2->setIdPessoaDestino($pessoaId1);
+            $relacionamento2->setTipoRelacionamento('Cônjuge');
+            $relacionamento2->setAtivo(true);
+            $relacionamento2->setDataInicio(new \DateTime());
+            $this->entityManager->persist($relacionamento2);
+        }
+    }
+
+    /**
+     * ✅ Processar cônjuge ao editar pessoa
+     */
+    private function processarConjugeEdicao(Pessoas $pessoa, array $requestData): void
+    {
+        $relacionamentoRepo = $this->entityManager->getRepository(RelacionamentosFamiliares::class);
+        
+        $relacionamentoExistente = $relacionamentoRepo->findOneBy([
+            'idPessoaOrigem' => $pessoa->getIdpessoa(),
+            'tipoRelacionamento' => 'Cônjuge',
+            'ativo' => true
+        ]);
+
+        $temConjuge = !empty($requestData['novo_conjuge']['nome']) || !empty($requestData['conjuge']) || !empty($requestData['conjuge_id']);
+
+        if ($relacionamentoExistente && !$temConjuge) {
+            $relacionamentoInverso = $relacionamentoRepo->findOneBy([
+                'idPessoaOrigem' => $relacionamentoExistente->getIdPessoaDestino(),
+                'idPessoaDestino' => $pessoa->getIdpessoa(),
+                'tipoRelacionamento' => 'Cônjuge',
+                'ativo' => true
+            ]);
+
+            $relacionamentoExistente->setAtivo(false);
+            $relacionamentoExistente->setDataFim(new \DateTime());
+            
+            if ($relacionamentoInverso) {
+                $relacionamentoInverso->setAtivo(false);
+                $relacionamentoInverso->setDataFim(new \DateTime());
+            }
+        }
+
+        if ($temConjuge) {
+            $this->salvarConjuge($pessoa, $requestData);
         }
     }
 
@@ -865,6 +1032,10 @@ class PessoaService
             $dados['corretor'] = [
                 'id' => $corretor->getId(),
                 'creci' => $corretor->getCreci(),
+                'usuario' => $corretor->getUsuario(),
+                'status' => $corretor->getStatus(),
+                'dataCadastro' => $corretor->getDataCadastro() ? $corretor->getDataCadastro()->format('Y-m-d') : null,
+                'ativo' => $corretor->isAtivo(),
             ];
         }
 
@@ -873,6 +1044,24 @@ class PessoaService
         if ($locador) {
             $dados['locador'] = [
                 'id' => $locador->getId(),
+                'formaRetirada' => $locador->getFormaRetirada() ? $locador->getFormaRetirada()->getId() : null,
+                'dependentes' => $locador->getDependentes(),
+                'diaRetirada' => $locador->getDiaRetirada(),
+                'cobrarCpmf' => $locador->isCobrarCpmf(),
+                'situacao' => $locador->getSituacao(),
+                'codigoContabil' => $locador->getCodigoContabil(),
+                'etiqueta' => $locador->isEtiqueta(),
+                'cobrarTarifaRec' => $locador->isCobrarTarifaRec(),
+                'dataFechamento' => $locador->getDataFechamento() ? $locador->getDataFechamento()->format('Y-m-d') : null,
+                'carencia' => $locador->getCarencia(),
+                'multaItau' => $locador->isMultaItau(),
+                'moraDiaria' => $locador->isMoraDiaria(),
+                'protesto' => $locador->getProtesto(),
+                'diasProtesto' => $locador->getDiasProtesto(),
+                'naoGerarJudicial' => $locador->isNaoGerarJudicial(),
+                'enderecoCobranca' => $locador->isEnderecoCobranca(),
+                'condominioConta' => $locador->isCondominioConta(),
+                'extEmail' => $locador->isExtEmail(),
             ];
         }
 
@@ -881,6 +1070,17 @@ class PessoaService
         if ($pretendente) {
             $dados['pretendente'] = [
                 'id' => $pretendente->getId(),
+                'tipoImovel' => $pretendente->getTipoImovel() ? $pretendente->getTipoImovel()->getId() : null,
+                'quartosDesejados' => $pretendente->getQuartosDesejados(),
+                'aluguelMaximo' => $pretendente->getAluguelMaximo(),
+                'logradouroDesejado' => $pretendente->getLogradouroDesejado() ? $pretendente->getLogradouroDesejado()->getId() : null,
+                'disponivel' => $pretendente->isDisponivel(),
+                'procuraAluguel' => $pretendente->isProcuraAluguel(),
+                'procuraCompra' => $pretendente->isProcuraCompra(),
+                'atendente' => $pretendente->getAtendente() ? $pretendente->getAtendente()->getId() : null,
+                'tipoAtendimento' => $pretendente->getTipoAtendimento() ? $pretendente->getTipoAtendimento()->getId() : null,
+                'dataCadastro' => $pretendente->getDataCadastro() ? $pretendente->getDataCadastro()->format('Y-m-d') : null,
+                'observacoes' => $pretendente->getObservacoes(),
             ];
         }
 
@@ -1028,6 +1228,49 @@ class PessoaService
         }
 
         return $profissoes;
+    }
+
+    public function buscarConjugePessoa(int $pessoaId): ?array
+    {
+        $relacionamento = $this->entityManager->getRepository(RelacionamentosFamiliares::class)
+            ->findOneBy([
+                'idPessoaOrigem' => $pessoaId,
+                'tipoRelacionamento' => 'Cônjuge',
+                'ativo' => true
+            ]);
+
+        if (!$relacionamento) {
+            return null;
+        }
+
+        $conjugeId = $relacionamento->getIdPessoaDestino();
+        $conjuge = $this->pessoaRepository->find($conjugeId);
+
+        if (!$conjuge) {
+            return null;
+        }
+
+        $cpf = $this->pessoaRepository->getCpfByPessoa($conjugeId);
+
+        return [
+            'id' => $conjuge->getIdpessoa(),
+            'nome' => $conjuge->getNome(),
+            'cpf' => $cpf,
+            'dataNascimento' => $conjuge->getDataNascimento() ? $conjuge->getDataNascimento()->format('Y-m-d') : null,
+            'estadoCivil' => $conjuge->getEstadoCivil() ? $conjuge->getEstadoCivil()->getId() : null,
+            'nacionalidade' => $conjuge->getNacionalidade() ? $conjuge->getNacionalidade()->getId() : null,
+            'naturalidade' => $conjuge->getNaturalidade() ? $conjuge->getNaturalidade()->getId() : null,
+            'nomePai' => $conjuge->getNomePai(),
+            'nomeMae' => $conjuge->getNomeMae(),
+            'renda' => $conjuge->getRenda(),
+            'observacoes' => $conjuge->getObservacoes(),
+            'telefones' => $this->buscarTelefonesPessoa($conjugeId),
+            'enderecos' => $this->buscarEnderecosPessoa($conjugeId),
+            'emails' => $this->buscarEmailsPessoa($conjugeId),
+            'documentos' => $this->buscarDocumentosPessoa($conjugeId),
+            'chavesPix' => $this->buscarChavesPixPessoa($conjugeId),
+            'profissoes' => $this->buscarProfissoesPessoa($conjugeId),
+        ];
     }
 
     public function excluirEndereco(int $id): void
