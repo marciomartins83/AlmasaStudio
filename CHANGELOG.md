@@ -9,6 +9,38 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.5.5] - 2025-11-16
+
+### Corrigido
+- **CRÍTICO:** Select de profissão não atualiza após adicionar nova profissão via modal
+  - **Sintoma:** Profissão é persistida no banco, mas não aparece nos selects
+  - **Causa raiz:** Nova profissão era adicionada apenas ao select atual (índice específico), não a todos os selects existentes
+  - **Solução implementada:**
+    1. Adicionar profissão a **TODOS** os selects de profissão existentes (pessoa principal + cônjuge)
+    2. Atualizar cache `window.tiposProfissao` para que novos cards criados já tenham a profissão
+    3. Selecionar automaticamente a profissão no select que acionou o modal
+  - **Impacto:** Agora profissões aparecem em todos os selects existentes E nos novos cards criados
+- **CRÍTICO:** Cônjuge não é salvo ao editar pessoa existente
+  - **Sintoma:** Ao preencher dados do cônjuge e salvar, página apenas recarrega sem persistir nenhum dado
+  - **Possível causa:** Checkbox `temConjuge` não tinha atributo `name`, então não era enviado no POST
+  - **Solução temporária (investigação em andamento):**
+    1. Adicionar `name="temConjuge"` e `value="1"` ao checkbox
+    2. Atualizar validação em `processarConjugeEdicao()` para verificar também o checkbox
+    3. Adicionar logs detalhados para debug (campos recebidos, decisões, chamadas de métodos)
+  - **Status:** Correção parcial aplicada, aguardando testes para confirmar resolução completa
+
+### Alterado
+- `PessoaService::processarConjugeEdicao()` agora registra logs detalhados de debug
+- Modal de profissão atualiza cache global e todos os selects existentes
+
+### Para Testar
+- [ ] Adicionar profissão via modal e verificar se aparece em todos os selects
+- [ ] Criar novo card de profissão após adicionar profissão e verificar se aparece
+- [ ] Tentar salvar cônjuge e verificar logs do console/servidor para identificar problema
+- [ ] Confirmar se dados do cônjuge são persistidos no banco
+
+---
+
 ## [6.5.4] - 2025-11-16
 
 ### Adicionado
