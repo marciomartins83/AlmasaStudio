@@ -917,17 +917,38 @@ class PessoaService
      */
     private function processarConjugeEdicao(Pessoas $pessoa, array $requestData): void
     {
+        // 🔍 DEBUG: Log dos dados recebidos
+        $this->logger->info('🔍 DEBUG processarConjugeEdicao - Dados recebidos:', [
+            'pessoa_id' => $pessoa->getIdpessoa(),
+            'temConjuge_checkbox' => $requestData['temConjuge'] ?? 'não enviado',
+            'conjuge_id' => $requestData['conjuge_id'] ?? 'não enviado',
+            'novo_conjuge_presente' => isset($requestData['novo_conjuge']),
+            'novo_conjuge_nome' => $requestData['novo_conjuge']['nome'] ?? 'não enviado',
+            'novo_conjuge_cpf' => $requestData['novo_conjuge']['cpf'] ?? 'não enviado'
+        ]);
+
         $relacionamentoRepo = $this->entityManager->getRepository(RelacionamentosFamiliares::class);
-        
+
         $relacionamentoExistente = $relacionamentoRepo->findOneBy([
             'idPessoaOrigem' => $pessoa->getIdpessoa(),
             'tipoRelacionamento' => 'Cônjuge',
             'ativo' => true
         ]);
 
-        $temConjuge = !empty($requestData['novo_conjuge']['nome']) || !empty($requestData['conjuge']) || !empty($requestData['conjuge_id']);
+        // ✅ CORREÇÃO: Verificar também o checkbox temConjuge
+        $temConjuge = !empty($requestData['temConjuge'])
+                   || !empty($requestData['novo_conjuge']['nome'])
+                   || !empty($requestData['conjuge'])
+                   || !empty($requestData['conjuge_id']);
+
+        $this->logger->info('🔍 DEBUG processarConjugeEdicao - Decisão:', [
+            'temConjuge' => $temConjuge,
+            'relacionamentoExistente' => $relacionamentoExistente ? 'SIM' : 'NÃO'
+        ]);
 
         if ($relacionamentoExistente && !$temConjuge) {
+            $this->logger->info('🗑️ Removendo relacionamento existente (cônjuge foi desmarcado)');
+
             $relacionamentoInverso = $relacionamentoRepo->findOneBy([
                 'idPessoaOrigem' => $relacionamentoExistente->getIdPessoaDestino(),
                 'idPessoaDestino' => $pessoa->getIdpessoa(),
@@ -937,7 +958,7 @@ class PessoaService
 
             $relacionamentoExistente->setAtivo(false);
             $relacionamentoExistente->setDataFim(new \DateTime());
-            
+
             if ($relacionamentoInverso) {
                 $relacionamentoInverso->setAtivo(false);
                 $relacionamentoInverso->setDataFim(new \DateTime());
@@ -945,7 +966,10 @@ class PessoaService
         }
 
         if ($temConjuge) {
+            $this->logger->info('✅ Chamando salvarConjuge()');
             $this->salvarConjuge($pessoa, $requestData);
+        } else {
+            $this->logger->info('⏭️ Pulando salvarConjuge() - temConjuge = false');
         }
     }
 

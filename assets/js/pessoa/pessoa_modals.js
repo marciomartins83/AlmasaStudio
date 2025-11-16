@@ -164,20 +164,41 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Salvando tipo de profissão:', valor);
 
             const sucesso = await salvarNovoTipo('profissao', valor, (novoTipo) => {
-                // Tentar primeiro o select da pessoa principal
-                let select = document.getElementById(`profissao_tipo_${window.profissaoIndexAtual}`);
+                // ✅ CORREÇÃO: Adicionar a profissão em TODOS os selects de profissão existentes
+                // Isso garante que a profissão apareça em todos os cards, não apenas no atual
 
-                // Se não encontrou, tentar o select do cônjuge
-                if (!select) {
-                    select = document.getElementById(`conjuge_profissao_tipo_${window.profissaoIndexAtual}`);
+                // 1. Buscar todos os selects de profissão da pessoa principal
+                const selectsPessoaPrincipal = document.querySelectorAll('select[id^="profissao_tipo_"]');
+                selectsPessoaPrincipal.forEach(select => {
+                    const option = new Option(novoTipo.tipo, novoTipo.id, false, false);
+                    select.add(option);
+                });
+
+                // 2. Buscar todos os selects de profissão do cônjuge
+                const selectsConjuge = document.querySelectorAll('select[id^="conjuge_profissao_tipo_"]');
+                selectsConjuge.forEach(select => {
+                    const option = new Option(novoTipo.tipo, novoTipo.id, false, false);
+                    select.add(option);
+                });
+
+                // 3. Selecionar automaticamente no select que acionou o modal (se existir)
+                const selectAtual = document.getElementById(`profissao_tipo_${window.profissaoIndexAtual}`)
+                                 || document.getElementById(`conjuge_profissao_tipo_${window.profissaoIndexAtual}`);
+
+                if (selectAtual) {
+                    selectAtual.value = novoTipo.id;
+                    console.log('✅ Profissão selecionada automaticamente no select atual:', novoTipo);
                 }
 
-                if (select) {
-                    const option = new Option(novoTipo.tipo, novoTipo.id, true, true);
-                    select.add(option);
-                    console.log('Tipo de profissão adicionado ao select:', novoTipo);
-                } else {
-                    console.error('Select de profissão não encontrado para index:', window.profissaoIndexAtual);
+                console.log(`✅ Profissão adicionada a ${selectsPessoaPrincipal.length + selectsConjuge.length} select(s)`);
+
+                // 4. Atualizar o cache de profissões para que novos cards tenham a profissão
+                if (window.tiposProfissao && Array.isArray(window.tiposProfissao)) {
+                    window.tiposProfissao.push({
+                        id: novoTipo.id,
+                        tipo: novoTipo.tipo
+                    });
+                    console.log('✅ Cache de profissões atualizado');
                 }
 
                 // Fechar modal e limpar campo
