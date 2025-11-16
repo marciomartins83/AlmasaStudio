@@ -1,4 +1,4 @@
-{# templates/pessoa/new.html.twig - CORRIGIDO #}
+{# templates/pessoa/pessoa_form.html.twig - Formulário unificado para criar/editar pessoa #}
 {% extends 'base.html.twig' %}
 
 {% block title %}Gestão de Pessoa{% endblock %}
@@ -106,10 +106,22 @@
                             
                             <div class="row">
                                 <div class="col-md-6">
-                                    {{ form_row(form.nacionalidade) }}
+                                    <label for="{{ form.nacionalidade.vars.id }}" class="form-label">Nacionalidade</label>
+                                    <div class="input-group">
+                                        {{ form_widget(form.nacionalidade, {'attr': {'class': 'form-select'}}) }}
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNacionalidade">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form_row(form.naturalidade) }}
+                                    <label for="{{ form.naturalidade.vars.id }}" class="form-label">Naturalidade</label>
+                                    <div class="input-group">
+                                        {{ form_widget(form.naturalidade, {'attr': {'class': 'form-select'}}) }}
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNaturalidade">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -286,21 +298,27 @@
                             </div>
                             
                             <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Buscar Cônjuge Existente</label>
-                                    <input type="text" class="form-control" id="conjuge-search" placeholder="Digite o nome completo">
+                                <div class="col-md-4">
+                                    <label for="conjugeSearchCriteria" class="form-label">Como deseja buscar?</label>
+                                    <select id="conjugeSearchCriteria" class="form-select">
+                                        <option value="">Selecione o critério</option>
+                                        <option value="cpf">CPF</option>
+                                        <option value="nome">Nome Completo</option>
+                                        <option value="id">ID da Pessoa</option>
+                                    </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <label for="conjugeSearchValue" class="form-label">Valor da Busca</label>
+                                    <input type="text" id="conjugeSearchValue" class="form-control" placeholder="Digite o valor" disabled>
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label">&nbsp;</label>
                                     <div>
-                                        <button type="button" class="btn btn-outline-primary" id="btn-search-conjuge">
+                                        <button type="button" class="btn btn-outline-primary" id="btn-search-conjuge" disabled>
                                             <i class="fas fa-search"></i> Buscar
                                         </button>
                                         <button type="button" class="btn btn-outline-success" id="btn-new-conjuge">
-                                            <i class="fas fa-plus"></i> Novo Cônjuge
-                                        </button>
-                                        <button type="button" class="btn btn-outline-danger" id="btn-remove-conjuge" style="display: none;">
-                                            <i class="fas fa-trash"></i> Remover
+                                            <i class="fas fa-plus"></i> Novo
                                         </button>
                                     </div>
                                 </div>
@@ -344,21 +362,31 @@
                                     <div class="row mt-3">
                                         <div class="col-md-6">
                                             <label class="form-label">Nacionalidade</label>
-                                            <select class="form-select" name="novo_conjuge[nacionalidade]">
-                                                <option value="">Selecione...</option>
-                                                {% for nac in form.nacionalidade.vars.choices %}
-                                                    <option value="{{ nac.value }}">{{ nac.label }}</option>
-                                                {% endfor %}
-                                            </select>
+                                            <div class="input-group">
+                                                <select class="form-select" name="novo_conjuge[nacionalidade]">
+                                                    <option value="">Selecione...</option>
+                                                    {% for nac in form.nacionalidade.vars.choices %}
+                                                        <option value="{{ nac.value }}">{{ nac.label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNacionalidade">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Naturalidade</label>
-                                            <select class="form-select" name="novo_conjuge[naturalidade]">
-                                                <option value="">Selecione...</option>
-                                                {% for nat in form.naturalidade.vars.choices %}
-                                                    <option value="{{ nat.value }}">{{ nat.label }}</option>
-                                                {% endfor %}
-                                            </select>
+                                            <div class="input-group">
+                                                <select class="form-select" name="novo_conjuge[naturalidade]">
+                                                    <option value="">Selecione...</option>
+                                                    {% for nat in form.naturalidade.vars.choices %}
+                                                        <option value="{{ nat.value }}">{{ nat.label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNaturalidade">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -510,7 +538,9 @@
         buscarCep: '{{ path("app_pessoa_buscar_cep") }}',
         searchConjuge: '{{ path("app_pessoa_search_conjuge") }}',
         newPessoa: '{{ path("app_pessoa_new") }}',
-        editPessoa: '{{ path("app_pessoa_edit", {"id": 999999})|replace({"999999":"__ID__"}) }}'
+        editPessoa: '{{ path("app_pessoa_edit", {"id": 999999})|replace({"999999":"__ID__"}) }}',
+        salvarNacionalidade: '{{ path("app_nacionalidade_salvar") }}',
+        salvarNaturalidade: '{{ path("app_naturalidade_salvar") }}'
     };
     
     window.FORM_IDS = {

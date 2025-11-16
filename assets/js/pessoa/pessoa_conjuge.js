@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Verificar se os elementos de cônjuge existem no DOM
     const conjugeElements = {
-        search: document.getElementById('conjuge-search'),
+        searchCriteria: document.getElementById('conjugeSearchCriteria'),
+        searchValue: document.getElementById('conjugeSearchValue'),
         btnSearch: document.getElementById('btn-search-conjuge'),
         btnNew: document.getElementById('btn-new-conjuge'),
         results: document.getElementById('conjuge-results'),
@@ -27,13 +28,52 @@ document.addEventListener('DOMContentLoaded', function() {
     // =========================================================================
     // FUNCIONALIDADES DE CÔNJUGE
     // =========================================================================
-    
-    if (conjugeElements.search && conjugeElements.btnSearch) {
+
+    // Controlar habilitação do campo de valor baseado no critério selecionado
+    if (conjugeElements.searchCriteria && conjugeElements.searchValue && conjugeElements.btnSearch) {
+        conjugeElements.searchCriteria.addEventListener('change', () => {
+            const selectedValue = conjugeElements.searchCriteria.value;
+
+            if (selectedValue) {
+                conjugeElements.searchValue.removeAttribute('disabled');
+                conjugeElements.searchValue.focus();
+            } else {
+                conjugeElements.searchValue.setAttribute('disabled', 'disabled');
+                conjugeElements.btnSearch.setAttribute('disabled', 'disabled');
+            }
+
+            conjugeElements.searchValue.value = '';
+            const selectedOptionText = conjugeElements.searchCriteria.options[conjugeElements.searchCriteria.selectedIndex].text;
+            conjugeElements.searchValue.placeholder = selectedValue ? `Digite o ${selectedOptionText}` : 'Selecione um critério primeiro';
+        });
+
+        conjugeElements.searchValue.addEventListener('input', () => {
+            const criteria = conjugeElements.searchCriteria.value;
+            let minLength = 0;
+
+            switch(criteria) {
+                case 'cpf':
+                    minLength = 11;
+                    break;
+                case 'nome':
+                    minLength = 3;
+                    break;
+                case 'id':
+                    minLength = 1;
+                    break;
+            }
+
+            conjugeElements.btnSearch.disabled = conjugeElements.searchValue.value.trim().length < minLength;
+        });
+    }
+
+    if (conjugeElements.searchCriteria && conjugeElements.searchValue && conjugeElements.btnSearch) {
         conjugeElements.btnSearch.addEventListener('click', async function() {
-            const termo = conjugeElements.search.value.trim();
-            
-            if (!termo || termo.length < 3) {
-                alert('Digite pelo menos 3 caracteres para buscar');
+            const criteria = conjugeElements.searchCriteria.value;
+            const value = conjugeElements.searchValue.value.trim();
+
+            if (!criteria || !value) {
+                alert('Selecione um critério e digite o valor da busca');
                 return;
             }
 
@@ -46,13 +86,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Rota de busca de cônjuge não configurada');
                 }
 
+                // ✅ Obter ID da pessoa principal para evitar auto-relacionamento
+                const pessoaIdField = document.getElementById(window.FORM_IDS?.pessoaId || 'pessoa_form_pessoaId');
+                const pessoaId = pessoaIdField ? pessoaIdField.value : null;
+
                 const response = await fetch(window.ROUTES.searchConjuge, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: JSON.stringify({ termo: termo })
+                    body: JSON.stringify({
+                        criteria: criteria,
+                        value: value,
+                        pessoaId: pessoaId // Enviar ID para evitar auto-relacionamento
+                    })
                 });
 
                 if (!response.ok) {
@@ -247,9 +295,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 conjugeElements.field.value = '';
             }
 
-            // Limpar campo de busca
-            if (conjugeElements.search) {
-                conjugeElements.search.value = '';
+            // Limpar campos de busca
+            if (conjugeElements.searchCriteria) {
+                conjugeElements.searchCriteria.value = '';
+            }
+
+            if (conjugeElements.searchValue) {
+                conjugeElements.searchValue.value = '';
+                conjugeElements.searchValue.setAttribute('disabled', 'disabled');
+            }
+
+            if (conjugeElements.btnSearch) {
+                conjugeElements.btnSearch.setAttribute('disabled', 'disabled');
             }
 
             // Ocultar resultados
@@ -281,11 +338,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Enter no campo de busca
-    if (conjugeElements.search && conjugeElements.btnSearch) {
-        conjugeElements.search.addEventListener('keypress', function(e) {
+    if (conjugeElements.searchValue && conjugeElements.btnSearch) {
+        conjugeElements.searchValue.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                conjugeElements.btnSearch.click();
+                if (!conjugeElements.btnSearch.disabled) {
+                    conjugeElements.btnSearch.click();
+                }
             }
         });
     }

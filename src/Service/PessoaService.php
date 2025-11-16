@@ -1369,4 +1369,62 @@ class PessoaService
             default => throw new \RuntimeException('Múltiplas pessoas encontradas. Informe CPF/CNPJ.'),
         };
     }
+
+    /**
+     * Busca cônjuge por critério (CPF, Nome, ID)
+     * Apenas pessoas físicas podem ser cônjuges
+     * IMPORTANTE: Uma pessoa nunca pode ser cônjuge de si mesma
+     *
+     * @param string $criteria Critério de busca ('cpf', 'nome', 'id')
+     * @param string $value Valor da busca
+     * @param int|null $pessoaIdExcluir ID da pessoa principal (para evitar auto-relacionamento)
+     * @return array Array de pessoas encontradas
+     */
+    public function buscarConjugePorCriterio(string $criteria, string $value, ?int $pessoaIdExcluir = null): array
+    {
+        $criteria = strtolower(trim($criteria));
+        $value = trim($value);
+
+        if (empty($value)) {
+            return [];
+        }
+
+        $resultado = [];
+
+        switch ($criteria) {
+            case 'cpf':
+                $pessoa = $this->pessoaRepository->findByCpfDocumento($value);
+                if ($pessoa && $pessoa->getFisicaJuridica() === 'fisica') {
+                    $resultado[] = $pessoa;
+                }
+                break;
+
+            case 'nome':
+                $pessoas = $this->pessoaRepository->findPessoasFisicasByNome($value);
+                $resultado = $pessoas;
+                break;
+
+            case 'id':
+                $pessoa = $this->pessoaRepository->find((int)$value);
+                if ($pessoa && $pessoa->getFisicaJuridica() === 'fisica') {
+                    $resultado[] = $pessoa;
+                }
+                break;
+
+            default:
+                return [];
+        }
+
+        // ✅ VALIDAÇÃO: Uma pessoa nunca pode ser cônjuge de si mesma
+        if ($pessoaIdExcluir !== null) {
+            $resultado = array_filter($resultado, function($pessoa) use ($pessoaIdExcluir) {
+                return $pessoa->getIdpessoa() !== $pessoaIdExcluir;
+            });
+
+            // Reindexar array após filtro
+            $resultado = array_values($resultado);
+        }
+
+        return $resultado;
+    }
 }

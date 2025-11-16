@@ -12,7 +12,7 @@ class PessoasDocumentos
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[ORM\ManyToOne(targetEntity: Pessoas::class)]
+    #[ORM\ManyToOne(targetEntity: Pessoas::class, inversedBy: 'pessoasDocumentos')]
     #[ORM\JoinColumn(name: 'id_pessoa', referencedColumnName: 'idpessoa')]
     private ?Pessoas $pessoa = null;
     #[ORM\ManyToOne(targetEntity: TiposDocumentos::class)]

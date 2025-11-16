@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/naturalidade', name: 'app_naturalidade_')]
@@ -87,5 +88,43 @@ class NaturalidadeController extends AbstractController
         }
 
         return $this->redirectToRoute('app_naturalidade_index');
+    }
+
+    /**
+     * Salva nova naturalidade via AJAX
+     */
+    #[Route('/salvar', name: 'salvar', methods: ['POST'])]
+    public function salvar(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (empty($data['nome'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Nome da naturalidade é obrigatório'
+                ], 400);
+            }
+
+            $naturalidade = new Naturalidade();
+            $naturalidade->setNome($data['nome']);
+
+            $entityManager->persist($naturalidade);
+            $entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'naturalidade' => [
+                    'id' => $naturalidade->getId(),
+                    'nome' => $naturalidade->getNome()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro ao salvar naturalidade: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -62,7 +62,7 @@ class PessoaController extends AbstractController
             }
         }
 
-        return $this->render('pessoa/new.html.twig', [
+        return $this->render('pessoa/pessoa_form.html.twig', [
             'form' => $form->createView(),
         ]);
     }
@@ -373,24 +373,21 @@ class PessoaController extends AbstractController
         try {
             $data = json_decode($request->getContent(), true);
 
-            if (!$data || !isset($data['termo'])) {
-                return new JsonResponse(['success' => false, 'message' => 'Termo de busca não informado'], 400);
+            if (!$data || !isset($data['criteria']) || !isset($data['value'])) {
+                return new JsonResponse(['success' => false, 'message' => 'Critério e valor são obrigatórios'], 400);
             }
 
-            $termo = trim($data['termo']);
+            $criteria = $data['criteria'];
+            $value = $data['value'];
+            $pessoaIdExcluir = isset($data['pessoaId']) && is_numeric($data['pessoaId'])
+                ? (int)$data['pessoaId']
+                : null;
 
-            if (strlen($termo) < 3) {
-                return new JsonResponse(['success' => false, 'message' => 'Digite pelo menos 3 caracteres'], 400);
-            }
+            // ✅ Thin Controller: Delega lógica para o Service
+            // Service irá garantir que uma pessoa nunca seja cônjuge de si mesma
+            $pessoas = $this->pessoaService->buscarConjugePorCriterio($criteria, $value, $pessoaIdExcluir);
 
-            $pessoas = $pessoaRepository->createQueryBuilder('p')
-                ->where('p.nome LIKE :termo')
-                ->setParameter('termo', '%' . $termo . '%')
-                ->andWhere('p.fisicaJuridica = :fisica')
-                ->setParameter('fisica', 'fisica')
-                ->getQuery()
-                ->getResult();
-
+            // Formatar resultado para JSON
             $result = [];
             foreach ($pessoas as $pessoa) {
                 $cpf = $pessoaRepository->getCpfByPessoa($pessoa->getIdpessoa());
@@ -449,7 +446,7 @@ class PessoaController extends AbstractController
             }
         }
 
-        return $this->render('pessoa/edit.html.twig', [
+        return $this->render('pessoa/pessoa_form.html.twig', [
             'pessoa' => $pessoa,
             'form' => $form->createView(),
         ]);

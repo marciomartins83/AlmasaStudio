@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/nacionalidade', name: 'app_nacionalidade_')]
@@ -87,5 +88,43 @@ class NacionalidadeController extends AbstractController
         }
 
         return $this->redirectToRoute('app_nacionalidade_index');
+    }
+
+    /**
+     * Salva nova nacionalidade via AJAX
+     */
+    #[Route('/salvar', name: 'salvar', methods: ['POST'])]
+    public function salvar(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (empty($data['nome'])) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Nome da nacionalidade é obrigatório'
+                ], 400);
+            }
+
+            $nacionalidade = new Nacionalidade();
+            $nacionalidade->setNome($data['nome']);
+
+            $entityManager->persist($nacionalidade);
+            $entityManager->flush();
+
+            return new JsonResponse([
+                'success' => true,
+                'nacionalidade' => [
+                    'id' => $nacionalidade->getId(),
+                    'nome' => $nacionalidade->getNome()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro ao salvar nacionalidade: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

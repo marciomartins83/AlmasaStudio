@@ -350,4 +350,64 @@ class PessoaRepository extends ServiceEntityRepository
             ->setParameter('pessoaId', $pessoaId)
             ->getResult();
     }
+
+    /**
+     * Busca cônjuge por CPF, Nome ou ID
+     * Retorna apenas pessoas físicas
+     *
+     * @param string $criteria Critério de busca (cpf, nome, id)
+     * @param string $value Valor para buscar
+     * @return array Array de pessoas encontradas
+     */
+    public function searchConjuge(string $criteria, string $value): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->andWhere('p.fisicaJuridica = :fisica')
+            ->setParameter('fisica', 'fisica');
+
+        switch (strtolower($criteria)) {
+            case 'cpf':
+            case 'cpf (pessoa física)':
+                // Busca por CPF através da tabela de documentos
+                $pessoa = $this->findByCpfDocumento($value);
+                return $pessoa ? [$pessoa] : [];
+
+            case 'id':
+            case 'id da pessoa':
+                // Busca por ID
+                $qb->andWhere('p.idpessoa = :id')
+                   ->setParameter('id', (int)$value);
+                break;
+
+            case 'nome':
+            case 'nome completo':
+                // Busca parcial por nome
+                $qb->andWhere('p.nome LIKE :nome')
+                   ->setParameter('nome', '%' . $value . '%')
+                   ->orderBy('p.nome', 'ASC');
+                break;
+
+            default:
+                return [];
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Busca pessoas físicas por nome (para seleção de cônjuge)
+     * @param string $nome Nome parcial ou completo
+     * @return array<Pessoas>
+     */
+    public function findPessoasFisicasByNome(string $nome): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.nome LIKE :nome')
+            ->andWhere('p.fisicaJuridica = :fisica')
+            ->setParameter('nome', '%' . $nome . '%')
+            ->setParameter('fisica', 'fisica')
+            ->orderBy('p.nome', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

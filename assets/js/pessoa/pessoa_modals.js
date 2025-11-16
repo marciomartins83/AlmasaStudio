@@ -160,18 +160,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Digite o nome da profissão');
                 return;
             }
-            
+
             console.log('Salvando tipo de profissão:', valor);
-            
+
             const sucesso = await salvarNovoTipo('profissao', valor, (novoTipo) => {
                 // Tentar primeiro o select da pessoa principal
                 let select = document.getElementById(`profissao_tipo_${window.profissaoIndexAtual}`);
-                
+
                 // Se não encontrou, tentar o select do cônjuge
                 if (!select) {
                     select = document.getElementById(`conjuge_profissao_tipo_${window.profissaoIndexAtual}`);
                 }
-                
+
                 if (select) {
                     const option = new Option(novoTipo.tipo, novoTipo.id, true, true);
                     select.add(option);
@@ -179,12 +179,136 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.error('Select de profissão não encontrado para index:', window.profissaoIndexAtual);
                 }
-                
+
                 // Fechar modal e limpar campo
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoTipoProfissao'));
                 if (modal) modal.hide();
                 document.getElementById('novoTipoProfissao').value = '';
             });
+        });
+    }
+
+    // ============================================================================
+    // SALVAR NACIONALIDADE - PESSOA PRINCIPAL E CÔNJUGE
+    // ============================================================================
+    const salvarNacionalidade = document.getElementById('salvarNacionalidade');
+    if (salvarNacionalidade) {
+        salvarNacionalidade.addEventListener('click', async function() {
+            const valor = document.getElementById('novaNacionalidade')?.value?.trim();
+            if (!valor) {
+                alert('Digite o nome da nacionalidade');
+                return;
+            }
+
+            console.log('Salvando nacionalidade:', valor);
+
+            try {
+                const response = await fetch(window.ROUTES.salvarNacionalidade, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({ nome: valor })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Adicionar aos selects da pessoa principal
+                    const selectPessoa = document.getElementById(window.FORM_IDS.nacionalidade);
+                    if (selectPessoa) {
+                        const option = new Option(data.nacionalidade.nome, data.nacionalidade.id, true, true);
+                        selectPessoa.add(option);
+                        console.log('✅ Nacionalidade adicionada ao select da pessoa principal:', data.nacionalidade);
+                    }
+
+                    // Adicionar ao select do cônjuge
+                    const selectConjuge = document.querySelector('select[name="novo_conjuge[nacionalidade]"]');
+                    if (selectConjuge) {
+                        const option = new Option(data.nacionalidade.nome, data.nacionalidade.id, true, true);
+                        selectConjuge.add(option);
+                        console.log('✅ Nacionalidade adicionada ao select do cônjuge:', data.nacionalidade);
+                    }
+
+                    // Fechar modal e limpar campo
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovaNacionalidade'));
+                    if (modal) modal.hide();
+                    document.getElementById('novaNacionalidade').value = '';
+                } else {
+                    alert(data.message || 'Erro ao salvar nacionalidade');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao salvar nacionalidade:', error);
+                alert('Erro ao salvar nacionalidade. Tente novamente.');
+            }
+        });
+    }
+
+    // ============================================================================
+    // SALVAR NATURALIDADE - PESSOA PRINCIPAL E CÔNJUGE
+    // ============================================================================
+    const salvarNaturalidade = document.getElementById('salvarNaturalidade');
+    if (salvarNaturalidade) {
+        salvarNaturalidade.addEventListener('click', async function() {
+            const valor = document.getElementById('novaNaturalidade')?.value?.trim();
+            if (!valor) {
+                alert('Digite o nome da naturalidade');
+                return;
+            }
+
+            console.log('Salvando naturalidade:', valor);
+
+            try {
+                const response = await fetch(window.ROUTES.salvarNaturalidade, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({ nome: valor })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Adicionar aos selects da pessoa principal
+                    const selectPessoa = document.getElementById(window.FORM_IDS.naturalidade);
+                    if (selectPessoa) {
+                        const option = new Option(data.naturalidade.nome, data.naturalidade.id, true, true);
+                        selectPessoa.add(option);
+                        console.log('✅ Naturalidade adicionada ao select da pessoa principal:', data.naturalidade);
+                    }
+
+                    // Adicionar ao select do cônjuge
+                    const selectConjuge = document.querySelector('select[name="novo_conjuge[naturalidade]"]');
+                    if (selectConjuge) {
+                        const option = new Option(data.naturalidade.nome, data.naturalidade.id, true, true);
+                        selectConjuge.add(option);
+                        console.log('✅ Naturalidade adicionada ao select do cônjuge:', data.naturalidade);
+                    }
+
+                    // Fechar modal e limpar campo
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovaNaturalidade'));
+                    if (modal) modal.hide();
+                    document.getElementById('novaNaturalidade').value = '';
+                } else {
+                    alert(data.message || 'Erro ao salvar naturalidade');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao salvar naturalidade:', error);
+                alert('Erro ao salvar naturalidade. Tente novamente.');
+            }
         });
     }
 
