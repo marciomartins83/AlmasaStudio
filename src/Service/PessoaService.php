@@ -1427,4 +1427,39 @@ class PessoaService
 
         return $resultado;
     }
+
+    /**
+     * Lista todas as pessoas com dados enriquecidos (CPF/CNPJ e tipos)
+     *
+     * @return array<int, array{entidade: Pessoas, cpf: ?string, cnpj: ?string, tipos: array<string>}>
+     */
+    public function listarPessoasEnriquecidas(): array
+    {
+        $pessoas = $this->pessoaRepository->findAll();
+        $pessoasEnriquecidas = [];
+
+        foreach ($pessoas as $pessoa) {
+            $pessoaId = $pessoa->getIdpessoa();
+
+            // Buscar CPF ou CNPJ via Repository
+            $cpf = $this->pessoaRepository->getCpfByPessoa($pessoaId);
+            $cnpj = $this->pessoaRepository->getCnpjByPessoa($pessoaId);
+
+            // Buscar tipos da pessoa via Repository
+            $tiposComDados = $this->pessoaRepository->findTiposComDados($pessoaId);
+            $tipos = $tiposComDados['tipos'] ?? [];
+
+            // Filtrar apenas tipos ativos
+            $tiposAtivos = array_filter($tipos, fn($ativo) => $ativo === true);
+
+            $pessoasEnriquecidas[] = [
+                'entidade' => $pessoa,
+                'cpf' => $cpf,
+                'cnpj' => $cnpj,
+                'tipos' => array_keys($tiposAtivos)
+            ];
+        }
+
+        return $pessoasEnriquecidas;
+    }
 }

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 new.js carregado');
+    console.log('🚀 pessoa_form.js carregado');
     
     // --- ELEMENTOS DO FORMULÁRIO ---
     const searchCriteriaSelect = document.getElementById('searchCriteria');
@@ -745,7 +745,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    console.log('✅ new.js: Todas as funcionalidades configuradas');
+    console.log('✅ pessoa_form.js: Todas as funcionalidades configuradas');
 
-    setFormActionToNew();
+    // --- MODO DE EDIÇÃO: Carregamento automático de dados ---
+    if (window.IS_EDIT_MODE && window.PESSOA_ID) {
+        console.log('🟢 Modo de edição detectado - Pessoa ID:', window.PESSOA_ID);
+        buscarECarregarPessoa(window.PESSOA_ID);
+    } else {
+        console.log('🟢 Modo de criação - Formulário vazio');
+        setFormActionToNew();
+    }
+
+    /**
+     * Busca os dados da pessoa e preenche o formulário (modo de edição)
+     * @param {number} pessoaId - ID da pessoa a ser carregada
+     */
+    async function buscarECarregarPessoa(pessoaId) {
+        console.log(`🔎 Buscando dados da pessoa ID ${pessoaId}...`);
+
+        try {
+            const response = await fetch(window.ROUTES.searchPessoa, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    criteria: 'id',
+                    value: pessoaId.toString()
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao buscar pessoa');
+            }
+
+            if (!data.success) {
+                throw new Error(data.message || 'Pessoa não encontrada');
+            }
+
+            if (!data.pessoa) {
+                throw new Error('Dados da pessoa não retornados');
+            }
+
+            console.log('✅ Pessoa encontrada:', data.pessoa);
+
+            // Preencher formulário
+            preencherFormulario(data.pessoa);
+            console.log('✅ Formulário preenchido com sucesso');
+
+        } catch (erro) {
+            console.error('❌ Erro ao buscar pessoa:', erro);
+            alert(`Erro ao carregar dados da pessoa: ${erro.message}`);
+        }
+    }
 });

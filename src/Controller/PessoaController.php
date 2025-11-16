@@ -7,6 +7,7 @@ use App\Form\PessoaFormType;
 use App\Repository\PessoaRepository;
 use App\Service\PessoaService;
 use App\Service\CepService;
+use App\Service\ProfissaoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,21 +20,27 @@ use Psr\Log\LoggerInterface;
 class PessoaController extends AbstractController
 {
     private PessoaService $pessoaService;
+    private ProfissaoService $profissaoService;
     private LoggerInterface $logger;
 
     public function __construct(
         PessoaService $pessoaService,
+        ProfissaoService $profissaoService,
         LoggerInterface $logger
     ) {
         $this->pessoaService = $pessoaService;
+        $this->profissaoService = $profissaoService;
         $this->logger = $logger;
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(PessoaRepository $pessoaRepository): Response
+    public function index(): Response
     {
+        // ✅ Thin Controller: Delega para Service
+        $pessoasEnriquecidas = $this->pessoaService->listarPessoasEnriquecidas();
+
         return $this->render('pessoa/index.html.twig', [
-            'pessoas' => $pessoaRepository->findAll(),
+            'pessoas' => $pessoasEnriquecidas,
         ]);
     }
 
@@ -64,6 +71,8 @@ class PessoaController extends AbstractController
 
         return $this->render('pessoa/pessoa_form.html.twig', [
             'form' => $form->createView(),
+            'isEditMode' => false,
+            'pessoaId' => null
         ]);
     }
 
@@ -291,8 +300,21 @@ class PessoaController extends AbstractController
                 return new JsonResponse(['success' => false, 'message' => 'Nome do tipo é obrigatório'], 400);
             }
 
+            // ✅ Thin Controller: Delega profissão para Service
+            if ($entidade === 'profissao') {
+                $profissao = $this->profissaoService->salvarProfissao($tipoNome);
+                return new JsonResponse([
+                    'success' => true,
+                    'tipo' => [
+                        'id' => $profissao->getId(),
+                        'tipo' => $profissao->getNome()
+                    ]
+                ]);
+            }
+
+            // Demais entidades (telefone, endereco, email, etc.) permanecem aqui
+            // TODO: Criar services específicos para cada tipo (refatoração futura)
             $novoTipo = null;
-            $isProfissao = ($entidade === 'profissao');
 
             switch ($entidade) {
                 case 'telefone':
@@ -310,20 +332,11 @@ class PessoaController extends AbstractController
                 case 'documento':
                     $novoTipo = new \App\Entity\TiposDocumentos();
                     break;
-                case 'profissao':
-                    $novoTipo = new \App\Entity\Profissoes();
-                    break;
                 default:
                     return new JsonResponse(['success' => false, 'message' => 'Entidade não reconhecida'], 400);
             }
 
-            if ($isProfissao) {
-                $novoTipo->setNome($tipoNome);
-                $novoTipo->setAtivo(true);
-            } else {
-                $novoTipo->setTipo($tipoNome);
-            }
-
+            $novoTipo->setTipo($tipoNome);
             $entityManager->persist($novoTipo);
             $entityManager->flush();
 
@@ -331,9 +344,11 @@ class PessoaController extends AbstractController
                 'success' => true,
                 'tipo' => [
                     'id' => $novoTipo->getId(),
-                    'tipo' => $isProfissao ? $novoTipo->getNome() : $novoTipo->getTipo()
+                    'tipo' => $novoTipo->getTipo()
                 ]
             ]);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
         } catch (\Exception $e) {
             return new JsonResponse(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
         }
@@ -438,7 +453,7 @@ class PessoaController extends AbstractController
 
                 $this->addFlash('success', 'Pessoa atualizada com sucesso!');
                 return $this->redirectToRoute('app_pessoa_index');
-                
+
             } catch (\RuntimeException $e) {
                 $this->addFlash('error', $e->getMessage());
             } catch (\Exception $e) {
@@ -449,6 +464,8 @@ class PessoaController extends AbstractController
         return $this->render('pessoa/pessoa_form.html.twig', [
             'pessoa' => $pessoa,
             'form' => $form->createView(),
+            'isEditMode' => true,
+            'pessoaId' => $pessoa->getIdpessoa()
         ]);
     }
 

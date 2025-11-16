@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Nacionalidade;
 use App\Form\NacionalidadeType;
+use App\Service\NacionalidadeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/nacionalidade', name: 'app_nacionalidade_')]
 class NacionalidadeController extends AbstractController
 {
+    private NacionalidadeService $nacionalidadeService;
+
+    public function __construct(NacionalidadeService $nacionalidadeService)
+    {
+        $this->nacionalidadeService = $nacionalidadeService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager): Response
     {
@@ -94,23 +101,22 @@ class NacionalidadeController extends AbstractController
      * Salva nova nacionalidade via AJAX
      */
     #[Route('/salvar', name: 'salvar', methods: ['POST'])]
-    public function salvar(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    public function salvar(Request $request): JsonResponse
     {
+        // ✅ Validação de CSRF Token
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Token CSRF inválido'
+            ], 403);
+        }
+
         try {
             $data = json_decode($request->getContent(), true);
 
-            if (empty($data['nome'])) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Nome da nacionalidade é obrigatório'
-                ], 400);
-            }
-
-            $nacionalidade = new Nacionalidade();
-            $nacionalidade->setNome($data['nome']);
-
-            $entityManager->persist($nacionalidade);
-            $entityManager->flush();
+            // ✅ Thin Controller: Delega para Service
+            $nacionalidade = $this->nacionalidadeService->salvarNacionalidade($data['nome'] ?? '');
 
             return new JsonResponse([
                 'success' => true,
@@ -120,6 +126,11 @@ class NacionalidadeController extends AbstractController
                 ]
             ]);
 
+        } catch (\RuntimeException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         } catch (\Exception $e) {
             return new JsonResponse([
                 'success' => false,

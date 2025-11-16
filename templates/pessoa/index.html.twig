@@ -31,34 +31,50 @@
                     </thead>
                     <tbody>
                     {% for pessoa in pessoas %}
+                        {% set tiposNomes = {
+                            'contratante': 'Contratante',
+                            'fiador': 'Fiador',
+                            'locador': 'Locador',
+                            'corretor': 'Corretor',
+                            'corretora': 'Corretora',
+                            'pretendente': 'Pretendente'
+                        } %}
                         <tr>
-                            <td>{{ pessoa.idpessoa }}</td>
-                            <td>{{ pessoa.nome }}</td>
+                            <td>{{ pessoa.entidade.idpessoa }}</td>
+                            <td>{{ pessoa.entidade.nome }}</td>
                             <td>
-                                {% if pessoa.isPessoaFisica and pessoa.cpf %}
+                                {% if pessoa.cpf %}
                                     CPF: {{ pessoa.cpf }}
-                                {% elseif pessoa.isPessoaJuridica and pessoa.cnpj %}
+                                {% elseif pessoa.cnpj %}
                                     CNPJ: {{ pessoa.cnpj }}
                                 {% else %}
-                                    Não informado
+                                    <span class="text-muted">Não informado</span>
                                 {% endif %}
                             </td>
-                            <td>{# Lógica para exibir os tipos da pessoa virá aqui #}</td>
                             <td>
-                                {% if pessoa.status %}
+                                {% if pessoa.tipos is not empty %}
+                                    {% for tipo in pessoa.tipos %}
+                                        <div>{{ tiposNomes[tipo] ?? tipo|capitalize }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">Sem tipo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pessoa.entidade.status %}
                                     <span class="badge bg-success">Ativo</span>
                                 {% else %}
                                     <span class="badge bg-danger">Inativo</span>
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <a href="{{ path('app_pessoa_show', {'id': pessoa.idpessoa}) }}" class="btn btn-sm btn-info" title="Ver">
+                                <a href="{{ path('app_pessoa_show', {'id': pessoa.entidade.idpessoa}) }}" class="btn btn-sm btn-info" title="Ver">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ path('app_pessoa_edit', {'id': pessoa.idpessoa}) }}" class="btn btn-sm btn-primary" title="Editar">
+                                <a href="{{ path('app_pessoa_edit', {'id': pessoa.entidade.idpessoa}) }}" class="btn btn-sm btn-primary" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                {{ include('pessoa/_delete_form.html.twig', {'pessoa': pessoa}) }}
+                                {{ include('pessoa/_delete_form.html.twig', {'pessoa': pessoa.entidade}) }}
                             </td>
                         </tr>
                     {% else %}

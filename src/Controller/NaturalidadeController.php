@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Naturalidade;
 use App\Form\NaturalidadeType;
+use App\Service\NaturalidadeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/naturalidade', name: 'app_naturalidade_')]
 class NaturalidadeController extends AbstractController
 {
+    private NaturalidadeService $naturalidadeService;
+
+    public function __construct(NaturalidadeService $naturalidadeService)
+    {
+        $this->naturalidadeService = $naturalidadeService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager): Response
     {
@@ -94,23 +101,22 @@ class NaturalidadeController extends AbstractController
      * Salva nova naturalidade via AJAX
      */
     #[Route('/salvar', name: 'salvar', methods: ['POST'])]
-    public function salvar(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    public function salvar(Request $request): JsonResponse
     {
+        // ✅ Validação de CSRF Token
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Token CSRF inválido'
+            ], 403);
+        }
+
         try {
             $data = json_decode($request->getContent(), true);
 
-            if (empty($data['nome'])) {
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Nome da naturalidade é obrigatório'
-                ], 400);
-            }
-
-            $naturalidade = new Naturalidade();
-            $naturalidade->setNome($data['nome']);
-
-            $entityManager->persist($naturalidade);
-            $entityManager->flush();
+            // ✅ Thin Controller: Delega para Service
+            $naturalidade = $this->naturalidadeService->salvarNaturalidade($data['nome'] ?? '');
 
             return new JsonResponse([
                 'success' => true,
@@ -120,6 +126,11 @@ class NaturalidadeController extends AbstractController
                 ]
             ]);
 
+        } catch (\RuntimeException $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         } catch (\Exception $e) {
             return new JsonResponse([
                 'success' => false,

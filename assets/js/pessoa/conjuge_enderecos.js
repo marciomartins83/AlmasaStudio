@@ -5,6 +5,39 @@
 document.addEventListener('DOMContentLoaded', function() {
     let contadorConjugeEndereco = 0;
 
+    // Botão para copiar endereços da pessoa principal para o cônjuge
+    document.getElementById('copy-enderecos-to-conjuge')?.addEventListener('click', async function() {
+        const enderecosContainer = document.getElementById('enderecos-container');
+        if (!enderecosContainer) {
+            alert('Seção de endereços da pessoa principal não encontrada.');
+            return;
+        }
+
+        const enderecoItems = enderecosContainer.querySelectorAll('.endereco-item');
+        if (enderecoItems.length === 0) {
+            alert('Nenhum endereço para copiar. Adicione endereços à pessoa principal primeiro.');
+            return;
+        }
+
+        // Extrai dados de cada endereço e adiciona ao cônjuge
+        for (const item of enderecoItems) {
+            const endereco = {
+                tipo: item.querySelector('[name*="[tipo]"]')?.value || '',
+                cep: item.querySelector('[name*="[cep]"]')?.value || '',
+                logradouro: item.querySelector('[name*="[logradouro]"]')?.value || '',
+                numero: item.querySelector('[name*="[numero]"]')?.value || '',
+                complemento: item.querySelector('[name*="[complemento]"]')?.value || '',
+                bairro: item.querySelector('[name*="[bairro]"]')?.value || '',
+                cidade: item.querySelector('[name*="[cidade]"]')?.value || '',
+                estado: item.querySelector('.estado-field')?.value || ''
+            };
+
+            await adicionarConjugeEnderecoExistente(endereco);
+        }
+
+        alert(`${enderecoItems.length} endereço(s) copiado(s) para o cônjuge com sucesso!`);
+    });
+
     document.getElementById('add-conjuge-endereco')?.addEventListener('click', async function() {
         const tipos = window.tiposEndereco || await carregarTipos('endereco');
         window.tiposEndereco = tipos;

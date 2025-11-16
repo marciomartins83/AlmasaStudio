@@ -15,9 +15,9 @@
     <div class="row">
         <div class="col-12">
             <h1><i class="fas fa-users"></i> Gestão de Pessoa</h1>
-            
+
             <!-- Interface de Busca Inteligente -->
-            <div class="card mb-4">
+            <div class="card mb-4" id="search-interface" {% if isEditMode %}style="display: none;"{% endif %}>
                 <div class="card-header">
                     <h3><i class="fas fa-search"></i> Buscar Pessoa</h3>
                     <small class="text-muted">Busque para editar ou criar uma nova pessoa</small>
@@ -73,7 +73,7 @@
             </div>
             
             <!-- Formulário Principal -->
-            <div id="main-form" style="display: none;">
+            <div id="main-form" {% if not isEditMode %}style="display: none;"{% endif %}>
                 {{ form_start(form) }}
                 
                 {{ form_row(form.pessoaId) }}
@@ -433,11 +433,18 @@
                             </div>
 
                             <div class="card mt-3">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5><i class="fas fa-map-marker-alt"></i> Endereços do Cônjuge</h5>
-                                    <button type="button" class="btn btn-sm btn-primary" id="add-conjuge-endereco">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Endereços do Cônjuge</h5>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-2" id="copy-enderecos-to-conjuge" title="Copiar endereços da pessoa principal">
+                                                <i class="fas fa-copy"></i> Adicionar mesmo do Cônjuge
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-primary" id="add-conjuge-endereco">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div id="conjuge-enderecos-container">
@@ -542,7 +549,7 @@
         salvarNacionalidade: '{{ path("app_nacionalidade_salvar") }}',
         salvarNaturalidade: '{{ path("app_naturalidade_salvar") }}'
     };
-    
+
     window.FORM_IDS = {
         pessoaId: '{{ form.pessoaId.vars.id }}',
         nome: '{{ form.nome.vars.id }}',
@@ -557,6 +564,10 @@
         observacoes: '{{ form.observacoes.vars.id }}',
         conjuge: '{{ form.conjuge.vars.id }}'
     };
+
+    // Variáveis de modo de edição
+    window.IS_EDIT_MODE = {{ isEditMode ? 'true' : 'false' }};
+    window.PESSOA_ID = {{ pessoaId ?? 'null' }};
 </script>
 
 <script src="{{ asset('js/pessoa/pessoa.js') }}"></script>
@@ -568,7 +579,7 @@
 <script src="{{ asset('js/pessoa/pessoa_chave_pix.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_modals.js') }}"></script>
-<script src="{{ asset('js/pessoa/new.js') }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_form.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_telefones.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_enderecos.js') }}"></script>
