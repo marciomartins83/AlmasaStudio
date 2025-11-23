@@ -55,13 +55,33 @@ class PessoaController extends AbstractController
                 $pessoa = $form->getData();
                 $requestData = $request->request->all();
 
+                // Prepara os dados do cônjuge mesclando dados básicos com as coleções
+                $dadosConjuge = $requestData['novo_conjuge'] ?? [];
+
+                if (!empty($dadosConjuge)) {
+                    // Injeta as coleções dentro do array do cônjuge para o Service processar
+                    $dadosConjuge['telefones'] = $requestData['conjuge_telefones'] ?? [];
+                    $dadosConjuge['emails'] = $requestData['conjuge_emails'] ?? [];
+                    $dadosConjuge['enderecos'] = $requestData['conjuge_enderecos'] ?? [];
+                    $dadosConjuge['chaves_pix'] = $requestData['conjuge_chaves_pix'] ?? [];
+                    $dadosConjuge['documentos'] = $requestData['conjuge_documentos'] ?? [];
+                    $dadosConjuge['profissoes'] = $requestData['conjuge_profissoes'] ?? [];
+                }
+
                 // Merge explícito dos campos raw com os dados do formulário
                 $formData = array_merge(
                     $requestData['pessoa_form'] ?? [],
                     [
-                        'novo_conjuge' => $requestData['novo_conjuge'] ?? null,
+                        'novo_conjuge' => $dadosConjuge,
                         'temConjuge' => $requestData['temConjuge'] ?? null,
-                        'conjuge_id' => $requestData['conjuge_id'] ?? null
+                        'conjuge_id' => $requestData['conjuge_id'] ?? null,
+                        // Também passa os arrays diretamente para o Service processar dados múltiplos do cônjuge
+                        'conjuge_telefones' => $requestData['conjuge_telefones'] ?? [],
+                        'conjuge_emails' => $requestData['conjuge_emails'] ?? [],
+                        'conjuge_enderecos' => $requestData['conjuge_enderecos'] ?? [],
+                        'conjuge_chaves_pix' => $requestData['conjuge_chaves_pix'] ?? [],
+                        'conjuge_documentos' => $requestData['conjuge_documentos'] ?? [],
+                        'conjuge_profissoes' => $requestData['conjuge_profissoes'] ?? []
                     ]
                 );
 
@@ -457,13 +477,33 @@ class PessoaController extends AbstractController
             try {
                 $requestData = $request->request->all();
 
+                // Prepara os dados do cônjuge mesclando dados básicos com as coleções
+                $dadosConjuge = $requestData['novo_conjuge'] ?? [];
+
+                if (!empty($dadosConjuge)) {
+                    // Injeta as coleções dentro do array do cônjuge para o Service processar
+                    $dadosConjuge['telefones'] = $requestData['conjuge_telefones'] ?? [];
+                    $dadosConjuge['emails'] = $requestData['conjuge_emails'] ?? [];
+                    $dadosConjuge['enderecos'] = $requestData['conjuge_enderecos'] ?? [];
+                    $dadosConjuge['chaves_pix'] = $requestData['conjuge_chaves_pix'] ?? [];
+                    $dadosConjuge['documentos'] = $requestData['conjuge_documentos'] ?? [];
+                    $dadosConjuge['profissoes'] = $requestData['conjuge_profissoes'] ?? [];
+                }
+
                 // Merge explícito dos campos raw com os dados do formulário
                 $formData = array_merge(
                     $requestData['pessoa_form'] ?? [],
                     [
-                        'novo_conjuge' => $requestData['novo_conjuge'] ?? null,
+                        'novo_conjuge' => $dadosConjuge,
                         'temConjuge' => $requestData['temConjuge'] ?? null,
-                        'conjuge_id' => $requestData['conjuge_id'] ?? null
+                        'conjuge_id' => $requestData['conjuge_id'] ?? null,
+                        // Também passa os arrays diretamente para o Service processar dados múltiplos do cônjuge
+                        'conjuge_telefones' => $requestData['conjuge_telefones'] ?? [],
+                        'conjuge_emails' => $requestData['conjuge_emails'] ?? [],
+                        'conjuge_enderecos' => $requestData['conjuge_enderecos'] ?? [],
+                        'conjuge_chaves_pix' => $requestData['conjuge_chaves_pix'] ?? [],
+                        'conjuge_documentos' => $requestData['conjuge_documentos'] ?? [],
+                        'conjuge_profissoes' => $requestData['conjuge_profissoes'] ?? []
                     ]
                 );
 

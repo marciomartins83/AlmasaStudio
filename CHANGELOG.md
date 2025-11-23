@@ -9,28 +9,53 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
-## [6.5.6] - 2025-11-23
+## [6.5.7] - 2025-11-23
 
 ### Corrigido
-- **CRÍTICO:** Campos do cônjuge não chegavam ao `PessoaService` ao salvar/editar pessoa
-  - **Sintoma:** Campos `novo_conjuge`, `temConjuge` e `conjuge_id` enviados pelo JavaScript não eram processados
-  - **Causa raiz:** Controller descartava esses campos ao extrair apenas `$requestData['pessoa_form']`
+- **CRÍTICO:** Dados múltiplos do cônjuge (telefones, emails, endereços, etc.) eram descartados pelo Controller
+  - **Sintoma:** Ao preencher telefones, emails, endereços, documentos, chaves PIX e profissões do cônjuge e clicar em salvar, apenas os dados básicos (nome, CPF, data nascimento) eram processados. Todos os dados complementares eram perdidos.
+  - **Causa raiz:** Controller capturava apenas `novo_conjuge` (dados básicos), mas os arrays de dados múltiplos (`conjuge_telefones[]`, `conjuge_emails[]`, etc.) enviados pelo JavaScript não eram passados ao Service
+  - **Análise técnica:**
+    - JavaScript gera inputs: `conjuge_telefones[0][numero]`, `conjuge_emails[0][email]`, etc.
+    - Service (`salvarDadosMultiplos()`) espera receber: `$requestData['conjuge_telefones']`, `$requestData['conjuge_emails']`, etc.
+    - Controller descartava esses arrays ao extrair apenas `$requestData['pessoa_form']`
   - **Solução implementada:**
-    - Fazer merge explícito dos campos raw com os dados do formulário no Controller
+    - Controller agora captura TODOS os arrays de dados múltiplos do cônjuge
+    - Injeta os arrays dentro de `novo_conjuge` E também passa diretamente no `$formData`
     - Métodos `new()` e `edit()` do `PessoaController` agora incluem:
       ```php
+      // Prepara dados do cônjuge mesclando dados básicos com coleções
+      $dadosConjuge = $requestData['novo_conjuge'] ?? [];
+      if (!empty($dadosConjuge)) {
+          $dadosConjuge['telefones'] = $requestData['conjuge_telefones'] ?? [];
+          $dadosConjuge['emails'] = $requestData['conjuge_emails'] ?? [];
+          $dadosConjuge['enderecos'] = $requestData['conjuge_enderecos'] ?? [];
+          $dadosConjuge['chaves_pix'] = $requestData['conjuge_chaves_pix'] ?? [];
+          $dadosConjuge['documentos'] = $requestData['conjuge_documentos'] ?? [];
+          $dadosConjuge['profissoes'] = $requestData['conjuge_profissoes'] ?? [];
+      }
+
+      // Passa arrays também diretamente para o Service
       $formData = array_merge(
           $requestData['pessoa_form'] ?? [],
           [
-              'novo_conjuge' => $requestData['novo_conjuge'] ?? null,
-              'temConjuge' => $requestData['temConjuge'] ?? null,
-              'conjuge_id' => $requestData['conjuge_id'] ?? null
+              'novo_conjuge' => $dadosConjuge,
+              'conjuge_telefones' => $requestData['conjuge_telefones'] ?? [],
+              'conjuge_emails' => $requestData['conjuge_emails'] ?? [],
+              // ... (todos os arrays)
           ]
       );
       ```
-  - **Impacto:** Dados do cônjuge agora chegam corretamente ao Service para processamento
-  - **Arquivos modificados:** `src/Controller/PessoaController.php` (linhas ~57 e ~449)
-  - **Solução segue padrão:** Mantém Controller "thin" (apenas prepara dados) e Service "fat" (processa lógica)
+  - **Impacto:** Agora TODOS os dados do cônjuge (básicos + telefones + emails + endereços + documentos + chaves PIX + profissões) são corretamente persistidos no banco
+  - **Arquivos modificados:** `src/Controller/PessoaController.php` (métodos `new()` e `edit()`)
+  - **Solução segue padrão:** Mantém Controller "thin" (apenas prepara e organiza dados) e Service "fat" (processa toda a lógica de negócio)
+  - **Créditos:** Análise identificada pelo Gemini AI e validada com inspeção de código
+
+### Versões Anteriores (Consolidadas)
+
+#### [6.5.6] - 2025-11-23 (DESCONTINUADA - Correção incompleta)
+- Tentativa de corrigir campos do cônjuge, mas não incluía dados múltiplos
+- **SUBSTITUÍDA pela v6.5.7 que resolve o problema completamente**
 
 ---
 
