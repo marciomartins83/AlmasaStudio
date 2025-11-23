@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 class TiposCarteiras
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     #[ORM\Column]
     private ?int $id = null;
     #[ORM\Column]

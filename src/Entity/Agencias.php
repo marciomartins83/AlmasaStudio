@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 class Agencias
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     #[ORM\Column]
     private ?int $id = null;
     #[ORM\Column]

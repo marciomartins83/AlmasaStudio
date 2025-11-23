@@ -85,7 +85,11 @@ class PessoaController extends AbstractController
                     ]
                 );
 
-                $tipoPessoa = $form->get('tipoPessoa')->getData();
+                // ✅ CORREÇÃO: tipoPessoa vem dos dados da requisição, não do formulário Symfony
+                // O campo foi removido do PessoaFormType.php (linha 128-129)
+                // Sistema de múltiplos tipos é gerenciado via JavaScript
+                // JavaScript envia como 'tipos_pessoa[]' (ver assets/js/pessoa/pessoa_tipos.js:78)
+                $tipoPessoa = $requestData['tipos_pessoa'] ?? [];
 
                 $this->pessoaService->criarPessoa($pessoa, $formData, $tipoPessoa);
                 
@@ -507,7 +511,11 @@ class PessoaController extends AbstractController
                     ]
                 );
 
-                $tipoPessoa = $form->get('tipoPessoa')->getData();
+                // ✅ CORREÇÃO: tipoPessoa vem dos dados da requisição, não do formulário Symfony
+                // O campo foi removido do PessoaFormType.php (linha 128-129)
+                // Sistema de múltiplos tipos é gerenciado via JavaScript
+                // JavaScript envia como 'tipos_pessoa[]' (ver assets/js/pessoa/pessoa_tipos.js:78)
+                $tipoPessoa = $requestData['tipos_pessoa'] ?? [];
 
                 $this->pessoaService->atualizarPessoa($pessoa, $formData, $tipoPessoa);
 

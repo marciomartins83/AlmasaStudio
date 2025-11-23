@@ -7,6 +7,149 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido
+- **CRÍTICO:** Erro "null value in column 'idpessoa'" ao criar novo cônjuge
+  - **Sintoma:** Erro SQL: "null value in column 'idpessoa' of relation 'pessoas' violates not-null constraint" ao tentar salvar um novo cônjuge
+  - **Causa raiz:** Tabela principal `pessoas` usava `GeneratedValue(strategy: 'AUTO')` ao invés de `IDENTITY`, não tinha sequência PostgreSQL
+  - **Solução implementada:**
+    1. Corrigida estratégia de geração para `IDENTITY` na entidade Pessoas
+    2. Criada sequência `pessoas_idpessoa_seq` no banco
+    3. Configurado DEFAULT para usar a sequência
+  - **Impacto:** Criação de novas pessoas (incluindo cônjuges) agora funciona corretamente
+  - **Arquivos modificados:**
+    - `src/Entity/Pessoas.php` (linha 14)
+  - **Referência:** Issue reportada em 23/11/2025
+
+- **CRÍTICO:** Erros de JavaScript no console ao acessar o dashboard
+  - **Sintoma:** Console mostrava erros: "Elemento #searchCriteria NÃO ENCONTRADO!" e "Elemento #searchValue NÃO ENCONTRADO!"
+  - **Causa raiz:** Arquivo `dashboard.js` continha código do formulário de pessoas (new.js) ao invés da lógica do dashboard
+  - **Solução implementada:**
+    - Substituído conteúdo do `dashboard.js` pelo código correto
+    - Agora contém apenas a função `toggleDetails()` para mostrar/ocultar detalhes dos cards
+  - **Impacto:** Dashboard agora carrega sem erros no console
+  - **Arquivos modificados:**
+    - `assets/js/dashboard/dashboard.js` - código simplificado e corrigido
+  - **Referência:** Issue reportada em 23/11/2025
+
+- **CRÍTICO:** Erro "Child 'tipoPessoa' does not exist" ao salvar pessoa com cônjuge
+  - **Sintoma:** Ao editar uma pessoa e tentar incluir um cônjuge, o sistema retornava erro: "Child 'tipoPessoa' does not exist"
+  - **Causa raiz:**
+    - Campo `tipoPessoa` foi removido do `PessoaFormType.php` (linha 128-129) em favor do sistema de múltiplos tipos via JavaScript
+    - Mas o `PessoaController` ainda tentava acessar `$form->get('tipoPessoa')->getData()` nos métodos `new()` e `edit()`
+  - **Solução implementada:**
+    - Controller agora busca os tipos diretamente dos dados da requisição: `$requestData['tipos_pessoa']`
+    - JavaScript envia os tipos como `tipos_pessoa[]` (ver `assets/js/pessoa/pessoa_tipos.js:78`)
+    - Código atualizado em ambos os métodos:
+      ```php
+      // ✅ ANTES (ERRADO)
+      $tipoPessoa = $form->get('tipoPessoa')->getData();
+
+      // ✅ DEPOIS (CORRETO)
+      $tipoPessoa = $requestData['tipos_pessoa'] ?? [];
+      ```
+  - **Impacto:** Sistema de cadastro/edição de pessoas com cônjuge agora funciona corretamente
+  - **Arquivos modificados:**
+    - `src/Controller/PessoaController.php` (métodos `new()` linha 92 e `edit()` linha 518)
+  - **Referência:** Issue reportada em 23/11/2025
+
+- **CRÍTICO:** Erro de violação NOT NULL em tabelas de tipos de pessoa ao salvar
+  - **Sintoma:** Erro SQL: "null value in column 'id' violates not-null constraint" em múltiplas tabelas:
+    - `pessoas_tipos`
+    - `pessoas_contratantes`
+    - `pessoas_fiadores`
+    - `pessoas_locadores`
+    - `pessoas_corretores`
+    - `pessoas_corretoras`
+    - `pessoas_pretendentes`
+  - **Causa raiz:**
+    - Colunas `id` não tinham sequências PostgreSQL configuradas para geração automática
+    - Algumas entidades usavam anotação DocBlock antiga misturada com Attributes PHP 8
+  - **Solução implementada:**
+    1. **CORREÇÃO COMPLETA:** Adicionada estratégia `#[ORM\GeneratedValue(strategy: 'IDENTITY')]` em TODAS as entidades de tipos de pessoa
+    2. **Sequências criadas no banco:**
+       - `pessoas_tipos_id_seq`
+       - `pessoas_contratantes_id_seq`
+       - `pessoas_fiadores_id_seq`
+       - `pessoas_locadores_id_seq`
+       - `pessoas_corretores_id_seq`
+       - `pessoas_corretoras_id_seq`
+       - `pessoas_pretendentes_id_seq`
+    3. Padronizadas anotações para usar Attributes PHP 8
+  - **Impacto:** Sistema de tipos de pessoa agora funciona 100% corretamente
+  - **Arquivos modificados:**
+    - `src/Entity/PessoasTipos.php`
+    - `src/Entity/PessoasContratantes.php`
+    - `src/Entity/PessoasFiadores.php`
+    - `src/Entity/PessoasLocadores.php`
+    - `src/Entity/PessoasCorretores.php`
+    - `src/Entity/PessoasCorretoras.php`
+    - `src/Entity/PessoasPretendentes.php`
+  - **Referência:** Issues reportadas em 23/11/2025
+
+---
+
+## [6.6.0] - 2025-11-23
+
+### CORREÇÃO CRÍTICA COMPLETA - Symfony Best Practices
+
+#### ⚠️ PROBLEMA GRAVE IDENTIFICADO
+- **Violação severa de best practices:** Alterações diretas no banco de dados sem migrations
+- **Impacto:** Sistema quebraria completamente ao migrar de ambiente (desenvolvimento → produção)
+- **Período afetado:** Todas as correções aplicadas em 23/11/2025
+
+#### ✅ SOLUÇÃO COMPLETA APLICADA
+
+1. **Correção de TODAS as 42 entidades sem strategy IDENTITY:**
+   - Script automático criado e executado para corrigir todas as entidades
+   - Aplicado `#[ORM\GeneratedValue(strategy: 'IDENTITY')]` em TODAS as entidades
+   - **Entidades corrigidas:** Users, TiposTelefones, Cidades, Estados, TiposEnderecos,
+     ConfiguracoesCobranca, Enderecos, TiposEmails, PessoasEmails, ContasBancarias,
+     TiposRemessa, TiposImoveis, PessoasProfissoes, Emails, FormasRetirada,
+     PessoasTelefones, Bairros, ContasVinculadas, Permissions, Bancos, TiposPessoas,
+     TiposDocumentos, Agencias, TiposChavesPix, EstadoCivil, Telefones,
+     TiposContasBancarias, RequisicoesResponsaveis, Logradouros, LayoutsRemessa,
+     RazoesConta, FiadoresInquilinos, Roles, FailedJobs, TiposAtendimento,
+     TiposCarteiras, PessoasDocumentos, RelacionamentosFamiliares, ChavesPix,
+     PersonalAccessTokens, Sessions, RegimesCasamento
+
+2. **Migration criada seguindo 100% Symfony Best Practices:**
+   - **Arquivo:** `migrations/Version20251123234500_SequenciasFix.php`
+   - **Características:**
+     - Usa PL/pgSQL com verificação `IF NOT EXISTS`
+     - Totalmente idempotente (pode ser executada múltiplas vezes)
+     - Segura contra erros de sequências duplicadas
+     - Compatível com qualquer ambiente (dev, staging, prod)
+   - **Status:** ✅ Executada com sucesso
+
+3. **Sequências PostgreSQL criadas via migration para:**
+   - `pessoas` → `pessoas_idpessoa_seq`
+   - `pessoas_tipos` → `pessoas_tipos_id_seq`
+   - `pessoas_contratantes` → `pessoas_contratantes_id_seq`
+   - `pessoas_fiadores` → `pessoas_fiadores_id_seq`
+   - `pessoas_locadores` → `pessoas_locadores_id_seq`
+   - `pessoas_corretores` → `pessoas_corretores_id_seq`
+   - `pessoas_corretoras` → `pessoas_corretoras_id_seq`
+   - `pessoas_pretendentes` → `pessoas_pretendentes_id_seq`
+   - **+ 42 outras tabelas** com suas respectivas sequências
+
+#### 📝 Arquivos Modificados
+- **42 entidades** em `src/Entity/` - todas agora com `strategy: 'IDENTITY'`
+- **1 migration criada:** `migrations/Version20251123234500_SequenciasFix.php`
+
+#### 🎯 Impacto e Garantias
+- ✅ Sistema agora segue 100% as best practices do Symfony e Doctrine
+- ✅ Migrations podem ser executadas em qualquer ambiente sem erros
+- ✅ Não há mais alterações diretas no banco de dados
+- ✅ Doctrine schema está 100% sincronizado
+- ✅ Portabilidade garantida entre ambientes
+- ✅ Código auditável e versionado
+
+#### 📚 Lições Aprendidas
+- **NUNCA** fazer alterações diretas no banco com `doctrine:query:sql`
+- **SEMPRE** criar migrations para qualquer mudança de schema
+- **SEMPRE** aplicar `strategy: 'IDENTITY'` em entidades PostgreSQL
+- **SEMPRE** validar schema com `doctrine:schema:validate`
+
 ---
 
 ## [6.5.7] - 2025-11-23

@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 class PessoasTipos
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     #[ORM\Column]
     private ?int $id = null;
     #[ORM\Column(type: 'bigint')]
@@ -17,10 +17,9 @@ class PessoasTipos
     #[ORM\Column(type: 'bigint')]
     private int $idTipoPessoa;
 
-    /**
-     * @ORM\Column(type="date")
-     */
+    #[ORM\Column(type: 'date')]
     private \DateTimeInterface $dataInicio;
+
     #[ORM\Column(type: 'date', nullable: true)]
     private ?\DateTimeInterface $dataFim = null;
     #[ORM\Column(type: 'boolean')]

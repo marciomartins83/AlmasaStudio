@@ -11,7 +11,7 @@ use Doctrine\Common\Collections\Collection;
 class Pessoas
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     #[ORM\Column(name: 'idpessoa', type: 'integer')]
     private ?int $idpessoa = null;
 

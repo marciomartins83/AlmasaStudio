@@ -11,7 +11,7 @@ use App\Repository\PessoaContratanteRepository; // Supondo que o repositório ex
 class PessoasContratantes
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     #[ORM\Column]
     private ?int $id = null;
 
