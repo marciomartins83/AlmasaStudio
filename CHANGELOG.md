@@ -7,6 +7,27 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [6.6.1] - 2025-11-24
+
+### Corrigido
+- **CRÍTICO:** Erro "null value in column 'id' of relation 'pessoas_documentos'" ao salvar pessoa
+  - **Sintoma:** Mesmo após correção das entidades, sequências não estavam vinculadas às colunas
+  - **Causa raiz:** Comando `ALTER TABLE ... SET DEFAULT` não havia sido executado nas tabelas
+  - **Solução implementada:**
+    - Migration `Version20251124000000_FixAllSequences.php` criada
+    - Vincula sequências a TODAS as tabelas críticas:
+      - pessoas_documentos → pessoas_documentos_id_seq
+      - pessoas_profissoes → pessoas_profissoes_id_seq
+      - chaves_pix → chaves_pix_id_seq
+      - enderecos → enderecos_id_seq
+      - telefones → telefones_id_seq
+      - emails → emails_id_seq
+      - pessoas_telefones → pessoas_telefones_id_seq
+      - pessoas_emails → pessoas_emails_id_seq
+      - Todas as tabelas de tipos de pessoa
+  - **Status:** ✅ Migration executada com sucesso
+  - **Impacto:** Sistema agora salva pessoas com todos os dados múltiplos sem erros
+
 ### Corrigido
 - **CRÍTICO:** Erro "null value in column 'idpessoa'" ao criar novo cônjuge
   - **Sintoma:** Erro SQL: "null value in column 'idpessoa' of relation 'pessoas' violates not-null constraint" ao tentar salvar um novo cônjuge
