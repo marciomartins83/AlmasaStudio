@@ -9,6 +9,31 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.5.6] - 2025-11-23
+
+### Corrigido
+- **CRÍTICO:** Campos do cônjuge não chegavam ao `PessoaService` ao salvar/editar pessoa
+  - **Sintoma:** Campos `novo_conjuge`, `temConjuge` e `conjuge_id` enviados pelo JavaScript não eram processados
+  - **Causa raiz:** Controller descartava esses campos ao extrair apenas `$requestData['pessoa_form']`
+  - **Solução implementada:**
+    - Fazer merge explícito dos campos raw com os dados do formulário no Controller
+    - Métodos `new()` e `edit()` do `PessoaController` agora incluem:
+      ```php
+      $formData = array_merge(
+          $requestData['pessoa_form'] ?? [],
+          [
+              'novo_conjuge' => $requestData['novo_conjuge'] ?? null,
+              'temConjuge' => $requestData['temConjuge'] ?? null,
+              'conjuge_id' => $requestData['conjuge_id'] ?? null
+          ]
+      );
+      ```
+  - **Impacto:** Dados do cônjuge agora chegam corretamente ao Service para processamento
+  - **Arquivos modificados:** `src/Controller/PessoaController.php` (linhas ~57 e ~449)
+  - **Solução segue padrão:** Mantém Controller "thin" (apenas prepara dados) e Service "fat" (processa lógica)
+
+---
+
 ## [6.5.5] - 2025-11-16
 
 ### Corrigido

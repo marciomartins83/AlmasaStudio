@@ -54,7 +54,17 @@ class PessoaController extends AbstractController
             try {
                 $pessoa = $form->getData();
                 $requestData = $request->request->all();
-                $formData = $requestData['pessoa_form'] ?? $requestData;
+
+                // Merge explícito dos campos raw com os dados do formulário
+                $formData = array_merge(
+                    $requestData['pessoa_form'] ?? [],
+                    [
+                        'novo_conjuge' => $requestData['novo_conjuge'] ?? null,
+                        'temConjuge' => $requestData['temConjuge'] ?? null,
+                        'conjuge_id' => $requestData['conjuge_id'] ?? null
+                    ]
+                );
+
                 $tipoPessoa = $form->get('tipoPessoa')->getData();
 
                 $this->pessoaService->criarPessoa($pessoa, $formData, $tipoPessoa);
@@ -446,7 +456,17 @@ class PessoaController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $requestData = $request->request->all();
-                $formData = $requestData['pessoa_form'] ?? $requestData;
+
+                // Merge explícito dos campos raw com os dados do formulário
+                $formData = array_merge(
+                    $requestData['pessoa_form'] ?? [],
+                    [
+                        'novo_conjuge' => $requestData['novo_conjuge'] ?? null,
+                        'temConjuge' => $requestData['temConjuge'] ?? null,
+                        'conjuge_id' => $requestData['conjuge_id'] ?? null
+                    ]
+                );
+
                 $tipoPessoa = $form->get('tipoPessoa')->getData();
 
                 $this->pessoaService->atualizarPessoa($pessoa, $formData, $tipoPessoa);
