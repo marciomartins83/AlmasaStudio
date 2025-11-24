@@ -297,18 +297,50 @@ class PessoaService
         // Profissões
         $chaveProfissoes = $prefixo . 'profissoes';
         if (isset($requestData[$chaveProfissoes]) && is_array($requestData[$chaveProfissoes])) {
-            foreach ($requestData[$chaveProfissoes] as $profissaoData) {
+            $this->logger->info("DEBUG - Salvando profissões com chave: $chaveProfissoes para pessoa: $pessoaId");
+            $this->logger->info("DEBUG - Dados recebidos: " . json_encode($requestData[$chaveProfissoes]));
+
+            // Primeiro, marcar todas as profissões existentes como inativas
+            $profissoesExistentes = $this->entityManager->getRepository(PessoasProfissoes::class)
+                ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
+
+            foreach ($profissoesExistentes as $profExistente) {
+                $profExistente->setAtivo(false);
+                $this->entityManager->persist($profExistente);
+            }
+
+            // Agora processar as novas profissões
+            foreach ($requestData[$chaveProfissoes] as $index => $profissaoData) {
+                $this->logger->info("DEBUG - Processando profissão $index: " . json_encode($profissaoData));
+
                 if (!empty($profissaoData['profissao'])) {
-                    $pessoaProfissao = new PessoasProfissoes();
-                    $pessoaProfissao->setIdPessoa($pessoaId);
-                    $pessoaProfissao->setIdProfissao((int)$profissaoData['profissao']);
+                    // Verificar se já existe uma profissão inativa com os mesmos dados
+                    $pessoaProfissao = $this->entityManager->getRepository(PessoasProfissoes::class)
+                        ->findOneBy([
+                            'idPessoa' => $pessoaId,
+                            'idProfissao' => (int)$profissaoData['profissao'],
+                            'empresa' => $profissaoData['empresa'] ?? null
+                        ]);
+
+                    if (!$pessoaProfissao) {
+                        $pessoaProfissao = new PessoasProfissoes();
+                        $pessoaProfissao->setIdPessoa($pessoaId);
+                        $pessoaProfissao->setIdProfissao((int)$profissaoData['profissao']);
+                    }
 
                     if (!empty($profissaoData['empresa'])) {
                         $pessoaProfissao->setEmpresa($profissaoData['empresa']);
                     }
+
+                    // Log detalhado para data_admissao
+                    $this->logger->info("DEBUG - Campo data_admissao: " . (isset($profissaoData['data_admissao']) ? $profissaoData['data_admissao'] : 'NÃO DEFINIDO'));
                     if (!empty($profissaoData['data_admissao'])) {
+                        $this->logger->info("DEBUG - Definindo data_admissao: " . $profissaoData['data_admissao']);
                         $pessoaProfissao->setDataAdmissao(new \DateTime($profissaoData['data_admissao']));
+                    } else {
+                        $this->logger->info("DEBUG - data_admissao está vazia ou não definida");
                     }
+
                     if (!empty($profissaoData['data_demissao'])) {
                         $pessoaProfissao->setDataDemissao(new \DateTime($profissaoData['data_demissao']));
                     }
@@ -1206,7 +1238,8 @@ class PessoaService
 
         return array_map(fn($doc) => [
             'id' => $doc['id'],
-            'tipo' => $doc['tipo'],
+            'tipo' => $doc['tipo'], // ID do tipo para o select
+            'tipoNome' => $doc['tipoNome'] ?? '', // Nome do tipo para exibição
             'numero' => $doc['numero'],
             'orgaoEmissor' => $doc['orgaoEmissor'],
             'dataEmissao' => $doc['dataEmissao'],
@@ -1276,6 +1309,9 @@ class PessoaService
 
         $cpf = $this->pessoaRepository->getCpfByPessoa($conjugeId);
 
+        // IMPORTANTE: Buscar profissões do cônjuge, não da pessoa principal!
+        $profissoesConjuge = $this->buscarProfissoesPessoa($conjugeId);
+
         return [
             'id' => $conjuge->getIdpessoa(),
             'nome' => $conjuge->getNome(),
@@ -1293,7 +1329,7 @@ class PessoaService
             'emails' => $this->buscarEmailsPessoa($conjugeId),
             'documentos' => $this->buscarDocumentosPessoa($conjugeId),
             'chavesPix' => $this->buscarChavesPixPessoa($conjugeId),
-            'profissoes' => $this->buscarProfissoesPessoa($conjugeId),
+            'profissoes' => $profissoesConjuge, // Usando a variável já debugada
         ];
     }
 

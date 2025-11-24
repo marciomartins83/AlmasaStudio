@@ -67,10 +67,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container.querySelector('.text-muted')) {
             container.innerHTML = '';
         }
-        
-        // Converte tipo string (ex: 'CPF') → id numérico
-        const tipoEncontrado = tipos.find(t => t.tipo === documento.tipo);
-        const tipoId = tipoEncontrado ? tipoEncontrado.id : null;
+
+        // documento.tipo agora já vem como ID do backend
+        const tipoId = documento.tipo;
         
         const documentoHtml = `
             <div class="border p-3 mb-3 documento-item" data-index="${contadorDocumento}" data-id="${documento.id || ''}">

@@ -359,6 +359,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('🔍 DEBUG pessoa.tipos:', pessoa.tipos);
         console.log('🔍 DEBUG pessoa.tiposDados:', pessoa.tiposDados);
         console.log('🔍 DEBUG typeof window.carregarTiposExistentes:', typeof window.carregarTiposExistentes);
+        console.log('🔍 DEBUG - Profissões da pessoa principal:', pessoa.profissoes);
+        console.log('🔍 DEBUG - Dados completos do cônjuge:', pessoa.conjuge);
+        if (pessoa.conjuge) {
+            console.log('🔍 DEBUG - Profissões do cônjuge:', pessoa.conjuge.profissoes);
+        }
         
         const pessoaStatus = document.querySelector('#pessoa-status');
         if (pessoaStatus) {
@@ -554,9 +559,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (pessoa.profissoes && Array.isArray(pessoa.profissoes)) {
+            console.log('🔍 DEBUG - Profissões da pessoa principal:', pessoa.profissoes);
             const profissoesContainer = document.getElementById('profissoes-container');
             if (profissoesContainer && typeof window.adicionarProfissaoExistente === 'function') {
-                pessoa.profissoes.forEach(profissao => {
+                pessoa.profissoes.forEach((profissao, index) => {
+                    console.log(`🔍 DEBUG - Profissão ${index} da pessoa principal:`, JSON.stringify(profissao));
                     window.adicionarProfissaoExistente(profissao);
                 });
             }
@@ -565,7 +572,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function carregarDadosMultiplosConjuge(conjuge) {
         console.log('📦 Carregando dados múltiplos do cônjuge');
-        
+        console.log('🔍 DEBUG - Dados do cônjuge recebidos:', conjuge);
+        console.log('🔍 DEBUG - Profissões do cônjuge:', conjuge.profissoes);
+
         if (conjuge.telefones && Array.isArray(conjuge.telefones)) {
             const container = document.getElementById('conjuge-telefones-container');
             if (container && typeof window.adicionarConjugeTelefoneExistente === 'function') {
@@ -620,7 +629,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('conjuge-profissoes-container');
             if (container && typeof window.adicionarConjugeProfissaoExistente === 'function') {
                 container.innerHTML = '';
-                conjuge.profissoes.forEach(profissao => {
+                conjuge.profissoes.forEach((profissao, index) => {
+                    console.log(`🔍 DEBUG - Profissão ${index} do cônjuge:`, JSON.stringify(profissao));
                     window.adicionarConjugeProfissaoExistente(profissao);
                 });
             }

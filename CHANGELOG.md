@@ -7,6 +7,75 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [6.6.3] - 2025-11-24
+
+### Corrigido
+- **Persistência de data de admissão do cônjuge**
+  - **Problema:** Campo `data_admissao` não estava sendo salvo para profissões do cônjuge
+  - **Causa:** Duplicação de registros de profissão ao editar (sempre criava novos ao invés de atualizar)
+  - **Solução:**
+    - Modificado `PessoaService::salvarDadosMultiplos()` para:
+      1. Marcar profissões existentes como inativas antes de processar novas
+      2. Verificar se já existe profissão com mesmos dados antes de criar nova
+      3. Adicionar logs detalhados para debug de campos recebidos
+  - **Arquivos modificados:**
+    - `src/Service/PessoaService.php` (linhas 297-361)
+
+### Adicionado
+- Logs detalhados em `PessoaService` para debug de persistência de profissões
+  - Log de todos os dados recebidos
+  - Log específico para campo `data_admissao`
+  - Log de cada profissão sendo processada
+
+## [6.6.2] - 2025-11-24
+
+### Corrigido
+- **CRÍTICO:** Múltiplos erros de NonUniqueResultException ao editar pessoas
+  - **Problema 1:** Erro em `PessoaRepository::findTiposComDados()`
+    - **Causa:** Registros duplicados em `pessoas_contratantes` (pessoa ID 1 tinha 2 registros)
+    - **Solução:**
+      - Adicionado `setMaxResults(1)` e `orderBy('id', 'DESC')` em todas as queries de tipos
+      - Removido registro duplicado do banco
+      - Adicionadas constraints UNIQUE em todas as tabelas de tipos de pessoa
+
+  - **Problema 2:** Erro em `PessoaRepository::getCpfByPessoa()` e `getCnpjByPessoa()`
+    - **Causa:** Registros duplicados em `pessoas_documentos` (pessoa ID 3 tinha 2 CPFs)
+    - **Solução:**
+      - Adicionado `setMaxResults(1)` e `orderBy('id', 'DESC')` nas queries
+      - Removido registro duplicado do banco
+      - Adicionada constraint UNIQUE em `(id_pessoa, id_tipo_documento, numero_documento)`
+
+- **CRÍTICO:** Tipo de documento não estava sendo preenchido no select
+  - **Problema:** Select de tipo de documento do cônjuge não era preenchido ao carregar dados
+  - **Causa:** Backend retornava nome do tipo ao invés do ID do tipo
+  - **Solução:**
+    - `PessoaRepository::buscarDocumentosSecundarios()` agora retorna:
+      - `tipo` → ID do tipo (para o select)
+      - `tipoNome` → Nome do tipo (para exibição)
+  - **Arquivos modificados:**
+    - `src/Repository/PessoaRepository.php` (linhas 338-339)
+    - `src/Service/PessoaService.php` (linha 1210)
+
+- **CRÍTICO:** Tipo de documento da pessoa principal parou de funcionar
+  - **Causa:** JavaScript esperava nome mas agora recebe ID
+  - **Solução:** Removida conversão desnecessária em `pessoa_documentos.js`
+  - **Arquivos modificados:**
+    - `assets/js/pessoa/pessoa_documentos.js` (linha 71-72)
+
+- **CRÍTICO:** Profissões do cônjuge mostrando dados da pessoa principal
+  - **Problema:** Ao editar pessoa com cônjuge, profissões do cônjuge mostravam profissões da pessoa principal
+  - **Causa:** Ambas profissões tinham ID = 1 na tabela `pessoas_profissoes` (sem PRIMARY KEY!)
+  - **Solução:**
+    - Corrigido ID duplicado (pessoa 3 agora tem ID 2)
+    - Adicionada PRIMARY KEY na coluna `id` de `pessoas_profissoes`
+    - Ajustada sequência para próximo valor correto
+  - **Impacto:** Profissões agora são exibidas corretamente para cada pessoa
+
+- **PENDENTE:** Data de admissão do cônjuge não sendo persistida
+  - **Status:** Identificado, correção em andamento
+  - **Problema:** Campo `data_admissao` fica NULL ao salvar profissão do cônjuge
+  - **Investigação:** Logs adicionados em `PessoaService` para debug
+
 ## [6.6.1] - 2025-11-24
 
 ### Corrigido

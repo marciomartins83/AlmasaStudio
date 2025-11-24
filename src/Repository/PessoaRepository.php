@@ -154,34 +154,47 @@ class PessoaRepository extends ServiceEntityRepository
         // Esta era a linha que buscava da tabela antiga (PessoasTipos) e causava o bug.
 
         // 2) Objetos completos (null se não existe) - Lógica NOVA
+        // IMPORTANTE: Usar setMaxResults(1) para evitar erro de NonUniqueResult com dados duplicados
         $contratanteObj = $em->createQueryBuilder()
             ->select('c')->from(PessoasContratantes::class, 'c')
             ->where('c.pessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('c.id', 'DESC') // Pega o mais recente em caso de duplicata
+            ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $fiadorObj = $em->createQueryBuilder()
             ->select('f')->from(PessoasFiadores::class, 'f')
             ->where('f.idPessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('f.id', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $locadorObj = $em->createQueryBuilder()
             ->select('l')->from(PessoasLocadores::class, 'l')
             ->where('l.pessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('l.id', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $corretorObj = $em->createQueryBuilder()
             ->select('r')->from(PessoasCorretores::class, 'r')
             ->where('r.pessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('r.id', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $corretoraObj = $em->createQueryBuilder()
             ->select('rr')->from(PessoasCorretoras::class, 'rr')
             ->where('rr.pessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('rr.id', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $pretendenteObj = $em->createQueryBuilder()
             ->select('p')->from(PessoasPretendentes::class, 'p')
             ->where('p.pessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('p.id', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         // 3. [NOVO] Montar os arrays na estrutura que o Controller espera
@@ -270,6 +283,8 @@ class PessoaRepository extends ServiceEntityRepository
             ->andWhere('pd.ativo = true')
             ->setParameter('pessoaId', $pessoaId)
             ->setParameter('tipoCpf', 'CPF')
+            ->orderBy('pd.id', 'DESC') // Pega o mais recente em caso de duplicata
+            ->setMaxResults(1) // Garante apenas um resultado
             ->getQuery()
             ->getOneOrNullResult();
 
@@ -291,10 +306,12 @@ class PessoaRepository extends ServiceEntityRepository
             ->andWhere('pd.ativo = true')
             ->setParameter('pessoaId', $pessoaId)
             ->setParameter('tipoCnpj', 'CNPJ')
+            ->orderBy('pd.id', 'DESC') // Pega o mais recente em caso de duplicata
+            ->setMaxResults(1) // Garante apenas um resultado
             ->getQuery()
-            ->getOneOrNullResult()['numeroDocumento'] ?? null;
+            ->getOneOrNullResult();
 
-            return $result['numeroDocumento'] ?? null;
+        return $result['numeroDocumento'] ?? null;
 
     }
 
@@ -317,8 +334,9 @@ class PessoaRepository extends ServiceEntityRepository
         $ret = [];
         foreach ($docs as $d) {
             $ret[] = [
-                'id'               => $d->getId(), 
-                'tipo'           => $d->getTipoDocumento()->getTipo(),
+                'id'               => $d->getId(),
+                'tipo'           => $d->getTipoDocumento()->getId(), // ID do tipo para o select
+                'tipoNome'       => $d->getTipoDocumento()->getTipo(), // Nome do tipo para exibição
                 'numero'         => $d->getNumeroDocumento(),
                 'orgaoEmissor'   => $d->getOrgaoEmissor(),
                 'dataEmissao'    => $d->getDataEmissao()?->format('Y-m-d'),
