@@ -18,23 +18,21 @@ class ContaBancariaType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('codigo', TextType::class, [
-                'label' => 'Código da Conta',
-                'attr' => ['class' => 'form-control']
-            ])
-            ->add('digitoConta', TextType::class, [
-                'label' => 'Dígito da Conta',
-                'attr' => ['class' => 'form-control']
-            ])
-            ->add('titular', TextType::class, [
-                'label' => 'Nome do Titular',
-                'attr' => ['class' => 'form-control']
-            ])
             ->add('idPessoa', EntityType::class, [
                 'class' => Pessoas::class,
                 'choice_label' => 'nome',
-                'label' => 'Pessoa',
-                'attr' => ['class' => 'form-control']
+                'label' => 'Titular da Conta',
+                'placeholder' => 'Selecione o titular...',
+                'attr' => ['class' => 'form-select']
+            ])
+            ->add('codigo', TextType::class, [
+                'label' => 'Número da Conta',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Digite o número da conta']
+            ])
+            ->add('digitoConta', TextType::class, [
+                'label' => 'Dígito',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Dígito verificador', 'maxlength' => '2']
             ])
             ->add('idBanco', EntityType::class, [
                 'class' => Bancos::class,

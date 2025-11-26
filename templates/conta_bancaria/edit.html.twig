@@ -27,43 +27,75 @@
             <div class="card">
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.codigo) }}
-                            </div>
-                            <div class="col-md-6">
-                                {{ form_row(form.digitoConta) }}
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.titular) }}
-                            </div>
-                            <div class="col-md-6">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
                                 {{ form_row(form.idPessoa) }}
                             </div>
                         </div>
+
                         <div class="row">
                             <div class="col-md-6">
-                                {{ form_row(form.idBanco) }}
+                                <div class="d-flex align-items-end">
+                                    <div class="flex-grow-1">
+                                        {{ form_row(form.idBanco) }}
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm ms-2 mb-3" id="btnAddBanco">
+                                        <i class="fas fa-plus"></i> Novo
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                {{ form_row(form.idAgencia) }}
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.idTipoConta) }}
-                            </div>
-                            <div class="col-md-6">
-                                <div class="row">
-                                    <div class="col-12">{{ form_row(form.principal) }}</div>
-                                    <div class="col-12">{{ form_row(form.ativo) }}</div>
-                                    <div class="col-12">{{ form_row(form.registrada) }}</div>
+                                <div class="d-flex align-items-end">
+                                    <div class="flex-grow-1">
+                                        {{ form_row(form.idAgencia) }}
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm ms-2 mb-3" id="btnAddAgencia">
+                                        <i class="fas fa-plus"></i> Nova
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ form_row(form.codigo) }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form_row(form.digitoConta) }}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-end">
+                                    <div class="flex-grow-1">
+                                        {{ form_row(form.idTipoConta) }}
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm ms-2 mb-3" id="btnAddTipoConta">
+                                        <i class="fas fa-plus"></i> Novo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    {{ form_widget(form.principal) }}
+                                    {{ form_label(form.principal) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    {{ form_widget(form.ativo) }}
+                                    {{ form_label(form.ativo) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    {{ form_widget(form.registrada) }}
+                                    {{ form_label(form.registrada) }}
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row mt-3">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-success">
@@ -83,4 +115,88 @@
         </div>
     </div>
 </div>
+
+<!-- Modais -->
+<div class="modal fade" id="modalNovoBanco" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Banco</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="novoBancoNome" class="form-label">Nome do Banco <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoBancoNome" placeholder="Ex: Banco do Brasil" required>
+                </div>
+                <div class="mb-3">
+                    <label for="novoBancoNumero" class="form-label">Número do Banco <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoBancoNumero" placeholder="Ex: 001" maxlength="3" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarBanco">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNovaAgencia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Agência</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="novaAgenciaBanco" class="form-label">Banco <span class="text-danger">*</span></label>
+                    <select class="form-select" id="novaAgenciaBanco" required>
+                        <option value="">Selecione o banco...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="novaAgenciaCodigo" class="form-label">Código da Agência <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novaAgenciaCodigo" placeholder="Ex: 1234" required>
+                </div>
+                <div class="mb-3">
+                    <label for="novaAgenciaNome" class="form-label">Nome da Agência <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novaAgenciaNome" placeholder="Ex: Agência Centro" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarAgencia">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNovoTipoConta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Tipo de Conta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="novoTipoConta" class="form-label">Tipo de Conta <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoTipoConta" placeholder="Ex: Conta Corrente, Poupança" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarTipoConta">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="{{ asset('js/conta_bancaria/conta_bancaria_form.js') }}"></script>
 {% endblock %}

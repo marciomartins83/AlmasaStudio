@@ -191,22 +191,179 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // Funções para abrir modais (caso seja necessário adicionar novos bancos/agências/tipos)
+    // Funções para abrir modais
     window.abrirModalBanco = function(index) {
         window.contaBancariaIndexAtual = index;
-        // Implementar modal para adicionar novo banco
-        alert('Funcionalidade de adicionar novo banco será implementada');
+        const modal = new bootstrap.Modal(document.getElementById('modalNovoBanco'));
+        modal.show();
     };
 
     window.abrirModalAgencia = function(index) {
         window.contaBancariaIndexAtual = index;
-        // Implementar modal para adicionar nova agência
-        alert('Funcionalidade de adicionar nova agência será implementada');
+
+        // Carregar bancos no select do modal
+        const selectBanco = document.getElementById('novaAgenciaBanco');
+        selectBanco.innerHTML = '<option value="">Selecione o banco...</option>';
+
+        if (window.bancos) {
+            window.bancos.forEach(banco => {
+                selectBanco.innerHTML += `<option value="${banco.id}">${banco.nome || banco.tipo}</option>`;
+            });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('modalNovaAgencia'));
+        modal.show();
     };
 
     window.abrirModalTipoConta = function(index) {
         window.contaBancariaIndexAtual = index;
-        // Implementar modal para adicionar novo tipo de conta
-        alert('Funcionalidade de adicionar novo tipo de conta será implementada');
+        const modal = new bootstrap.Modal(document.getElementById('modalNovoTipoContaBancaria'));
+        modal.show();
     };
+
+    // Event listeners para salvar novos registros
+    document.getElementById('salvarBanco')?.addEventListener('click', async function() {
+        const nome = document.getElementById('novoBancoNome').value.trim();
+        const numero = document.getElementById('novoBancoNumero').value.trim();
+
+        if (!nome || !numero) {
+            alert('Por favor, preencha todos os campos obrigatórios');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pessoa/salvar-banco', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ nome, numero: parseInt(numero) })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Adicionar o novo banco ao array global
+                if (!window.bancos) window.bancos = [];
+                window.bancos.push(data.banco);
+
+                // Atualizar o select atual
+                const selectId = `conta_banco_${window.contaBancariaIndexAtual}`;
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const option = new Option(data.banco.nome, data.banco.id, true, true);
+                    select.add(option);
+                }
+
+                // Limpar e fechar modal
+                document.getElementById('novoBancoNome').value = '';
+                document.getElementById('novoBancoNumero').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalNovoBanco')).hide();
+            } else {
+                alert(data.message || 'Erro ao salvar banco');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao salvar banco');
+        }
+    });
+
+    document.getElementById('salvarAgencia')?.addEventListener('click', async function() {
+        const banco = document.getElementById('novaAgenciaBanco').value;
+        const codigo = document.getElementById('novaAgenciaNumero').value.trim();
+        const nome = document.getElementById('novaAgenciaNome').value.trim();
+
+        if (!banco || !codigo || !nome) {
+            alert('Por favor, preencha todos os campos obrigatórios');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pessoa/salvar-agencia', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    banco: parseInt(banco),
+                    codigo,
+                    nome
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Adicionar a nova agência ao array global
+                if (!window.agencias) window.agencias = [];
+                window.agencias.push(data.agencia);
+
+                // Atualizar o select atual
+                const selectId = `conta_agencia_${window.contaBancariaIndexAtual}`;
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const option = new Option(data.agencia.nome, data.agencia.id, true, true);
+                    select.add(option);
+                }
+
+                // Limpar e fechar modal
+                document.getElementById('novaAgenciaBanco').value = '';
+                document.getElementById('novaAgenciaNumero').value = '';
+                document.getElementById('novaAgenciaNome').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalNovaAgencia')).hide();
+            } else {
+                alert(data.message || 'Erro ao salvar agência');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao salvar agência');
+        }
+    });
+
+    document.getElementById('salvarTipoContaBancaria')?.addEventListener('click', async function() {
+        const tipo = document.getElementById('novoTipoContaBancaria').value.trim();
+
+        if (!tipo) {
+            alert('Por favor, informe o tipo de conta');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pessoa/salvar-tipo-conta-bancaria', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ tipo })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Adicionar o novo tipo ao array global
+                if (!window.tiposContasBancarias) window.tiposContasBancarias = [];
+                window.tiposContasBancarias.push(data.tipoConta);
+
+                // Atualizar o select atual
+                const selectId = `conta_tipo_${window.contaBancariaIndexAtual}`;
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const option = new Option(data.tipoConta.tipo, data.tipoConta.id, true, true);
+                    select.add(option);
+                }
+
+                // Limpar e fechar modal
+                document.getElementById('novoTipoContaBancaria').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalNovoTipoContaBancaria')).hide();
+            } else {
+                alert(data.message || 'Erro ao salvar tipo de conta');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao salvar tipo de conta');
+        }
+    });
 });

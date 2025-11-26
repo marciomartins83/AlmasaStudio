@@ -1523,6 +1523,160 @@ class PessoaService
         $this->entityManager->flush();
     }
 
+    /**
+     * Salva um novo banco no sistema
+     *
+     * @param string $nome Nome do banco
+     * @param int $numero Número do banco
+     * @return array Dados do banco criado
+     * @throws \RuntimeException Se o banco já existir ou houver erro
+     */
+    public function salvarBanco(string $nome, int $numero): array
+    {
+        $nome = trim($nome);
+
+        if (empty($nome) || $numero <= 0) {
+            throw new \InvalidArgumentException('Nome e número são obrigatórios');
+        }
+
+        // Verificar duplicidade
+        $bancoExistente = $this->entityManager->getRepository(Bancos::class)
+            ->findOneBy(['numero' => $numero]);
+
+        if ($bancoExistente) {
+            throw new \RuntimeException('Já existe um banco com este número');
+        }
+
+        $this->entityManager->beginTransaction();
+
+        try {
+            $banco = new Bancos();
+            $banco->setNome($nome);
+            $banco->setNumero($numero);
+
+            $this->entityManager->persist($banco);
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+
+            return [
+                'id' => $banco->getId(),
+                'nome' => $banco->getNome() . ' (' . $banco->getNumero() . ')',
+                'tipo' => $banco->getNome() . ' (' . $banco->getNumero() . ')'
+            ];
+        } catch (\Exception $e) {
+            $this->entityManager->rollback();
+            $this->logger->error('Erro ao salvar banco: ' . $e->getMessage());
+            throw new \RuntimeException('Erro ao salvar banco: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Salva uma nova agência bancária
+     *
+     * @param int $bancoId ID do banco
+     * @param string $codigo Código da agência
+     * @param string|null $nome Nome da agência
+     * @return array Dados da agência criada
+     * @throws \RuntimeException Se a agência já existir ou houver erro
+     */
+    public function salvarAgencia(int $bancoId, string $codigo, ?string $nome = null): array
+    {
+        $codigo = trim($codigo);
+        $nome = $nome ? trim($nome) : '';
+
+        if (empty($codigo) || $bancoId <= 0) {
+            throw new \InvalidArgumentException('Banco e código são obrigatórios');
+        }
+
+        if (empty($nome)) {
+            throw new \InvalidArgumentException('Nome da agência é obrigatório');
+        }
+
+        $banco = $this->entityManager->getRepository(Bancos::class)->find($bancoId);
+        if (!$banco) {
+            throw new \RuntimeException('Banco não encontrado');
+        }
+
+        // Verificar duplicidade
+        $agenciaExistente = $this->entityManager->getRepository(Agencias::class)
+            ->findOneBy(['banco' => $banco, 'codigo' => $codigo]);
+
+        if ($agenciaExistente) {
+            throw new \RuntimeException('Já existe uma agência com este código neste banco');
+        }
+
+        $this->entityManager->beginTransaction();
+
+        try {
+            $agencia = new Agencias();
+            $agencia->setBanco($banco);
+            $agencia->setCodigo($codigo);
+            $agencia->setNome($nome);
+            // Endereço é uma entidade separada, não vamos definir aqui
+
+            $this->entityManager->persist($agencia);
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+
+            $displayName = $nome . ' (' . $codigo . ')';
+
+            return [
+                'id' => $agencia->getId(),
+                'nome' => $displayName,
+                'tipo' => $displayName
+            ];
+        } catch (\Exception $e) {
+            $this->entityManager->rollback();
+            $this->logger->error('Erro ao salvar agência: ' . $e->getMessage());
+            throw new \RuntimeException('Erro ao salvar agência: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Salva um novo tipo de conta bancária
+     *
+     * @param string $tipo Tipo da conta (ex: Corrente, Poupança)
+     * @return array Dados do tipo de conta criado
+     * @throws \RuntimeException Se o tipo já existir ou houver erro
+     */
+    public function salvarTipoContaBancaria(string $tipo): array
+    {
+        $tipo = trim($tipo);
+
+        if (empty($tipo)) {
+            throw new \InvalidArgumentException('Tipo é obrigatório');
+        }
+
+        // Verificar duplicidade
+        $tipoExistente = $this->entityManager->getRepository(TiposContasBancarias::class)
+            ->findOneBy(['tipo' => $tipo]);
+
+        if ($tipoExistente) {
+            throw new \RuntimeException('Já existe um tipo de conta com este nome');
+        }
+
+        $this->entityManager->beginTransaction();
+
+        try {
+            $tipoConta = new TiposContasBancarias();
+            $tipoConta->setTipo($tipo);
+
+            $this->entityManager->persist($tipoConta);
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+
+            return [
+                'id' => $tipoConta->getId(),
+                'tipo' => $tipoConta->getTipo(),
+                'nome' => $tipoConta->getTipo()
+            ];
+        } catch (\Exception $e) {
+            $this->entityManager->rollback();
+            $this->logger->error('Erro ao salvar tipo de conta: ' . $e->getMessage());
+            throw new \RuntimeException('Erro ao salvar tipo de conta: ' . $e->getMessage());
+        }
+    }
+
     public function buscaPorNome(string $nome, ?string $doc, ?string $docType): ?Pessoas
     {
         if ($doc && $docType) {

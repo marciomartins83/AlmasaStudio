@@ -130,6 +130,90 @@
     </div>
 </div>
 
+<!-- Modal Novo Banco -->
+<div class="modal fade" id="modalNovoBanco" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Banco</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="novoBancoNome" class="form-label">Nome do Banco <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoBancoNome" placeholder="Ex: Banco do Brasil" required>
+                </div>
+                <div class="mb-3">
+                    <label for="novoBancoNumero" class="form-label">Número do Banco <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoBancoNumero" placeholder="Ex: 001" maxlength="3" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="salvarBanco">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Agência -->
+<div class="modal fade" id="modalNovaAgencia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Agência</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="novaAgenciaBanco" class="form-label">Banco <span class="text-danger">*</span></label>
+                    <select class="form-select" id="novaAgenciaBanco" required>
+                        <option value="">Selecione o banco...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="novaAgenciaNumero" class="form-label">Código da Agência <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novaAgenciaNumero" placeholder="Ex: 1234" required>
+                </div>
+                <div class="mb-3">
+                    <label for="novaAgenciaNome" class="form-label">Nome da Agência</label>
+                    <input type="text" class="form-control" id="novaAgenciaNome" placeholder="Ex: Agência Centro">
+                </div>
+                <div class="mb-3">
+                    <label for="novaAgenciaEndereco" class="form-label">Endereço</label>
+                    <input type="text" class="form-control" id="novaAgenciaEndereco" placeholder="Endereço completo">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="salvarAgencia">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Tipo de Conta Bancária -->
+<div class="modal fade" id="modalNovoTipoContaBancaria" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Tipo de Conta Bancária</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="novoTipoContaBancaria" class="form-label">Tipo de Conta <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="novoTipoContaBancaria" placeholder="Ex: Conta Corrente, Poupança" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="salvarTipoContaBancaria">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Nova Nacionalidade -->
 <div class="modal fade" id="modalNovaNacionalidade" tabindex="-1">
     <div class="modal-dialog">

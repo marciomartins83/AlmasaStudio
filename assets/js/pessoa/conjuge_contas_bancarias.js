@@ -191,22 +191,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // Funções para abrir modais (caso seja necessário adicionar novos bancos/agências/tipos)
+    // Funções para abrir modais - Reutiliza os mesmos modais da pessoa principal
     window.abrirModalConjugeBanco = function(index) {
         window.conjugeContaBancariaIndexAtual = index;
-        // Implementar modal para adicionar novo banco
-        alert('Funcionalidade de adicionar novo banco será implementada');
+        window.isConjugeModal = true; // Flag para saber que é do cônjuge
+        const modal = new bootstrap.Modal(document.getElementById('modalNovoBanco'));
+        modal.show();
     };
 
     window.abrirModalConjugeAgencia = function(index) {
         window.conjugeContaBancariaIndexAtual = index;
-        // Implementar modal para adicionar nova agência
-        alert('Funcionalidade de adicionar nova agência será implementada');
+        window.isConjugeModal = true;
+
+        // Carregar bancos no select do modal
+        const selectBanco = document.getElementById('novaAgenciaBanco');
+        selectBanco.innerHTML = '<option value="">Selecione o banco...</option>';
+
+        if (window.bancos) {
+            window.bancos.forEach(banco => {
+                selectBanco.innerHTML += `<option value="${banco.id}">${banco.nome || banco.tipo}</option>`;
+            });
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('modalNovaAgencia'));
+        modal.show();
     };
 
     window.abrirModalConjugeTipoConta = function(index) {
         window.conjugeContaBancariaIndexAtual = index;
-        // Implementar modal para adicionar novo tipo de conta
-        alert('Funcionalidade de adicionar novo tipo de conta será implementada');
+        window.isConjugeModal = true;
+        const modal = new bootstrap.Modal(document.getElementById('modalNovoTipoContaBancaria'));
+        modal.show();
     };
 });

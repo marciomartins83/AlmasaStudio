@@ -685,4 +685,85 @@ class PessoaController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 404);
         }
     }
+
+    #[Route('/salvar-banco', name: 'salvar_banco', methods: ['POST'])]
+    public function salvarBanco(Request $request): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (!$data) {
+                return new JsonResponse(['success' => false, 'message' => 'Dados JSON inválidos'], 400);
+            }
+
+            $banco = $this->pessoaService->salvarBanco(
+                $data['nome'] ?? '',
+                (int)($data['numero'] ?? 0)
+            );
+
+            return new JsonResponse(['success' => true, 'banco' => $banco]);
+
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 409);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao salvar banco: ' . $e->getMessage());
+            return new JsonResponse(['success' => false, 'message' => 'Erro interno'], 500);
+        }
+    }
+
+    #[Route('/salvar-agencia', name: 'salvar_agencia', methods: ['POST'])]
+    public function salvarAgencia(Request $request): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (!$data) {
+                return new JsonResponse(['success' => false, 'message' => 'Dados JSON inválidos'], 400);
+            }
+
+            $agencia = $this->pessoaService->salvarAgencia(
+                (int)($data['banco'] ?? 0),
+                $data['codigo'] ?? '',
+                $data['nome'] ?? null
+            );
+
+            return new JsonResponse(['success' => true, 'agencia' => $agencia]);
+
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 409);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao salvar agência: ' . $e->getMessage());
+            return new JsonResponse(['success' => false, 'message' => 'Erro interno'], 500);
+        }
+    }
+
+    #[Route('/salvar-tipo-conta-bancaria', name: 'salvar_tipo_conta_bancaria', methods: ['POST'])]
+    public function salvarTipoContaBancaria(Request $request): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+
+            if (!$data) {
+                return new JsonResponse(['success' => false, 'message' => 'Dados JSON inválidos'], 400);
+            }
+
+            $tipoConta = $this->pessoaService->salvarTipoContaBancaria(
+                $data['tipo'] ?? ''
+            );
+
+            return new JsonResponse(['success' => true, 'tipoConta' => $tipoConta]);
+
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 409);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao salvar tipo de conta: ' . $e->getMessage());
+            return new JsonResponse(['success' => false, 'message' => 'Erro interno'], 500);
+        }
+    }
 }
