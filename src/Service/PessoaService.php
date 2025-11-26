@@ -24,6 +24,10 @@ use App\Entity\PessoasContratantes;
 use App\Entity\PessoasCorretoras;
 use App\Entity\PessoasProfissoes;
 use App\Entity\PessoasTipos;
+use App\Entity\ContasBancarias;
+use App\Entity\Bancos;
+use App\Entity\Agencias;
+use App\Entity\TiposContasBancarias;
 use App\Repository\PessoaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -356,6 +360,81 @@ class PessoaService
                     }
 
                     $this->entityManager->persist($pessoaProfissao);
+                }
+            }
+        }
+
+        // Contas Bancárias
+        $chaveContasBancarias = $prefixo . 'contas_bancarias';
+        if (isset($requestData[$chaveContasBancarias]) && is_array($requestData[$chaveContasBancarias])) {
+            $this->logger->info("DEBUG - Salvando contas bancárias com chave: $chaveContasBancarias para pessoa: $pessoaId");
+
+            // Primeiro, marcar todas as contas existentes como inativas
+            $contasExistentes = $this->entityManager->getRepository(ContasBancarias::class)
+                ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
+
+            foreach ($contasExistentes as $contaExistente) {
+                $contaExistente->setAtivo(false);
+                $this->entityManager->persist($contaExistente);
+            }
+
+            // Processar as novas contas bancárias
+            foreach ($requestData[$chaveContasBancarias] as $contaData) {
+                if (!empty($contaData['banco']) && !empty($contaData['codigo'])) {
+                    // Verificar se já existe uma conta com os mesmos dados
+                    $contaBancaria = $this->entityManager->getRepository(ContasBancarias::class)
+                        ->findOneBy([
+                            'idPessoa' => $pessoaId,
+                            'idBanco' => (int)$contaData['banco'],
+                            'codigo' => $contaData['codigo']
+                        ]);
+
+                    if (!$contaBancaria) {
+                        $contaBancaria = new ContasBancarias();
+                        $contaBancaria->setIdPessoa($this->entityManager->getReference(Pessoas::class, $pessoaId));
+                    }
+
+                    // Definir banco
+                    if (!empty($contaData['banco'])) {
+                        $contaBancaria->setIdBanco($this->entityManager->getReference(Bancos::class, (int)$contaData['banco']));
+                    }
+
+                    // Definir agência
+                    if (!empty($contaData['agencia'])) {
+                        $contaBancaria->setIdAgencia($this->entityManager->getReference(Agencias::class, (int)$contaData['agencia']));
+                    }
+
+                    // Campos obrigatórios
+                    $contaBancaria->setCodigo($contaData['codigo']);
+
+                    // Campos opcionais
+                    if (isset($contaData['digito_conta'])) {
+                        $contaBancaria->setDigitoConta($contaData['digito_conta']);
+                    }
+
+                    if (!empty($contaData['tipo_conta'])) {
+                        $contaBancaria->setIdTipoConta($this->entityManager->getReference(TiposContasBancarias::class, (int)$contaData['tipo_conta']));
+                    }
+
+                    if (isset($contaData['titular'])) {
+                        $contaBancaria->setTitular($contaData['titular']);
+                    }
+
+                    if (isset($contaData['descricao'])) {
+                        $contaBancaria->setDescricao($contaData['descricao']);
+                    }
+
+                    // Definir como principal se especificado
+                    $contaBancaria->setPrincipal(!empty($contaData['principal']));
+
+                    // Definir campos booleanos com valores padrão
+                    $contaBancaria->setAtivo(true);
+                    $contaBancaria->setRegistrada(false);
+                    $contaBancaria->setAceitaMultipag(false);
+                    $contaBancaria->setUsaEnderecoCobranca(false);
+                    $contaBancaria->setCobrancaCompartilhada(false);
+
+                    $this->entityManager->persist($contaBancaria);
                 }
             }
         }
@@ -1287,6 +1366,29 @@ class PessoaService
         return $profissoes;
     }
 
+    public function buscarContasBancariasPessoa(int $pessoaId): array
+    {
+        $contas = [];
+        $contasBancarias = $this->entityManager->getRepository(ContasBancarias::class)
+            ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
+
+        foreach ($contasBancarias as $conta) {
+            $contas[] = [
+                'id' => $conta->getId(),
+                'banco' => $conta->getIdBanco() ? $conta->getIdBanco()->getId() : null,
+                'agencia' => $conta->getIdAgencia() ? $conta->getIdAgencia()->getId() : null,
+                'codigo' => $conta->getCodigo(),
+                'digitoConta' => $conta->getDigitoConta(),
+                'tipoConta' => $conta->getIdTipoConta() ? $conta->getIdTipoConta()->getId() : null,
+                'titular' => $conta->getTitular(),
+                'principal' => $conta->getPrincipal(),
+                'descricao' => $conta->getDescricao()
+            ];
+        }
+
+        return $contas;
+    }
+
     public function buscarConjugePessoa(int $pessoaId): ?array
     {
         $relacionamento = $this->entityManager->getRepository(RelacionamentosFamiliares::class)
@@ -1330,6 +1432,7 @@ class PessoaService
             'documentos' => $this->buscarDocumentosPessoa($conjugeId),
             'chavesPix' => $this->buscarChavesPixPessoa($conjugeId),
             'profissoes' => $profissoesConjuge, // Usando a variável já debugada
+            'contasBancarias' => $this->buscarContasBancariasPessoa($conjugeId),
         ];
     }
 
@@ -1406,6 +1509,17 @@ class PessoaService
         }
 
         $this->entityManager->remove($profissao);
+        $this->entityManager->flush();
+    }
+
+    public function excluirContaBancaria(int $id): void
+    {
+        $contaBancaria = $this->entityManager->getRepository(ContasBancarias::class)->find($id);
+        if (!$contaBancaria) {
+            throw new \RuntimeException('Conta bancária não encontrada');
+        }
+
+        $this->entityManager->remove($contaBancaria);
         $this->entityManager->flush();
     }
 

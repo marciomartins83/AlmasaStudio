@@ -266,6 +266,20 @@
                     </div>
                 </div>
 
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3><i class="fas fa-university"></i> Contas Bancárias</h3>
+                        <button type="button" class="btn btn-sm btn-primary" id="add-conta-bancaria">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="contas-bancarias-container">
+                            <p class="text-muted">Nenhuma conta bancária adicionada.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ⭐ CÔNJUGE - SEM SEÇÃO DE TIPOS ⭐ -->
                 <div class="card mb-4" id="conjuge-section" style="display: none;">
                     <div class="card-header">
@@ -508,6 +522,20 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="card mt-3">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-university"></i> Contas Bancárias do Cônjuge</h5>
+                                    <button type="button" class="btn btn-sm btn-primary" id="add-conjuge-conta-bancaria">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="conjuge-contas-bancarias-container">
+                                        <p class="text-muted">Nenhuma conta bancária adicionada.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -578,6 +606,7 @@
 <script src="{{ asset('js/pessoa/pessoa_documentos.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_chave_pix.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_contas_bancarias.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_modals.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_form.js') }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}"></script>
@@ -587,4 +616,5 @@
 <script src="{{ asset('js/pessoa/conjuge_documentos.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_chave_pix.js') }}"></script>
 <script src="{{ asset('js/pessoa/conjuge_profissoes.js') }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_contas_bancarias.js') }}"></script>
 {% endblock %}

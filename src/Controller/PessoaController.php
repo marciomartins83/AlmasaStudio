@@ -233,6 +233,7 @@ class PessoaController extends AbstractController
             $chavesPix = $this->pessoaService->buscarChavesPixPessoa($pessoaId);
             $documentos = $this->pessoaService->buscarDocumentosPessoa($pessoaId);
             $profissoes = $this->pessoaService->buscarProfissoesPessoa($pessoaId);
+            $contasBancarias = $this->pessoaService->buscarContasBancariasPessoa($pessoaId);
             $conjuge = $this->pessoaService->buscarConjugePessoa($pessoaId);
 
             $pessoaData = [
@@ -255,6 +256,7 @@ class PessoaController extends AbstractController
                 'documentos' => $documentos,
                 'chavesPix' => $chavesPix,
                 'profissoes' => $profissoes,
+                'contasBancarias' => $contasBancarias,
                 'conjuge' => $conjuge,
                 // ✅ CORREÇÃO: Adicionar tipos e tiposDados ao JSON de resposta
                 'tipos' => $tipos,
@@ -300,6 +302,15 @@ class PessoaController extends AbstractController
                 case 'profissao':
                     $repository = $entityManager->getRepository(\App\Entity\Profissoes::class);
                     break;
+                case 'banco':
+                    $repository = $entityManager->getRepository(\App\Entity\Bancos::class);
+                    break;
+                case 'agencia':
+                    $repository = $entityManager->getRepository(\App\Entity\Agencias::class);
+                    break;
+                case 'tipo_conta_bancaria':
+                    $repository = $entityManager->getRepository(\App\Entity\TiposContasBancarias::class);
+                    break;
                 default:
                     return new JsonResponse(['error' => 'Entidade não reconhecida'], 400);
             }
@@ -307,9 +318,23 @@ class PessoaController extends AbstractController
             $tipos = $repository->findAll();
             $tiposArray = [];
             foreach ($tipos as $tipo) {
+                $nome = null;
+
+                // Determinar o campo nome baseado na entidade
+                if ($isProfissao) {
+                    $nome = $tipo->getNome();
+                } elseif ($entidade === 'banco') {
+                    $nome = $tipo->getNome() . ' (' . $tipo->getNumero() . ')';
+                } elseif ($entidade === 'agencia') {
+                    $nome = $tipo->getNome();
+                } else {
+                    $nome = $tipo->getTipo();
+                }
+
                 $tiposArray[] = [
                     'id' => $tipo->getId(),
-                    'tipo' => $isProfissao ? $tipo->getNome() : $tipo->getTipo()
+                    'tipo' => $nome,
+                    'nome' => $nome // Adicionar também como 'nome' para compatibilidade
                 ];
             }
 
@@ -639,6 +664,22 @@ class PessoaController extends AbstractController
 
         try {
             $this->pessoaService->excluirProfissao($id);
+            return new JsonResponse(['success' => true]);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 404);
+        }
+    }
+
+    #[Route('/conta-bancaria/{id}', name: 'delete_conta_bancaria', methods: ['DELETE'])]
+    public function deleteContaBancaria(int $id, Request $request): JsonResponse
+    {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        try {
+            $this->pessoaService->excluirContaBancaria($id);
             return new JsonResponse(['success' => true]);
         } catch (\RuntimeException $e) {
             return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 404);
