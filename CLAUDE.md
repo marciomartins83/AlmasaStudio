@@ -4,6 +4,29 @@ Este arquivo fornece orientação completa para o Claude Code ao trabalhar neste
 
 ---
 
+## 🚨 ATENÇÃO - ARQUIVO ÚNICO DE MUDANÇAS
+
+**⚠️ PARA TODOS OS MODELOS (Sonnet, Opus, Haiku):**
+
+### CHANGELOG.md É O ÚNICO ARQUIVO PARA REGISTRAR MUDANÇAS
+
+✅ **PERMITIDO:**
+- `CLAUDE.md` - Diretrizes e documentação do projeto
+- `CHANGELOG.md` - **ÚNICO** arquivo para registrar mudanças
+
+❌ **PROIBIDO - NUNCA CRIE:**
+- `CORRECAO_*.md`
+- `MIGRATION_*.md`
+- `FIX_*.md`
+- `UPDATE_*.md`
+- Qualquer outro arquivo `.md` temporário
+
+**REGRA DE OURO:** Se você fez uma mudança, atualize **IMEDIATAMENTE** o `CHANGELOG.md` seguindo o formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+
+Veja detalhes completos na seção "📚 Documentação e Histórico" abaixo.
+
+---
+
 ## 🎯 Visão Geral do Projeto
 
 **AlmasaStudio** é um sistema completo de gestão imobiliária desenvolvido em **Symfony 7.2** e **PHP 8.2+**. 
@@ -492,9 +515,54 @@ Testes com dados mockados não revelam todos os problemas. Sempre validar com da
 
 ---
 
-## 📚 Referência Completa - Diário de Bordo
+## 📚 Documentação e Histórico
 
-**Para histórico completo, bugs resolvidos, e decisões técnicas, consulte:**
+### CHANGELOG.md - FONTE DA VERDADE PARA MUDANÇAS
+
+**⚠️ REGRA OBRIGATÓRIA PARA CLAUDE CODE (todos os modelos: Sonnet, Opus, Haiku):**
+
+1. **CHANGELOG.md é o ÚNICO arquivo para registrar mudanças**
+2. **NUNCA crie arquivos `.md` extras** (como `CORRECAO_*.md`, `MIGRATION_*.md`, etc.)
+3. **SEMPRE atualize o CHANGELOG.md IMEDIATAMENTE** após qualquer mudança no código
+4. **Formato obrigatório:** Siga o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
+
+**Estrutura de versionamento:**
+- **MAJOR** (X.0.0): Mudanças incompatíveis na API
+- **MINOR** (x.Y.0): Novas funcionalidades compatíveis
+- **PATCH** (x.y.Z): Correções de bugs compatíveis
+
+**Categorias de mudanças:**
+- **Adicionado** - novas funcionalidades
+- **Alterado** - mudanças em funcionalidades existentes
+- **Descontinuado** - funcionalidades a serem removidas
+- **Removido** - funcionalidades removidas
+- **Corrigido** - correção de bugs
+- **Segurança** - vulnerabilidades corrigidas
+
+**O que SEMPRE incluir:**
+- Data no formato YYYY-MM-DD
+- Descrição clara e concisa
+- Arquivos afetados (com números de linha quando relevante)
+- Motivação (quando relevante)
+- Links para issues/PRs quando aplicável
+
+**Exemplo de entrada no CHANGELOG.md:**
+```markdown
+## [6.6.4] - 2025-11-27
+
+### Corrigido
+- **CRÍTICO:** Descrição do problema
+  - **Sintoma:** O que acontecia
+  - **Causa raiz:** Por que acontecia
+  - **Solução implementada:** Como foi resolvido
+  - **Arquivos modificados:**
+    - `src/Controller/PessoaController.php` (linhas 123-145)
+    - `assets/js/pessoa/pessoa_form.js` (linha 67)
+```
+
+### Diário de Bordo (Referência Histórica)
+
+**Para histórico completo de versões anteriores, consulte:**
 
 `/workspaces/AlmasaStudio/diarioAlmasaEm16112025_pdf.pdf`
 
@@ -504,6 +572,8 @@ O diário contém:
 - Decisões de arquitetura
 - Code reviews
 - Lições aprendidas
+
+**⚠️ IMPORTANTE:** O diário em PDF é apenas referência histórica. **TODAS as novas mudanças devem ser registradas APENAS no CHANGELOG.md**
 
 ---
 

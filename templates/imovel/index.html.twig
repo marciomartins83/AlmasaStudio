@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Imóveis{% endblock %}
+
+{% block body %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">
+                <i class="bi bi-building"></i> Imóveis
+            </h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ path('app_imovel_new') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Imóvel
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Tipo</th>
+                            <th>Endereço</th>
+                            <th>Proprietário</th>
+                            <th>Situação</th>
+                            <th class="text-end">Valor Aluguel</th>
+                            <th class="text-end">Valor Venda</th>
+                            <th class="text-center">Quartos</th>
+                            <th class="text-center">Banheiros</th>
+                            <th class="text-center">Área (m²)</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for imovel in imoveis %}
+                        <tr>
+                            <td>
+                                <strong>{{ imovel.codigo_interno|default('-') }}</strong>
+                            </td>
+                            <td>{{ imovel.tipo|default('-') }}</td>
+                            <td class="text-truncate" style="max-width: 200px;" title="{{ imovel.endereco }}">
+                                {{ imovel.endereco }}
+                            </td>
+                            <td>{{ imovel.proprietario|default('-') }}</td>
+                            <td>
+                                {% if imovel.situacao == 'disponivel' %}
+                                    <span class="badge bg-success">Disponível</span>
+                                {% elseif imovel.situacao == 'alugado' %}
+                                    <span class="badge bg-primary">Alugado</span>
+                                {% elseif imovel.situacao == 'vendido' %}
+                                    <span class="badge bg-info">Vendido</span>
+                                {% elseif imovel.situacao == 'reservado' %}
+                                    <span class="badge bg-warning">Reservado</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ imovel.situacao|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if imovel.valor_aluguel %}
+                                    R$ {{ imovel.valor_aluguel|number_format(2, ',', '.') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if imovel.valor_venda %}
+                                    R$ {{ imovel.valor_venda|number_format(2, ',', '.') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ imovel.qtd_quartos }}</td>
+                            <td class="text-center">{{ imovel.qtd_banheiros }}</td>
+                            <td class="text-center">
+                                {% if imovel.area_total %}
+                                    {{ imovel.area_total|number_format(2, ',', '.') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ path('app_imovel_edit', {id: imovel.id}) }}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                Nenhum imóvel cadastrado
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if imoveis|length > 0 %}
+    <div class="row mt-3">
+        <div class="col">
+            <p class="text-muted">
+                <small>Total: {{ imoveis|length }} imóvel(is)</small>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

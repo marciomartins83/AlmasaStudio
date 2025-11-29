@@ -1,2 +1,0 @@
-# AlmasaStudio
-AlmasaStudio projeto Synfony

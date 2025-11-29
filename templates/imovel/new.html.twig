@@ -1,0 +1,325 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo Imóvel{% endblock %}
+
+{% block body %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">
+                <i class="bi bi-building-add"></i> Novo Imóvel
+            </h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ path('app_imovel_index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {{ form_start(form, {'attr': {'id': 'imovel-form'}}) }}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {# Abas de navegação #}
+            <ul class="nav nav-tabs mb-4" id="imovelTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="geral-tab" data-bs-toggle="tab" data-bs-target="#geral" type="button">
+                        <i class="bi bi-info-circle"></i> Geral
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="caracteristicas-tab" data-bs-toggle="tab" data-bs-target="#caracteristicas" type="button">
+                        <i class="bi bi-rulers"></i> Características
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="valores-tab" data-bs-toggle="tab" data-bs-target="#valores" type="button">
+                        <i class="bi bi-currency-dollar"></i> Valores
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="documentacao-tab" data-bs-toggle="tab" data-bs-target="#documentacao" type="button">
+                        <i class="bi bi-file-text"></i> Documentação
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="publicacao-tab" data-bs-toggle="tab" data-bs-target="#publicacao" type="button">
+                        <i class="bi bi-globe"></i> Publicação
+                    </button>
+                </li>
+            </ul>
+
+            {# Conteúdo das Abas #}
+            <div class="tab-content" id="imovelTabsContent">
+
+                {# ABA: GERAL #}
+                <div class="tab-pane fade show active" id="geral">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form_row(form.codigoInterno) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.tipoImovel) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.situacao) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.tipoUtilizacao) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.ocupacao) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.situacaoFinanceira) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.endereco) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.condominio) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.pessoaProprietario) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.pessoaFiador) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.pessoaCorretor) }}
+                        </div>
+                        <div class="col-md-12">
+                            <h6 class="text-muted mt-3">Disponibilidade</h6>
+                            <div class="form-check form-check-inline">
+                                {{ form_widget(form.aluguelGarantido) }}
+                                {{ form_label(form.aluguelGarantido) }}
+                            </div>
+                            <div class="form-check form-check-inline">
+                                {{ form_widget(form.disponivelAluguel) }}
+                                {{ form_label(form.disponivelAluguel) }}
+                            </div>
+                            <div class="form-check form-check-inline">
+                                {{ form_widget(form.disponivelVenda) }}
+                                {{ form_label(form.disponivelVenda) }}
+                            </div>
+                            <div class="form-check form-check-inline">
+                                {{ form_widget(form.disponivelTemporada) }}
+                                {{ form_label(form.disponivelTemporada) }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            {{ form_row(form.descricao) }}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form_row(form.observacoes) }}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form_row(form.descricaoImediacoes) }}
+                        </div>
+                    </div>
+                </div>
+
+                {# ABA: CARACTERÍSTICAS #}
+                <div class="tab-pane fade" id="caracteristicas">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted">Áreas</h6>
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.areaTotal) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.areaConstruida) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.areaPrivativa) }}
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <h6 class="text-muted">Cômodos</h6>
+                        </div>
+                        <div class="col-md-3">
+                            {{ form_row(form.qtdQuartos) }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form_row(form.qtdSuites) }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form_row(form.qtdBanheiros) }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form_row(form.qtdSalas) }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form_row(form.qtdVagasGaragem) }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form_row(form.qtdPavimentos) }}
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <h6 class="text-muted">Construção</h6>
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.anoConstrucao) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.tipoConstrucao) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.aptosPorAndar) }}
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <h6 class="text-muted">Chaves</h6>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.temChaves) }}
+                                {{ form_label(form.temChaves) }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.qtdChaves) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.numeroChave) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.localizacaoChaves) }}
+                        </div>
+                    </div>
+                </div>
+
+                {# ABA: VALORES #}
+                <div class="tab-pane fade" id="valores">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form_row(form.valorAluguel) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.valorVenda) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.valorTemporada) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.valorMercado) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.valorCondominio) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.valorIptuMensal) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.valorTaxaLixo) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.diaVencimento) }}
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <h6 class="text-muted">Comissões</h6>
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.taxaAdministracao) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.comissaoLocacao) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.comissaoVenda) }}
+                        </div>
+                    </div>
+                </div>
+
+                {# ABA: DOCUMENTAÇÃO #}
+                <div class="tab-pane fade" id="documentacao">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form_row(form.inscricaoImobiliaria) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.matriculaCartorio) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.nomeCartorio) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(form.nomeContribuinteIptu) }}
+                        </div>
+                    </div>
+                </div>
+
+                {# ABA: PUBLICAÇÃO #}
+                <div class="tab-pane fade" id="publicacao">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.publicarSite) }}
+                                {{ form_label(form.publicarSite) }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.publicarZap) }}
+                                {{ form_label(form.publicarZap) }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.publicarVivareal) }}
+                                {{ form_label(form.publicarVivareal) }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.publicarGruposp) }}
+                                {{ form_label(form.publicarGruposp) }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.ocultarValorSite) }}
+                                {{ form_label(form.ocultarValorSite) }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                {{ form_widget(form.temPlaca) }}
+                                {{ form_label(form.temPlaca) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card-footer">
+            <div class="d-flex justify-content-between">
+                <a href="{{ path('app_imovel_index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{ form_end(form) }}
+</div>
+
+{# Meta tag com CSRF token único para AJAX #}
+<meta name="csrf-token" content="{{ csrf_token('ajax_global') }}">
+{% endblock %}

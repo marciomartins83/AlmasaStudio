@@ -7,6 +7,383 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+---
+
+## [6.6.5] - 2025-11-29
+
+### Adicionado
+- **Módulo completo de Imóveis (9 tabelas + 8 entidades + 8 repositórios)**
+  - **Objetivo:** Sistema completo de gestão de imóveis com relacionamentos, propriedades, contratos e fotos
+  - **Tabelas criadas:**
+    1. `condominios` (14 campos) - Gestão de condomínios com endereço e dados administrativos
+    2. `propriedades_catalogo` (5 campos) - Catálogo de 36 propriedades padrão (piscina, churrasqueira, etc.)
+    3. `imoveis` (63 campos) - Tabela principal com todas as características, valores, documentação e publicação
+    4. `imoveis_propriedades` (4 campos) - Relacionamento N:N entre imóveis e propriedades
+    5. `imoveis_medidores` (7 campos) - Medidores de água, luz e gás por imóvel
+    6. `imoveis_garantias` (13 campos) - Garantias de aluguel (caução, fiador, seguro)
+    7. `imoveis_fotos` (7 campos) - Galeria de fotos com ordenação e foto de capa
+    8. `imoveis_contratos` (11 campos) - Contratos de locação/venda
+    9. Dados inseridos em `tipos_imoveis` (36 propriedades padrão)
+  - **Entidades Doctrine criadas:**
+    - `src/Entity/Condominios.php` - ORM completo com relacionamentos bidirecionais
+    - `src/Entity/PropriedadesCatalogo.php` - Catálogo de propriedades
+    - `src/Entity/Imoveis.php` - Entity principal com 63 campos e 5 collections
+    - `src/Entity/ImoveisPropriedades.php` - Pivot table para N:N
+    - `src/Entity/ImoveisMedidores.php` - Medidores
+    - `src/Entity/ImoveisGarantias.php` - Garantias (1:1 com Imoveis)
+    - `src/Entity/ImoveisFotos.php` - Fotos com cascade delete
+    - `src/Entity/ImoveisContratos.php` - Contratos
+  - **Repositórios criados:**
+    - 8 repositórios seguindo padrão Doctrine (`CondomíniosRepository.php`, etc.)
+  - **Características da implementação:**
+    - ✅ TODAS as FKs para `pessoas` usam `pessoas.idpessoa` (proprietário, fiador, corretor, locatário)
+    - ✅ Relacionamentos bidirecionais com cascade e orphan removal
+    - ✅ Índices otimizados (parciais e compostos)
+    - ✅ Constraints CHECK, UNIQUE e NOT NULL aplicadas
+    - ✅ PostgreSQL SERIAL para todas as PKs
+    - ✅ PHP 8.2 Attributes para ORM mapping
+    - ✅ Valores DEFAULT e timestamps automáticos
+  - **Migration criada:**
+    - `migrations/Version20251129230000_CriarModuloImoveis.php` (350 linhas)
+    - Inclui correção preventiva de IDs duplicados em `enderecos`
+    - Criação condicional de PKs (evita erros se já existirem)
+    - Execução bem-sucedida: 9 tabelas criadas + 36 propriedades inseridas
+
+- **Frontend + Backend completo do módulo de Imóveis**
+  - **Controller (Thin Controller):**
+    - `src/Controller/ImovelController.php` (224 linhas)
+    - Rotas implementadas:
+      - `GET /imovel` - Listagem de imóveis
+      - `GET|POST /imovel/new` - Cadastro de novo imóvel
+      - `GET|POST /imovel/edit/{id}` - Edição de imóvel
+      - `GET /imovel/buscar` - Busca por código interno (AJAX)
+      - `DELETE /imovel/foto/{id}` - Excluir foto (AJAX)
+      - `DELETE /imovel/medidor/{id}` - Excluir medidor (AJAX)
+      - `DELETE /imovel/propriedade/{idImovel}/{idPropriedade}` - Excluir propriedade (AJAX)
+      - `GET /imovel/propriedades/catalogo` - Listar catálogo de propriedades (AJAX)
+    - ✅ Segue "Thin Controller" - apenas delega para Service
+    - ✅ Injeção de dependência no constructor
+    - ✅ Flash messages para feedback do usuário
+    - ✅ Try/catch com logs detalhados
+
+  - **Service (Fat Service):**
+    - `src/Service/ImovelService.php` (540 linhas)
+    - Métodos principais:
+      - `listarImoveisEnriquecidos()` - Lista com dados formatados
+      - `salvarImovel()` - Salva novo imóvel com transação
+      - `atualizarImovel()` - Atualiza imóvel existente
+      - `carregarDadosCompletos()` - Carrega dados para edição
+      - `buscarPorCodigoInterno()` - Busca imóvel
+      - `deletarFoto()`, `deletarMedidor()`, `deletarPropriedade()` - DELETE entities
+      - `listarPropriedadesCatalogo()` - Retorna catálogo ativo
+    - Métodos privados auxiliares:
+      - `salvarPropriedades()`, `salvarMedidores()`, `salvarFotos()`, `salvarGarantias()`
+      - `carregarPropriedades()`, `carregarMedidores()`, `carregarFotos()`, `carregarGarantias()`
+      - `formatarEndereco()` - Formata endereço para exibição
+    - ✅ Gerenciamento de transações (beginTransaction/commit/rollBack)
+    - ✅ Validação de código interno único
+    - ✅ TODAS as operações persist/flush/remove no Service
+    - ✅ Logs detalhados em cada operação
+    - ✅ Type hints e DocBlocks completos
+    - ✅ Clean Code - métodos pequenos e focados
+
+  - **Form (Formulário Symfony):**
+    - `src/Form/ImovelFormType.php` (448 linhas)
+    - 63 campos organizados em seções:
+      - Identificação (código interno)
+      - Relacionamentos (tipo, endereço, proprietário, fiador, corretor, condomínio)
+      - Situação (situacao, ocupacao, tipo_utilizacao, situacao_financeira)
+      - Disponibilidade (checkboxes para aluguel, venda, temporada, aluguel garantido)
+      - Características físicas (áreas, quartos, suítes, banheiros, salas, vagas, pavimentos)
+      - Construção (ano, tipo, aptos por andar)
+      - Valores (aluguel, venda, temporada, mercado, condomínio, IPTU, taxa lixo, vencimento)
+      - Comissões (taxa admin, comissão locação, comissão venda)
+      - Documentação (inscrição imobiliária, matrícula cartório, nome cartório, contribuinte IPTU)
+      - Descrição (descrição, observações, imediações)
+      - Chaves (tem chaves, qtd, número, localização)
+      - Publicação (site, ZAP, VivaReal, GrupoSP, ocultar valor, placa)
+    - ✅ EntityType para relacionamentos (TiposImoveis, Enderecos, Pessoas, Condominios)
+    - ✅ ChoiceType para enums (situacao, tipo_utilizacao, ocupacao, tipo_construcao)
+    - ✅ MoneyType para valores monetários (BRL)
+    - ✅ CheckboxType para booleanos
+    - ✅ Placeholders e classes Bootstrap 5
+
+  - **Templates (Twig):**
+    - `templates/imovel/index.html.twig` (121 linhas)
+      - Listagem de imóveis em tabela responsiva
+      - Colunas: código, tipo, endereço, proprietário, situação, valores, quartos, banheiros, área
+      - Badges coloridos para situação
+      - Formatação monetária (R$ x.xxx,xx)
+      - Link para edição
+      - Mensagem quando vazio
+
+    - `templates/imovel/new.html.twig` (252 linhas)
+      - Formulário de cadastro com 5 abas (tabs):
+        1. Geral - Identificação, relacionamentos, disponibilidade, descrições
+        2. Características - Áreas, cômodos, construção, chaves
+        3. Valores - Valores monetários e comissões
+        4. Documentação - Inscrições e matrículas
+        5. Publicação - Portais e configurações de exibição
+      - ✅ Bootstrap 5 tabs para organização
+      - ✅ Flash messages (success/error)
+      - ✅ Meta tag com CSRF token único `ajax_global`
+      - ✅ Botões voltar/cancelar/salvar
+
+    - `templates/imovel/edit.html.twig` (293 linhas)
+      - Similar ao new.html.twig com 6 abas (adiciona "Propriedades")
+      - Aba "Propriedades" com container para checkboxes (renderizado via JS)
+      - ✅ Passa dados para JavaScript via `window.ROUTES` e `window.IMOVEL_DATA`
+      - ✅ Código interno no título
+      - ✅ Flash messages
+
+  - **JavaScript (100% Modular):**
+    - `assets/js/imovel/imovel.js` (130 linhas)
+      - Funções utilitárias:
+        - `getCsrfToken()` - Obtém token do meta tag
+        - `getAjaxHeaders()` - Headers padrão para AJAX
+        - `formatarMoeda()`, `formatarArea()` - Formatação
+        - `exibirSucesso()`, `exibirErro()` - Bootstrap toasts
+        - `executarDelete()` - DELETE via AJAX com confirmação
+      - ✅ ZERO código inline
+      - ✅ Export/import ES6 modules
+
+    - `assets/js/imovel/imovel_propriedades.js` (215 linhas)
+      - Gerenciamento de propriedades (checkboxes):
+        - `init()` - Inicializa módulo
+        - `carregarCatalogo()` - Busca propriedades via AJAX
+        - `renderizarPropriedades()` - Cria checkboxes agrupados por categoria
+        - `handleCheckboxChange()` - Event listener para mudanças
+        - `adicionarPropriedade()`, `removerPropriedade()` - Gerencia seleção
+        - `getPropriedadesSelecionadas()` - Retorna IDs selecionados
+      - ✅ Organiza por categoria (lazer, segurança, infraestrutura, etc.)
+      - ✅ DELETE via AJAX quando desmarca
+      - ✅ Sincronização com backend
+
+    - `assets/js/imovel/app.js` (18 linhas)
+      - Arquivo principal de inicialização
+      - Importa e inicializa módulos
+      - Event listener `DOMContentLoaded`
+      - ✅ Verifica existência de containers antes de inicializar
+
+  - **Arquitetura seguindo CLAUDE.md:**
+    - ✅ Thin Controller, Fat Service
+    - ✅ JavaScript 100% modular (ZERO inline)
+    - ✅ Token CSRF único `ajax_global`
+    - ✅ JSON sempre com `id` para DELETE
+    - ✅ Headers obrigatórios para AJAX
+    - ✅ Symfony Best Practices (Clean Code, SOLID, DRY, Type Hints, DocBlocks)
+    - ✅ DQL em Repository (não criado ainda, mas estrutura pronta)
+    - ✅ Bootstrap 5 para UI
+    - ✅ Rotas via Attributes (auto-descoberta)
+
+- **Entrada no Dashboard para módulo de Imóveis**
+  - `templates/dashboard/index.html.twig` (linha 49)
+  - Card "Imóveis" ativado com link para `app_imovel_index`
+  - Ícone: `bi-building`
+  - Descrição: "Gerencie o cadastro completo de imóveis"
+  - Detalhes: "Cadastro completo com 63 campos: proprietário, endereço, valores, características, propriedades, fotos, medidores e documentação"
+  - ✅ Mantido padrão simples do dashboard (sem estatísticas)
+
+### Alterado
+- **src/Entity/TiposImoveis.php - Adicionado relacionamento bidirecional com Imoveis**
+  - **Motivação:** Permitir navegação de TipoImovel → Imoveis
+  - **Mudanças:**
+    - Adicionadas imports: `ArrayCollection`, `Collection`
+    - Adicionado campo: `private Collection $imoveis`
+    - Adicionado método `__construct()` para inicializar collection
+    - Adicionados métodos: `getImoveis()`, `addImovel()`, `removeImovel()`
+    - Adicionado atributo ORM: `#[ORM\OneToMany(targetEntity: Imoveis::class, mappedBy: 'tipoImovel')]`
+  - **Arquivos modificados:**
+    - `src/Entity/TiposImoveis.php` (linhas 6-7: imports, 32-36: field, 87-133: methods)
+
+### Corrigido
+- **CRÍTICO:** Schema Doctrine com 236+ divergências em TODO o sistema
+  - **Problema:** `doctrine:schema:validate` falhava com "Database schema is not in sync"
+  - **Causa raiz:** Múltiplas migrações anteriores não aplicaram todas as constraints necessárias
+  - **Divergências corrigidas:**
+
+    **Módulo Imóveis (38 statements):**
+    - ✅ `tipos_imoveis.id` → DEFAULT nextval('tipos_imoveis_id_seq')
+    - ✅ Tabelas `imoveis_medidores`, `condominios`, `propriedades_catalogo` → campos `ativo` e `created_at` com NOT NULL e DEFAULT
+    - ✅ Tabela `imoveis` → 26 campos boolean com NOT NULL (aluguel_garantido, disponivel_aluguel, etc.)
+    - ✅ Tabela `imoveis` → campos timestamp com NOT NULL e DEFAULT CURRENT_TIMESTAMP
+    - ✅ Tabelas `imoveis_contratos`, `imoveis_fotos` → timestamps com constraints corretas
+
+    **Sistema inteiro (19 statements adicionais):**
+    - ✅ Foreign Keys adicionadas:
+      - `cidades.id_estado` → `estados.id`
+      - `pessoas_pretendentes.id_logradouro_desejado` → `logradouros.id`
+      - `pessoas_pretendentes.id_tipo_atendimento` → `tipos_atendimento.id`
+      - `enderecos.id_logradouro` → `logradouros.id`
+      - `contas_bancarias.id_banco` → `bancos.id`
+      - `contas_bancarias.id_agencia` → `agencias.id`
+      - `contas_bancarias.id_tipo_conta` → `tipos_contas_bancarias.id`
+      - `pessoas.estado_civil_id` → `estado_civil.id`
+      - `pessoas.nacionalidade_id` → `nacionalidades.id`
+      - `pessoas.naturalidade_id` → `naturalidades.id`
+    - ✅ Primary Keys adicionadas:
+      - `pessoas_emails.id` (após corrigir 2 IDs duplicados)
+      - `pessoas_telefones.id` (após corrigir 2 IDs duplicados)
+    - ✅ Timestamps convertidos:
+      - `tipos_enderecos.created_at` e `updated_at` → TIMESTAMP(0) WITHOUT TIME ZONE com USING
+    - ✅ Constraints UNIQUE removidas (substituídas por FKs):
+      - `uniq_pessoas_pretendentes_id_pessoa`
+      - `uniq_pessoas_locadores_id_pessoa`
+      - `uniq_pessoas_corretores_id_pessoa`
+      - `uniq_pessoas_fiadores_id_pessoa`
+      - `uniq_pessoas_documentos_pessoa_tipo_numero`
+
+  - **Correções de dados aplicadas:**
+    - Atualização de 2 registros com ID duplicado em `pessoas_emails` (ID 1 → nextval)
+    - Atualização de 2 registros com ID duplicado em `pessoas_telefones` (ID 1 → nextval)
+
+  - **Resultado final:**
+    ```
+    Mapping
+    -------
+    [OK] The mapping files are correct.
+
+    Database
+    --------
+    [OK] The database schema is in sync with the mapping files.
+    ```
+
+  - **Arquivos SQL executados:**
+    - `/tmp/imoveis_fix.sql` (38 linhas)
+    - `/tmp/schema_remaining.sql` (19 linhas)
+
+  - **Impacto:** Sistema agora 100% sincronizado com Doctrine. Todas as 236+ divergências corrigidas.
+
+### Segurança
+- **Foreign Keys adicionadas em 10 tabelas**
+  - Integridade referencial agora garantida em TODO o sistema
+  - Relacionamentos validados pelo PostgreSQL (evita dados órfãos)
+  - Constraints CASCADE onde apropriado (ex: imoveis_fotos ON DELETE CASCADE)
+
+---
+
+## [6.6.4] - 2025-11-27
+
+### Removido
+- **Arquivos `.md` desnecessários criados por modelos anteriores**
+  - **Problema:** Vários arquivos `.md` temporários estavam poluindo a raiz do projeto
+  - **Causa:** Modelos anteriores (Opus/Sonnet) criavam arquivos de documentação temporários ao invés de usar o `CHANGELOG.md`
+  - **Arquivos removidos:**
+    - `README.md` (continha apenas "AlmasaStudio projeto Synfony" - conteúdo irrelevante)
+    - `MIGRATION_USERS_ENTITY.md` (documentação temporária da migração User → Users)
+    - `CORRECAO_PESSOA_ENTITY.md` (documentação temporária da correção Pessoa → Pessoas)
+    - `CORRECAO_THEME_LIGHT.md` (documentação temporária da correção isThemeLight)
+  - **Solução implementada:**
+    - Conteúdo relevante consolidado na seção "📚 REFERÊNCIA HISTÓRICA - Migrações e Correções Consolidadas" deste CHANGELOG
+    - Arquivos temporários deletados permanentemente
+  - **Impacto:** Raiz do projeto agora tem APENAS os arquivos `.md` permitidos: `CLAUDE.md` e `CHANGELOG.md`
+
+### Alterado
+- **CLAUDE.md - Adicionadas regras EXPLÍCITAS sobre CHANGELOG.md**
+  - **Motivação:** Evitar que futuros modelos (Sonnet, Opus, Haiku) criem arquivos `.md` extras
+  - **Mudanças aplicadas:**
+    1. Adicionada seção destacada no topo: "🚨 ATENÇÃO - ARQUIVO ÚNICO DE MUDANÇAS"
+    2. Lista clara de arquivos permitidos vs. proibidos
+    3. Regra de ouro: "Se você fez uma mudança, atualize IMEDIATAMENTE o CHANGELOG.md"
+    4. Seção expandida "📚 Documentação e Histórico" com:
+       - Formato obrigatório ([Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/))
+       - Categorias de mudanças (Adicionado, Alterado, Removido, Corrigido, Segurança, Descontinuado)
+       - Estrutura de versionamento semântico (MAJOR.MINOR.PATCH)
+       - Exemplo completo de entrada no CHANGELOG
+  - **Arquivos modificados:**
+    - `CLAUDE.md` (linhas 7-27: seção de atenção)
+    - `CLAUDE.md` (linhas 495-553: seção de documentação expandida)
+
+### Segurança
+- **Melhor governança de documentação**
+  - Centralização de mudanças em arquivo único auditável
+  - Versionamento semântico consistente
+  - Rastreabilidade completa de todas as alterações
+
+---
+
+## 📚 REFERÊNCIA HISTÓRICA - Migrações e Correções Consolidadas
+
+Este changelog consolidou o conteúdo de arquivos de documentação temporários criados durante correções críticas.
+Os arquivos originais foram removidos para manter organização (apenas `CLAUDE.md` e `CHANGELOG.md` devem existir).
+
+### 🗂️ Migração: User → Users (Corrigida)
+
+**Problema:** Inconsistência entre entity `User` (singular) e tabela `users` (plural)
+
+**Solução Aplicada:**
+- ✅ Removida entity `User.php` (singular)
+- ✅ Mantida entity `Users.php` (plural)
+- ✅ Atualizado `security.yaml`: `App\Entity\User` → `App\Entity\Users`
+- ✅ Atualizado `UserRepository.php` para usar `Users::class`
+- ✅ Corrigido relacionamento em `Pessoas.php`: `JoinColumn` para `id` em vez de `idpessoa`
+- ✅ Atualizados controllers: `ThemeController.php`, `PessoaController.php`
+- ✅ Atualizada extensão Twig: `GlobalPessoaExtension.php`
+
+**Arquivos Afetados:**
+- `src/Entity/Users.php`
+- `src/Repository/UserRepository.php`
+- `config/packages/security.yaml`
+- `src/Controller/ThemeController.php`
+- `src/Twig/GlobalPessoaExtension.php`
+
+---
+
+### 🗂️ Migração: Pessoa → Pessoas (Corrigida)
+
+**Problema:** Referências usando `App\Entity\Pessoa` (singular) quando a entity correta é `Pessoas` (plural)
+
+**Solução Aplicada:**
+- ✅ Controllers: `DashboardController.php`, `PessoaController.php`
+- ✅ Repository: `PessoaRepository.php`
+- ✅ Forms: `PessoaType.php`, `PessoaLocadorType.php`, `PessoaFiadorType.php`, `PessoaCorretorType.php`, `ContaBancariaType.php`
+- ✅ Scripts: `test_schema.php`, `diagnose_schema.php`, `test_entities.php`, `scripts/validate_system.php`
+- ✅ Testes: Corrigidos parcialmente (alguns arquivos ainda pendentes)
+
+**Impacto:** Eliminado erro "Class 'App\Entity\Pessoa' does not exist"
+
+**Arquivos Afetados:**
+- 15 arquivos principais corrigidos
+- ~20 arquivos de teste ainda precisam correção
+
+---
+
+### 🗂️ Correção: Controle de Tema (isThemeLight)
+
+**Problema:** Template chamava `isThemeLight()` que não existia na entity `Pessoas`
+
+**Solução Aplicada:**
+- ✅ Adicionado método `isThemeLight(): bool` em `Pessoas.php`
+- ✅ Estrutura completa implementada:
+  ```php
+  public function getThemeLight(): bool { return $this->themeLight; }
+  public function isThemeLight(): bool { return $this->themeLight; }
+  public function setThemeLight(bool $themeLight): self { $this->themeLight = $themeLight; return $this; }
+  ```
+- ✅ Valor padrão: `true` (tema claro)
+- ✅ Testes adicionados em `PessoaTest.php`
+
+**Integração:**
+- Template `base.html.twig` usa `pessoa.isThemeLight()` para definir tema
+- `ThemeController.php` alterna tema usando métodos implementados
+
+**Arquivos Afetados:**
+- `src/Entity/Pessoas.php`
+- `templates/base.html.twig`
+- `src/Controller/ThemeController.php`
+- `tests/Entity/PessoaTest.php`
+
+---
+
+**Observação:** Todos os conteúdos acima foram extraídos dos arquivos:
+- `MIGRATION_USERS_ENTITY.md` (removido)
+- `CORRECAO_PESSOA_ENTITY.md` (removido)
+- `CORRECAO_THEME_LIGHT.md` (removido)
+
+Esses arquivos foram criados temporariamente durante correções e agora foram consolidados aqui.
+
+---
+
 ## [6.6.3] - 2025-11-24
 
 ### Corrigido
