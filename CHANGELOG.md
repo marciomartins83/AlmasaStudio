@@ -9,6 +9,44 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.6.6] - 2025-11-30
+
+### Corrigido
+- **CRÍTICO:** Módulo de imóveis com tela em branco na listagem
+  - **Sintoma:** Ao acessar `/imovel/` pelo dashboard, tela aparecia em branco
+  - **Causa raiz 1:** `ImovelController.php` estava com código corrompido/duplicado
+    - Linhas 189-200: Método `deletePropriedade` aparecia duas vezes com código misturado
+    - Linhas 205-206: Rota `propriedades_catalogo` estava duplicada
+    - Import não utilizado `EntityManagerInterface`
+  - **Causa raiz 2:** Template `index.html.twig` usava nomes de atributos incorretos
+    - Template usava sintaxe snake_case (`imovel.codigo_interno`) mas entidade usa camelCase (`getCodigoInterno()`)
+    - Campos corrigidos:
+      - `imovel.codigo_interno` → `imovel.codigoInterno`
+      - `imovel.tipo` → `imovel.tipoImovel.descricao`
+      - `imovel.endereco` → `imovel.endereco.logradouro.logradouro`
+      - `imovel.proprietario` → `imovel.pessoaProprietario.nome`
+      - `imovel.valor_aluguel` → `imovel.valorAluguel`
+      - `imovel.valor_venda` → `imovel.valorVenda`
+      - `imovel.qtd_quartos` → `imovel.qtdQuartos`
+      - `imovel.qtd_banheiros` → `imovel.qtdBanheiros`
+      - `imovel.area_total` → `imovel.areaTotal`
+  - **Causa raiz 3:** `ImovelService.php` usava métodos incorretos
+    - `getAluguelGarantido()` → `isAluguelGarantido()` (booleano usa `is` prefix)
+    - `getDisponivelVenda()` → `isDisponivelVenda()` (booleano usa `is` prefix)
+    - `formatarEndereco()`: `$logradouro->getNome()` → `$logradouro->getLogradouro()`
+    - `formatarEndereco()`: `$endereco->getNumero()` → `$endereco->getEndNumero()`
+  - **Solução implementada:**
+    - Controller: Removido código duplicado/corrompido e import não utilizado
+    - Template: Corrigidos todos os nomes de atributos para camelCase
+    - Service: Corrigidos métodos para usar nomes corretos das entidades
+  - **Arquivos modificados:**
+    - `src/Controller/ImovelController.php` (linhas 189-206 reconstruídas, import removido)
+    - `templates/imovel/index.html.twig` (linhas 53-116 - toda a tabela de listagem)
+    - `src/Service/ImovelService.php` (linhas 78-79 e 575-576)
+  - **Impacto:** Módulo de imóveis agora exibe listagem corretamente
+
+---
+
 ## [6.6.5] - 2025-11-29
 
 ### Adicionado

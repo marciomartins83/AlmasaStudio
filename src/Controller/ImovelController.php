@@ -6,7 +6,6 @@ use App\Entity\Imoveis;
 use App\Form\ImovelFormType;
 use App\Repository\ImoveisRepository;
 use App\Service\ImovelService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,11 +31,10 @@ class ImovelController extends AbstractController
      * Lista todos os imóveis
      */
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(ImoveisRepository $imoveisRepository): Response
     {
-        // ✅ Thin Controller: Delega para Service
-        $imoveis = $this->imovelService->listarImoveisEnriquecidos();
-
+        // ✅ Refatorado para usar findBy com ordenação decrescente por ID
+        $imoveis = $imoveisRepository->findBy([], ['id' => 'DESC']);
         return $this->render('imovel/index.html.twig', [
             'imoveis' => $imoveis,
         ]);
@@ -55,13 +53,11 @@ class ImovelController extends AbstractController
             try {
                 $imovel = $form->getData();
                 $requestData = $request->request->all();
-
+                
                 // ✅ Thin Controller: Delega para Service
                 $this->imovelService->salvarImovel($imovel, $requestData);
-
                 $this->addFlash('success', 'Imóvel cadastrado com sucesso!');
                 return $this->redirectToRoute('app_imovel_index');
-
             } catch (\Exception $e) {
                 $this->logger->error('Erro ao salvar imóvel: ' . $e->getMessage());
                 $this->addFlash('error', 'Erro ao salvar imóvel: ' . $e->getMessage());
@@ -85,13 +81,11 @@ class ImovelController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $requestData = $request->request->all();
-
+                
                 // ✅ Thin Controller: Delega para Service
                 $this->imovelService->atualizarImovel($imovel, $requestData);
-
                 $this->addFlash('success', 'Imóvel atualizado com sucesso!');
                 return $this->redirectToRoute('app_imovel_index');
-
             } catch (\Exception $e) {
                 $this->logger->error('Erro ao atualizar imóvel: ' . $e->getMessage());
                 $this->addFlash('error', 'Erro ao atualizar imóvel: ' . $e->getMessage());
@@ -100,7 +94,6 @@ class ImovelController extends AbstractController
 
         // ✅ Thin Controller: Delega para Service
         $dadosCompletos = $this->imovelService->carregarDadosCompletos($imovel->getId());
-
         return $this->render('imovel/edit.html.twig', [
             'form' => $form,
             'imovel' => $imovel,
@@ -115,7 +108,6 @@ class ImovelController extends AbstractController
     public function buscar(Request $request): JsonResponse
     {
         $codigoInterno = $request->query->get('codigo_interno');
-
         if (!$codigoInterno) {
             return new JsonResponse(['error' => 'Código interno não informado'], 400);
         }
@@ -123,13 +115,10 @@ class ImovelController extends AbstractController
         try {
             // ✅ Thin Controller: Delega para Service
             $resultado = $this->imovelService->buscarPorCodigoInterno($codigoInterno);
-
             if ($resultado) {
                 return new JsonResponse($resultado);
             }
-
             return new JsonResponse(['error' => 'Imóvel não encontrado'], 404);
-
         } catch (\Exception $e) {
             $this->logger->error('Erro ao buscar imóvel: ' . $e->getMessage());
             return new JsonResponse(['error' => 'Erro ao buscar imóvel'], 500);
@@ -145,9 +134,7 @@ class ImovelController extends AbstractController
         try {
             // ✅ Thin Controller: Delega para Service
             $this->imovelService->deletarFoto($id);
-
             return new JsonResponse(['success' => true]);
-
         } catch (\Exception $e) {
             $this->logger->error('Erro ao deletar foto: ' . $e->getMessage());
             return new JsonResponse([
@@ -166,9 +153,7 @@ class ImovelController extends AbstractController
         try {
             // ✅ Thin Controller: Delega para Service
             $this->imovelService->deletarMedidor($id);
-
             return new JsonResponse(['success' => true]);
-
         } catch (\Exception $e) {
             $this->logger->error('Erro ao deletar medidor: ' . $e->getMessage());
             return new JsonResponse([
@@ -187,9 +172,7 @@ class ImovelController extends AbstractController
         try {
             // ✅ Thin Controller: Delega para Service
             $this->imovelService->deletarPropriedade($idImovel, $idPropriedade);
-
             return new JsonResponse(['success' => true]);
-
         } catch (\Exception $e) {
             $this->logger->error('Erro ao deletar propriedade: ' . $e->getMessage());
             return new JsonResponse([

@@ -75,8 +75,8 @@ class ImovelService
                 'proprietario' => $imovel->getPessoaProprietario()?->getNome(),
                 'valor_aluguel' => $imovel->getValorAluguel(),
                 'valor_venda' => $imovel->getValorVenda(),
-                'disponivel_aluguel' => $imovel->getAluguelGarantido(),
-                'disponivel_venda' => $imovel->getDisponivelVenda(),
+                'disponivel_aluguel' => $imovel->isAluguelGarantido(),
+                'disponivel_venda' => $imovel->isDisponivelVenda(),
                 'qtd_quartos' => $imovel->getQtdQuartos(),
                 'qtd_banheiros' => $imovel->getQtdBanheiros(),
                 'area_total' => $imovel->getAreaTotal(),
@@ -572,8 +572,8 @@ class ImovelService
         }
 
         $partes = [
-            $logradouro->getNome(),
-            $endereco->getNumero() ? ', ' . $endereco->getNumero() : '',
+            $logradouro->getLogradouro(),
+            $endereco->getEndNumero() ? ', ' . $endereco->getEndNumero() : '',
             $logradouro->getBairro()?->getNome() ? ' - ' . $logradouro->getBairro()->getNome() : '',
             $logradouro->getBairro()?->getCidade()?->getNome() ? ', ' . $logradouro->getBairro()->getCidade()->getNome() : '',
         ];

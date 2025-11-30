@@ -54,13 +54,13 @@
                         {% for imovel in imoveis %}
                         <tr>
                             <td>
-                                <strong>{{ imovel.codigo_interno|default('-') }}</strong>
+                                <strong>{{ imovel.codigoInterno|default('-') }}</strong>
                             </td>
-                            <td>{{ imovel.tipo|default('-') }}</td>
-                            <td class="text-truncate" style="max-width: 200px;" title="{{ imovel.endereco }}">
-                                {{ imovel.endereco }}
+                            <td>{{ imovel.tipoImovel.descricao|default('-') }}</td>
+                            <td class="text-truncate" style="max-width: 200px;" title="{{ imovel.endereco.logradouro.logradouro|default('') }}, {{ imovel.endereco.endNumero|default('') }}">
+                                {{ imovel.endereco.logradouro.logradouro|default('-') }}{% if imovel.endereco.endNumero %}, {{ imovel.endereco.endNumero }}{% endif %}
                             </td>
-                            <td>{{ imovel.proprietario|default('-') }}</td>
+                            <td>{{ imovel.pessoaProprietario.nome|default('-') }}</td>
                             <td>
                                 {% if imovel.situacao == 'disponivel' %}
                                     <span class="badge bg-success">Disponível</span>
@@ -71,28 +71,28 @@
                                 {% elseif imovel.situacao == 'reservado' %}
                                     <span class="badge bg-warning">Reservado</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">{{ imovel.situacao|capitalize }}</span>
+                                    <span class="badge bg-secondary">{{ imovel.situacao|default('-')|capitalize }}</span>
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                {% if imovel.valor_aluguel %}
-                                    R$ {{ imovel.valor_aluguel|number_format(2, ',', '.') }}
+                                {% if imovel.valorAluguel %}
+                                    R$ {{ imovel.valorAluguel|number_format(2, ',', '.') }}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                {% if imovel.valor_venda %}
-                                    R$ {{ imovel.valor_venda|number_format(2, ',', '.') }}
+                                {% if imovel.valorVenda %}
+                                    R$ {{ imovel.valorVenda|number_format(2, ',', '.') }}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td class="text-center">{{ imovel.qtd_quartos }}</td>
-                            <td class="text-center">{{ imovel.qtd_banheiros }}</td>
+                            <td class="text-center">{{ imovel.qtdQuartos }}</td>
+                            <td class="text-center">{{ imovel.qtdBanheiros }}</td>
                             <td class="text-center">
-                                {% if imovel.area_total %}
-                                    {{ imovel.area_total|number_format(2, ',', '.') }}
+                                {% if imovel.areaTotal %}
+                                    {{ imovel.areaTotal|number_format(2, ',', '.') }}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
