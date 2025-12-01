@@ -216,6 +216,129 @@ Antes de aplicar qualquer mudança:
 ✅ "Aprovado, mas adicione DocBlock explicando a lógica"
 🔄 "Refatore usando Symfony best practices"
 ```
+
+### 8. Padrão de Templates CRUD (OBRIGATÓRIO)
+
+**⚠️ REGRA CRÍTICA PARA CRIAÇÃO DE MÓDULOS CRUD:**
+
+Ao criar templates Twig para módulos CRUD (index, new, edit, show), SIGA RIGOROSAMENTE o padrão existente:
+
+**Estrutura OBRIGATÓRIA:**
+
+```twig
+{% extends 'base.html.twig' %}
+
+{% block title %}Título da Página - {{ parent() }}{% endblock %}
+
+{% block content %}  {# ⚠️ USAR "content", NÃO "body" #}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Módulo', 'url': path('app_modulo_index')}
+        ],
+        'current': 'Página Atual'
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Conteúdo da página #}
+</div>
+{% endblock %}
+```
+
+**Checklist OBRIGATÓRIO para templates CRUD:**
+
+| Item | ✅ Correto | ❌ Errado |
+|------|-----------|----------|
+| Block principal | `{% block content %}` | `{% block body %}` |
+| Breadcrumb | Incluir `_partials/breadcrumb.html.twig` | Omitir breadcrumb |
+| Ícones | `<i class="fas fa-*">` (FontAwesome) | `<i class="bi bi-*">` (Bootstrap Icons) |
+| Tabela index | `table-striped table-hover` | `table` simples |
+| Header tabela | `thead class="table-dark"` | `thead class="table-light"` |
+| Mensagem vazia | Ícone + texto + subtexto | Só texto simples |
+| Card | `<div class="card">` | `<div class="card shadow-sm">` |
+| Botão voltar | `<i class="fas fa-arrow-left"></i> Voltar` | `<i class="bi bi-arrow-left"></i>` |
+| Botão salvar | `<i class="fas fa-check"></i> Salvar` | `<i class="bi bi-check-circle"></i>` |
+
+**Template de Referência para index.html.twig:**
+
+```twig
+<table class="table table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th width="80">ID</th>
+            <th>Nome</th>
+            <th width="100">Status</th>
+            <th width="200">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.nome }}</td>
+            <td>
+                {% if item.ativo %}
+                    <span class="badge bg-success">Ativo</span>
+                {% else %}
+                    <span class="badge bg-danger">Inativo</span>
+                {% endif %}
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <a href="{{ path('app_modulo_edit', {id: item.id}) }}"
+                       class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+                <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                <span>Nenhum registro cadastrado</span><br>
+                <small>Clique em "Novo" para começar</small>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+```
+
+**Nomes de Atributos em Templates:**
+
+⚠️ **IMPORTANTE:** Em Twig, use **camelCase** para acessar propriedades de entidades Doctrine:
+
+| ❌ Errado (snake_case) | ✅ Correto (camelCase) |
+|------------------------|------------------------|
+| `{{ item.codigo_interno }}` | `{{ item.codigoInterno }}` |
+| `{{ item.valor_venda }}` | `{{ item.valorVenda }}` |
+| `{{ item.data_criacao }}` | `{{ item.dataCriacao }}` |
+| `{{ item.is_ativo }}` | `{{ item.ativo }}` ou `{{ item.isAtivo }}` |
+
+**Para relacionamentos:**
+
+| ❌ Errado | ✅ Correto |
+|-----------|-----------|
+| `{{ item.tipo }}` (string) | `{{ item.tipoEntidade.descricao }}` |
+| `{{ item.endereco }}` (string) | `{{ item.endereco.logradouro.nome }}` |
+| `{{ item.proprietario }}` (string) | `{{ item.pessoaProprietario.nome }}` |
+
+**Métodos booleanos (is*):**
+
+| ❌ Errado | ✅ Correto |
+|-----------|-----------|
+| `getAtivo()` | `isAtivo()` |
+| `getDisponivel()` | `isDisponivel()` |
+
 ---
 
 ## 📁 Estrutura de Pastas e Arquivos

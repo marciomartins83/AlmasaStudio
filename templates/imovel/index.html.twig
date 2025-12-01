@@ -1,21 +1,15 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Imóveis{% endblock %}
+{% block title %}Imóveis - {{ parent() }}{% endblock %}
 
-{% block body %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h1 class="h3">
-                <i class="bi bi-building"></i> Imóveis
-            </h1>
-        </div>
-        <div class="col-auto">
-            <a href="{{ path('app_imovel_new') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Novo Imóvel
-            </a>
-        </div>
-    </div>
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Lista de Imóveis'
+    } %}
 
     {% for message in app.flashes('success') %}
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -31,102 +25,122 @@
         </div>
     {% endfor %}
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Código</th>
-                            <th>Tipo</th>
-                            <th>Endereço</th>
-                            <th>Proprietário</th>
-                            <th>Situação</th>
-                            <th class="text-end">Valor Aluguel</th>
-                            <th class="text-end">Valor Venda</th>
-                            <th class="text-center">Quartos</th>
-                            <th class="text-center">Banheiros</th>
-                            <th class="text-center">Área (m²)</th>
-                            <th class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for imovel in imoveis %}
-                        <tr>
-                            <td>
-                                <strong>{{ imovel.codigoInterno|default('-') }}</strong>
-                            </td>
-                            <td>{{ imovel.tipoImovel.descricao|default('-') }}</td>
-                            <td class="text-truncate" style="max-width: 200px;" title="{{ imovel.endereco.logradouro.logradouro|default('') }}, {{ imovel.endereco.endNumero|default('') }}">
-                                {{ imovel.endereco.logradouro.logradouro|default('-') }}{% if imovel.endereco.endNumero %}, {{ imovel.endereco.endNumero }}{% endif %}
-                            </td>
-                            <td>{{ imovel.pessoaProprietario.nome|default('-') }}</td>
-                            <td>
-                                {% if imovel.situacao == 'disponivel' %}
-                                    <span class="badge bg-success">Disponível</span>
-                                {% elseif imovel.situacao == 'alugado' %}
-                                    <span class="badge bg-primary">Alugado</span>
-                                {% elseif imovel.situacao == 'vendido' %}
-                                    <span class="badge bg-info">Vendido</span>
-                                {% elseif imovel.situacao == 'reservado' %}
-                                    <span class="badge bg-warning">Reservado</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ imovel.situacao|default('-')|capitalize }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                {% if imovel.valorAluguel %}
-                                    R$ {{ imovel.valorAluguel|number_format(2, ',', '.') }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                {% if imovel.valorVenda %}
-                                    R$ {{ imovel.valorVenda|number_format(2, ',', '.') }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">{{ imovel.qtdQuartos }}</td>
-                            <td class="text-center">{{ imovel.qtdBanheiros }}</td>
-                            <td class="text-center">
-                                {% if imovel.areaTotal %}
-                                    {{ imovel.areaTotal|number_format(2, ',', '.') }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <a href="{{ path('app_imovel_edit', {id: imovel.id}) }}"
-                                   class="btn btn-sm btn-outline-primary"
-                                   title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="11" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                Nenhum imóvel cadastrado
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-building"></i> Imóveis</h1>
+                <a href="{{ path('app_imovel_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Imóvel
+                </a>
             </div>
-        </div>
-    </div>
 
-    {% if imoveis|length > 0 %}
-    <div class="row mt-3">
-        <div class="col">
-            <p class="text-muted">
-                <small>Total: {{ imoveis|length }} imóvel(is)</small>
-            </p>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="100">Código</th>
+                                    <th>Tipo</th>
+                                    <th>Endereço</th>
+                                    <th>Proprietário</th>
+                                    <th width="100">Situação</th>
+                                    <th width="120" class="text-end">Aluguel</th>
+                                    <th width="120" class="text-end">Venda</th>
+                                    <th width="80" class="text-center">Quartos</th>
+                                    <th width="80" class="text-center">Área</th>
+                                    <th width="100">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for imovel in imoveis %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ imovel.codigoInterno|default('-') }}</strong>
+                                    </td>
+                                    <td>{{ imovel.tipoImovel.descricao|default('-') }}</td>
+                                    <td>
+                                        {% if imovel.endereco and imovel.endereco.logradouro %}
+                                            {{ imovel.endereco.logradouro.logradouro|default('-') }}{% if imovel.endereco.endNumero %}, {{ imovel.endereco.endNumero }}{% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if imovel.pessoaProprietario %}
+                                            {{ imovel.pessoaProprietario.nome }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if imovel.situacao == 'disponivel' %}
+                                            <span class="badge bg-success">Disponível</span>
+                                        {% elseif imovel.situacao == 'alugado' %}
+                                            <span class="badge bg-primary">Alugado</span>
+                                        {% elseif imovel.situacao == 'vendido' %}
+                                            <span class="badge bg-info">Vendido</span>
+                                        {% elseif imovel.situacao == 'reservado' %}
+                                            <span class="badge bg-warning">Reservado</span>
+                                        {% elseif imovel.situacao == 'em_reforma' %}
+                                            <span class="badge bg-secondary">Em Reforma</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ imovel.situacao|default('-')|capitalize }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if imovel.valorAluguel %}
+                                            R$ {{ imovel.valorAluguel|number_format(2, ',', '.') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if imovel.valorVenda %}
+                                            R$ {{ imovel.valorVenda|number_format(2, ',', '.') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ imovel.qtdQuartos }}</td>
+                                    <td class="text-center">
+                                        {% if imovel.areaTotal %}
+                                            {{ imovel.areaTotal|number_format(0, ',', '.') }} m²
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ path('app_imovel_edit', {id: imovel.id}) }}"
+                                               class="btn btn-warning btn-sm"
+                                               title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum imóvel cadastrado</span><br>
+                                        <small>Clique em "Novo Imóvel" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if imoveis|length > 0 %}
+            <div class="mt-2">
+                <small class="text-muted">Total: {{ imoveis|length }} imóvel(is)</small>
+            </div>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

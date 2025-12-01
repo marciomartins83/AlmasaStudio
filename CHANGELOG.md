@@ -45,6 +45,39 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
     - `src/Service/ImovelService.php` (linhas 78-79 e 575-576)
   - **Impacto:** Módulo de imóveis agora exibe listagem corretamente
 
+- **Templates de imóveis fora do padrão visual do projeto**
+  - **Sintoma:** Templates `index.html.twig`, `new.html.twig` e `edit.html.twig` não seguiam o padrão de outros módulos
+  - **Problemas identificados:**
+    1. Usavam `{% block body %}` ao invés de `{% block content %}`
+    2. Não incluíam breadcrumb
+    3. Misturavam ícones Bootstrap Icons (`bi bi-*`) com FontAwesome (`fas fa-*`)
+    4. Header da tabela usava `table-light` ao invés de `table-dark`
+    5. Mensagem vazia sem subtexto "Clique em... para começar"
+  - **Solução implementada:**
+    - Todos os templates agora seguem padrão de `conta_bancaria/index.html.twig`
+    - Block principal: `{% block content %}`
+    - Breadcrumb incluído em todos os templates
+    - Ícones padronizados para FontAwesome
+    - Tabela com `table-striped table-hover` e `thead class="table-dark"`
+    - Mensagem vazia com ícone + texto + subtexto
+  - **Arquivos modificados:**
+    - `templates/imovel/index.html.twig` (reescrito completamente)
+    - `templates/imovel/new.html.twig` (reescrito completamente)
+    - `templates/imovel/edit.html.twig` (reescrito completamente)
+
+### Adicionado
+- **CLAUDE.md - Seção 8: Padrão de Templates CRUD (OBRIGATÓRIO)**
+  - **Motivação:** Evitar que futuros modelos de IA criem módulos CRUD fora do padrão
+  - **Conteúdo adicionado:**
+    - Estrutura obrigatória de templates Twig
+    - Checklist de validação (block content, breadcrumb, ícones, tabela, etc.)
+    - Template de referência para `index.html.twig`
+    - Tabela de conversão snake_case → camelCase para atributos
+    - Regras para relacionamentos e métodos booleanos
+  - **Arquivo modificado:**
+    - `CLAUDE.md` (nova seção após "Code Review e Aprovação")
+  - **Impacto:** IAs futuras terão documentação clara de como criar templates CRUD
+
 ---
 
 ## [6.6.5] - 2025-11-29
