@@ -17,6 +17,9 @@ Encore
      */
     .addEntry('app', './assets/app.js')
 
+    // Módulo de Informe de Rendimentos / DIMOB
+    .addEntry('js/informe_rendimento/informe_rendimento', './assets/js/informe_rendimento/informe_rendimento.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

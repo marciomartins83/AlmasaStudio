@@ -1,0 +1,518 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Informe de Rendimentos - DIMOB - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Informe de Rendimentos'
+    } %}
+
+    {# Flash messages #}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type == 'error' ? 'danger' : type }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {# Header #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-file-invoice-dollar me-2"></i>Informe de Rendimentos / DIMOB
+        </h1>
+    </div>
+
+    {# Tabs Navigation #}
+    <ul class="nav nav-tabs" id="informeTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="processamento-tab" data-bs-toggle="tab"
+                    data-bs-target="#processamento" type="button" role="tab">
+                <i class="fas fa-cogs me-1"></i>Processamento
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="manutencao-tab" data-bs-toggle="tab"
+                    data-bs-target="#manutencao" type="button" role="tab">
+                <i class="fas fa-edit me-1"></i>Manutenção
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="impressao-tab" data-bs-toggle="tab"
+                    data-bs-target="#impressao" type="button" role="tab">
+                <i class="fas fa-print me-1"></i>Impressão
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="dimob-tab" data-bs-toggle="tab"
+                    data-bs-target="#dimob" type="button" role="tab">
+                <i class="fas fa-university me-1"></i>DIMOB
+            </button>
+        </li>
+    </ul>
+
+    {# Tabs Content #}
+    <div class="tab-content border border-top-0 rounded-bottom p-4 bg-white" id="informeTabContent">
+
+        {# ABA 1: PROCESSAMENTO #}
+        <div class="tab-pane fade show active" id="processamento" role="tabpanel">
+            <h5 class="mb-4">Processamento de Informes</h5>
+            <p class="text-muted mb-4">
+                O processamento varre os lançamentos do ano selecionado e gera/atualiza os registros de informe de rendimentos
+                agrupados por proprietário, imóvel, inquilino e conta.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="proc-proprietario-inicial" class="form-label">Proprietário Inicial</label>
+                    <select id="proc-proprietario-inicial" class="form-select">
+                        <option value="">Todos</option>
+                        {% for prop in proprietarios %}
+                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="proc-proprietario-final" class="form-label">Proprietário Final</label>
+                    <select id="proc-proprietario-final" class="form-select">
+                        <option value="">Todos</option>
+                        {% for prop in proprietarios %}
+                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="proc-ano" class="form-label">Ano</label>
+                    <select id="proc-ano" class="form-select">
+                        {% for ano in anos %}
+                            <option value="{{ ano }}" {{ ano == anoAtual ? 'selected' : '' }}>{{ ano }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="proc-reprocessar">
+                        <label class="form-check-label" for="proc-reprocessar">
+                            Reprocessar existentes
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" id="btn-processar" class="btn btn-primary w-100">
+                        <i class="fas fa-play me-1"></i>Processar
+                    </button>
+                </div>
+            </div>
+
+            {# Resultado do processamento #}
+            <div id="processamento-resultado" class="mt-4" style="display: none;">
+                <div class="alert alert-info">
+                    <h6 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Resultado do Processamento</h6>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Processados:</strong>
+                            <span id="res-processados" class="badge bg-primary ms-2">0</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Novos criados:</strong>
+                            <span id="res-criados" class="badge bg-success ms-2">0</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Atualizados:</strong>
+                            <span id="res-atualizados" class="badge bg-warning ms-2">0</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Erros:</strong>
+                            <span id="res-erros" class="badge bg-danger ms-2">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ABA 2: MANUTENÇÃO #}
+        <div class="tab-pane fade" id="manutencao" role="tabpanel">
+            <h5 class="mb-4">Manutenção de Informes</h5>
+
+            {# Filtros #}
+            <div class="row g-3 mb-4">
+                <div class="col-md-2">
+                    <label for="manut-ano" class="form-label">Ano</label>
+                    <select id="manut-ano" class="form-select">
+                        {% for ano in anos %}
+                            <option value="{{ ano }}" {{ ano == anoAtual ? 'selected' : '' }}>{{ ano }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="manut-proprietario" class="form-label">Proprietário</label>
+                    <select id="manut-proprietario" class="form-select">
+                        <option value="">Todos</option>
+                        {% for prop in proprietarios %}
+                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="manut-imovel" class="form-label">Imóvel</label>
+                    <input type="text" id="manut-imovel" class="form-control" placeholder="Código">
+                </div>
+                <div class="col-md-3">
+                    <label for="manut-inquilino" class="form-label">Inquilino</label>
+                    <input type="text" id="manut-inquilino" class="form-control" placeholder="Nome">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" id="btn-filtrar-manutencao" class="btn btn-secondary w-100">
+                        <i class="fas fa-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+
+            {# Loading indicator #}
+            <div id="manutencao-loading" class="text-center py-5" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-2 text-muted">Buscando informes...</p>
+            </div>
+
+            {# Grid de resultados #}
+            <div class="table-responsive" id="manutencao-tabela-container" style="display: none;">
+                <table class="table table-striped table-hover table-sm" id="tabela-manutencao">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="min-width: 150px;">Proprietário</th>
+                            <th style="min-width: 80px;">Imóvel</th>
+                            <th style="min-width: 150px;">Inquilino</th>
+                            <th style="min-width: 100px;">Conta</th>
+                            <th class="text-end" style="width: 70px;">Jan</th>
+                            <th class="text-end" style="width: 70px;">Fev</th>
+                            <th class="text-end" style="width: 70px;">Mar</th>
+                            <th class="text-end" style="width: 70px;">Abr</th>
+                            <th class="text-end" style="width: 70px;">Mai</th>
+                            <th class="text-end" style="width: 70px;">Jun</th>
+                            <th class="text-end" style="width: 70px;">Jul</th>
+                            <th class="text-end" style="width: 70px;">Ago</th>
+                            <th class="text-end" style="width: 70px;">Set</th>
+                            <th class="text-end" style="width: 70px;">Out</th>
+                            <th class="text-end" style="width: 70px;">Nov</th>
+                            <th class="text-end" style="width: 70px;">Dez</th>
+                            <th class="text-end" style="width: 90px;">Total</th>
+                            <th style="width: 60px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-manutencao">
+                        {# Preenchido via JavaScript #}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="manutencao-vazio" class="text-center py-5" style="display: none;">
+                <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                <p class="text-muted">Nenhum registro encontrado.</p>
+                <small class="text-muted">Use os filtros acima para buscar informes.</small>
+            </div>
+        </div>
+
+        {# ABA 3: IMPRESSÃO #}
+        <div class="tab-pane fade" id="impressao" role="tabpanel">
+            <h5 class="mb-4">Impressão de Informes</h5>
+            <p class="text-muted mb-4">
+                Selecione os parâmetros abaixo para gerar o relatório de informes de rendimentos.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="imp-proprietario" class="form-label">Proprietário</label>
+                    <select id="imp-proprietario" class="form-select">
+                        <option value="">Todos</option>
+                        {% for prop in proprietarios %}
+                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="imp-ano" class="form-label">Ano</label>
+                    <select id="imp-ano" class="form-select">
+                        {% for ano in anos %}
+                            <option value="{{ ano }}" {{ ano == anoAtual ? 'selected' : '' }}>{{ ano }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="imp-modelo" class="form-label">Modelo</label>
+                    <select id="imp-modelo" class="form-select">
+                        <option value="1">Modelo I - Detalhado</option>
+                        <option value="2">Modelo II - Agrupado</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="imp-abater-taxa">
+                        <label class="form-check-label" for="imp-abater-taxa">
+                            Abater Taxa de Administração
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" id="btn-imprimir" class="btn btn-success w-100">
+                        <i class="fas fa-print me-1"></i>Gerar PDF
+                    </button>
+                </div>
+            </div>
+
+            <div class="alert alert-light mt-4">
+                <h6><i class="fas fa-info-circle me-2"></i>Sobre os modelos:</h6>
+                <ul class="mb-0">
+                    <li><strong>Modelo I - Detalhado:</strong> Lista todos os informes individualmente com valores mensais.</li>
+                    <li><strong>Modelo II - Agrupado:</strong> Agrupa os informes por proprietário com totais.</li>
+                </ul>
+            </div>
+        </div>
+
+        {# ABA 4: DIMOB #}
+        <div class="tab-pane fade" id="dimob" role="tabpanel">
+            <h5 class="mb-4">Configuração e Geração DIMOB</h5>
+            <p class="text-muted mb-4">
+                Configure os dados do declarante e gere o arquivo DIMOB no formato da Receita Federal.
+            </p>
+
+            <form id="form-dimob">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="dimob-proprietario-inicial" class="form-label">Proprietário Inicial</label>
+                        <select id="dimob-proprietario-inicial" class="form-select">
+                            <option value="">Todos</option>
+                            {% for prop in proprietarios %}
+                                <option value="{{ prop.id }}">{{ prop.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="dimob-proprietario-final" class="form-label">Proprietário Final</label>
+                        <select id="dimob-proprietario-final" class="form-select">
+                            <option value="">Todos</option>
+                            {% for prop in proprietarios %}
+                                <option value="{{ prop.id }}">{{ prop.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="dimob-ano" class="form-label">Ano</label>
+                        <select id="dimob-ano" class="form-select">
+                            {% for ano in anos %}
+                                <option value="{{ ano }}" {{ ano == anoAtual ? 'selected' : '' }}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="dimob-retificadora">
+                            <label class="form-check-label" for="dimob-retificadora">
+                                Declaração Retificadora
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h6 class="mb-3">Dados do Declarante</h6>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="dimob-cnpj" class="form-label">CNPJ do Declarante <span class="text-danger">*</span></label>
+                        <input type="text" id="dimob-cnpj" class="form-control" placeholder="00.000.000/0000-00">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="dimob-cpf" class="form-label">CPF do Responsável <span class="text-danger">*</span></label>
+                        <input type="text" id="dimob-cpf" class="form-control" placeholder="000.000.000-00">
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="dimob-cidade" class="form-label">Código Cidade <span class="text-danger">*</span></label>
+                        <input type="text" id="dimob-cidade" class="form-control" placeholder="0000000">
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="dimob-situacao-especial">
+                            <label class="form-check-label" for="dimob-situacao-especial">
+                                Situação Especial
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dimob-data-geracao" class="mt-3 text-muted" style="display: none;">
+                    <i class="fas fa-clock me-1"></i>
+                    Última geração: <span id="dimob-ultima-geracao"></span>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2">
+                    <button type="button" id="btn-gravar-dimob" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Gravar Configuração
+                    </button>
+                    <button type="button" id="btn-gerar-dimob" class="btn btn-success">
+                        <i class="fas fa-file-export me-1"></i>Gerar Arquivo DIMOB
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{# Modal de Edição de Informe #}
+<div class="modal fade" id="modalEditarInforme" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Informe de Rendimento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-informe-id">
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted">Proprietário</label>
+                        <p id="edit-proprietario" class="fw-bold"></p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted">Imóvel</label>
+                        <p id="edit-imovel" class="fw-bold"></p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted">Inquilino</label>
+                        <p id="edit-inquilino" class="fw-bold"></p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Conta</label>
+                        <p id="edit-conta" class="fw-bold"></p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6 class="mb-3">Valores Mensais</h6>
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <label for="edit-valor-1" class="form-label">Janeiro</label>
+                        <input type="text" id="edit-valor-1" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-2" class="form-label">Fevereiro</label>
+                        <input type="text" id="edit-valor-2" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-3" class="form-label">Março</label>
+                        <input type="text" id="edit-valor-3" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-4" class="form-label">Abril</label>
+                        <input type="text" id="edit-valor-4" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-5" class="form-label">Maio</label>
+                        <input type="text" id="edit-valor-5" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-6" class="form-label">Junho</label>
+                        <input type="text" id="edit-valor-6" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-md-2">
+                        <label for="edit-valor-7" class="form-label">Julho</label>
+                        <input type="text" id="edit-valor-7" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-8" class="form-label">Agosto</label>
+                        <input type="text" id="edit-valor-8" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-9" class="form-label">Setembro</label>
+                        <input type="text" id="edit-valor-9" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-10" class="form-label">Outubro</label>
+                        <input type="text" id="edit-valor-10" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-11" class="form-label">Novembro</label>
+                        <input type="text" id="edit-valor-11" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="edit-valor-12" class="form-label">Dezembro</label>
+                        <input type="text" id="edit-valor-12" class="form-control form-control-sm text-end valor-mensal">
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col text-end">
+                        <strong>Total Anual: </strong>
+                        <span id="edit-total-anual" class="fs-5 text-primary fw-bold">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" id="btn-salvar-informe" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    window.ROUTES = {
+        processar: '{{ path("app_informe_rendimento_processar") }}',
+        manutencao: '{{ path("app_informe_rendimento_manutencao") }}',
+        atualizarInforme: '{{ path("app_informe_rendimento_atualizar", {id: "__ID__"}) }}',
+        impressao: '{{ path("app_informe_rendimento_impressao") }}',
+        dimobGet: '{{ path("app_informe_rendimento_dimob_get") }}',
+        dimobSalvar: '{{ path("app_informe_rendimento_dimob_salvar") }}',
+        dimobGerar: '{{ path("app_informe_rendimento_dimob_gerar") }}'
+    };
+</script>
+<script src="{{ asset('build/js/informe_rendimento/informe_rendimento.js') }}" type="module"></script>
+{% endblock %}

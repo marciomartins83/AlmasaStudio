@@ -9,6 +9,82 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.7.0] - 2025-12-01
+
+### Adicionado
+- **Módulo completo de Informe de Rendimentos / DIMOB**
+  - **Objetivo:** Sistema completo para processamento, manutenção, impressão de informes de rendimentos e geração de arquivo DIMOB para Receita Federal
+  - **5 tabelas criadas via migration:**
+    1. `plano_contas` (13 campos) - Plano de contas com 40 registros iniciais (receitas, despesas, transitórias, caixa)
+    2. `lancamentos` (13 campos) - Lançamentos financeiros com relacionamentos para imóvel, proprietário, inquilino e conta
+    3. `informes_rendimentos` (10 campos) - Informes por proprietário/imóvel/inquilino/conta/ano com constraint única
+    4. `informes_rendimentos_valores` (5 campos) - Valores mensais dos informes (12 meses por informe)
+    5. `dimob_configuracoes` (10 campos) - Configurações para geração do arquivo DIMOB
+  - **5 entidades Doctrine criadas:**
+    - `src/Entity/PlanoContas.php` - Com relacionamentos bidirecionais para Lancamentos e InformesRendimentos
+    - `src/Entity/Lancamentos.php` - Com relacionamentos para PlanoContas, Imoveis e Pessoas (proprietário/inquilino)
+    - `src/Entity/InformesRendimentos.php` - Com constantes de status, relacionamentos e métodos auxiliares para valores mensais
+    - `src/Entity/InformesRendimentosValores.php` - Com validação de mês (1-12) e métodos para nome do mês
+    - `src/Entity/DimobConfiguracoes.php` - Com métodos para formatação CNPJ/CPF e indicadores DIMOB
+  - **5 repositórios criados:**
+    - `src/Repository/PlanoContasRepository.php` - Busca por tipo, ativos, que entram no informe
+    - `src/Repository/LancamentosRepository.php` - Busca por período, competência, agrupamento para processamento
+    - `src/Repository/InformesRendimentosRepository.php` - Busca por filtros, chave única, para DIMOB
+    - `src/Repository/InformesRendimentosValoresRepository.php` - Busca valores por informe/mês
+    - `src/Repository/DimobConfiguracoesRepository.php` - Busca por ano, upsert
+  - **Fat Service criado:**
+    - `src/Service/InformeRendimentoService.php` - 500+ linhas com toda a lógica de negócio
+      - `processarInformesAno()` - Processa lançamentos e gera/atualiza informes
+      - `buscarInformesComFiltros()` - Busca para aba Manutenção
+      - `atualizarInforme()` - Atualização manual de valores
+      - `salvarDimobConfiguracao()` - Salva configurações DIMOB
+      - `gerarArquivoDimob()` - Gera arquivo no formato da Receita Federal
+      - `gerarDadosPdfModelo1/2()` - Dados para impressão em 2 modelos
+      - `listarProprietarios()` - Lista proprietários de imóveis
+      - `listarAnosDisponiveis()` - Lista anos com lançamentos/informes
+  - **Thin Controller criado:**
+    - `src/Controller/InformeRendimentoController.php` - 250 linhas delegando para Service
+      - 8 rotas: index, processar, manutencao, atualizar, impressao, dimobGet, dimobSalvar, dimobGerar
+      - Validação CSRF com token `ajax_global`
+  - **Templates criados:**
+    - `templates/informe_rendimento/index.html.twig` - Template principal com 4 abas (Processamento, Manutenção, Impressão, DIMOB) + modal de edição
+    - `templates/informe_rendimento/impressao.html.twig` - Template de impressão com 2 modelos (detalhado e agrupado)
+  - **5 arquivos JavaScript modulares criados:**
+    - `assets/js/informe_rendimento/informe_rendimento.js` - Principal com utilitários (CSRF, formatação, toasts)
+    - `assets/js/informe_rendimento/informe_processamento.js` - Lógica da aba Processamento
+    - `assets/js/informe_rendimento/informe_manutencao.js` - Lógica da aba Manutenção (tabela, modal de edição)
+    - `assets/js/informe_rendimento/informe_impressao.js` - Lógica da aba Impressão
+    - `assets/js/informe_rendimento/informe_dimob.js` - Lógica da aba DIMOB (máscaras, gravação, geração)
+  - **Webpack configurado:**
+    - Entry point adicionado em `webpack.config.js` para o módulo
+  - **Dashboard atualizado:**
+    - Card "Informe de Rendimentos" agora aponta para `app_informe_rendimento_index`
+    - Descrição atualizada: "Gerencie informes de rendimentos e DIMOB"
+  - **Arquivos criados:**
+    - `migrations/Version20251201_ModuloInformeRendimentos.php` (180 linhas)
+    - `src/Entity/PlanoContas.php` (230 linhas)
+    - `src/Entity/Lancamentos.php` (200 linhas)
+    - `src/Entity/InformesRendimentos.php` (280 linhas)
+    - `src/Entity/InformesRendimentosValores.php` (130 linhas)
+    - `src/Entity/DimobConfiguracoes.php` (160 linhas)
+    - `src/Repository/PlanoContasRepository.php` (100 linhas)
+    - `src/Repository/LancamentosRepository.php` (150 linhas)
+    - `src/Repository/InformesRendimentosRepository.php` (200 linhas)
+    - `src/Repository/InformesRendimentosValoresRepository.php` (80 linhas)
+    - `src/Repository/DimobConfiguracoesRepository.php` (70 linhas)
+    - `src/Service/InformeRendimentoService.php` (500 linhas)
+    - `src/Controller/InformeRendimentoController.php` (250 linhas)
+    - `templates/informe_rendimento/index.html.twig` (400 linhas)
+    - `templates/informe_rendimento/impressao.html.twig` (200 linhas)
+    - `assets/js/informe_rendimento/*.js` (5 arquivos, 400+ linhas total)
+  - **Arquivos modificados:**
+    - `webpack.config.js` (1 linha adicionada)
+    - `templates/dashboard/index.html.twig` (1 linha modificada)
+  - **Seed inicial:** 40 registros de plano de contas (receitas, despesas, transitórias, caixa)
+  - **Impacto:** Sistema agora suporta gestão completa de informes de rendimentos e geração de arquivo DIMOB
+
+---
+
 ## [6.6.6] - 2025-11-30
 
 ### Corrigido
