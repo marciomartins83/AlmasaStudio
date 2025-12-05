@@ -22,6 +22,8 @@ use App\Entity\PessoasLocadores;
 use App\Entity\PessoasPretendentes;
 use App\Entity\PessoasContratantes;
 use App\Entity\PessoasCorretoras;
+use App\Entity\PessoasSocios;
+use App\Entity\PessoasAdvogados;
 use App\Entity\PessoasProfissoes;
 use App\Entity\PessoasTipos;
 use App\Entity\ContasBancarias;
@@ -744,6 +746,28 @@ class PessoaService
                 $corretora->setPessoa($pessoa);
                 $this->entityManager->persist($corretora);
                 break;
+
+            case 'socio':
+                $socio = new PessoasSocios();
+                $socio->setIdPessoa($pessoa->getIdpessoa());
+
+                if (isset($data['socio']) && is_array($data['socio'])) {
+                    $this->preencherDadosSocio($socio, $data['socio']);
+                }
+
+                $this->entityManager->persist($socio);
+                break;
+
+            case 'advogado':
+                $advogado = new PessoasAdvogados();
+                $advogado->setIdPessoa($pessoa->getIdpessoa());
+
+                if (isset($data['advogado']) && is_array($data['advogado'])) {
+                    $this->preencherDadosAdvogado($advogado, $data['advogado']);
+                }
+
+                $this->entityManager->persist($advogado);
+                break;
         }
     }
 
@@ -782,9 +806,27 @@ class PessoaService
             case 'pretendente':
                 $pretendente = $this->entityManager->getRepository(PessoasPretendentes::class)
                     ->findOneBy(['pessoa' => $pessoaId]);
-                    
+
                 if ($pretendente && isset($data['pretendente']) && is_array($data['pretendente'])) {
                     $this->preencherDadosPretendente($pretendente, $data['pretendente']);
+                }
+                break;
+
+            case 'socio':
+                $socio = $this->entityManager->getRepository(PessoasSocios::class)
+                    ->findOneBy(['idPessoa' => $pessoaId]);
+
+                if ($socio && isset($data['socio']) && is_array($data['socio'])) {
+                    $this->preencherDadosSocio($socio, $data['socio']);
+                }
+                break;
+
+            case 'advogado':
+                $advogado = $this->entityManager->getRepository(PessoasAdvogados::class)
+                    ->findOneBy(['idPessoa' => $pessoaId]);
+
+                if ($advogado && isset($data['advogado']) && is_array($data['advogado'])) {
+                    $this->preencherDadosAdvogado($advogado, $data['advogado']);
                 }
                 break;
         }
@@ -904,6 +946,44 @@ class PessoaService
         $pretendente->setDisponivel($data['disponivel'] ?? false);
         $pretendente->setProcuraAluguel($data['procuraAluguel'] ?? false);
         $pretendente->setProcuraCompra($data['procuraCompra'] ?? false);
+    }
+
+    private function preencherDadosSocio(PessoasSocios $socio, array $data): void
+    {
+        if (isset($data['percentualParticipacao'])) {
+            $socio->setPercentualParticipacao($data['percentualParticipacao']);
+        }
+        if (isset($data['dataEntrada'])) {
+            $socio->setDataEntrada(new \DateTime($data['dataEntrada']));
+        }
+        if (isset($data['tipoSocio'])) {
+            $socio->setTipoSocio($data['tipoSocio']);
+        }
+        if (isset($data['observacoes'])) {
+            $socio->setObservacoes($data['observacoes']);
+        }
+        if (isset($data['ativo'])) {
+            $socio->setAtivo((bool)$data['ativo']);
+        }
+    }
+
+    private function preencherDadosAdvogado(PessoasAdvogados $advogado, array $data): void
+    {
+        if (isset($data['numeroOab'])) {
+            $advogado->setNumeroOab($data['numeroOab']);
+        }
+        if (isset($data['seccionalOab'])) {
+            $advogado->setSeccionalOab($data['seccionalOab']);
+        }
+        if (isset($data['especialidade'])) {
+            $advogado->setEspecialidade($data['especialidade']);
+        }
+        if (isset($data['observacoes'])) {
+            $advogado->setObservacoes($data['observacoes']);
+        }
+        if (isset($data['ativo'])) {
+            $advogado->setAtivo((bool)$data['ativo']);
+        }
     }
 
     /**

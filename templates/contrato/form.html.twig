@@ -1,0 +1,307 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ contrato ? 'Editar Contrato' : 'Novo Contrato' }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Contratos', 'url': path('app_contrato_index')}
+        ],
+        'current': contrato ? 'Editar Contrato' : 'Novo Contrato'
+    } %}
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-file-contract"></i> {{ contrato ? 'Editar Contrato' : 'Novo Contrato' }}</h1>
+                <a href="{{ path('app_contrato_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <form method="POST" id="contrato-form">
+                <meta name="csrf-token" content="{{ csrf_token('ajax_global') }}">
+
+                <div class="card">
+                    <div class="card-body">
+                        {# Abas de navegação #}
+                        <ul class="nav nav-tabs mb-4" id="contratoTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="geral-tab" data-bs-toggle="tab" data-bs-target="#geral" type="button">
+                                    <i class="fas fa-info-circle"></i> Dados Gerais
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="valores-tab" data-bs-toggle="tab" data-bs-target="#valores" type="button">
+                                    <i class="fas fa-dollar-sign"></i> Valores
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="garantia-tab" data-bs-toggle="tab" data-bs-target="#garantia" type="button">
+                                    <i class="fas fa-shield-alt"></i> Garantia
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button">
+                                    <i class="fas fa-cog"></i> Configurações
+                                </button>
+                            </li>
+                        </ul>
+
+                        {# Conteúdo das Abas #}
+                        <div class="tab-content" id="contratoTabsContent">
+
+                            {# ABA: DADOS GERAIS #}
+                            <div class="tab-pane fade show active" id="geral">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Imóvel <span class="text-danger">*</span></label>
+                                        <select name="imovel_id" class="form-select" required>
+                                            <option value="">Selecione um imóvel</option>
+                                            {% for imovel in imoveisDisponiveis %}
+                                                <option value="{{ imovel.id }}"
+                                                    {% if contrato and contrato.imovel_id == imovel.id %}selected{% endif %}>
+                                                    {{ imovel.codigo_interno }} - {{ imovel.endereco }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tipo de Contrato <span class="text-danger">*</span></label>
+                                        <select name="tipo_contrato" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <option value="locacao" {% if contrato and contrato.tipo_contrato == 'locacao' %}selected{% endif %}>Locação</option>
+                                            <option value="temporada" {% if contrato and contrato.tipo_contrato == 'temporada' %}selected{% endif %}>Temporada</option>
+                                            <option value="comercial" {% if contrato and contrato.tipo_contrato == 'comercial' %}selected{% endif %}>Comercial</option>
+                                            <option value="residencial" {% if contrato and contrato.tipo_contrato == 'residencial' %}selected{% endif %}>Residencial</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Locatário <span class="text-danger">*</span></label>
+                                        <select name="locatario_id" class="form-select" required>
+                                            <option value="">Selecione o locatário</option>
+                                            {% for locatario in locatarios %}
+                                                <option value="{{ locatario.id }}"
+                                                    {% if contrato and contrato.locatario_id == locatario.id %}selected{% endif %}>
+                                                    {{ locatario.nome }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Fiador</label>
+                                        <select name="fiador_id" class="form-select">
+                                            <option value="">Nenhum</option>
+                                            {% for fiador in fiadores %}
+                                                <option value="{{ fiador.id }}"
+                                                    {% if contrato and contrato.fiador_id == fiador.id %}selected{% endif %}>
+                                                    {{ fiador.nome }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Data de Início <span class="text-danger">*</span></label>
+                                        <input type="date" name="data_inicio" class="form-control"
+                                            value="{% if contrato and contrato.data_inicio %}{{ contrato.data_inicio|date('Y-m-d') }}{% endif %}" required>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Data de Fim</label>
+                                        <input type="date" name="data_fim" class="form-control"
+                                            value="{% if contrato and contrato.data_fim %}{{ contrato.data_fim|date('Y-m-d') }}{% endif %}">
+                                        <small class="text-muted">Deixe em branco para contrato indeterminado</small>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                                        <select name="status" class="form-select" required>
+                                            <option value="ativo" {% if not contrato or contrato.status == 'ativo' %}selected{% endif %}>Ativo</option>
+                                            <option value="pendente" {% if contrato and contrato.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                                            <option value="encerrado" {% if contrato and contrato.status == 'encerrado' %}selected{% endif %}>Encerrado</option>
+                                            <option value="rescindido" {% if contrato and contrato.status == 'rescindido' %}selected{% endif %}>Rescindido</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Observações</label>
+                                        <textarea name="observacoes" class="form-control" rows="4">{{ contrato.observacoes|default('') }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# ABA: VALORES #}
+                            <div class="tab-pane fade" id="valores">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor do Contrato (R$) <span class="text-danger">*</span></label>
+                                        <input type="number" step="0.01" name="valor_contrato" class="form-control"
+                                            value="{{ contrato.valor_contrato|default('') }}" required>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Taxa de Administração (%) <span class="text-danger">*</span></label>
+                                        <input type="number" step="0.01" name="taxa_administracao" class="form-control"
+                                            value="{{ contrato.taxa_administracao|default('10.00') }}" required>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Dia de Vencimento</label>
+                                        <input type="number" min="1" max="31" name="dia_vencimento" class="form-control"
+                                            value="{{ contrato.dia_vencimento|default('') }}">
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Índice de Reajuste</label>
+                                        <select name="indice_reajuste" class="form-select">
+                                            <option value="IGPM" {% if not contrato or contrato.indice_reajuste == 'IGPM' %}selected{% endif %}>IGP-M</option>
+                                            <option value="IPCA" {% if contrato and contrato.indice_reajuste == 'IPCA' %}selected{% endif %}>IPCA</option>
+                                            <option value="INPC" {% if contrato and contrato.indice_reajuste == 'INPC' %}selected{% endif %}>INPC</option>
+                                            <option value="INCC" {% if contrato and contrato.indice_reajuste == 'INCC' %}selected{% endif %}>INCC</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Periodicidade de Reajuste</label>
+                                        <select name="periodicidade_reajuste" class="form-select">
+                                            <option value="anual" {% if not contrato or contrato.periodicidade_reajuste == 'anual' %}selected{% endif %}>Anual</option>
+                                            <option value="semestral" {% if contrato and contrato.periodicidade_reajuste == 'semestral' %}selected{% endif %}>Semestral</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">Próximo Reajuste</label>
+                                        <input type="date" name="data_proximo_reajuste" class="form-control"
+                                            value="{% if contrato and contrato.data_proximo_reajuste %}{{ contrato.data_proximo_reajuste|date('Y-m-d') }}{% endif %}">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Multa por Rescisão (R$)</label>
+                                        <input type="number" step="0.01" name="multa_rescisao" class="form-control"
+                                            value="{{ contrato.multa_rescisao|default('0.00') }}">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Carência (dias)</label>
+                                        <input type="number" min="0" name="carencia_dias" class="form-control"
+                                            value="{{ contrato.carencia_dias|default('0') }}">
+                                        <small class="text-muted">Dias de tolerância para pagamento</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# ABA: GARANTIA #}
+                            <div class="tab-pane fade" id="garantia">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tipo de Garantia</label>
+                                        <select name="tipo_garantia" class="form-select" id="tipo-garantia-select">
+                                            <option value="fiador" {% if not contrato or contrato.tipo_garantia == 'fiador' %}selected{% endif %}>Fiador</option>
+                                            <option value="caucao" {% if contrato and contrato.tipo_garantia == 'caucao' %}selected{% endif %}>Caução</option>
+                                            <option value="seguro_fianca" {% if contrato and contrato.tipo_garantia == 'seguro_fianca' %}selected{% endif %}>Seguro Fiança</option>
+                                            <option value="titulo_capitalizacao" {% if contrato and contrato.tipo_garantia == 'titulo_capitalizacao' %}selected{% endif %}>Título de Capitalização</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6" id="valor-caucao-container">
+                                        <label class="form-label">Valor da Caução (R$)</label>
+                                        <input type="number" step="0.01" name="valor_caucao" class="form-control"
+                                            value="{{ contrato.valor_caucao|default('0.00') }}">
+                                        <small class="text-muted">Aplicável apenas se tipo de garantia for Caução</small>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Informações sobre Garantias:</strong>
+                                            <ul class="mb-0 mt-2">
+                                                <li><strong>Fiador:</strong> Pessoa física ou jurídica que se responsabiliza pelo pagamento</li>
+                                                <li><strong>Caução:</strong> Valor depositado como garantia (geralmente 3 meses de aluguel)</li>
+                                                <li><strong>Seguro Fiança:</strong> Apólice de seguro que garante o pagamento</li>
+                                                <li><strong>Título de Capitalização:</strong> Título adquirido pelo locatário</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# ABA: CONFIGURAÇÕES #}
+                            <div class="tab-pane fade" id="config">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <h5 class="mb-3">Automações</h5>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="gera_boleto" id="gera-boleto"
+                                                {% if not contrato or contrato.gera_boleto %}checked{% endif %}>
+                                            <label class="form-check-label" for="gera-boleto">
+                                                <i class="fas fa-barcode"></i> Gerar Boleto Automaticamente
+                                            </label>
+                                            <small class="text-muted d-block">Sistema gerará boletos mensais automaticamente</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="envia_email" id="envia-email"
+                                                {% if not contrato or contrato.envia_email %}checked{% endif %}>
+                                            <label class="form-check-label" for="envia-email">
+                                                <i class="fas fa-envelope"></i> Enviar E-mails Automaticamente
+                                            </label>
+                                            <small class="text-muted d-block">Enviar e-mails de cobrança e avisos</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="ativo" id="ativo"
+                                                {% if not contrato or contrato.ativo %}checked{% endif %}>
+                                            <label class="form-check-label" for="ativo">
+                                                <i class="fas fa-check-circle"></i> Contrato Ativo
+                                            </label>
+                                            <small class="text-muted d-block">Desmarque para inativar o contrato</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('app_contrato_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i> Salvar Contrato
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.ROUTES = {
+        imoveisDisponiveis: '{{ path('app_contrato_imoveis_disponiveis') }}'
+    };
+</script>
+{% endblock %}

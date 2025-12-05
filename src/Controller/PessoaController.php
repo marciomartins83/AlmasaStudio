@@ -144,6 +144,14 @@ class PessoaController extends AbstractController
                 $subFormType = \App\Form\PessoaPretendenteType::class;
                 $template = 'pessoa/partials/pretendente.html.twig';
                 break;
+            case 'socio':
+                $subFormType = \App\Form\PessoaSocioType::class;
+                $template = 'pessoa/partials/socio.html.twig';
+                break;
+            case 'advogado':
+                $subFormType = \App\Form\PessoaAdvogadoType::class;
+                $template = 'pessoa/partials/advogado.html.twig';
+                break;
             default:
                 return new Response('', 204);
         }

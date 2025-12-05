@@ -9,6 +9,8 @@ use App\Entity\PessoasLocadores;
 use App\Entity\PessoasCorretores;
 use App\Entity\PessoasCorretoras;
 use App\Entity\PessoasPretendentes;
+use App\Entity\PessoasSocios;
+use App\Entity\PessoasAdvogados;
 use App\Entity\PessoasDocumentos;
 use App\Entity\TiposDocumentos;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -141,6 +143,8 @@ class PessoaRepository extends ServiceEntityRepository
             'corretor'    => in_array(2, $ids),
             'corretora'   => in_array(3, $ids),
             'pretendente' => in_array(5, $ids),
+            'socio'       => in_array(7, $ids),
+            'advogado'    => in_array(8, $ids),
         ];
     }
 
@@ -197,6 +201,20 @@ class PessoaRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
+        $socioObj = $em->createQueryBuilder()
+            ->select('s')->from(PessoasSocios::class, 's')
+            ->where('s.idPessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('s.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()->getOneOrNullResult();
+
+        $advogadoObj = $em->createQueryBuilder()
+            ->select('a')->from(PessoasAdvogados::class, 'a')
+            ->where('a.idPessoa = :id')->setParameter('id', $pessoaId)
+            ->orderBy('a.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()->getOneOrNullResult();
+
         // 3. [NOVO] Montar os arrays na estrutura que o Controller espera
         
         // Array de dados (objetos ou null)
@@ -207,6 +225,8 @@ class PessoaRepository extends ServiceEntityRepository
             'corretor'    => $corretorObj,
             'corretora'   => $corretoraObj,
             'pretendente' => $pretendenteObj,
+            'socio'       => $socioObj,
+            'advogado'    => $advogadoObj,
         ];
 
         // Array de booleanos (derivado dos objetos acima)
@@ -217,6 +237,8 @@ class PessoaRepository extends ServiceEntityRepository
             'corretor'    => ($corretorObj !== null),
             'corretora'   => ($corretoraObj !== null),
             'pretendente' => ($pretendenteObj !== null),
+            'socio'       => ($socioObj !== null),
+            'advogado'    => ($advogadoObj !== null),
         ];
 
         // 4. [NOVO] Retornar a estrutura correta (aninhada)
@@ -232,6 +254,7 @@ class PessoaRepository extends ServiceEntityRepository
         return [
             'contratante' => null, 'fiador' => null, 'locador' => null,
             'corretor'    => null, 'corretora' => null, 'pretendente' => null,
+            'socio'       => null, 'advogado' => null,
         ];
     }
 

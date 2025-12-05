@@ -67,39 +67,39 @@ class LancamentosRepository extends ServiceEntityRepository
         ?int $proprietarioInicial = null,
         ?int $proprietarioFinal = null
     ): array {
-        $qb = $this->createQueryBuilder('l')
-            ->select([
-                'IDENTITY(l.proprietario) as id_proprietario',
-                'IDENTITY(l.imovel) as id_imovel',
-                'IDENTITY(l.inquilino) as id_inquilino',
-                'IDENTITY(l.planoConta) as id_plano_conta',
-                'MONTH(l.competencia) as mes',
-                'SUM(CASE WHEN l.tipoSinal = \'C\' THEN CAST(l.valor AS float) ELSE -CAST(l.valor AS float) END) as total'
-            ])
-            ->join('l.planoConta', 'pc')
-            ->where('YEAR(l.competencia) = :ano')
-            ->andWhere('pc.entraInforme = :entraInforme')
-            ->andWhere('l.proprietario IS NOT NULL')
-            ->andWhere('l.imovel IS NOT NULL')
-            ->andWhere('l.inquilino IS NOT NULL')
-            ->setParameter('ano', $ano)
-            ->setParameter('entraInforme', true)
-            ->groupBy('l.proprietario, l.imovel, l.inquilino, l.planoConta, MONTH(l.competencia)')
-            ->orderBy('l.proprietario', 'ASC')
-            ->addOrderBy('l.imovel', 'ASC')
-            ->addOrderBy('l.inquilino', 'ASC');
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = "SELECT
+                    l.id_proprietario,
+                    l.id_imovel,
+                    l.id_inquilino,
+                    l.id_plano_conta,
+                    EXTRACT(MONTH FROM l.competencia)::integer as mes,
+                    SUM(CASE WHEN l.tipo_sinal = 'C' THEN l.valor ELSE -l.valor END) as total
+                FROM lancamentos l
+                INNER JOIN plano_contas pc ON pc.id = l.id_plano_conta
+                WHERE EXTRACT(YEAR FROM l.competencia) = :ano
+                  AND pc.entra_informe = true
+                  AND l.id_proprietario IS NOT NULL
+                  AND l.id_imovel IS NOT NULL
+                  AND l.id_inquilino IS NOT NULL";
+
+        $params = ['ano' => $ano];
 
         if ($proprietarioInicial !== null) {
-            $qb->andWhere('l.proprietario >= :propInicial')
-                ->setParameter('propInicial', $proprietarioInicial);
+            $sql .= " AND l.id_proprietario >= :propInicial";
+            $params['propInicial'] = $proprietarioInicial;
         }
 
         if ($proprietarioFinal !== null) {
-            $qb->andWhere('l.proprietario <= :propFinal')
-                ->setParameter('propFinal', $proprietarioFinal);
+            $sql .= " AND l.id_proprietario <= :propFinal";
+            $params['propFinal'] = $proprietarioFinal;
         }
 
-        return $qb->getQuery()->getResult();
+        $sql .= " GROUP BY l.id_proprietario, l.id_imovel, l.id_inquilino, l.id_plano_conta, EXTRACT(MONTH FROM l.competencia)
+                  ORDER BY l.id_proprietario ASC, l.id_imovel ASC, l.id_inquilino ASC";
+
+        return $conn->executeQuery($sql, $params)->fetchAllAssociative();
     }
 
     /**
@@ -169,11 +169,13 @@ class LancamentosRepository extends ServiceEntityRepository
      */
     public function findAnosComLancamentos(): array
     {
-        $result = $this->createQueryBuilder('l')
-            ->select('DISTINCT YEAR(l.competencia) as ano')
-            ->orderBy('ano', 'DESC')
-            ->getQuery()
-            ->getResult();
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = 'SELECT DISTINCT EXTRACT(YEAR FROM competencia)::integer as ano
+                FROM lancamentos
+                WHERE competencia IS NOT NULL
+                ORDER BY ano DESC';
+
+        $result = $conn->executeQuery($sql)->fetchAllAssociative();
 
         return array_column($result, 'ano');
     }

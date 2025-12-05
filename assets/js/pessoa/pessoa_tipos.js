@@ -33,10 +33,20 @@ document.addEventListener('DOMContentLoaded', function() {
             icon: 'fas fa-search-location',
             temCampos: true 
         },
-        'contratante': { 
-            label: 'Contratante', 
+        'contratante': {
+            label: 'Contratante',
             icon: 'fas fa-file-signature',
-            temCampos: false 
+            temCampos: false
+        },
+        'socio': {
+            label: 'Sócio',
+            icon: 'fas fa-handshake',
+            temCampos: true
+        },
+        'advogado': {
+            label: 'Advogado',
+            icon: 'fas fa-gavel',
+            temCampos: true
         }
     };
 

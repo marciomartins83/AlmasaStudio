@@ -9,6 +9,215 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.8.0] - 2025-12-05
+
+### Adicionado
+- **Módulo Completo de Contratos de Locação**
+  - **Objetivo:** Sistema completo para gestão de contratos de locação de imóveis com 11 campos adicionais para gerenciamento profissional
+  - **Migration executada:** `Version20251204_ContratosLocacaoCamposAdicionais`
+    - **11 novos campos adicionados em `imoveis_contratos`:**
+      1. `taxa_administracao` (DECIMAL 5,2) - Taxa de administração cobrada (padrão 10%)
+      2. `tipo_garantia` (VARCHAR 30) - Tipo de garantia: fiador/caução/seguro fiança/título capitalização
+      3. `valor_caucao` (DECIMAL 10,2) - Valor da caução quando aplicável
+      4. `indice_reajuste` (VARCHAR 20) - Índice para reajuste: IGPM/IPCA/INPC/INCC
+      5. `periodicidade_reajuste` (VARCHAR 20) - Periodicidade: anual/semestral
+      6. `data_proximo_reajuste` (DATE) - Data agendada para próximo reajuste
+      7. `multa_rescisao` (DECIMAL 10,2) - Valor da multa por rescisão antecipada
+      8. `carencia_dias` (INTEGER) - Dias de tolerância para pagamento
+      9. `gera_boleto` (BOOLEAN) - Flag para geração automática de boletos
+      10. `envia_email` (BOOLEAN) - Flag para envio automático de e-mails
+      11. `ativo` (BOOLEAN) - Flag de ativação do contrato
+    - **4 índices criados para otimização:**
+      - `idx_contratos_status` - Para filtros por status
+      - `idx_contratos_ativo` - Para filtros por situação ativa/inativa
+      - `idx_contratos_data_fim` - Para buscar contratos próximos ao vencimento
+      - `idx_contratos_data_proximo_reajuste` - Para buscar contratos que precisam reajuste
+
+### Alterado
+- **Entidade ImoveisContratos** (`src/Entity/ImoveisContratos.php`):
+  - Adicionados 11 novos atributos privados com annotations Doctrine completas
+  - Adicionados 22 métodos getter/setter para os novos campos (linhas 236-355)
+  - Adicionado `#[ORM\HasLifecycleCallbacks]` na classe
+  - Adicionado método `#[ORM\PreUpdate] preUpdate()` para atualizar timestamp (linhas 357-361)
+  - **3 métodos helper criados:**
+    - `getDuracaoMeses()` - Calcula duração do contrato em meses (linhas 363-370)
+    - `isVigente()` - Verifica se contrato está vigente hoje (linhas 372-378)
+    - `getValorLiquidoProprietario()` - Calcula valor líquido após taxa admin (linhas 380-385)
+
+- **Repository ImoveisContratosRepository** (`src/Repository/ImoveisContratosRepository.php`):
+  - **6 novos métodos de consulta criados:**
+    - `findByFiltros(array $filtros)` - Busca com filtros múltiplos: status, tipo, imóvel, locatário, ativo (linhas 26-63)
+    - `findContratosAtivosImovel(int $imovelId)` - Busca contratos ativos de um imóvel (linhas 65-76)
+    - `findContratoVigenteImovel(int $imovelId)` - Busca contrato vigente (ativo + dentro do período) (linhas 78-94)
+    - `findContratosVencimentoProximo(int $dias = 30)` - Contratos vencendo nos próximos N dias (linhas 96-114)
+    - `findContratosParaReajuste()` - Contratos com reajuste agendado para hoje ou passado (linhas 116-131)
+    - `getEstatisticas()` - Estatísticas com PostgreSQL FILTER clause (total, ativos, encerrados, rescindidos, valor total) (linhas 133-148)
+
+- **Service ContratoService criado** (`src/Service/ContratoService.php`) - **615 linhas, Fat Service**:
+  - **Responsabilidades:** Toda lógica de negócio, transações, persistência, validações
+  - **12 métodos públicos principais:**
+    - `listarContratosEnriquecidos(array $filtros = [])` - Lista com dados enriquecidos
+    - `buscarContratoPorId(int $id)` - Busca contrato com todos os dados
+    - `salvarContrato(ImoveisContratos $contrato, array $dados)` - Cria novo contrato com validações e transação
+    - `atualizarContrato(ImoveisContratos $contrato, array $dados)` - Atualiza contrato existente
+    - `encerrarContrato(int $contratoId, \DateTimeInterface $dataEncerramento, ?string $motivo = null)` - Encerra contrato ativo
+    - `renovarContrato(int $contratoAntigoId, array $dadosNovoContrato)` - Renova contrato criando novo registro
+    - `buscarContratosVencimentoProximo(int $dias = 30)` - Contratos próximos ao vencimento
+    - `buscarContratosParaReajuste()` - Contratos que precisam reajuste
+    - `obterEstatisticas()` - Estatísticas completas
+    - `listarImoveisDisponiveis()` - Imóveis sem contrato vigente
+    - `listarLocatarios()` - Lista pessoas que podem ser locatárias
+    - `listarFiadores()` - Lista pessoas que podem ser fiadoras
+  - **6 métodos privados helper:**
+    - `preencherContrato()` - Preenche entidade com dados do array
+    - `enriquecerContrato()` - Adiciona dados calculados e labels
+    - `formatarEnderecoImovel()` - Formata endereço completo
+    - `getLabelTipoContrato()` - Retorna label amigável
+    - `getLabelStatus()` - Retorna label amigável
+    - `getLabelTipoGarantia()` - Retorna label amigável
+  - **Validações implementadas:**
+    - Verifica se já existe contrato vigente antes de criar novo
+    - Valida data fim posterior à data início
+    - Calcula data do próximo reajuste automaticamente
+    - Gerenciamento completo de transações (beginTransaction, commit, rollBack)
+
+- **Controller ContratoController criado** (`src/Controller/ContratoController.php`) - **280 linhas, Thin Controller**:
+  - **Padrão seguido:** Apenas recebe Request, delega para Service, retorna Response
+  - **10 rotas criadas:**
+    1. `GET /contrato/` - `index()` - Lista contratos com filtros e estatísticas
+    2. `GET /contrato/show/{id}` - `show()` - Detalhes de um contrato
+    3. `GET|POST /contrato/new` - `new()` - Cadastro de novo contrato
+    4. `GET|POST /contrato/edit/{id}` - `edit()` - Edição de contrato
+    5. `POST /contrato/encerrar/{id}` - `encerrar()` - Encerra contrato (AJAX)
+    6. `POST /contrato/renovar/{id}` - `renovar()` - Renova contrato (AJAX)
+    7. `GET /contrato/vencimento-proximo` - `vencimentoProximo()` - Contratos vencendo (AJAX)
+    8. `GET /contrato/para-reajuste` - `paraReajuste()` - Contratos para reajuste (AJAX)
+    9. `GET /contrato/estatisticas` - `estatisticas()` - Estatísticas (AJAX)
+    10. `GET /contrato/imoveis-disponiveis` - `imoveisDisponiveis()` - Imóveis livres (AJAX)
+
+- **3 Templates Twig criados:**
+  1. `templates/contrato/index.html.twig` - **300 linhas**
+     - 4 cards de estatísticas (total, ativos, encerrados, valor total)
+     - Painel de filtros colapsável (status, tipo, situação)
+     - Tabela responsiva com 9 colunas
+     - Badge de status colorido (ativo=verde, encerrado=azul, rescindido=vermelho)
+     - Mensagem de lista vazia com ícone
+     - Variáveis JavaScript exportadas para rotas AJAX
+  2. `templates/contrato/form.html.twig` - **400 linhas**
+     - **4 abas organizadas:**
+       - Dados Gerais: imóvel, tipo, locatário, fiador, datas, status, observações
+       - Valores: valor contrato, taxa admin, dia vencimento, índice/periodicidade reajuste, multa, carência
+       - Garantia: tipo garantia, valor caução (condicional), alertas informativos
+       - Configurações: switches para gerar boleto, enviar email, ativo
+     - Validações HTML5 em campos obrigatórios
+     - Selects populados dinamicamente com dados do Service
+     - Layout responsivo Bootstrap 5
+  3. `templates/contrato/show.html.twig` - **150 linhas**
+     - Card de status destacado com ícone colorido
+     - 6 cards informativos: imóvel, partes, valores, reajustes, garantia, configurações
+     - Exibição de cálculos: valor líquido proprietário, duração em meses
+     - Badges coloridos para status e flags booleanas
+     - Informações de auditoria (created_at, updated_at)
+
+- **2 Módulos JavaScript criados (100% modular, zero inline):**
+  1. `assets/js/contrato/contrato.js` - **180 linhas**
+     - Gerencia página index: filtros, estatísticas, listagem
+     - Funções principais:
+       - `inicializarFiltros()` - Gerencia painel de filtros
+       - `inicializarAcoesTabela()` - Confirmações para ações críticas
+       - `carregarEstatisticas()` - Atualiza cards via AJAX
+       - `buscarContratosVencimento(dias)` - Busca contratos vencendo
+       - `buscarContratosReajuste()` - Busca contratos para reajuste
+       - `formatarMoeda(valor)` - Formata valores BRL
+     - Exporta namespace `window.contratoIndex`
+  2. `assets/js/contrato/contrato_form.js` - **320 linhas**
+     - Gerencia formulário: validações, máscaras, cálculos, submit
+     - Funções principais:
+       - `inicializarValidacoes()` - Validações customizadas de datas e valores
+       - `inicializarMascaras()` - Máscaras para dia vencimento e valores monetários
+       - `inicializarCalculos()` - Cálculo automático de valor líquido e próximo reajuste
+       - `inicializarCondicionalGarantia()` - Mostra/oculta campo valor caução
+       - `validarFormulario()` - Validação completa antes de submeter
+       - `buscarImoveisDisponiveis()` - Busca imóveis via AJAX
+     - Exporta namespace `window.contratoForm`
+
+### Técnico
+- **Arquitetura seguida:** "Thin Controller, Fat Service" rigorosamente aplicada
+- **Doctrine Schema:** Entidade 100% sincronizada com banco PostgreSQL
+- **QueryBuilder:** Todas as consultas DQL no Repository (NUNCA em Controller/Service)
+- **Transações:** Gerenciadas pelo Service com try/catch e rollback em exceções
+- **JavaScript:** 100% modular, zero código inline em templates
+- **CSRF Token:** Preparado para ajax_global em requisições AJAX
+- **Padrão de rotas:** RESTful com métodos HTTP corretos (GET, POST, DELETE)
+- **Logs:** LoggerInterface usado em Service e Controller para auditoria
+- **Type Hints:** Todos os parâmetros e retornos com tipos declarados
+- **DocBlocks:** Métodos complexos documentados
+- **Bootstrap 5:** Cards, badges, tabelas responsivas, forms validados
+- **FontAwesome:** Ícones consistentes (fa-file-contract, fa-building, etc.)
+
+### Integração Completa
+- ✅ **Backend:** Migration executada + Entity + Repository (6 métodos) + Service (615 linhas) + Controller (280 linhas)
+- ✅ **Frontend:** 3 Templates Twig (850 linhas total) + 2 Módulos JS (500 linhas total)
+- ✅ **Dados:** 11 campos + 4 índices + 3 métodos helper na entidade
+- ✅ **Validações:** Service (negócio) + JavaScript (UX) + HTML5 (cliente)
+- ✅ **AJAX:** 5 rotas AJAX para operações assíncronas
+- ✅ **UX:** Filtros, estatísticas, formulário com abas, detalhes completos
+
+---
+
+## [6.7.1] - 2025-12-04
+
+### Adicionado
+- **Novos tipos de pessoa: Sócio e Advogado**
+  - **2 novas tabelas criadas via migration `Version20251204_TiposPessoaSocioAdvogado`:**
+    1. `pessoas_socios` (9 campos) - Percentual participação, data entrada, tipo sócio, observações, ativo, timestamps
+    2. `pessoas_advogados` (7 campos) - Número OAB, seccional OAB, especialidade, observações, ativo, timestamps
+  - **2 novas entidades Doctrine:**
+    - `src/Entity/PessoasSocios.php` - Com getter/setters, lifecycle callbacks (@PreUpdate)
+    - `src/Entity/PessoasAdvogados.php` - Com getter/setters, lifecycle callbacks (@PreUpdate)
+  - **2 novos repositórios:**
+    - `src/Repository/PessoasSociosRepository.php` - Métodos findByPessoa, findAllAtivos
+    - `src/Repository/PessoasAdvogadosRepository.php` - Métodos findByPessoa, findByOab, findAllAtivos
+  - **2 novos FormTypes:**
+    - `src/Form/PessoaSocioType.php` - Campos: percentualParticipacao, dataEntrada, tipoSocio (administrador/cotista/sócio-gerente/sócio investidor), observações, ativo
+    - `src/Form/PessoaAdvogadoType.php` - Campos: numeroOab, seccionalOab (select com UFs), especialidade, observações, ativo
+  - **2 novos templates Twig:**
+    - `templates/pessoa/partials/socio.html.twig` - Layout em cards com ícone fa-handshake
+    - `templates/pessoa/partials/advogado.html.twig` - Layout em cards com ícone fa-gavel
+  - **Inserção automática dos tipos na tabela `tipos_pessoas`:**
+    - 'socio' (ID 7) → 'Sócio'
+    - 'advogado' (ID 8) → 'Advogado'
+
+### Alterado
+- **PessoaService.php** (`src/Service/PessoaService.php`):
+  - Adicionados imports: `PessoasSocios`, `PessoasAdvogados`
+  - Método `salvarTipoEspecifico()`: Adicionados cases 'socio' e 'advogado' (linhas 750-770)
+  - Método `atualizarTipoEspecifico()`: Adicionados cases 'socio' e 'advogado' (linhas 815-831)
+  - Novos métodos privados:
+    - `preencherDadosSocio()` (linhas 951-968)
+    - `preencherDadosAdvogado()` (linhas 970-987)
+- **PessoaRepository.php** (`src/Repository/PessoaRepository.php`):
+  - Adicionados imports: `PessoasSocios`, `PessoasAdvogados`
+  - Método `findTiposByPessoaId()`: Adicionados 'socio' => ID 7, 'advogado' => ID 8 (linhas 146-147)
+  - Método `findTiposComDados()`:
+    - Adicionadas queries para buscar objetos $socioObj e $advogadoObj (linhas 202-214)
+    - Arrays $tiposDados e $tipos atualizados para incluir 'socio' e 'advogado' (linhas 226-227, 238-239)
+  - Método `emptyTiposArray()`: Adicionados 'socio' => null, 'advogado' => null (linha 255)
+- **PessoaController.php** (`src/Controller/PessoaController.php`):
+  - Método `_subform()`: Adicionados cases 'socio' e 'advogado' no switch (linhas 147-154)
+- **JavaScript** (`assets/js/pessoa/pessoa_tipos.js`):
+  - Objeto `tiposConfig`: Adicionados tipos 'socio' e 'advogado' com ícones e labels (linhas 41-50)
+
+### Técnico
+- **Constraints de banco:**
+  - Foreign keys com ON DELETE CASCADE para `pessoas.idpessoa`
+  - Unique constraint em `id_pessoa` para garantir 1 registro por pessoa
+  - Índices criados: idx_pessoas_socios_pessoa, idx_pessoas_socios_ativo, idx_pessoas_advogados_pessoa, idx_pessoas_advogados_oab, idx_pessoas_advogados_ativo
+- **Padrão seguido:** Consistente com tipos existentes (Fiador, Locador, Corretor, etc.)
+- **Integração completa:** Backend (Entity/Repository/Service/Controller) + Frontend (FormType/Template/JavaScript)
+
+---
+
 ## [6.7.0] - 2025-12-01
 
 ### Adicionado
