@@ -20,6 +20,10 @@ Encore
     // Módulo de Informe de Rendimentos / DIMOB
     .addEntry('js/informe_rendimento/informe_rendimento', './assets/js/informe_rendimento/informe_rendimento.js')
 
+    // Módulo Financeiro - Ficha Financeira / Contas a Receber
+    .addEntry('financeiro', './assets/js/financeiro/financeiro.js')
+    .addEntry('financeiro_form', './assets/js/financeiro/financeiro_form.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

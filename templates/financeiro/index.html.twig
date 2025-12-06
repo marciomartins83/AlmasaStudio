@@ -1,0 +1,359 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ficha Financeira - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Ficha Financeira'
+    } %}
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Cards de estatísticas #}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Total de Lançamentos</h6>
+                            <h2 class="mb-0">{{ estatisticas.total|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-file-invoice-dollar fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Pagos</h6>
+                            <h2 class="mb-0">{{ estatisticas.pagos|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Em Atraso</h6>
+                            <h2 class="mb-0">{{ estatisticas.em_atraso|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Valor em Aberto</h6>
+                            <h2 class="mb-0">
+                                R$ {{ estatisticas.valor_em_aberto|default(0)|number_format(2, ',', '.') }}
+                            </h2>
+                        </div>
+                        <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {# Coluna principal - Lançamentos #}
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-file-invoice-dollar"></i> Ficha Financeira</h1>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
+                        <i class="fas fa-filter"></i> Filtros
+                    </button>
+                    <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#modalGerarLancamentos">
+                        <i class="fas fa-magic"></i> Gerar Automático
+                    </button>
+                    <a href="{{ path('app_financeiro_lancamento_new') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Novo Lançamento
+                    </a>
+                </div>
+            </div>
+
+            {# Painel de filtros (colapsável) #}
+            <div class="collapse {% if filtros|length > 0 %}show{% endif %} mb-3" id="filtrosCollapse">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="GET" action="{{ path('app_financeiro_index') }}">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Situação</label>
+                                    <select name="situacao" class="form-select">
+                                        <option value="">Todas</option>
+                                        <option value="aberto" {% if filtros.situacao|default('') == 'aberto' %}selected{% endif %}>Em Aberto</option>
+                                        <option value="pago" {% if filtros.situacao|default('') == 'pago' %}selected{% endif %}>Pago</option>
+                                        <option value="parcial" {% if filtros.situacao|default('') == 'parcial' %}selected{% endif %}>Parcial</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Competência Início</label>
+                                    <input type="month" name="competenciaInicio" class="form-control" value="{{ filtros.competenciaInicio|default('') }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Competência Fim</label>
+                                    <input type="month" name="competenciaFim" class="form-control" value="{{ filtros.competenciaFim|default('') }}">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary me-2">
+                                        <i class="fas fa-search"></i> Buscar
+                                    </button>
+                                    <a href="{{ path('app_financeiro_index') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Limpar
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {# Tabela de lançamentos #}
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="60">ID</th>
+                                    <th>Inquilino</th>
+                                    <th>Imóvel</th>
+                                    <th width="80">Comp.</th>
+                                    <th width="100">Vencimento</th>
+                                    <th width="120" class="text-end">Valor</th>
+                                    <th width="120" class="text-end">Saldo</th>
+                                    <th width="80">Status</th>
+                                    <th width="120">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lancamento in lancamentos %}
+                                <tr class="{% if lancamento.emAtraso %}table-danger{% endif %}">
+                                    <td><strong>{{ lancamento.id }}</strong></td>
+                                    <td>{{ lancamento.inquilino.nome|default('-') }}</td>
+                                    <td>{{ lancamento.imovel.codigoInterno|default('-') }}</td>
+                                    <td>{{ lancamento.competenciaFormatada }}</td>
+                                    <td>
+                                        {{ lancamento.dataVencimentoFormatada }}
+                                        {% if lancamento.emAtraso %}
+                                            <br><small class="text-danger">{{ lancamento.diasAtraso }} dias</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ lancamento.valorTotalFormatado }}</td>
+                                    <td class="text-end">
+                                        <strong class="{% if lancamento.isPago %}text-success{% else %}text-danger{% endif %}">
+                                            {{ lancamento.valorSaldoFormatado }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% if lancamento.situacao == 'pago' %}
+                                            <span class="badge bg-success">{{ lancamento.situacaoLabel }}</span>
+                                        {% elseif lancamento.situacao == 'parcial' %}
+                                            <span class="badge bg-warning">{{ lancamento.situacaoLabel }}</span>
+                                        {% elseif lancamento.emAtraso %}
+                                            <span class="badge bg-danger">Em Atraso</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ lancamento.situacaoLabel }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ path('app_financeiro_lancamento_show', {id: lancamento.id}) }}"
+                                               class="btn btn-info btn-sm"
+                                               title="Visualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if not lancamento.isPago %}
+                                            <button type="button"
+                                                    class="btn btn-success btn-sm btn-baixa"
+                                                    data-id="{{ lancamento.id }}"
+                                                    data-saldo="{{ lancamento.valorSaldo }}"
+                                                    title="Baixar">
+                                                <i class="fas fa-money-bill"></i>
+                                            </button>
+                                            <a href="{{ path('app_financeiro_lancamento_edit', {id: lancamento.id}) }}"
+                                               class="btn btn-warning btn-sm"
+                                               title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum lançamento cadastrado</span><br>
+                                        <small>Clique em "Novo Lançamento" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if lancamentos|length > 0 %}
+            <div class="mt-2">
+                <small class="text-muted">Total: {{ lancamentos|length }} lançamento(s)</small>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Coluna lateral - Inadimplentes #}
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-times"></i> Inadimplentes</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for inadimplente in inadimplentes %}
+                        <a href="{{ path('app_financeiro_ficha', {inquilinoId: inadimplente.id}) }}"
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ inadimplente.nome }}</strong>
+                                <br><small class="text-muted">{{ inadimplente.qtd_lancamentos }} lançamento(s)</small>
+                            </div>
+                            <span class="badge bg-danger">
+                                R$ {{ inadimplente.valor_total|number_format(2, ',', '.') }}
+                            </span>
+                        </a>
+                        {% else %}
+                        <div class="list-group-item text-center text-muted py-3">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
+                            <span>Nenhum inadimplente</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if inadimplentes|length > 0 %}
+                <div class="card-footer">
+                    <a href="{{ path('app_financeiro_atraso') }}" class="btn btn-outline-danger w-100">
+                        <i class="fas fa-list"></i> Ver todos em atraso
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal para Gerar Lançamentos Automáticos #}
+<div class="modal fade" id="modalGerarLancamentos" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-magic"></i> Gerar Lançamentos Automáticos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Selecione a competência para gerar os lançamentos de aluguel automaticamente para todos os contratos ativos:</p>
+                <div class="mb-3">
+                    <label class="form-label">Competência</label>
+                    <input type="month" id="competenciaGerar" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGerarLancamentos">
+                    <i class="fas fa-check"></i> Gerar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal para Baixa #}
+<div class="modal fade" id="modalBaixa" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-money-bill"></i> Registrar Pagamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="baixaLancamentoId">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Data do Pagamento</label>
+                        <input type="date" id="baixaData" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Valor Pago</label>
+                        <input type="text" id="baixaValor" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Forma de Pagamento</label>
+                        <select id="baixaFormaPagamento" class="form-select">
+                            <option value="boleto">Boleto</option>
+                            <option value="pix">PIX</option>
+                            <option value="transferencia">Transferência</option>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nº Documento</label>
+                        <input type="text" id="baixaNumeroDocumento" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observações</label>
+                        <textarea id="baixaObservacoes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarBaixa">
+                    <i class="fas fa-check"></i> Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.ROUTES = {
+        gerarLancamentos: '{{ path('app_financeiro_gerar') }}',
+        realizarBaixa: '{{ path('app_financeiro_baixa', {id: '__ID__'}) }}'
+    };
+</script>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('financeiro') }}
+{% endblock %}

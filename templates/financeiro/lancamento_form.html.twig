@@ -1,0 +1,191 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ isEdit ? 'Editar' : 'Novo' }} Lançamento - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Ficha Financeira', 'url': path('app_financeiro_index')}
+        ],
+        'current': isEdit ? 'Editar Lançamento' : 'Novo Lançamento'
+    } %}
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        {{ isEdit ? 'Editar Lançamento #' ~ lancamento.id : 'Novo Lançamento' }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="formLancamento" method="POST">
+                        <input type="hidden" name="_token" value="{{ csrf_token('ajax_global') }}">
+
+                        {# Informações Básicas #}
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-muted border-bottom pb-2">Informações Básicas</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Lançamento</label>
+                                <select name="tipoLancamento" class="form-select" required>
+                                    <option value="aluguel" {% if lancamento.tipoLancamento|default('') == 'aluguel' %}selected{% endif %}>Aluguel</option>
+                                    <option value="condominio" {% if lancamento.tipoLancamento|default('') == 'condominio' %}selected{% endif %}>Condomínio</option>
+                                    <option value="iptu" {% if lancamento.tipoLancamento|default('') == 'iptu' %}selected{% endif %}>IPTU</option>
+                                    <option value="agua" {% if lancamento.tipoLancamento|default('') == 'agua' %}selected{% endif %}>Água</option>
+                                    <option value="luz" {% if lancamento.tipoLancamento|default('') == 'luz' %}selected{% endif %}>Luz</option>
+                                    <option value="gas" {% if lancamento.tipoLancamento|default('') == 'gas' %}selected{% endif %}>Gás</option>
+                                    <option value="outros" {% if lancamento.tipoLancamento|default('') == 'outros' %}selected{% endif %}>Outros</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Competência</label>
+                                <input type="month" name="competencia" class="form-control" required
+                                       value="{{ lancamento.competencia|default('now'|date('Y-m')) }}">
+                            </div>
+                        </div>
+
+                        {# Datas #}
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-muted border-bottom pb-2">Datas</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data de Vencimento</label>
+                                <input type="date" name="dataVencimento" class="form-control" required
+                                       value="{{ lancamento.dataVencimento|default('now'|date('Y-m-d')) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data Limite</label>
+                                <input type="date" name="dataLimite" class="form-control"
+                                       value="{{ lancamento.dataLimite|default('') }}">
+                            </div>
+                        </div>
+
+                        {# Valores #}
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-muted border-bottom pb-2">Valores</h6>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Valor Principal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorPrincipal" class="form-control valor-monetario" required
+                                           value="{{ lancamento.valorPrincipal|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Condomínio</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorCondominio" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorCondominio|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">IPTU</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorIptu" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorIptu|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Água</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorAgua" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorAgua|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Luz</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorLuz" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorLuz|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Gás</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorGas" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorGas|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Outros</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorOutros" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorOutros|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Desconto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorDesconto" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorDesconto|default('0.00') }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        {# Descrição #}
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="text-muted border-bottom pb-2">Descrição</h6>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Descrição</label>
+                                <input type="text" name="descricao" class="form-control"
+                                       value="{{ lancamento.descricao|default('') }}"
+                                       placeholder="Ex: Aluguel de Janeiro/2025">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Observações</label>
+                                <textarea name="observacoes" class="form-control" rows="3">{{ lancamento.observacoes|default('') }}</textarea>
+                            </div>
+                        </div>
+
+                        {# Botões #}
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('app_financeiro_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i> {{ isEdit ? 'Atualizar' : 'Salvar' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('financeiro_form') }}
+{% endblock %}

@@ -9,6 +9,180 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.9.0] - 2025-12-05
+
+### Adicionado
+- **Módulo Completo de Ficha Financeira / Contas a Receber**
+  - **Objetivo:** Sistema completo para gestão financeira de locações com lançamentos, baixas, estornos e acordos financeiros
+  - **Migration criada:** `Version20251205_FichaFinanceira`
+    - **3 tabelas criadas:**
+      1. `lancamentos_financeiros` - Lançamentos financeiros com 25+ campos
+         - Relacionamentos: contrato, imóvel, inquilino, plano_contas, conta_bancaria
+         - Campos de valor: principal, condomínio, IPTU, água, luz, gás, outros, desconto
+         - Campos de controle: competência, vencimento, situação, tipo_lancamento
+         - Suporte a multas, juros e correção monetária
+      2. `baixas_financeiras` - Registro de pagamentos
+         - Campos: data_pagamento, valor_pago, forma_pagamento, numero_documento
+         - Suporte a juros_pago, multa_pago, desconto_concedido
+         - Campos de estorno: estornada, data_estorno, motivo_estorno
+      3. `acordos_financeiros` - Acordos de parcelamento de dívidas
+         - Campos: valor_original, valor_entrada, num_parcelas, valor_parcela
+         - Controle de parcelas pagas e saldo devedor
+    - **9 índices criados para otimização de consultas**
+    - **3 sequences para IDs com estratégia IDENTITY (PostgreSQL)**
+
+  - **3 Entidades Doctrine criadas:**
+    1. `LancamentosFinanceiros` (`src/Entity/LancamentosFinanceiros.php`) - **580+ linhas**
+       - 25+ atributos com annotations Doctrine completas
+       - Relacionamentos ManyToOne com: ImoveisContratos, Imoveis, Pessoas, PlanoContas, ContasBancarias
+       - Relacionamento OneToMany com BaixasFinanceiras
+       - **8 métodos helper:**
+         - `calcularTotal()` - Soma todos os valores do lançamento
+         - `calcularSaldo()` - Calcula valor pendente (total - baixas)
+         - `isEmAtraso()` - Verifica se está em atraso
+         - `getDiasAtraso()` - Retorna número de dias em atraso
+         - `isPago()` / `isParcial()` - Verifica situação do pagamento
+         - Métodos formatados: `valorTotalFormatado`, `valorPagoFormatado`, `valorSaldoFormatado`
+         - `competenciaFormatada`, `dataVencimentoFormatada` - Datas formatadas para exibição
+    2. `BaixasFinanceiras` (`src/Entity/BaixasFinanceiras.php`) - **250+ linhas**
+       - Campos para pagamento com suporte a estorno
+       - Método `calcularTotal()` para total pago (valor + juros + multa - desconto)
+       - Métodos formatados para exibição
+    3. `AcordosFinanceiros` (`src/Entity/AcordosFinanceiros.php`) - **200+ linhas**
+       - Campos para gestão de parcelamentos
+
+  - **3 Repositories criados:**
+    1. `LancamentosFinanceirosRepository` (`src/Repository/LancamentosFinanceirosRepository.php`)
+       - `findByFiltros()` - Busca com filtros múltiplos
+       - `findAbertosInquilino()` - Lançamentos em aberto de um inquilino
+       - `findEmAtraso()` - Lançamentos vencidos não pagos
+       - `findFichaFinanceira()` - Ficha financeira completa
+       - `calcularTotaisInquilino()` - Totais consolidados
+       - `getEstatisticas()` - Estatísticas com PostgreSQL FILTER clause
+       - `getLancamentosParaGerar()` - Contratos para geração automática
+    2. `BaixasFinanceirasRepository` - Métodos para baixas e estornos
+    3. `AcordosFinanceirosRepository` - Métodos para acordos financeiros
+
+  - **Fat Service criado:** `FichaFinanceiraService` (`src/Service/FichaFinanceiraService.php`) - **600+ linhas**
+    - **14 métodos públicos:**
+      - `listarLancamentos()` - Lista com filtros
+      - `buscarFichaFinanceira()` - Ficha completa do inquilino com totais
+      - `criarLancamento()` - Cria novo lançamento
+      - `atualizarLancamento()` - Atualiza lançamento existente
+      - `realizarBaixa()` - Registra pagamento com atualização automática de situação
+      - `estornarBaixa()` - Estorna pagamento com recálculo de saldo
+      - `cancelarLancamento()` - Cancela lançamento
+      - `gerarLancamentosAutomaticos()` - Gera lançamentos para todos os contratos ativos
+      - `buscarEmAtraso()` - Lançamentos em atraso
+      - `buscarBaixasRecentes()` - Últimas baixas realizadas
+      - `listarInquilinosComDebitos()` - Lista inadimplentes
+      - `obterEstatisticas()` - Estatísticas gerais
+    - **Validações e regras de negócio:**
+      - Impede baixa maior que saldo
+      - Atualiza situação automaticamente (aberto/parcial/pago)
+      - Recalcula saldo após estorno
+      - Verifica duplicidade de lançamentos na geração automática
+
+  - **Thin Controller criado:** `FichaFinanceiraController` (`src/Controller/FichaFinanceiraController.php`) - **395 linhas**
+    - **14 rotas criadas:**
+      1. `GET /financeiro/` - `index()` - Lista principal com estatísticas e inadimplentes
+      2. `GET /financeiro/ficha/{inquilinoId}` - `ficha()` - Ficha financeira do inquilino
+      3. `GET|POST /financeiro/lancamento/new` - `novoLancamento()` - Cadastro
+      4. `GET|POST /financeiro/lancamento/{id}/edit` - `editarLancamento()` - Edição
+      5. `GET /financeiro/lancamento/{id}` - `showLancamento()` - Visualização
+      6. `POST /financeiro/lancamento/{id}/baixa` - `realizarBaixa()` - Registrar pagamento (AJAX)
+      7. `POST /financeiro/baixa/{id}/estornar` - `estornarBaixa()` - Estornar (AJAX)
+      8. `POST /financeiro/lancamento/{id}/cancelar` - `cancelarLancamento()` - Cancelar (AJAX)
+      9. `POST /financeiro/gerar-lancamentos` - `gerarLancamentos()` - Geração automática (AJAX)
+      10. `GET /financeiro/em-atraso` - `emAtraso()` - Lista inadimplentes
+      11-14. Endpoints API para integração
+
+  - **5 Templates Twig criados:**
+    1. `templates/financeiro/index.html.twig` - **360 linhas**
+       - 4 cards de estatísticas (total, pagos, em atraso, valor em aberto)
+       - Tabela de lançamentos com filtros colapsáveis
+       - Coluna lateral de inadimplentes
+       - Modal para baixa de pagamento
+       - Modal para geração automática de lançamentos
+    2. `templates/financeiro/ficha.html.twig` - **260 linhas**
+       - Cabeçalho com dados do inquilino
+       - 4 cards de totais
+       - Tabela detalhada de lançamentos por ano
+       - Modal de baixa
+    3. `templates/financeiro/lancamento_form.html.twig` - **190 linhas**
+       - Formulário completo com máscaras de valor
+       - Seções: informações básicas, datas, valores, descrição
+    4. `templates/financeiro/lancamento_show.html.twig` - **370 linhas**
+       - Detalhes completos do lançamento
+       - Histórico de pagamentos
+       - Modais para baixa, estorno e cancelamento
+       - Ações rápidas na sidebar
+    5. `templates/financeiro/em_atraso.html.twig` - **180 linhas**
+       - 3 cards de resumo (total em atraso, valor, inquilinos inadimplentes)
+       - Tabela detalhada com dias em atraso destacados
+       - Cores por gravidade (>30 dias vermelho, >15 dias amarelo)
+
+  - **2 arquivos JavaScript modulares criados:**
+    1. `assets/js/financeiro/financeiro.js` - **320 linhas**
+       - Funções: getCsrfToken, getAjaxHeaders, formatarMoeda, parseNumero
+       - initBaixa() - Modal de registro de pagamento
+       - initEstorno() - Modal de estorno com motivo obrigatório
+       - initCancelamento() - Modal de cancelamento
+       - initGerarLancamentos() - Geração automática por competência
+       - Toasts Bootstrap para feedback
+    2. `assets/js/financeiro/financeiro_form.js` - **240 linhas**
+       - Máscaras de valor monetário (R$ x.xxx,xx)
+       - Cálculo automático do total do lançamento
+       - Descrição automática baseada em tipo + competência
+       - Submissão via AJAX com validação
+
+  - **Webpack configurado:**
+    - 2 novos entry points adicionados em `webpack.config.js`:
+      - `financeiro` → `./assets/js/financeiro/financeiro.js`
+      - `financeiro_form` → `./assets/js/financeiro/financeiro_form.js`
+
+### Alterado
+- **Dashboard** (`templates/dashboard/index.html.twig`):
+  - Adicionado card "Ficha Financeira" na seção "Financeiro e Documentos"
+  - Ícone: `cash-stack`
+  - Link: `path('app_financeiro_index')`
+  - Descrição: "Gerencie lançamentos e contas a receber"
+
+### Arquivos Criados
+```
+migrations/
+└── Version20251205_FichaFinanceira.php
+
+src/Entity/
+├── LancamentosFinanceiros.php
+├── BaixasFinanceiras.php
+└── AcordosFinanceiros.php
+
+src/Repository/
+├── LancamentosFinanceirosRepository.php
+├── BaixasFinanceirasRepository.php
+└── AcordosFinanceirosRepository.php
+
+src/Service/
+└── FichaFinanceiraService.php
+
+src/Controller/
+└── FichaFinanceiraController.php
+
+templates/financeiro/
+├── index.html.twig
+├── ficha.html.twig
+├── lancamento_form.html.twig
+├── lancamento_show.html.twig
+└── em_atraso.html.twig
+
+assets/js/financeiro/
+├── financeiro.js
+└── financeiro_form.js
+```
+
+---
+
 ## [6.8.0] - 2025-12-05
 
 ### Adicionado
