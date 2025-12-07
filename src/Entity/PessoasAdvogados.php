@@ -5,7 +5,17 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'pessoas_advogados')]
+#[ORM\Table(
+    name: 'pessoas_advogados',
+    indexes: [
+        new ORM\Index(name: 'idx_pessoas_advogados_pessoa', columns: ['id_pessoa']),
+        new ORM\Index(name: 'idx_pessoas_advogados_oab', columns: ['numero_oab']),
+        new ORM\Index(name: 'idx_pessoas_advogados_ativo', columns: ['ativo']),
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uk_advogados_pessoa', columns: ['id_pessoa']),
+    ]
+)]
 #[ORM\HasLifecycleCallbacks]
 class PessoasAdvogados
 {
@@ -14,7 +24,7 @@ class PessoasAdvogados
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(name: 'id_pessoa', type: 'bigint')]
+    #[ORM\Column(name: 'id_pessoa', type: 'integer')]
     private int $idPessoa;
 
     #[ORM\Column(name: 'numero_oab', type: 'string', length: 20)]

@@ -34,3 +34,20 @@ services:
     Symfony\Component\Security\Csrf\CsrfTokenManagerInterface:
         alias: security.csrf.token_manager
         public: true
+
+    App\Service\ConfiguracaoApiBancoService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\SantanderAuthService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Service\EmailService:
+        arguments:
+            $emailRemetente: '%env(MAILER_FROM_EMAIL)%'
+            $nomeRemetente: '%env(MAILER_FROM_NAME)%'
+
+    App\Service\CobrancaContratoService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'

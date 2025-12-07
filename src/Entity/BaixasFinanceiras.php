@@ -9,7 +9,14 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: BaixasFinanceirasRepository::class)]
-#[ORM\Table(name: 'baixas_financeiras')]
+#[ORM\Table(
+    name: 'baixas_financeiras',
+    indexes: [
+        new ORM\Index(name: 'idx_baixa_lancamento', columns: ['id_lancamento']),
+        new ORM\Index(name: 'idx_baixa_conta', columns: ['id_conta_bancaria']),
+        new ORM\Index(name: 'idx_baixa_data', columns: ['data_pagamento']),
+    ]
+)]
 class BaixasFinanceiras
 {
     #[ORM\Id]
@@ -43,8 +50,8 @@ class BaixasFinanceiras
     #[ORM\Column(name: 'valor_total_pago', type: Types::DECIMAL, precision: 10, scale: 2)]
     private string $valorTotalPago = '0.00';
 
-    #[ORM\Column(name: 'forma_pagamento', type: Types::STRING, length: 30, options: ['default' => 'boleto'])]
-    private string $formaPagamento = 'boleto';
+    #[ORM\Column(name: 'forma_pagamento', type: Types::STRING, length: 30, nullable: true)]
+    private ?string $formaPagamento = 'boleto';
 
     #[ORM\Column(name: 'numero_documento', type: Types::STRING, length: 50, nullable: true)]
     private ?string $numeroDocumento = null;
@@ -52,23 +59,26 @@ class BaixasFinanceiras
     #[ORM\Column(name: 'numero_autenticacao', type: Types::STRING, length: 100, nullable: true)]
     private ?string $numeroAutenticacao = null;
 
-    #[ORM\Column(name: 'tipo_baixa', type: Types::STRING, length: 20, options: ['default' => 'normal'])]
-    private string $tipoBaixa = 'normal';
+    #[ORM\Column(name: 'tipo_baixa', type: Types::STRING, length: 20, nullable: true)]
+    private ?string $tipoBaixa = 'normal';
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $observacoes = null;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $estornada = false;
+    #[ORM\Column(type: Types::BOOLEAN, nullable: true)]
+    private ?bool $estornada = false;
 
     #[ORM\Column(name: 'data_estorno', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dataEstorno = null;
 
     #[ORM\Column(name: 'motivo_estorno', type: Types::TEXT, nullable: true)]
     private ?string $motivoEstorno = null;
+
+    #[ORM\Column(name: 'created_by', type: Types::INTEGER, nullable: true)]
+    private ?int $createdBy = null;
 
     public function __construct()
     {
@@ -171,12 +181,12 @@ class BaixasFinanceiras
         return $this;
     }
 
-    public function getFormaPagamento(): string
+    public function getFormaPagamento(): ?string
     {
         return $this->formaPagamento;
     }
 
-    public function setFormaPagamento(string $formaPagamento): self
+    public function setFormaPagamento(?string $formaPagamento): self
     {
         $this->formaPagamento = $formaPagamento;
         return $this;
@@ -204,12 +214,12 @@ class BaixasFinanceiras
         return $this;
     }
 
-    public function getTipoBaixa(): string
+    public function getTipoBaixa(): ?string
     {
         return $this->tipoBaixa;
     }
 
-    public function setTipoBaixa(string $tipoBaixa): self
+    public function setTipoBaixa(?string $tipoBaixa): self
     {
         $this->tipoBaixa = $tipoBaixa;
         return $this;
@@ -231,12 +241,12 @@ class BaixasFinanceiras
         return $this->createdAt;
     }
 
-    public function isEstornada(): bool
+    public function isEstornada(): ?bool
     {
         return $this->estornada;
     }
 
-    public function setEstornada(bool $estornada): self
+    public function setEstornada(?bool $estornada): self
     {
         $this->estornada = $estornada;
         return $this;
@@ -278,6 +288,17 @@ class BaixasFinanceiras
 
         $this->valorTotalPago = number_format($total, 2, '.', '');
 
+        return $this;
+    }
+
+    public function getCreatedBy(): ?int
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?int $createdBy): self
+    {
+        $this->createdBy = $createdBy;
         return $this;
     }
 }

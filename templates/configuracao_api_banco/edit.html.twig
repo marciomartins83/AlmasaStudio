@@ -1,0 +1,249 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Configuração API - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Configuração API Bancária', 'url': path('app_configuracao_api_banco_index')}
+        ],
+        'current': 'Editar Configuração'
+    } %}
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-edit"></i> Editar Configuração de API</h1>
+                <button type="button" class="btn btn-info btn-testar-conexao" data-id="{{ configuracao.id }}">
+                    <i class="fas fa-plug"></i> Testar Conexão
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
+
+                    <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="dados-tab" data-bs-toggle="tab"
+                                    data-bs-target="#dados" type="button" role="tab">
+                                <i class="fas fa-database"></i> Dados Básicos
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="credenciais-tab" data-bs-toggle="tab"
+                                    data-bs-target="#credenciais" type="button" role="tab">
+                                <i class="fas fa-key"></i> Credenciais API
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="certificado-tab" data-bs-toggle="tab"
+                                    data-bs-target="#certificado" type="button" role="tab">
+                                <i class="fas fa-certificate"></i> Certificado Digital
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="configTabsContent">
+                        <div class="tab-pane fade show active" id="dados" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.banco) }}
+                                    {{ form_widget(form.banco, {'attr': {'id': 'config_banco'}}) }}
+                                    {{ form_errors(form.banco) }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.contaBancaria) }}
+                                    {{ form_widget(form.contaBancaria, {'attr': {'id': 'config_contaBancaria'}}) }}
+                                    {{ form_errors(form.contaBancaria) }}
+                                    <small class="text-muted">As contas serão filtradas pelo banco selecionado</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    {{ form_label(form.convenio) }}
+                                    {{ form_widget(form.convenio) }}
+                                    {{ form_errors(form.convenio) }}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    {{ form_label(form.carteira) }}
+                                    {{ form_widget(form.carteira) }}
+                                    {{ form_errors(form.carteira) }}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    {{ form_label(form.ambiente) }}
+                                    {{ form_widget(form.ambiente) }}
+                                    {{ form_errors(form.ambiente) }}
+                                    <small class="text-muted">Sandbox para testes, Produção para uso real</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-check form-switch mt-4">
+                                        {{ form_widget(form.ativo) }}
+                                        {{ form_label(form.ativo) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="credenciais" role="tabpanel">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                As credenciais são fornecidas pelo banco após aprovação do cadastro na plataforma de desenvolvedores.
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.clientId) }}
+                                    {{ form_widget(form.clientId) }}
+                                    {{ form_errors(form.clientId) }}
+                                    {% if configuracao.clientId %}
+                                        <small class="text-success"><i class="fas fa-check"></i> Client ID configurado</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.clientSecret) }}
+                                    {{ form_widget(form.clientSecret, {'attr': {'placeholder': configuracao.clientSecret ? '••••••••' : 'Secret fornecido pelo banco'}}) }}
+                                    {{ form_errors(form.clientSecret) }}
+                                    {% if configuracao.clientSecret %}
+                                        <small class="text-success"><i class="fas fa-check"></i> Client Secret configurado</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.workspaceId) }}
+                                    {{ form_widget(form.workspaceId) }}
+                                    {{ form_errors(form.workspaceId) }}
+                                    <small class="text-muted">Identificador do workspace (se aplicável)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="certificado" role="tabpanel">
+                            {% if configuracao.certificadoPath %}
+                                <div class="alert {% if configuracao.isCertificadoValido %}alert-success{% else %}alert-danger{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-certificate"></i>
+                                            <strong>Certificado Atual:</strong>
+                                            {% if configuracao.isCertificadoValido %}
+                                                <span class="badge bg-success">Válido</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Expirado</span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            {% if configuracao.certificadoValidade %}
+                                                Validade: <strong>{{ configuracao.certificadoValidade|date('d/m/Y') }}</strong>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Atenção:</strong> Nenhum certificado digital cadastrado.
+                                </div>
+                            {% endif %}
+
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                {% if configuracao.certificadoPath %}
+                                    Para substituir o certificado atual, envie um novo arquivo abaixo.
+                                {% else %}
+                                    O certificado digital A1 é obrigatório para autenticação na API do Santander em ambiente de produção.
+                                {% endif %}
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.certificadoArquivo) }}
+                                    {{ form_widget(form.certificadoArquivo) }}
+                                    {{ form_errors(form.certificadoArquivo) }}
+                                    <small class="text-muted">{{ form.certificadoArquivo.vars.help }}</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form_label(form.certificadoSenha) }}
+                                    {{ form_widget(form.certificadoSenha, {'attr': {'placeholder': configuracao.certificadoSenha ? '••••••••' : 'Senha do certificado'}}) }}
+                                    {{ form_errors(form.certificadoSenha) }}
+                                    <small class="text-muted">Senha definida na emissão do certificado</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> Criado em: {{ configuracao.createdAt|date('d/m/Y H:i') }}
+                                | Atualizado em: {{ configuracao.updatedAt|date('d/m/Y H:i') }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('app_configuracao_api_banco_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check"></i> Salvar
+                        </button>
+                    </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTesteConexao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plug"></i> Teste de Conexão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalTesteConexaoBody">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Verificando...</span>
+                    </div>
+                    <p class="mt-2">Verificando configuração...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.ROUTES = {
+        contasPorBanco: '{{ path('app_configuracao_api_banco_api_contas_por_banco', {bancoId: '__BANCO_ID__'}) }}',
+        testarConexao: '{{ path('app_configuracao_api_banco_testar_conexao', {id: '__ID__'}) }}'
+    };
+    window.CONFIG_ID = {{ configuracao.id }};
+</script>
+<script src="{{ asset('build/configuracao_api_banco.js') }}"></script>
+{% endblock %}

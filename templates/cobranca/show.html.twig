@@ -1,0 +1,348 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Cobrança #{{ cobranca.id }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Financeiro', 'url': '#'},
+            {'label': 'Cobranças', 'url': path('app_cobranca_pendentes')}
+        ],
+        'current': 'Cobrança #' ~ cobranca.id
+    } %}
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    Cobrança #{{ cobranca.id }}
+                    <span class="badge {{ cobranca.statusClass }}">{{ cobranca.statusLabel }}</span>
+                </h1>
+                <div>
+                    {% if cobranca.podeEnviarManualmente() %}
+                    <button type="button" class="btn btn-success btn-enviar" data-id="{{ cobranca.id }}">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                    {% endif %}
+                    {% if cobranca.isPendente() %}
+                    <button type="button" class="btn btn-danger btn-cancelar" data-id="{{ cobranca.id }}">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    {% endif %}
+                    <a href="{{ path('app_cobranca_pendentes') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                {# Dados Gerais #}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Dados Gerais</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Contrato:</th>
+                                    <td>
+                                        <a href="{{ path('app_imoveis_contratos_edit', {id: contrato.id}) }}">
+                                            #{{ contrato.id }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Competência:</th>
+                                    <td><strong>{{ cobranca.competenciaFormatada }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Período:</th>
+                                    <td>
+                                        {{ cobranca.periodoInicio|date('d/m/Y') }} a {{ cobranca.periodoFim|date('d/m/Y') }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Vencimento:</th>
+                                    <td>
+                                        <strong>{{ cobranca.dataVencimento|date('d/m/Y') }}</strong>
+                                        {% set diasAteVencimento = date(cobranca.dataVencimento).diff(date()).days %}
+                                        {% if cobranca.dataVencimento < date() %}
+                                            <span class="badge bg-danger">Vencido há {{ diasAteVencimento }} dia(s)</span>
+                                        {% elseif diasAteVencimento <= 3 %}
+                                            <span class="badge bg-warning text-dark">Vence em {{ diasAteVencimento }} dia(s)</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo de Envio:</th>
+                                    <td>
+                                        {% if cobranca.tipoEnvio == 'AUTOMATICO' %}
+                                            <span class="badge bg-info">Automático</span>
+                                        {% elseif cobranca.tipoEnvio == 'MANUAL' %}
+                                            <span class="badge bg-warning text-dark">Manual</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Não enviado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if cobranca.bloqueadoRotinaAuto %}
+                                <tr>
+                                    <th>Rotina Automática:</th>
+                                    <td><span class="badge bg-secondary">Bloqueada</span></td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Criado em:</th>
+                                    <td>{{ cobranca.createdAt|date('d/m/Y H:i') }}</td>
+                                </tr>
+                                {% if cobranca.dataEnvio %}
+                                <tr>
+                                    <th>Enviado em:</th>
+                                    <td>{{ cobranca.dataEnvio|date('d/m/Y H:i') }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {# Dados do Contrato/Locatário #}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-user"></i> Locatário / Imóvel</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Locatário:</th>
+                                    <td>
+                                        {% if contrato.pessoaLocatario %}
+                                            {{ contrato.pessoaLocatario.nome }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Imóvel:</th>
+                                    <td>
+                                        {% if contrato.imovel %}
+                                            {{ contrato.imovel.codigoInterno|default('-') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if contrato.imovel and contrato.imovel.endereco %}
+                                <tr>
+                                    <th>Endereço:</th>
+                                    <td>
+                                        {{ contrato.imovel.endereco.logradouro.logradouro|default('') }}
+                                        {% if contrato.imovel.endereco.endNumero %}, {{ contrato.imovel.endereco.endNumero }}{% endif %}
+                                        {% if contrato.imovel.endereco.complemento %} - {{ contrato.imovel.endereco.complemento }}{% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Valor Aluguel:</th>
+                                    <td>R$ {{ contrato.valorContrato|default(0)|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Dia Vencimento:</th>
+                                    <td>{{ contrato.diaVencimento }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Composição de Valores #}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Composição de Valores</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Item</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if cobranca.valorAluguel > 0 %}
+                            <tr>
+                                <td>Aluguel</td>
+                                <td class="text-end">R$ {{ cobranca.valorAluguel|number_format(2, ',', '.') }}</td>
+                            </tr>
+                            {% endif %}
+                            {% set itens = cobranca.itensDetalhados|default({}) %}
+                            {% for item in itens %}
+                            <tr>
+                                <td>{{ item.descricao|default(item.tipo|default('Item')) }}</td>
+                                <td class="text-end">R$ {{ item.valor|default(0)|number_format(2, ',', '.') }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% if cobranca.valorDesconto > 0 %}
+                            <tr class="text-success">
+                                <td>Desconto</td>
+                                <td class="text-end">- R$ {{ cobranca.valorDesconto|number_format(2, ',', '.') }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if cobranca.valorAcrescimo > 0 %}
+                            <tr class="text-danger">
+                                <td>Acréscimo</td>
+                                <td class="text-end">+ R$ {{ cobranca.valorAcrescimo|number_format(2, ',', '.') }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                        <tfoot class="table-primary">
+                            <tr>
+                                <th>TOTAL</th>
+                                <th class="text-end">R$ {{ cobranca.valorTotalFloat|number_format(2, ',', '.') }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            {# Status do Boleto #}
+            {% if boleto %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-barcode"></i> Dados do Boleto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Nosso Número:</th>
+                                    <td>{{ boleto.nossoNumero|default('-') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Linha Digitável:</th>
+                                    <td><code>{{ boleto.linhaDigitavel|default('-') }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Status Banco:</th>
+                                    <td>{{ boleto.statusBanco|default('-') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Registrado em:</th>
+                                    <td>{{ boleto.dataRegistro|date('d/m/Y H:i')|default('-') }}</td>
+                                </tr>
+                                {% if boleto.dataPagamento %}
+                                <tr>
+                                    <th>Pago em:</th>
+                                    <td>{{ boleto.dataPagamento|date('d/m/Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor Pago:</th>
+                                    <td>R$ {{ boleto.valorPago|default(0)|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                    {% if boleto.pdfPath %}
+                    <div class="mt-2">
+                        <a href="{{ asset(boleto.pdfPath) }}" class="btn btn-outline-primary" target="_blank">
+                            <i class="fas fa-file-pdf"></i> Visualizar PDF
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# Histórico de Emails #}
+            {% if historicoEmails|length > 0 %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-envelope"></i> Histórico de Emails</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="150">Data/Hora</th>
+                                    <th>Destinatário</th>
+                                    <th>Assunto</th>
+                                    <th width="100">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for email in historicoEmails %}
+                                <tr>
+                                    <td>{{ email.createdAt|date('d/m/Y H:i') }}</td>
+                                    <td>{{ email.destinatario }}</td>
+                                    <td>{{ email.assunto }}</td>
+                                    <td>
+                                        {% if email.status == 'ENVIADO' %}
+                                            <span class="badge bg-success">Enviado</span>
+                                        {% elseif email.status == 'FALHA' %}
+                                            <span class="badge bg-danger" title="{{ email.erroMensagem|default('') }}">
+                                                Falha
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ email.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Observações #}
+            {% if cobranca.observacoes %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note"></i> Observações</h5>
+                </div>
+                <div class="card-body">
+                    {{ cobranca.observacoes|nl2br }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    window.COBRANCA_ROUTES = {
+        enviar: '{{ path('app_cobranca_enviar', {id: '__ID__'}) }}',
+        cancelar: '{{ path('app_cobranca_cancelar', {id: '__ID__'}) }}'
+    };
+</script>
+{{ encore_entry_script_tags('cobranca') }}
+{% endblock %}

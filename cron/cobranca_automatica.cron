@@ -1,0 +1,48 @@
+# =============================================================================
+# CRON - Cobranca Automatica de Boletos
+# =============================================================================
+#
+# Este arquivo contem a configuracao do cron para envio automatico de boletos.
+#
+# COMO ATIVAR:
+# 1. Edite o crontab do usuario: crontab -e
+# 2. Copie e cole a linha abaixo (sem o # no inicio)
+# 3. Ajuste o caminho /home/marciorsm/AlmasaStudio para o caminho do seu projeto
+# 4. Salve e saia (Ctrl+O, Enter, Ctrl+X no nano)
+#
+# COMO DESATIVAR:
+# 1. Edite o crontab: crontab -e
+# 2. Comente a linha com # no inicio ou delete
+# 3. Salve e saia
+#
+# VERIFICAR SE ESTA ATIVO:
+# crontab -l
+#
+# =============================================================================
+
+# Envio automatico de boletos - Executa diariamente as 07:00
+# DESATIVADO - Remova o # do inicio da linha abaixo para ativar
+#0 7 * * * cd /home/marciorsm/AlmasaStudio && /usr/bin/php bin/console app:enviar-boletos-automatico >> var/log/cobranca_automatica.log 2>&1
+
+# =============================================================================
+# FORMATO DO CRON:
+# * * * * * comando
+# | | | | |
+# | | | | +-- Dia da semana (0-7, onde 0 e 7 = domingo)
+# | | | +---- Mes (1-12)
+# | | +------ Dia do mes (1-31)
+# | +-------- Hora (0-23)
+# +---------- Minuto (0-59)
+#
+# EXEMPLOS:
+# 0 7 * * *     = Todo dia as 07:00
+# 0 7 * * 1-5   = Segunda a sexta as 07:00
+# 0 7,19 * * *  = Todo dia as 07:00 e 19:00
+# */30 * * * *  = A cada 30 minutos
+# =============================================================================
+
+# Para testar manualmente (modo dry-run - nao envia):
+# cd /home/marciorsm/AlmasaStudio && php bin/console app:enviar-boletos-automatico --dry-run
+
+# Para executar manualmente (envia de verdade):
+# cd /home/marciorsm/AlmasaStudio && php bin/console app:enviar-boletos-automatico

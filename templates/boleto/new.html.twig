@@ -1,0 +1,356 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo Boleto - {{ parent() }}{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+    .campos-condicionais {
+        display: none;
+    }
+    .campos-condicionais.show {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Boletos', 'url': path('app_boleto_index')}
+        ],
+        'current': 'Novo Boleto'
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-plus-circle text-success"></i> Novo Boleto
+        </h1>
+        <a href="{{ path('app_boleto_index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate', 'id': 'formBoleto'}}) }}
+
+    <div class="row">
+        {# Coluna Principal #}
+        <div class="col-lg-8">
+            {# Card Configuração e Pagador #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-cog"></i> Configuração e Pagador
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(form.configuracaoApi) }}
+                            {{ form_widget(form.configuracaoApi) }}
+                            {{ form_errors(form.configuracaoApi) }}
+                            <small class="text-muted">Banco e conta para emissão</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(form.pessoaPagador) }}
+                            {{ form_widget(form.pessoaPagador, {'attr': {'class': 'form-select select2-pessoa'}}) }}
+                            {{ form_errors(form.pessoaPagador) }}
+                            <small class="text-muted">Quem vai pagar o boleto</small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(form.imovel) }}
+                            {{ form_widget(form.imovel) }}
+                            {{ form_errors(form.imovel) }}
+                            <small class="text-muted">Vincular a um imóvel (opcional)</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(form.seuNumero) }}
+                            {{ form_widget(form.seuNumero) }}
+                            {{ form_errors(form.seuNumero) }}
+                            <small class="text-muted">Número de controle interno (opcional)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Card Valores e Datas #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-dollar-sign"></i> Valores e Datas
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form_label(form.valorNominal) }}
+                            {{ form_widget(form.valorNominal) }}
+                            {{ form_errors(form.valorNominal) }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form_label(form.dataVencimento) }}
+                            {{ form_widget(form.dataVencimento) }}
+                            {{ form_errors(form.dataVencimento) }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form_label(form.dataLimitePagamento) }}
+                            {{ form_widget(form.dataLimitePagamento) }}
+                            {{ form_errors(form.dataLimitePagamento) }}
+                            <small class="text-muted">Data máxima (opcional)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Card Desconto #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-percent"></i> Desconto
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form_label(form.tipoDesconto) }}
+                            {{ form_widget(form.tipoDesconto, {'attr': {'data-toggle': 'campos-desconto'}}) }}
+                            {{ form_errors(form.tipoDesconto) }}
+                        </div>
+                        <div class="col-md-4 mb-3 campos-desconto" id="campoValorDesconto">
+                            {{ form_label(form.valorDesconto) }}
+                            {{ form_widget(form.valorDesconto) }}
+                            {{ form_errors(form.valorDesconto) }}
+                        </div>
+                        <div class="col-md-4 mb-3 campos-desconto" id="campoDataDesconto">
+                            {{ form_label(form.dataDesconto) }}
+                            {{ form_widget(form.dataDesconto) }}
+                            {{ form_errors(form.dataDesconto) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Card Juros #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-line"></i> Juros
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(form.tipoJuros) }}
+                            {{ form_widget(form.tipoJuros, {'attr': {'data-toggle': 'campos-juros'}}) }}
+                            {{ form_errors(form.tipoJuros) }}
+                        </div>
+                        <div class="col-md-6 mb-3 campos-juros" id="campoValorJuros">
+                            {{ form_label(form.valorJurosDia) }}
+                            {{ form_widget(form.valorJurosDia) }}
+                            {{ form_errors(form.valorJurosDia) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Card Multa #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-exclamation-triangle"></i> Multa
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form_label(form.tipoMulta) }}
+                            {{ form_widget(form.tipoMulta, {'attr': {'data-toggle': 'campos-multa'}}) }}
+                            {{ form_errors(form.tipoMulta) }}
+                        </div>
+                        <div class="col-md-4 mb-3 campos-multa" id="campoValorMulta">
+                            {{ form_label(form.valorMulta) }}
+                            {{ form_widget(form.valorMulta) }}
+                            {{ form_errors(form.valorMulta) }}
+                        </div>
+                        <div class="col-md-4 mb-3 campos-multa" id="campoDataMulta">
+                            {{ form_label(form.dataMulta) }}
+                            {{ form_widget(form.dataMulta) }}
+                            {{ form_errors(form.dataMulta) }}
+                            <small class="text-muted">Padrão: vencimento + 1 dia</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Card Mensagem #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-comment"></i> Mensagem ao Pagador
+                </div>
+                <div class="card-body">
+                    {{ form_label(form.mensagemPagador) }}
+                    {{ form_widget(form.mensagemPagador) }}
+                    {{ form_errors(form.mensagemPagador) }}
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Aparecerá no boleto impresso</small>
+                        <small class="text-muted"><span id="charCount">0</span>/160 caracteres</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Coluna Lateral #}
+        <div class="col-lg-4">
+            {# Card Resumo #}
+            <div class="card mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-file-invoice"></i> Resumo do Boleto
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Valor</small>
+                        <h4 class="text-success mb-0" id="resumoValor">R$ 0,00</h4>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Vencimento</small>
+                        <strong id="resumoVencimento">-</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Pagador</small>
+                        <span id="resumoPagador">-</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Configuração</small>
+                        <span id="resumoConfig">-</span>
+                    </div>
+
+                    <hr>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="registrarAgora" name="registrar_agora" value="1">
+                        <label class="form-check-label" for="registrarAgora">
+                            <strong>Registrar imediatamente</strong>
+                            <small class="d-block text-muted">Envia para o banco após salvar</small>
+                        </label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check"></i> Salvar Boleto
+                        </button>
+                        <a href="{{ path('app_boleto_index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# Card Dicas #}
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-lightbulb"></i> Dicas
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li class="mb-2">O <strong>Nosso Número</strong> será gerado automaticamente pelo sistema.</li>
+                        <li class="mb-2">Configure <strong>desconto</strong> para incentivar pagamento antecipado.</li>
+                        <li class="mb-2"><strong>Juros e multa</strong> só são cobrados após o vencimento.</li>
+                        <li class="mb-2">A <strong>mensagem ao pagador</strong> aparece no corpo do boleto.</li>
+                        <li>Marque "Registrar imediatamente" para enviar ao banco junto com a criação.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{ form_end(form) }}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{{ encore_entry_script_tags('boleto_form') }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle campos condicionais
+        function toggleCampos(selectId, camposClass) {
+            const select = document.getElementById(selectId);
+            const campos = document.querySelectorAll('.' + camposClass);
+
+            function updateVisibility() {
+                const isento = select.value === 'ISENTO' || select.value === '';
+                campos.forEach(campo => {
+                    campo.style.display = isento ? 'none' : 'block';
+                });
+            }
+
+            select.addEventListener('change', updateVisibility);
+            updateVisibility();
+        }
+
+        // Mapear IDs dos selects
+        const tipoDescontoId = '{{ form.tipoDesconto.vars.id }}';
+        const tipoJurosId = '{{ form.tipoJuros.vars.id }}';
+        const tipoMultaId = '{{ form.tipoMulta.vars.id }}';
+
+        toggleCampos(tipoDescontoId, 'campos-desconto');
+        toggleCampos(tipoJurosId, 'campos-juros');
+        toggleCampos(tipoMultaId, 'campos-multa');
+
+        // Contador de caracteres
+        const mensagemField = document.getElementById('{{ form.mensagemPagador.vars.id }}');
+        const charCount = document.getElementById('charCount');
+
+        if (mensagemField && charCount) {
+            function updateCharCount() {
+                charCount.textContent = mensagemField.value.length;
+            }
+            mensagemField.addEventListener('input', updateCharCount);
+            updateCharCount();
+        }
+
+        // Atualizar resumo
+        function updateResumo() {
+            // Valor
+            const valorInput = document.getElementById('{{ form.valorNominal.vars.id }}');
+            if (valorInput) {
+                const valor = parseFloat(valorInput.value.replace(/\./g, '').replace(',', '.')) || 0;
+                document.getElementById('resumoValor').textContent = 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            }
+
+            // Vencimento
+            const vencInput = document.getElementById('{{ form.dataVencimento.vars.id }}');
+            if (vencInput && vencInput.value) {
+                const date = new Date(vencInput.value + 'T00:00:00');
+                document.getElementById('resumoVencimento').textContent = date.toLocaleDateString('pt-BR');
+            }
+
+            // Pagador
+            const pagadorSelect = document.getElementById('{{ form.pessoaPagador.vars.id }}');
+            if (pagadorSelect && pagadorSelect.selectedIndex > 0) {
+                document.getElementById('resumoPagador').textContent = pagadorSelect.options[pagadorSelect.selectedIndex].text;
+            }
+
+            // Configuração
+            const configSelect = document.getElementById('{{ form.configuracaoApi.vars.id }}');
+            if (configSelect && configSelect.selectedIndex > 0) {
+                document.getElementById('resumoConfig').textContent = configSelect.options[configSelect.selectedIndex].text;
+            }
+        }
+
+        // Eventos para atualizar resumo
+        document.querySelectorAll('#formBoleto input, #formBoleto select').forEach(el => {
+            el.addEventListener('change', updateResumo);
+            el.addEventListener('input', updateResumo);
+        });
+
+        // Atualizar resumo inicial
+        updateResumo();
+    });
+</script>
+{% endblock %}

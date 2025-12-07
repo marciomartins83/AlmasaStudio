@@ -146,4 +146,109 @@ class ImoveisContratosRepository extends ServiceEntityRepository
 
         return $conn->fetchAssociative($sql) ?: [];
     }
+
+    /**
+     * Busca contratos configurados para envio automático de boletos
+     *
+     * Critérios:
+     * - Status 'ativo'
+     * - ativo = true
+     * - gera_boleto = true
+     * - envia_email = true
+     * - Vigente (data_inicio <= hoje <= data_fim ou data_fim null)
+     *
+     * @return ImoveisContratos[]
+     */
+    public function findContratosParaEnvioAutomatico(): array
+    {
+        $hoje = new \DateTime();
+
+        return $this->createQueryBuilder('c')
+            ->innerJoin('c.imovel', 'i')
+            ->innerJoin('c.pessoaLocatario', 'loc')
+            ->addSelect('i', 'loc')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.ativo = true')
+            ->andWhere('c.geraBoleto = true')
+            ->andWhere('c.enviaEmail = true')
+            ->andWhere('c.dataInicio <= :hoje')
+            ->andWhere('c.dataFim IS NULL OR c.dataFim >= :hoje')
+            ->setParameter('status', 'ativo')
+            ->setParameter('hoje', $hoje)
+            ->orderBy('c.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Busca contratos para envio manual (pode gerar boleto, mas não necessariamente email automático)
+     *
+     * @return ImoveisContratos[]
+     */
+    public function findContratosParaEnvioManual(): array
+    {
+        $hoje = new \DateTime();
+
+        return $this->createQueryBuilder('c')
+            ->innerJoin('c.imovel', 'i')
+            ->innerJoin('c.pessoaLocatario', 'loc')
+            ->addSelect('i', 'loc')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.ativo = true')
+            ->andWhere('c.geraBoleto = true')
+            ->andWhere('c.dataInicio <= :hoje')
+            ->andWhere('c.dataFim IS NULL OR c.dataFim >= :hoje')
+            ->setParameter('status', 'ativo')
+            ->setParameter('hoje', $hoje)
+            ->orderBy('c.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Busca contratos com vencimento em determinado dia do mês
+     *
+     * @return ImoveisContratos[]
+     */
+    public function findByDiaVencimento(int $diaVencimento): array
+    {
+        $hoje = new \DateTime();
+
+        return $this->createQueryBuilder('c')
+            ->innerJoin('c.imovel', 'i')
+            ->innerJoin('c.pessoaLocatario', 'loc')
+            ->addSelect('i', 'loc')
+            ->andWhere('c.diaVencimento = :dia')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.ativo = true')
+            ->andWhere('c.dataInicio <= :hoje')
+            ->andWhere('c.dataFim IS NULL OR c.dataFim >= :hoje')
+            ->setParameter('dia', $diaVencimento)
+            ->setParameter('status', 'ativo')
+            ->setParameter('hoje', $hoje)
+            ->orderBy('c.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Conta contratos ativos configurados para cobrança automática
+     */
+    public function contarContratosCobrancaAutomatica(): int
+    {
+        $hoje = new \DateTime();
+
+        return (int) $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->andWhere('c.status = :status')
+            ->andWhere('c.ativo = true')
+            ->andWhere('c.geraBoleto = true')
+            ->andWhere('c.enviaEmail = true')
+            ->andWhere('c.dataInicio <= :hoje')
+            ->andWhere('c.dataFim IS NULL OR c.dataFim >= :hoje')
+            ->setParameter('status', 'ativo')
+            ->setParameter('hoje', $hoje)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

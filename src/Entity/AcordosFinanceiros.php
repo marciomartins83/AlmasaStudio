@@ -9,7 +9,13 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AcordosFinanceirosRepository::class)]
-#[ORM\Table(name: 'acordos_financeiros')]
+#[ORM\Table(
+    name: 'acordos_financeiros',
+    indexes: [
+        new ORM\Index(name: 'idx_acordo_inquilino', columns: ['id_inquilino']),
+        new ORM\Index(name: 'idx_acordo_situacao', columns: ['situacao']),
+    ]
+)]
 #[ORM\HasLifecycleCallbacks]
 class AcordosFinanceiros
 {
@@ -52,17 +58,20 @@ class AcordosFinanceiros
     #[ORM\Column(name: 'dia_vencimento', type: Types::INTEGER, nullable: true, options: ['default' => 10])]
     private ?int $diaVencimento = 10;
 
-    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'ativo'])]
-    private string $situacao = 'ativo';
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    private ?string $situacao = 'ativo';
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $observacoes = null;
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_MUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updatedAt = null;
+
+    #[ORM\Column(name: 'created_by', type: Types::INTEGER, nullable: true)]
+    private ?int $createdBy = null;
 
     public function __construct()
     {
@@ -200,12 +209,12 @@ class AcordosFinanceiros
         return $this;
     }
 
-    public function getSituacao(): string
+    public function getSituacao(): ?string
     {
         return $this->situacao;
     }
 
-    public function setSituacao(string $situacao): self
+    public function setSituacao(?string $situacao): self
     {
         $this->situacao = $situacao;
         return $this;
@@ -281,5 +290,16 @@ class AcordosFinanceiros
     public function isQuitado(): bool
     {
         return $this->situacao === 'quitado';
+    }
+
+    public function getCreatedBy(): ?int
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?int $createdBy): self
+    {
+        $this->createdBy = $createdBy;
+        return $this;
     }
 }

@@ -5,11 +5,21 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\ImoveisContratosRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ImoveisContratosRepository::class)]
-#[ORM\Table(name: 'imoveis_contratos')]
+#[ORM\Table(
+    name: 'imoveis_contratos',
+    indexes: [
+        new ORM\Index(name: 'idx_contratos_status', columns: ['status']),
+        new ORM\Index(name: 'idx_contratos_ativo', columns: ['ativo']),
+        new ORM\Index(name: 'idx_contratos_data_fim', columns: ['data_fim']),
+        new ORM\Index(name: 'idx_contratos_data_proximo_reajuste', columns: ['data_proximo_reajuste']),
+    ]
+)]
 #[ORM\HasLifecycleCallbacks]
 class ImoveisContratos
 {
@@ -84,6 +94,21 @@ class ImoveisContratos
     #[ORM\Column(type: Types::BOOLEAN, nullable: true, options: ['default' => 'true'])]
     private ?bool $ativo = true;
 
+    #[ORM\Column(name: 'dias_antecedencia_boleto', type: Types::INTEGER, options: ['default' => 5])]
+    private int $diasAntecedenciaBoleto = 5;
+
+    /**
+     * @var Collection<int, ContratosItensCobranca>
+     */
+    #[ORM\OneToMany(targetEntity: ContratosItensCobranca::class, mappedBy: 'contrato', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $itensCobranca;
+
+    /**
+     * @var Collection<int, ContratosCobrancas>
+     */
+    #[ORM\OneToMany(targetEntity: ContratosCobrancas::class, mappedBy: 'contrato', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $cobrancas;
+
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -94,6 +119,8 @@ class ImoveisContratos
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
+        $this->itensCobranca = new ArrayCollection();
+        $this->cobrancas = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -382,5 +409,119 @@ class ImoveisContratos
         $valor = (float) $this->valorContrato;
         $taxa = (float) $this->taxaAdministracao;
         return $valor - ($valor * $taxa / 100);
+    }
+
+    // ===== Dias Antecedência Boleto =====
+
+    public function getDiasAntecedenciaBoleto(): int
+    {
+        return $this->diasAntecedenciaBoleto;
+    }
+
+    public function setDiasAntecedenciaBoleto(int $diasAntecedenciaBoleto): self
+    {
+        $this->diasAntecedenciaBoleto = $diasAntecedenciaBoleto;
+        return $this;
+    }
+
+    // ===== Itens de Cobrança =====
+
+    /**
+     * @return Collection<int, ContratosItensCobranca>
+     */
+    public function getItensCobranca(): Collection
+    {
+        return $this->itensCobranca;
+    }
+
+    public function addItemCobranca(ContratosItensCobranca $item): self
+    {
+        if (!$this->itensCobranca->contains($item)) {
+            $this->itensCobranca->add($item);
+            $item->setContrato($this);
+        }
+        return $this;
+    }
+
+    public function removeItemCobranca(ContratosItensCobranca $item): self
+    {
+        if ($this->itensCobranca->removeElement($item)) {
+            if ($item->getContrato() === $this) {
+                // Orphan removal vai cuidar disso
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Retorna itens ativos de cobrança
+     */
+    public function getItensCobrancaAtivos(): Collection
+    {
+        return $this->itensCobranca->filter(fn($item) => $item->isAtivo());
+    }
+
+    // ===== Cobranças =====
+
+    /**
+     * @return Collection<int, ContratosCobrancas>
+     */
+    public function getCobrancas(): Collection
+    {
+        return $this->cobrancas;
+    }
+
+    public function addCobranca(ContratosCobrancas $cobranca): self
+    {
+        if (!$this->cobrancas->contains($cobranca)) {
+            $this->cobrancas->add($cobranca);
+            $cobranca->setContrato($this);
+        }
+        return $this;
+    }
+
+    public function removeCobranca(ContratosCobrancas $cobranca): self
+    {
+        $this->cobrancas->removeElement($cobranca);
+        return $this;
+    }
+
+    /**
+     * Busca cobrança por competência
+     */
+    public function getCobrancaPorCompetencia(string $competencia): ?ContratosCobrancas
+    {
+        foreach ($this->cobrancas as $cobranca) {
+            if ($cobranca->getCompetencia() === $competencia) {
+                return $cobranca;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Verifica se contrato está configurado para envio automático
+     */
+    public function isEnvioAutomaticoAtivo(): bool
+    {
+        return $this->isAtivo()
+            && $this->isGeraBoleto()
+            && $this->isEnviaEmail()
+            && $this->isVigente();
+    }
+
+    /**
+     * Calcula valor total da cobrança mensal baseado nos itens
+     */
+    public function calcularValorCobrancaMensal(): float
+    {
+        $valorBase = (float) $this->valorContrato;
+        $total = 0;
+
+        foreach ($this->getItensCobrancaAtivos() as $item) {
+            $total += $item->calcularValorEfetivo($valorBase);
+        }
+
+        return $total;
     }
 }

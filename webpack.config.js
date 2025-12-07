@@ -24,6 +24,16 @@ Encore
     .addEntry('financeiro', './assets/js/financeiro/financeiro.js')
     .addEntry('financeiro_form', './assets/js/financeiro/financeiro_form.js')
 
+    // Módulo Configuração API Bancária
+    .addEntry('configuracao_api_banco', './assets/js/configuracao_api_banco/configuracao_api_banco.js')
+
+    // Módulo Boletos
+    .addEntry('boleto', './assets/js/boleto/boleto.js')
+    .addEntry('boleto_form', './assets/js/boleto/boleto_form.js')
+
+    // Módulo Cobrança Automática
+    .addEntry('cobranca', './assets/js/cobranca/cobranca.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

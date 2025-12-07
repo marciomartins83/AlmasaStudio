@@ -62,6 +62,67 @@ O sistema gerencia relacionamentos complexos entre pessoas (locadores, inquilino
 
 ## 🚨 REGRAS DE OURO (INQUEBRÁVEIS)
 
+### 0. Schema Doctrine DEVE BATER - LEI SUPREMA 🪖⚔️
+
+**⚠️ REGRA ABSOLUTA - PRIORIDADE MÁXIMA - SEM EXCEÇÕES:**
+
+```bash
+php bin/console doctrine:schema:validate
+```
+
+**O schema Doctrine DEVE ESTAR SINCRONIZADO COM O BANCO. SEMPRE. PONTO FINAL.**
+
+🪖 **ANALOGIA MILITAR:** É como um soldado em missão externa que descobre que seu país está sendo atacado. **NÃO IMPORTA** a missão atual - ele tem o **DEVER ABSOLUTO** de voltar e defender sua pátria, que é mais importante que a própria vida.
+
+**Da mesma forma:**
+- **NÃO IMPORTA** qual tarefa você está fazendo
+- **NÃO IMPORTA** se a divergência foi causada por você ou não
+- **NÃO IMPORTA** se "não tem relação" com o que você está trabalhando
+
+**SE O SCHEMA NÃO BATER, VOCÊ PARA TUDO E CORRIGE. IMEDIATAMENTE.**
+
+**Procedimento OBRIGATÓRIO:**
+
+1. **SEMPRE rodar** `php bin/console doctrine:schema:validate` ao iniciar qualquer tarefa
+2. **SE aparecer `[ERROR]`** → PARAR a tarefa atual
+3. **DIAGNOSTICAR** com `php bin/console doctrine:schema:update --dump-sql`
+4. **CORRIGIR** as entidades para refletir o banco (banco é a fonte da verdade)
+5. **VALIDAR novamente** até aparecer `[OK]` nos dois checks (Mapping e Database)
+6. **SÓ ENTÃO** continuar com a tarefa original
+
+**Resultado MÍNIMO esperado:**
+```
+Mapping
+-------
+ [OK] The mapping files are correct.
+```
+
+**IMPORTANTE:** O check `Database` pode mostrar `[ERROR]` em casos específicos que são **ACEITÁVEIS**:
+
+| Tipo de Divergência | Aceitável? | Motivo |
+|---------------------|------------|--------|
+| DROP SEQUENCE | ✅ SIM | Sequências criadas por migrations para geração de números |
+| ALTER ... DROP DEFAULT | ✅ SIM | Defaults são apenas para inserções diretas no banco |
+| ALTER INDEX ... RENAME TO | ✅ SIM | Nomes customizados vs automáticos |
+| DROP/CREATE INDEX (mesmo nome) | ✅ SIM | Índices já existem com nomes corretos |
+| ALTER ... TYPE | ❌ NÃO | Tipo de coluna diferente - CORRIGIR |
+| ALTER ... SET NOT NULL | ❌ NÃO | Nullability diferente - CORRIGIR |
+| DROP COLUMN / ADD COLUMN | ❌ NÃO | Estrutura diferente - CORRIGIR |
+
+**❌ PROIBIDO:**
+- Ignorar erros de schema que afetam estrutura (colunas, tipos, nullability)
+- Deixar para "arrumar depois"
+- Criar código novo com mapping incorreto
+- Dizer "isso já estava assim antes"
+
+**✅ OBRIGATÓRIO:**
+- O Mapping DEVE estar OK (`[OK] The mapping files are correct.`)
+- Divergências estruturais DEVEM ser corrigidas
+- Divergências cosméticas (defaults, índices) podem ser ignoradas
+- Documentar no CHANGELOG.md correções feitas
+
+---
+
 ### 1. Arquitetura: "Thin Controller, Fat Service"
 
 **Controllers** (`src/Controller/`):
@@ -746,6 +807,6 @@ $this->addFlash('error', 'Erro ao processar requisição');
 
 **FIM DO CLAUDE.MD**
 
-Última atualização: 16/11/2025  
-Mantenedor: Marcio Martins  
-Desenvolvedor Ativo: Claude 4.5 Sonnet (via Claude Code)
+Última atualização: 07/12/2025
+Mantenedor: Marcio Martins
+Desenvolvedor Ativo: Claude Opus 4.5 (via Claude Code)

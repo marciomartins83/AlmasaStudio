@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleto de Aluguel - {{ competencia }}</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #666;
+            font-weight: normal;
+        }
+        .info-value {
+            font-weight: bold;
+            color: #333;
+        }
+        .highlight-box {
+            background-color: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .highlight-box .label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .highlight-box .value {
+            color: #2e7d32;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .vencimento-box {
+            background-color: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .vencimento-box .label {
+            color: #666;
+            font-size: 14px;
+        }
+        .vencimento-box .value {
+            color: #e65100;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .attachment-notice {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .attachment-notice i {
+            color: #2196f3;
+        }
+        .footer {
+            background-color: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .warning {
+            color: #d32f2f;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        @media only screen and (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .content {
+                padding: 15px;
+            }
+            .highlight-box .value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Boleto de Aluguel</h1>
+        <p style="margin: 5px 0 0 0; opacity: 0.9;">{{ competencia }}</p>
+    </div>
+
+    <div class="content">
+        <p class="greeting">
+            Prezado(a) <strong>{{ locatario.nome }}</strong>,
+        </p>
+
+        <p>
+            Segue em anexo o boleto de aluguel referente ao período de locação do imóvel.
+        </p>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">Imóvel:</span>
+                <span class="info-value">{{ imovel.codigoInterno|default('-') }}</span>
+            </div>
+            {% if imovel.endereco %}
+            <div class="info-row">
+                <span class="info-label">Endereço:</span>
+                <span class="info-value">
+                    {{ imovel.endereco.logradouro.logradouro|default('') }}{% if imovel.endereco.endNumero %}, {{ imovel.endereco.endNumero }}{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label">Período:</span>
+                <span class="info-value">{{ periodo_inicio }} a {{ periodo_fim }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Competência:</span>
+                <span class="info-value">{{ competencia }}</span>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <div class="label">Valor Total</div>
+            <div class="value">R$ {{ valor }}</div>
+        </div>
+
+        <div class="vencimento-box">
+            <div class="label">Data de Vencimento</div>
+            <div class="value">{{ vencimento }}</div>
+        </div>
+
+        <div class="attachment-notice">
+            <strong>O boleto está anexo a este email.</strong><br>
+            <small>Você pode efetuar o pagamento através de qualquer banco, aplicativo ou casa lotérica.</small>
+        </div>
+
+        <p>
+            Em caso de dúvidas, entre em contato conosco.
+        </p>
+
+        <p>
+            Atenciosamente,<br>
+            <strong>Almasa Imóveis</strong>
+        </p>
+    </div>
+
+    <div class="footer">
+        <p><strong>Almasa Imóveis</strong></p>
+        <p>Este é um email automático. Por favor, não responda diretamente.</p>
+        <p class="warning">
+            Atenção: O não pagamento até a data de vencimento poderá acarretar em multas e juros conforme contrato.
+        </p>
+    </div>
+</body>
+</html>

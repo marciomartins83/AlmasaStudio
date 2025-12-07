@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lembrete de Vencimento</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #ff9800;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .vencimento-box {
+            background-color: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .vencimento-box .label {
+            color: #666;
+            font-size: 14px;
+        }
+        .vencimento-box .value {
+            color: #e65100;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .valor-box {
+            background-color: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .valor-box .label {
+            color: #666;
+            font-size: 14px;
+        }
+        .valor-box .value {
+            color: #2e7d32;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lembrete de Vencimento</h1>
+    </div>
+
+    <div class="content">
+        <p>
+            Prezado(a) <strong>{{ locatario.nome }}</strong>,
+        </p>
+
+        <p>
+            Este é um lembrete amigável sobre o vencimento do seu boleto de aluguel.
+        </p>
+
+        <div class="vencimento-box">
+            <div class="label">Vencimento</div>
+            <div class="value">{{ vencimento }}</div>
+        </div>
+
+        <div class="valor-box">
+            <div class="label">Valor</div>
+            <div class="value">R$ {{ valor }}</div>
+        </div>
+
+        <p>
+            Caso já tenha efetuado o pagamento, por favor desconsidere este aviso.
+        </p>
+
+        <p>
+            Atenciosamente,<br>
+            <strong>Almasa Imóveis</strong>
+        </p>
+    </div>
+
+    <div class="footer">
+        <p><strong>Almasa Imóveis</strong></p>
+        <p>Este é um email automático.</p>
+    </div>
+</body>
+</html>

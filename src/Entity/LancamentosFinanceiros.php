@@ -11,7 +11,18 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: LancamentosFinanceirosRepository::class)]
-#[ORM\Table(name: 'lancamentos_financeiros')]
+#[ORM\Table(
+    name: 'lancamentos_financeiros',
+    indexes: [
+        new ORM\Index(name: 'idx_lanc_contrato', columns: ['id_contrato']),
+        new ORM\Index(name: 'idx_lanc_imovel', columns: ['id_imovel']),
+        new ORM\Index(name: 'idx_lanc_inquilino', columns: ['id_inquilino']),
+        new ORM\Index(name: 'idx_lanc_proprietario', columns: ['id_proprietario']),
+        new ORM\Index(name: 'idx_lanc_vencimento', columns: ['data_vencimento']),
+        new ORM\Index(name: 'idx_lanc_situacao', columns: ['situacao']),
+        new ORM\Index(name: 'idx_lanc_competencia', columns: ['competencia']),
+    ]
+)]
 #[ORM\HasLifecycleCallbacks]
 class LancamentosFinanceiros
 {
@@ -57,8 +68,8 @@ class LancamentosFinanceiros
     #[ORM\Column(name: 'numero_acordo', type: Types::INTEGER, nullable: true)]
     private ?int $numeroAcordo = null;
 
-    #[ORM\Column(name: 'numero_parcela', type: Types::INTEGER, options: ['default' => 1])]
-    private int $numeroParcela = 1;
+    #[ORM\Column(name: 'numero_parcela', type: Types::INTEGER, nullable: true)]
+    private ?int $numeroParcela = 1;
 
     #[ORM\Column(name: 'numero_recibo', type: Types::STRING, length: 20, nullable: true)]
     private ?string $numeroRecibo = null;
@@ -133,14 +144,14 @@ class LancamentosFinanceiros
 
     // === STATUS E CONTROLE ===
 
-    #[ORM\Column(type: Types::STRING, length: 20, options: ['default' => 'aberto'])]
-    private string $situacao = 'aberto';
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true)]
+    private ?string $situacao = 'aberto';
 
-    #[ORM\Column(name: 'tipo_lancamento', type: Types::STRING, length: 30, options: ['default' => 'aluguel'])]
-    private string $tipoLancamento = 'aluguel';
+    #[ORM\Column(name: 'tipo_lancamento', type: Types::STRING, length: 30, nullable: true)]
+    private ?string $tipoLancamento = 'aluguel';
 
-    #[ORM\Column(type: Types::STRING, length: 30, options: ['default' => 'contrato'])]
-    private string $origem = 'contrato';
+    #[ORM\Column(type: Types::STRING, length: 30, nullable: true)]
+    private ?string $origem = 'contrato';
 
     // === OBSERVAÇÕES ===
 
@@ -155,25 +166,40 @@ class LancamentosFinanceiros
 
     // === AUDITORIA ===
 
-    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_MUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
+    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updatedAt = null;
 
     // === FLAGS ===
 
-    #[ORM\Column(name: 'gerado_automaticamente', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $geradoAutomaticamente = false;
+    #[ORM\Column(name: 'gerado_automaticamente', type: Types::BOOLEAN, nullable: true)]
+    private ?bool $geradoAutomaticamente = false;
 
-    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
-    private bool $ativo = true;
+    #[ORM\Column(type: Types::BOOLEAN, nullable: true)]
+    private ?bool $ativo = true;
 
-    #[ORM\Column(name: 'enviado_email', type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $enviadoEmail = false;
+    #[ORM\Column(name: 'enviado_email', type: Types::BOOLEAN, nullable: true)]
+    private ?bool $enviadoEmail = false;
 
-    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $impresso = false;
+    #[ORM\Column(type: Types::BOOLEAN, nullable: true)]
+    private ?bool $impresso = false;
+
+    #[ORM\Column(name: 'data_geracao', type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dataGeracao = null;
+
+    #[ORM\Column(name: 'data_envio_email', type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dataEnvioEmail = null;
+
+    #[ORM\Column(name: 'data_impressao', type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $dataImpressao = null;
+
+    #[ORM\Column(name: 'created_by', type: Types::INTEGER, nullable: true)]
+    private ?int $createdBy = null;
+
+    #[ORM\Column(name: 'updated_by', type: Types::INTEGER, nullable: true)]
+    private ?int $updatedBy = null;
 
     public function __construct()
     {
@@ -296,12 +322,12 @@ class LancamentosFinanceiros
         return $this;
     }
 
-    public function getNumeroParcela(): int
+    public function getNumeroParcela(): ?int
     {
         return $this->numeroParcela;
     }
 
-    public function setNumeroParcela(int $numeroParcela): self
+    public function setNumeroParcela(?int $numeroParcela): self
     {
         $this->numeroParcela = $numeroParcela;
         return $this;
@@ -538,34 +564,34 @@ class LancamentosFinanceiros
         return $this;
     }
 
-    public function getSituacao(): string
+    public function getSituacao(): ?string
     {
         return $this->situacao;
     }
 
-    public function setSituacao(string $situacao): self
+    public function setSituacao(?string $situacao): self
     {
         $this->situacao = $situacao;
         return $this;
     }
 
-    public function getTipoLancamento(): string
+    public function getTipoLancamento(): ?string
     {
         return $this->tipoLancamento;
     }
 
-    public function setTipoLancamento(string $tipoLancamento): self
+    public function setTipoLancamento(?string $tipoLancamento): self
     {
         $this->tipoLancamento = $tipoLancamento;
         return $this;
     }
 
-    public function getOrigem(): string
+    public function getOrigem(): ?string
     {
         return $this->origem;
     }
 
-    public function setOrigem(string $origem): self
+    public function setOrigem(?string $origem): self
     {
         $this->origem = $origem;
         return $this;
@@ -614,45 +640,45 @@ class LancamentosFinanceiros
         return $this->updatedAt;
     }
 
-    public function isGeradoAutomaticamente(): bool
+    public function isGeradoAutomaticamente(): ?bool
     {
         return $this->geradoAutomaticamente;
     }
 
-    public function setGeradoAutomaticamente(bool $geradoAutomaticamente): self
+    public function setGeradoAutomaticamente(?bool $geradoAutomaticamente): self
     {
         $this->geradoAutomaticamente = $geradoAutomaticamente;
         return $this;
     }
 
-    public function isAtivo(): bool
+    public function isAtivo(): ?bool
     {
         return $this->ativo;
     }
 
-    public function setAtivo(bool $ativo): self
+    public function setAtivo(?bool $ativo): self
     {
         $this->ativo = $ativo;
         return $this;
     }
 
-    public function isEnviadoEmail(): bool
+    public function isEnviadoEmail(): ?bool
     {
         return $this->enviadoEmail;
     }
 
-    public function setEnviadoEmail(bool $enviadoEmail): self
+    public function setEnviadoEmail(?bool $enviadoEmail): self
     {
         $this->enviadoEmail = $enviadoEmail;
         return $this;
     }
 
-    public function isImpresso(): bool
+    public function isImpresso(): ?bool
     {
         return $this->impresso;
     }
 
-    public function setImpresso(bool $impresso): self
+    public function setImpresso(?bool $impresso): self
     {
         $this->impresso = $impresso;
         return $this;
@@ -751,5 +777,60 @@ class LancamentosFinanceiros
     public function getCompetenciaFormatada(): string
     {
         return $this->competencia->format('m/Y');
+    }
+
+    public function getDataGeracao(): ?\DateTimeInterface
+    {
+        return $this->dataGeracao;
+    }
+
+    public function setDataGeracao(?\DateTimeInterface $dataGeracao): self
+    {
+        $this->dataGeracao = $dataGeracao;
+        return $this;
+    }
+
+    public function getDataEnvioEmail(): ?\DateTimeInterface
+    {
+        return $this->dataEnvioEmail;
+    }
+
+    public function setDataEnvioEmail(?\DateTimeInterface $dataEnvioEmail): self
+    {
+        $this->dataEnvioEmail = $dataEnvioEmail;
+        return $this;
+    }
+
+    public function getDataImpressao(): ?\DateTimeInterface
+    {
+        return $this->dataImpressao;
+    }
+
+    public function setDataImpressao(?\DateTimeInterface $dataImpressao): self
+    {
+        $this->dataImpressao = $dataImpressao;
+        return $this;
+    }
+
+    public function getCreatedBy(): ?int
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?int $createdBy): self
+    {
+        $this->createdBy = $createdBy;
+        return $this;
+    }
+
+    public function getUpdatedBy(): ?int
+    {
+        return $this->updatedBy;
+    }
+
+    public function setUpdatedBy(?int $updatedBy): self
+    {
+        $this->updatedBy = $updatedBy;
+        return $this;
     }
 }

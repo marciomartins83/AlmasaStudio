@@ -1,0 +1,579 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Boleto #{{ boleto.nossoNumero }} - {{ parent() }}{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+    .barcode-container {
+        background: #fff;
+        padding: 20px;
+        border: 2px solid #000;
+        border-radius: 4px;
+    }
+    .linha-digitavel {
+        font-family: 'Courier New', monospace;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        word-break: break-all;
+    }
+    .codigo-barras {
+        font-family: 'Libre Barcode 128', cursive;
+        font-size: 3rem;
+        letter-spacing: 0;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        padding-bottom: 20px;
+        border-left: 2px solid #dee2e6;
+    }
+    .timeline-item:last-child {
+        border-left: 2px solid transparent;
+        padding-bottom: 0;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6c757d;
+    }
+    .timeline-item.success::before { background: #198754; }
+    .timeline-item.error::before { background: #dc3545; }
+    .timeline-item.warning::before { background: #ffc107; }
+    .json-viewer {
+        background: #f8f9fa;
+        border-radius: 4px;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Boletos', 'url': path('app_boleto_index')}
+        ],
+        'current': '#' ~ boleto.nossoNumero
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('warning') %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Header #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                Boleto #{{ boleto.nossoNumero }}
+                <span class="badge bg-{{ boleto.statusClass }}">{{ boleto.statusLabel }}</span>
+            </h1>
+            <p class="text-muted mb-0">
+                {{ configuracao.banco.nome }} - {{ configuracao.contaBancaria.descricao ?? configuracao.contaBancaria.codigo }}
+            </p>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_boleto_index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+
+            {% if boleto.status == 'PENDENTE' %}
+                <button type="button" class="btn btn-success" id="btnRegistrar">
+                    <i class="fas fa-paper-plane"></i> Registrar
+                </button>
+            {% endif %}
+
+            {% if boleto.status == 'REGISTRADO' %}
+                <button type="button" class="btn btn-info" id="btnConsultar">
+                    <i class="fas fa-sync"></i> Consultar
+                </button>
+                <a href="{{ path('app_boleto_imprimir', {id: boleto.id}) }}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-print"></i> Imprimir
+                </a>
+                <button type="button" class="btn btn-warning" id="btnBaixar">
+                    <i class="fas fa-times-circle"></i> Baixar
+                </button>
+            {% endif %}
+
+            {% if boleto.status == 'PAGO' %}
+                <a href="{{ path('app_boleto_imprimir', {id: boleto.id}) }}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-print"></i> 2ª Via
+                </a>
+            {% endif %}
+
+            {% if boleto.status == 'PENDENTE' %}
+                <button type="button" class="btn btn-danger" id="btnExcluir">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        {# Coluna Principal #}
+        <div class="col-lg-8">
+            {# Card Dados do Boleto #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-file-invoice-dollar"></i> Dados do Boleto
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {# Identificação #}
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Identificação</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="40%">Nosso Número:</th>
+                                    <td><strong>{{ boleto.nossoNumero }}</strong></td>
+                                </tr>
+                                {% if boleto.seuNumero %}
+                                <tr>
+                                    <th>Seu Número:</th>
+                                    <td>{{ boleto.seuNumero }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Status:</th>
+                                    <td><span class="badge bg-{{ boleto.statusClass }}">{{ boleto.statusLabel }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Emissão:</th>
+                                    <td>{{ boleto.dataEmissao|date('d/m/Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Vencimento:</th>
+                                    <td>
+                                        {{ boleto.dataVencimento|date('d/m/Y') }}
+                                        {% if boleto.isVencido %}
+                                            <span class="badge bg-danger ms-1">Vencido</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if boleto.dataLimitePagamento %}
+                                <tr>
+                                    <th>Limite Pgto:</th>
+                                    <td>{{ boleto.dataLimitePagamento|date('d/m/Y') }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+
+                        {# Valores #}
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Valores</h6>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="40%">Valor Nominal:</th>
+                                    <td><strong class="text-success fs-5">R$ {{ boleto.valorNominal|number_format(2, ',', '.') }}</strong></td>
+                                </tr>
+                                {% if boleto.tipoDesconto != 'ISENTO' and boleto.valorDesconto %}
+                                <tr>
+                                    <th>Desconto:</th>
+                                    <td>
+                                        {% if boleto.tipoDesconto == 'VALOR_DATA_FIXA' %}
+                                            R$ {{ boleto.valorDesconto|number_format(2, ',', '.') }}
+                                        {% else %}
+                                            {{ boleto.valorDesconto|number_format(2, ',', '.') }}%
+                                        {% endif %}
+                                        <small class="text-muted">(até {{ boleto.dataDesconto|date('d/m/Y') }})</small>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if boleto.tipoJuros != 'ISENTO' and boleto.valorJurosDia %}
+                                <tr>
+                                    <th>Juros:</th>
+                                    <td>
+                                        {% if boleto.tipoJuros == 'VALOR_DIA' %}
+                                            R$ {{ boleto.valorJurosDia|number_format(2, ',', '.') }}/dia
+                                        {% else %}
+                                            {{ boleto.valorJurosDia|number_format(2, ',', '.') }}% a.m.
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if boleto.tipoMulta != 'ISENTO' and boleto.valorMulta %}
+                                <tr>
+                                    <th>Multa:</th>
+                                    <td>
+                                        {% if boleto.tipoMulta == 'VALOR_FIXO' %}
+                                            R$ {{ boleto.valorMulta|number_format(2, ',', '.') }}
+                                        {% else %}
+                                            {{ boleto.valorMulta|number_format(2, ',', '.') }}%
+                                        {% endif %}
+                                        {% if boleto.dataMulta %}
+                                            <small class="text-muted">(a partir de {{ boleto.dataMulta|date('d/m/Y') }})</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if boleto.valorPago %}
+                                <tr>
+                                    <th>Valor Pago:</th>
+                                    <td><strong class="text-primary">R$ {{ boleto.valorPago|number_format(2, ',', '.') }}</strong></td>
+                                </tr>
+                                {% endif %}
+                                {% if boleto.dataPagamento %}
+                                <tr>
+                                    <th>Data Pgto:</th>
+                                    <td>{{ boleto.dataPagamento|date('d/m/Y') }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if boleto.mensagemPagador %}
+                    <hr>
+                    <h6 class="text-muted mb-2">Mensagem ao Pagador</h6>
+                    <p class="mb-0 bg-light p-2 rounded">{{ boleto.mensagemPagador|nl2br }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Card Código de Barras (se registrado) #}
+            {% if boleto.linhaDigitavel or boleto.codigoBarras %}
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-barcode"></i> Código de Barras
+                </div>
+                <div class="card-body">
+                    <div class="barcode-container text-center">
+                        {% if boleto.linhaDigitavel %}
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">Linha Digitável</small>
+                            <div class="linha-digitavel" id="linhaDigitavel">{{ boleto.linhaDigitavel }}</div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="copiarLinhaDigitavel()">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        {% if boleto.codigoBarras %}
+                        <hr>
+                        <div>
+                            <small class="text-muted d-block mb-1">Código de Barras</small>
+                            <div class="codigo-barras">{{ boleto.codigoBarras }}</div>
+                            <small class="text-muted">{{ boleto.codigoBarras }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if boleto.qrCodePix %}
+                        <hr>
+                        <div>
+                            <small class="text-muted d-block mb-1">QR Code PIX</small>
+                            <img src="data:image/png;base64,{{ boleto.qrCodePix }}" alt="QR Code PIX" class="img-fluid" style="max-width: 200px;">
+                            {% if boleto.emvPix %}
+                            <div class="mt-2">
+                                <small class="text-muted">Copia e Cola:</small>
+                                <div class="input-group input-group-sm mt-1" style="max-width: 400px; margin: 0 auto;">
+                                    <input type="text" class="form-control" value="{{ boleto.emvPix }}" id="emvPix" readonly>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="copiarEmvPix()">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Card Histórico de Logs #}
+            {% if logs|length > 0 %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-history"></i> Histórico de Requisições API</span>
+                    <span class="badge bg-secondary">{{ logs|length }} registro(s)</span>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for log in logs %}
+                        <div class="timeline-item {{ log.sucesso ? 'success' : 'error' }}">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <strong>
+                                    {% if log.sucesso %}
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times-circle text-danger"></i>
+                                    {% endif %}
+                                    {{ log.operacao }}
+                                </strong>
+                                <small class="text-muted">{{ log.createdAt|date('d/m/Y H:i:s') }}</small>
+                            </div>
+
+                            {% if log.httpStatus %}
+                            <small class="text-muted">HTTP {{ log.httpStatus }}</small>
+                            {% endif %}
+
+                            {% if log.mensagemErro %}
+                            <div class="alert alert-danger py-1 px-2 mt-1 mb-1">
+                                <small>{{ log.mensagemErro }}</small>
+                            </div>
+                            {% endif %}
+
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#log-{{ log.id }}">
+                                    <i class="fas fa-code"></i> Ver detalhes
+                                </button>
+
+                                <div class="collapse mt-2" id="log-{{ log.id }}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted d-block mb-1">Request:</small>
+                                            <div class="json-viewer">{{ log.requestPayload|json_encode(constant('JSON_PRETTY_PRINT')) }}</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted d-block mb-1">Response:</small>
+                                            <div class="json-viewer">{{ log.responsePayload|json_encode(constant('JSON_PRETTY_PRINT')) }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Coluna Lateral #}
+        <div class="col-lg-4">
+            {# Card Pagador #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user"></i> Pagador
+                </div>
+                <div class="card-body">
+                    {% if pagador %}
+                        <h6 class="mb-1">{{ pagador.nome }}</h6>
+                        {% set documento = pagador.documentoPrincipal %}
+                        {% if documento %}
+                            <small class="text-muted d-block mb-2">
+                                {{ documento.tipo }}: {{ documento.numero }}
+                            </small>
+                        {% endif %}
+
+                        {% set endereco = pagador.enderecoPrincipal %}
+                        {% if endereco %}
+                            <hr>
+                            <small class="text-muted d-block">Endereço:</small>
+                            <small>
+                                {{ endereco.logradouro }}{% if endereco.numero %}, {{ endereco.numero }}{% endif %}
+                                {% if endereco.complemento %} - {{ endereco.complemento }}{% endif %}<br>
+                                {{ endereco.bairro }}<br>
+                                {{ endereco.cidade }}/{{ endereco.uf }} - CEP {{ endereco.cep }}
+                            </small>
+                        {% endif %}
+
+                        <hr>
+                        <a href="{{ path('app_pessoa_edit', {id: pagador.id}) }}" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="fas fa-external-link-alt"></i> Ver cadastro completo
+                        </a>
+                    {% else %}
+                        <p class="text-muted mb-0">Pagador não encontrado</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Card Configuração #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-cog"></i> Configuração API
+                </div>
+                <div class="card-body">
+                    {% if configuracao %}
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <th>Banco:</th>
+                                <td>{{ configuracao.banco.nome }}</td>
+                            </tr>
+                            <tr>
+                                <th>Conta:</th>
+                                <td>{{ configuracao.contaBancaria.descricao ?? configuracao.contaBancaria.codigo }}</td>
+                            </tr>
+                            <tr>
+                                <th>Ambiente:</th>
+                                <td>
+                                    <span class="badge bg-{{ configuracao.ambiente == 'PRODUCAO' ? 'success' : 'warning' }}">
+                                        {{ configuracao.ambiente }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Convênio:</th>
+                                <td>{{ configuracao.codigoConvenio }}</td>
+                            </tr>
+                        </table>
+                    {% else %}
+                        <p class="text-muted mb-0">Configuração não encontrada</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Card Imóvel (se vinculado) #}
+            {% if boleto.imovel %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-home"></i> Imóvel Vinculado
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-1">{{ boleto.imovel.codigoInterno }}</h6>
+                    <small class="text-muted">{{ boleto.imovel.descricaoResumida }}</small>
+                    <hr>
+                    <a href="{{ path('app_imovel_show', {id: boleto.imovel.id}) }}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-external-link-alt"></i> Ver imóvel
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Card Timestamps #}
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-clock"></i> Registro
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <th>Criado em:</th>
+                            <td>{{ boleto.createdAt|date('d/m/Y H:i') }}</td>
+                        </tr>
+                        {% if boleto.updatedAt %}
+                        <tr>
+                            <th>Atualizado:</th>
+                            <td>{{ boleto.updatedAt|date('d/m/Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if boleto.dataRegistro %}
+                        <tr>
+                            <th>Registrado:</th>
+                            <td>{{ boleto.dataRegistro|date('d/m/Y H:i') }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal Baixar #}
+<div class="modal fade" id="modalBaixar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Baixar Boleto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Informe o motivo da baixa:</p>
+                <select class="form-select" id="motivoBaixa">
+                    <option value="SOLICITACAO_BENEFICIARIO">Solicitação do Beneficiário</option>
+                    <option value="PAGAMENTO_DIRETO">Pagamento Direto ao Beneficiário</option>
+                    <option value="SUBSTITUICAO">Substituição do Título</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmarBaixa">
+                    <i class="fas fa-check"></i> Confirmar Baixa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal Excluir #}
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Excluir Boleto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir este boleto?</p>
+                <p class="text-danger mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Esta ação não pode ser desfeita.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExcluir">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    window.BOLETO_DATA = {
+        id: {{ boleto.id }},
+        nossoNumero: '{{ boleto.nossoNumero }}',
+        status: '{{ boleto.status }}'
+    };
+
+    window.ROUTES = {
+        registrar: '{{ path('app_boleto_registrar', {id: boleto.id}) }}',
+        consultar: '{{ path('app_boleto_consultar', {id: boleto.id}) }}',
+        baixar: '{{ path('app_boleto_baixar', {id: boleto.id}) }}',
+        delete: '{{ path('app_boleto_delete', {id: boleto.id}) }}',
+        index: '{{ path('app_boleto_index') }}'
+    };
+</script>
+{{ encore_entry_script_tags('boleto') }}
+<script>
+    function copiarLinhaDigitavel() {
+        const linha = document.getElementById('linhaDigitavel').textContent;
+        navigator.clipboard.writeText(linha).then(() => {
+            showToast('Linha digitável copiada!', 'success');
+        });
+    }
+
+    function copiarEmvPix() {
+        const emv = document.getElementById('emvPix').value;
+        navigator.clipboard.writeText(emv).then(() => {
+            showToast('Código PIX copiado!', 'success');
+        });
+    }
+</script>
+{% endblock %}

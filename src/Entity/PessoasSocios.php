@@ -6,7 +6,16 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'pessoas_socios')]
+#[ORM\Table(
+    name: 'pessoas_socios',
+    indexes: [
+        new ORM\Index(name: 'idx_pessoas_socios_pessoa', columns: ['id_pessoa']),
+        new ORM\Index(name: 'idx_pessoas_socios_ativo', columns: ['ativo']),
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uk_socios_pessoa', columns: ['id_pessoa']),
+    ]
+)]
 #[ORM\HasLifecycleCallbacks]
 class PessoasSocios
 {
@@ -15,7 +24,7 @@ class PessoasSocios
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(name: 'id_pessoa', type: 'bigint')]
+    #[ORM\Column(name: 'id_pessoa', type: 'integer')]
     private int $idPessoa;
 
     #[ORM\Column(name: 'percentual_participacao', type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
