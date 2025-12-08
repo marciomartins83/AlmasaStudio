@@ -1,0 +1,143 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Estatisticas Financeiras - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Lancamentos', 'url': path('app_lancamentos_index')}
+        ],
+        'current': 'Estatisticas'
+    } %}
+
+    {# Filtro de Competencia #}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Competencia</label>
+                    <select name="competencia" class="form-select">
+                        <option value="">Todas</option>
+                        {% for comp in competencias %}
+                            <option value="{{ comp }}" {{ competenciaAtual == comp ? 'selected' : '' }}>{{ comp }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        {# A Receber #}
+        <div class="col-md-6">
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-arrow-down"></i> Contas a Receber
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h4>{{ estatisticas.receber.quantidade }}</h4>
+                            <small class="text-muted">Lancamentos</small>
+                        </div>
+                        <div class="col-4">
+                            <h4>R$ {{ estatisticas.receber.valor_total|number_format(2, ',', '.') }}</h4>
+                            <small class="text-muted">Total</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-success">R$ {{ estatisticas.receber.valor_pago|number_format(2, ',', '.') }}</h4>
+                            <small class="text-muted">Recebido</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h3>R$ {{ estatisticas.receber.saldo|number_format(2, ',', '.') }}</h3>
+                        <small>Saldo a Receber</small>
+                    </div>
+                    {% if estatisticas.vencidos.receber.quantidade > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {{ estatisticas.vencidos.receber.quantidade }} lancamento(s) vencido(s)
+                        - R$ {{ estatisticas.vencidos.receber.saldo|number_format(2, ',', '.') }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# A Pagar #}
+        <div class="col-md-6">
+            <div class="card border-danger mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-arrow-up"></i> Contas a Pagar
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h4>{{ estatisticas.pagar.quantidade }}</h4>
+                            <small class="text-muted">Lancamentos</small>
+                        </div>
+                        <div class="col-4">
+                            <h4>R$ {{ estatisticas.pagar.valor_total|number_format(2, ',', '.') }}</h4>
+                            <small class="text-muted">Total</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-success">R$ {{ estatisticas.pagar.valor_pago|number_format(2, ',', '.') }}</h4>
+                            <small class="text-muted">Pago</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h3>R$ {{ estatisticas.pagar.saldo|number_format(2, ',', '.') }}</h3>
+                        <small>Saldo a Pagar</small>
+                    </div>
+                    {% if estatisticas.vencidos.pagar.quantidade > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {{ estatisticas.vencidos.pagar.quantidade }} lancamento(s) vencido(s)
+                        - R$ {{ estatisticas.vencidos.pagar.saldo|number_format(2, ',', '.') }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Resumo #}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar"></i> Resumo
+                </div>
+                <div class="card-body">
+                    {% set saldoGeral = estatisticas.receber.saldo - estatisticas.pagar.saldo %}
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h5>A Receber</h5>
+                            <h3 class="text-success">R$ {{ estatisticas.receber.saldo|number_format(2, ',', '.') }}</h3>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>A Pagar</h5>
+                            <h3 class="text-danger">R$ {{ estatisticas.pagar.saldo|number_format(2, ',', '.') }}</h3>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Saldo</h5>
+                            <h3 class="{{ saldoGeral >= 0 ? 'text-success' : 'text-danger' }}">
+                                R$ {{ saldoGeral|number_format(2, ',', '.') }}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

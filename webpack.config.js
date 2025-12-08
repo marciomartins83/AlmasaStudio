@@ -34,6 +34,9 @@ Encore
     // Módulo Cobrança Automática
     .addEntry('cobranca', './assets/js/cobranca/cobranca.js')
 
+    // Módulo Lançamentos (Contas a Pagar/Receber)
+    .addEntry('lancamentos', './assets/js/lancamentos/app.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

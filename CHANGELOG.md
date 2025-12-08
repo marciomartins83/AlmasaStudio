@@ -11,6 +11,77 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## 📌 VERSÕES RECENTES (Detalhadas)
 
+## [6.14.0] - 2025-12-07
+
+### Adicionado
+- **Módulo Lançamentos (Contas a Pagar/Receber) - CRUD Completo**
+  - Migration `Version20251207000000` - Expansão da tabela `lancamentos`:
+    - Novos campos: tipo (pagar/receber), status, datas, pessoas, valores adicionais
+    - Campos de retenção fiscal (INSS, ISS)
+    - Vínculos com contratos, imóveis, contas bancárias, boletos
+    - Índices otimizados para performance
+  - **Entity** `Lancamentos.php` (860+ linhas):
+    - Constantes para tipos (PAGAR/RECEBER), status, origens
+    - Relacionamentos ManyToOne com PlanoContas, Pessoas, Contratos, etc.
+    - Métodos auxiliares: getValorLiquido(), getSaldo(), isVencido(), getDiasAtraso()
+    - Métodos de badge para UI: getStatusBadgeClass(), getTipoBadgeClass()
+  - **Repository** `LancamentosRepository.php`:
+    - `findByFiltros()` - listagem com 10+ filtros combinados
+    - `findVencidos()` - lançamentos em atraso
+    - `findByCompetencia()` - filtro por mês/ano
+    - `getProximoNumero()` - sequencial por tipo
+    - `getEstatisticas()` - totais a pagar/receber/vencidos
+  - **Service** `LancamentosService.php` (550+ linhas):
+    - CRUD completo com transações
+    - Baixa de pagamento (total/parcial)
+    - Estorno de baixa
+    - Cancelamento e suspensão
+    - Cálculo automático de retenções (INSS/ISS)
+    - Validações de regras de negócio
+  - **FormType** `LancamentosType.php`:
+    - Campos organizados por abas (Principal, Pessoas, Vínculos, Documento, Retenções)
+    - EntityType para relacionamentos
+    - Máscaras e validações
+  - **Controller** `LancamentosController.php` (370+ linhas):
+    - 12 rotas (CRUD + operações financeiras + APIs)
+    - Padrão Thin Controller
+    - Validação CSRF em todas operações AJAX
+  - **Templates** (5 arquivos):
+    - `index.html.twig` - Cards de estatísticas, filtros, tabela com badges, modais de baixa/cancelamento
+    - `new.html.twig` / `edit.html.twig` - Formulários com abas
+    - `_form.html.twig` - Partial reutilizável
+    - `vencidos.html.twig` - Lista de vencidos com dias de atraso
+    - `estatisticas.html.twig` - Dashboard de resumo financeiro
+  - **JavaScript** modular (`lancamentos/`):
+    - `lancamentos.js` - Funções utilitárias, requisições AJAX, formatação
+    - `app.js` - Event listeners, modais, cálculo de retenções, auto-preenchimento
+
+### Rotas Disponíveis
+| Rota | Método | Descrição |
+|------|--------|-----------|
+| `/lancamentos/` | GET | Listagem com filtros |
+| `/lancamentos/new` | GET/POST | Novo lançamento |
+| `/lancamentos/{id}/edit` | GET/POST | Editar lançamento |
+| `/lancamentos/{id}` | DELETE | Excluir lançamento |
+| `/lancamentos/{id}/baixa` | POST | Realizar baixa |
+| `/lancamentos/{id}/estornar` | POST | Estornar baixa |
+| `/lancamentos/{id}/cancelar` | POST | Cancelar lançamento |
+| `/lancamentos/{id}/suspender` | POST | Suspender lançamento |
+| `/lancamentos/vencidos` | GET | Lista vencidos |
+| `/lancamentos/estatisticas` | GET | Dashboard |
+| `/lancamentos/api/lista` | GET | API JSON |
+| `/lancamentos/api/estatisticas` | GET | API estatísticas |
+
+### Regras de Negócio
+- Número sequencial automático por tipo (pagar/receber separados)
+- Competência default = mês do vencimento
+- Status automático baseado em valor_pago vs valor_liquido
+- Não permite editar/cancelar lançamentos pagos
+- Cálculo automático de retenções INSS/ISS
+- Valor líquido = valor - desconto + juros + multa - INSS - ISS
+
+---
+
 ## [6.13.0] - 2025-12-07
 
 ### Adicionado

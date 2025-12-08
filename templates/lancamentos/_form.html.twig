@@ -1,0 +1,195 @@
+{{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-principal" type="button">
+            <i class="fas fa-info-circle"></i> Dados Principais
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pessoas" type="button">
+            <i class="fas fa-users"></i> Pessoas
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-vinculos" type="button">
+            <i class="fas fa-link"></i> Vinculos
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documento" type="button">
+            <i class="fas fa-file"></i> Documento
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-retencoes" type="button">
+            <i class="fas fa-percentage"></i> Retencoes
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-observacoes" type="button">
+            <i class="fas fa-comment"></i> Observacoes
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    {# Tab Dados Principais #}
+    <div class="tab-pane fade show active" id="tab-principal" role="tabpanel">
+        <div class="row">
+            <div class="col-md-2">
+                {{ form_row(form.tipo) }}
+            </div>
+            <div class="col-md-2">
+                {{ form_row(form.dataMovimento) }}
+            </div>
+            <div class="col-md-2">
+                {{ form_row(form.dataVencimento) }}
+            </div>
+            <div class="col-md-2">
+                {{ form_row(form.competencia) }}
+            </div>
+            <div class="col-md-4">
+                {{ form_row(form.planoConta) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                {{ form_row(form.valor) }}
+            </div>
+            <div class="col-md-2">
+                {{ form_row(form.valorDesconto) }}
+            </div>
+            <div class="col-md-2">
+                {{ form_row(form.valorJuros) }}
+            </div>
+            <div class="col-md-2">
+                {{ form_row(form.valorMulta) }}
+            </div>
+            <div class="col-md-4">
+                {{ form_row(form.centroCusto) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                {{ form_row(form.historico) }}
+            </div>
+        </div>
+    </div>
+
+    {# Tab Pessoas #}
+    <div class="tab-pane fade" id="tab-pessoas" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                {{ form_row(form.pessoaCredor) }}
+                <small class="text-muted">Fornecedor, prestador de servico, etc.</small>
+            </div>
+            <div class="col-md-6">
+                {{ form_row(form.pessoaPagador) }}
+                <small class="text-muted">Cliente, inquilino, etc.</small>
+            </div>
+        </div>
+    </div>
+
+    {# Tab Vinculos #}
+    <div class="tab-pane fade" id="tab-vinculos" role="tabpanel">
+        <div class="row">
+            <div class="col-md-4">
+                {{ form_row(form.contrato) }}
+            </div>
+            <div class="col-md-4">
+                {{ form_row(form.imovel) }}
+            </div>
+            <div class="col-md-4">
+                {{ form_row(form.contaBancaria) }}
+            </div>
+        </div>
+    </div>
+
+    {# Tab Documento #}
+    <div class="tab-pane fade" id="tab-documento" role="tabpanel">
+        <div class="row">
+            <div class="col-md-3">
+                {{ form_row(form.tipoDocumento) }}
+            </div>
+            <div class="col-md-3">
+                {{ form_row(form.numeroDocumento) }}
+            </div>
+            <div class="col-md-3">
+                {{ form_row(form.formaPagamento) }}
+            </div>
+        </div>
+    </div>
+
+    {# Tab Retencoes #}
+    <div class="tab-pane fade" id="tab-retencoes" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">INSS</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    {{ form_widget(form.reterInss) }}
+                                    {{ form_label(form.reterInss) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {{ form_row(form.percInss) }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Valor INSS</label>
+                                <input type="text" class="form-control" id="valorInss" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">ISS</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    {{ form_widget(form.reterIss) }}
+                                    {{ form_label(form.reterIss) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {{ form_row(form.percIss) }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Valor ISS</label>
+                                <input type="text" class="form-control" id="valorIss" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Tab Observacoes #}
+    <div class="tab-pane fade" id="tab-observacoes" role="tabpanel">
+        <div class="row">
+            <div class="col-md-12">
+                {{ form_row(form.observacoes) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<div class="d-flex justify-content-between">
+    <a href="{{ path('app_lancamentos_index') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+    <button type="submit" class="btn btn-primary">
+        <i class="fas fa-check"></i> Salvar
+    </button>
+</div>
+
+{{ form_end(form) }}
