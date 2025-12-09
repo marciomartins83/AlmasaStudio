@@ -1,0 +1,12 @@
+{# Header padrao para PDFs #}
+<div class="header">
+    <h1>ALMASA IMOVEIS LTDA</h1>
+    <p>CNPJ: 47.720.891/0001-14</p>
+    <p class="titulo">{{ titulo }}</p>
+    {% if periodo is defined %}
+        <p class="periodo">Periodo: {{ periodo }}</p>
+    {% endif %}
+    {% if subtitulo is defined %}
+        <p class="subtitulo">{{ subtitulo }}</p>
+    {% endif %}
+</div>

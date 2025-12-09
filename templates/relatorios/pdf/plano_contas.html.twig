@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatorio Plano de Contas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
+        .container { padding: 15px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 16px; margin-bottom: 3px; }
+        .header p { font-size: 9px; color: #666; }
+        .header .titulo { font-size: 14px; font-weight: bold; margin-top: 8px; color: #6c757d; }
+        .header .periodo { font-size: 10px; margin-top: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; font-size: 9px; }
+        th { background: #333; color: #fff; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; }
+        .text-success { color: #198754; }
+        .text-info { color: #17a2b8; }
+        .text-warning { color: #ffc107; }
+        .total-row { background: #333; color: #fff; font-weight: bold; }
+        .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: bold; }
+        .badge-success { background: #198754; color: #fff; }
+        .badge-danger { background: #dc3545; color: #fff; }
+        .badge-info { background: #17a2b8; color: #fff; }
+        .badge-warning { background: #ffc107; color: #000; }
+        .badge-secondary { background: #6c757d; color: #fff; }
+        .check { color: #198754; }
+        .times { color: #adb5bd; }
+        .legenda { margin-top: 15px; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; font-size: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% include 'relatorios/pdf/_header.html.twig' with {
+            titulo: 'PLANO DE CONTAS',
+            subtitulo: 'Cadastro completo de contas contabeis'
+        } %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th width="80">Codigo</th>
+                    <th>Descricao</th>
+                    <th width="70" class="text-center">Tipo</th>
+                    <th width="50" class="text-center">Taxa Adm</th>
+                    <th width="40" class="text-center">IR</th>
+                    <th width="50" class="text-center">Informe</th>
+                    <th width="50" class="text-center">Status</th>
+                    {% if filtros.mostrar_totais %}
+                        <th width="90" class="text-right">Total Mov.</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if dados is iterable and dados|length > 0 %}
+                    {% for conta in dados %}
+                        <tr>
+                            <td><code>{{ conta.codigo }}</code></td>
+                            <td>{{ conta.descricao }}</td>
+                            <td class="text-center">
+                                {% if conta.tipo == 0 %}
+                                    <span class="badge badge-success">Receita</span>
+                                {% elseif conta.tipo == 1 %}
+                                    <span class="badge badge-danger">Despesa</span>
+                                {% elseif conta.tipo == 2 %}
+                                    <span class="badge badge-info">Transitoria</span>
+                                {% elseif conta.tipo == 3 %}
+                                    <span class="badge badge-warning">Caixa</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if conta.incideTaxaAdmin %}
+                                    <span class="check">&#10003;</span>
+                                {% else %}
+                                    <span class="times">&#10007;</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if conta.incideIr %}
+                                    <span class="check">&#10003;</span>
+                                {% else %}
+                                    <span class="times">&#10007;</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if conta.entraInforme %}
+                                    <span class="check">&#10003;</span>
+                                {% else %}
+                                    <span class="times">&#10007;</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if conta.ativo %}
+                                    <span class="badge badge-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            {% if filtros.mostrar_totais %}
+                                <td class="text-right">
+                                    {% if conta.totalMovimentado is defined and conta.totalMovimentado > 0 %}
+                                        R$ {{ conta.totalMovimentado|number_format(2, ',', '.') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{% if filtros.mostrar_totais %}8{% else %}7{% endif %}" class="text-center">
+                            Nenhuma conta encontrada com os filtros selecionados.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="{% if filtros.mostrar_totais %}8{% else %}7{% endif %}">
+                        <strong>Total: {{ dados|length }} conta(s)</strong>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="legenda">
+            <strong>Legenda:</strong>
+            <span class="badge badge-success">Receita</span> - Contas de entrada |
+            <span class="badge badge-danger">Despesa</span> - Contas de saida |
+            <span class="badge badge-info">Transitoria</span> - Contas de transferencia |
+            <span class="badge badge-warning">Caixa</span> - Contas de caixa
+            <br><br>
+            <strong>Colunas:</strong>
+            Taxa Adm = Incide taxa de administracao |
+            IR = Incide imposto de renda |
+            Informe = Entra no informe de rendimentos
+        </div>
+
+        {% include 'relatorios/pdf/_footer.html.twig' %}
+    </div>
+</body>
+</html>

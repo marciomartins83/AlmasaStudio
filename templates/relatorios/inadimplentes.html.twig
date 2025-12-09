@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Relatorio de Inadimplentes - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Relatorios', 'url': path('app_relatorios_index')}
+        ],
+        'current': 'Inadimplentes'
+    } %}
+
+    <div class="row">
+        {# Filtros #}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-filter"></i> Filtros
+                </div>
+                <div class="card-body">
+                    <form id="formFiltros">
+                        <div class="mb-3">
+                            <label for="data_referencia" class="form-label">Data de Referencia</label>
+                            <input type="date" class="form-control" id="data_referencia" name="data_referencia"
+                                   value="{{ "now"|date('Y-m-d') }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="dias_atraso_minimo" class="form-label">Dias de Atraso Minimo</label>
+                            <input type="number" class="form-control" id="dias_atraso_minimo" name="dias_atraso_minimo"
+                                   value="1" min="1">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_proprietario" class="form-label">Proprietario</label>
+                            <select class="form-select" id="id_proprietario" name="id_proprietario">
+                                <option value="">Todos</option>
+                                {% for prop in proprietarios %}
+                                    <option value="{{ prop.idpessoa }}">{{ prop.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_imovel" class="form-label">Imovel</label>
+                            <select class="form-select" id="id_imovel" name="id_imovel">
+                                <option value="">Todos</option>
+                                {% for imovel in imoveis %}
+                                    <option value="{{ imovel.id }}">{{ imovel.id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_inquilino" class="form-label">Inquilino</label>
+                            <select class="form-select" id="id_inquilino" name="id_inquilino">
+                                <option value="">Todos</option>
+                                {% for inq in inquilinos %}
+                                    <option value="{{ inq.idpessoa }}">{{ inq.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="agrupar_por" class="form-label">Agrupar por</label>
+                            <select class="form-select" id="agrupar_por" name="agrupar_por">
+                                <option value="">Nao Agrupar</option>
+                                <option value="inquilino">Inquilino</option>
+                                <option value="proprietario">Proprietario</option>
+                                <option value="imovel">Imovel</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ordenar_por" class="form-label">Ordenar por</label>
+                            <select class="form-select" id="ordenar_por" name="ordenar_por">
+                                <option value="dias_atraso">Dias de Atraso</option>
+                                <option value="valor">Valor</option>
+                                <option value="nome">Nome</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="button" id="btnPreview" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Preview
+                            </button>
+                            <button type="button" id="btnPdf" class="btn btn-danger" disabled>
+                                <i class="fas fa-file-pdf"></i> Gerar PDF
+                            </button>
+                            <a href="{{ path('app_relatorios_index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# Preview #}
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-eye"></i> Preview do Relatorio
+                </div>
+                <div class="card-body" id="previewContent">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                        <p>Preencha os filtros e clique em "Preview" para visualizar o relatorio.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{{ encore_entry_script_tags('relatorios') }}
+<script>
+    window.ROUTES = {
+        preview: '{{ path('app_relatorios_inadimplentes_preview') }}',
+        pdf: '{{ path('app_relatorios_inadimplentes_pdf') }}'
+    };
+    window.RELATORIO_TIPO = 'inadimplentes';
+</script>
+{% endblock %}

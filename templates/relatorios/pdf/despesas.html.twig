@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatorio de Despesas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
+        .container { padding: 15px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 16px; margin-bottom: 3px; }
+        .header p { font-size: 9px; color: #666; }
+        .header .titulo { font-size: 14px; font-weight: bold; margin-top: 8px; color: #dc3545; }
+        .header .periodo { font-size: 10px; margin-top: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; font-size: 9px; }
+        th { background: #333; color: #fff; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; }
+        .text-success { color: #198754; }
+        .text-warning { color: #ffc107; }
+        .grupo-header { background: #555; color: #fff; font-weight: bold; }
+        .grupo-subtotal { background: #f0f0f0; font-weight: bold; }
+        .total-row { background: #dc3545; color: #fff; font-weight: bold; }
+        .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: bold; }
+        .badge-success { background: #198754; color: #fff; }
+        .badge-warning { background: #ffc107; color: #000; }
+        .badge-secondary { background: #6c757d; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% set periodo_texto = '' %}
+        {% if filtros.data_inicio is defined and filtros.data_fim is defined %}
+            {% set periodo_texto = filtros.data_inicio|date('d/m/Y') ~ ' a ' ~ filtros.data_fim|date('d/m/Y') %}
+        {% endif %}
+
+        {% include 'relatorios/pdf/_header.html.twig' with {
+            titulo: 'RELATORIO DE DESPESAS',
+            periodo: periodo_texto
+        } %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Documento</th>
+                    <th>Fornecedor/Credor</th>
+                    <th>Historico</th>
+                    <th>Plano Conta</th>
+                    <th>Imovel</th>
+                    <th class="text-right">Valor</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if dados is iterable and dados|length > 0 %}
+                    {% set primeiro = dados|first %}
+                    {% if primeiro.itens is defined %}
+                        {# Dados agrupados #}
+                        {% for grupo in dados %}
+                            <tr class="grupo-header">
+                                <td colspan="8">{{ grupo.nome }}</td>
+                            </tr>
+                            {% for item in grupo.itens %}
+                                <tr>
+                                    <td>{{ item.dataVencimento|date('d/m/Y') }}</td>
+                                    <td>{{ item.numeroDocumento|default('-') }}</td>
+                                    <td>{{ item.pessoa.nome|default('-')|length > 20 ? item.pessoa.nome|default('-')|slice(0, 20) ~ '...' : item.pessoa.nome|default('-') }}</td>
+                                    <td>{{ item.historico|default('-')|length > 25 ? item.historico|default('-')|slice(0, 25) ~ '...' : item.historico|default('-') }}</td>
+                                    <td>{{ item.planoConta.descricao|default('-')|length > 15 ? item.planoConta.descricao|default('-')|slice(0, 15) ~ '...' : item.planoConta.descricao|default('-') }}</td>
+                                    <td>{{ item.imovel.id|default('-') }}</td>
+                                    <td class="text-right text-danger">{{ item.valorFloat|number_format(2, ',', '.') }}</td>
+                                    <td class="text-center">
+                                        {% if item.dataPagamento %}
+                                            <span class="badge badge-success">Pago</span>
+                                        {% elseif item.dataVencimento < date() %}
+                                            <span class="badge badge-warning">Vencido</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">Aberto</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="grupo-subtotal">
+                                <td colspan="6" class="text-right">Subtotal ({{ grupo.itens|length }} registros):</td>
+                                <td class="text-right">R$ {{ grupo.total|number_format(2, ',', '.') }}</td>
+                                <td></td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        {# Dados nao agrupados #}
+                        {% for item in dados %}
+                            <tr>
+                                <td>{{ item.dataVencimento|date('d/m/Y') }}</td>
+                                <td>{{ item.numeroDocumento|default('-') }}</td>
+                                <td>{{ item.pessoa.nome|default('-')|length > 20 ? item.pessoa.nome|default('-')|slice(0, 20) ~ '...' : item.pessoa.nome|default('-') }}</td>
+                                <td>{{ item.historico|default('-')|length > 25 ? item.historico|default('-')|slice(0, 25) ~ '...' : item.historico|default('-') }}</td>
+                                <td>{{ item.planoConta.descricao|default('-')|length > 15 ? item.planoConta.descricao|default('-')|slice(0, 15) ~ '...' : item.planoConta.descricao|default('-') }}</td>
+                                <td>{{ item.imovel.id|default('-') }}</td>
+                                <td class="text-right text-danger">{{ item.valorFloat|number_format(2, ',', '.') }}</td>
+                                <td class="text-center">
+                                    {% if item.dataPagamento %}
+                                        <span class="badge badge-success">Pago</span>
+                                    {% elseif item.dataVencimento < date() %}
+                                        <span class="badge badge-warning">Vencido</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Aberto</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">Nenhuma despesa encontrada no periodo.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            {% if totais is defined and totais.quantidade > 0 %}
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="6" class="text-right">TOTAL ({{ totais.quantidade }} registros):</td>
+                    <td class="text-right">R$ {{ totais.total|number_format(2, ',', '.') }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right"><strong>Em Aberto:</strong></td>
+                    <td colspan="2" class="text-right">R$ {{ totais.total_aberto|default(0)|number_format(2, ',', '.') }}</td>
+                    <td colspan="2" class="text-right"><strong>Pago:</strong> R$ {{ totais.total_pago|default(0)|number_format(2, ',', '.') }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+
+        {% include 'relatorios/pdf/_footer.html.twig' %}
+    </div>
+</body>
+</html>

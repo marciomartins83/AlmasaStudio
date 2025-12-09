@@ -1,0 +1,135 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Relatorio Despesas x Receitas - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Relatorios', 'url': path('app_relatorios_index')}
+        ],
+        'current': 'Despesas x Receitas'
+    } %}
+
+    <div class="row">
+        {# Filtros #}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-filter"></i> Filtros
+                </div>
+                <div class="card-body">
+                    <form id="formFiltros">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label for="data_inicio" class="form-label">Data Inicio</label>
+                                <input type="date" class="form-control" id="data_inicio" name="data_inicio"
+                                       value="{{ "first day of this month"|date('Y-m-d') }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="data_fim" class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" id="data_fim" name="data_fim"
+                                       value="{{ "now"|date('Y-m-d') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tipo_data" class="form-label">Tipo de Data</label>
+                            <select class="form-select" id="tipo_data" name="tipo_data">
+                                <option value="vencimento">Vencimento</option>
+                                <option value="pagamento">Pagamento</option>
+                                <option value="competencia">Competencia</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="todos">Todos</option>
+                                <option value="efetivado">Apenas Efetivados (Pagos)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_imovel" class="form-label">Imovel</label>
+                            <select class="form-select" id="id_imovel" name="id_imovel">
+                                <option value="">Todos</option>
+                                {% for imovel in imoveis %}
+                                    <option value="{{ imovel.id }}">{{ imovel.id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_proprietario" class="form-label">Proprietario</label>
+                            <select class="form-select" id="id_proprietario" name="id_proprietario">
+                                <option value="">Todos</option>
+                                {% for prop in proprietarios %}
+                                    <option value="{{ prop.idpessoa }}">{{ prop.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="visualizacao" class="form-label">Visualizacao</label>
+                            <select class="form-select" id="visualizacao" name="visualizacao">
+                                <option value="sintetico">Sintetico</option>
+                                <option value="analitico">Analitico</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="agrupar_por" class="form-label">Agrupar por</label>
+                            <select class="form-select" id="agrupar_por" name="agrupar_por">
+                                <option value="plano_conta">Plano de Conta</option>
+                                <option value="mes">Mes</option>
+                                <option value="imovel">Imovel</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="button" id="btnPreview" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Preview
+                            </button>
+                            <button type="button" id="btnPdf" class="btn btn-danger" disabled>
+                                <i class="fas fa-file-pdf"></i> Gerar PDF
+                            </button>
+                            <a href="{{ path('app_relatorios_index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# Preview #}
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-eye"></i> Preview do Relatorio
+                </div>
+                <div class="card-body" id="previewContent">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                        <p>Preencha os filtros e clique em "Preview" para visualizar o relatorio.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{{ encore_entry_script_tags('relatorios') }}
+<script>
+    window.ROUTES = {
+        preview: '{{ path('app_relatorios_despesas_receitas_preview') }}',
+        pdf: '{{ path('app_relatorios_despesas_receitas_pdf') }}'
+    };
+    window.RELATORIO_TIPO = 'despesas_receitas';
+</script>
+{% endblock %}

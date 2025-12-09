@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatorio de Contas Bancarias</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
+        .container { padding: 15px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 16px; margin-bottom: 3px; }
+        .header p { font-size: 9px; color: #666; }
+        .header .titulo { font-size: 14px; font-weight: bold; margin-top: 8px; color: #17a2b8; }
+        .header .periodo { font-size: 10px; margin-top: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; font-size: 9px; }
+        th { background: #333; color: #fff; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; }
+        .text-success { color: #198754; }
+        .text-info { color: #17a2b8; }
+        .conta-header { background: #17a2b8; color: #fff; font-weight: bold; font-size: 10px; padding: 8px; margin-top: 15px; }
+        .conta-resumo { background: #f8f9fa; border: 1px solid #dee2e6; padding: 8px; margin-bottom: 10px; }
+        .resumo-item { display: inline-block; width: 24%; text-align: center; border-right: 1px solid #dee2e6; }
+        .resumo-item:last-child { border-right: none; }
+        .total-row { background: #17a2b8; color: #fff; font-weight: bold; }
+        .consolidado-box { border: 2px solid #0d6efd; padding: 10px; margin-top: 20px; background: #f8f9fa; }
+        .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: bold; }
+        .badge-success { background: #198754; color: #fff; }
+        .badge-danger { background: #dc3545; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% set periodo_texto = '' %}
+        {% if filtros.data_inicio is defined and filtros.data_fim is defined %}
+            {% set periodo_texto = filtros.data_inicio|date('d/m/Y') ~ ' a ' ~ filtros.data_fim|date('d/m/Y') %}
+        {% endif %}
+
+        {% include 'relatorios/pdf/_header.html.twig' with {
+            titulo: 'EXTRATO DE CONTAS BANCARIAS',
+            periodo: periodo_texto
+        } %}
+
+        {% if dados is iterable and dados|length > 0 %}
+            {% set totalEntradas = 0 %}
+            {% set totalSaidas = 0 %}
+            {% set saldoConsolidado = 0 %}
+
+            {% for contaId, conta in dados %}
+                {% set totalEntradas = totalEntradas + conta.entradas %}
+                {% set totalSaidas = totalSaidas + conta.saidas %}
+                {% set saldoConsolidado = saldoConsolidado + conta.saldo_final %}
+
+                <div class="conta-header">
+                    {{ conta.conta.idBanco.nome|default('Banco') }} -
+                    Ag {{ conta.conta.idAgencia.codigo|default('') }} /
+                    Conta {{ conta.conta.codigo }}
+                </div>
+
+                <div class="conta-resumo">
+                    <table style="border: none; width: 100%;">
+                        <tr>
+                            <td style="border: none; width: 25%; text-align: center;">
+                                <small>Saldo Inicial</small><br>
+                                <strong>R$ {{ conta.saldo_inicial|number_format(2, ',', '.') }}</strong>
+                            </td>
+                            <td style="border: none; width: 25%; text-align: center;">
+                                <small>Entradas</small><br>
+                                <strong class="text-success">+ R$ {{ conta.entradas|number_format(2, ',', '.') }}</strong>
+                            </td>
+                            <td style="border: none; width: 25%; text-align: center;">
+                                <small>Saidas</small><br>
+                                <strong class="text-danger">- R$ {{ conta.saidas|number_format(2, ',', '.') }}</strong>
+                            </td>
+                            <td style="border: none; width: 25%; text-align: center;">
+                                <small>Saldo Final</small><br>
+                                <strong class="{% if conta.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    R$ {{ conta.saldo_final|number_format(2, ',', '.') }}
+                                </strong>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                {% if conta.movimentos|length > 0 %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="70">Data</th>
+                            <th width="40" class="text-center">Tipo</th>
+                            <th>Historico</th>
+                            <th width="80">Documento</th>
+                            <th width="90" class="text-right">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in conta.movimentos %}
+                            <tr>
+                                <td>{{ mov.dataPagamento|date('d/m/Y') }}</td>
+                                <td class="text-center">
+                                    {% if mov.receber %}
+                                        <span class="badge badge-success">E</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">S</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ mov.historico|default('-')|length > 45 ? mov.historico|default('-')|slice(0, 45) ~ '...' : mov.historico|default('-') }}</td>
+                                <td>{{ mov.numeroDocumento|default('-') }}</td>
+                                <td class="text-right {% if mov.receber %}text-success{% else %}text-danger{% endif %}">
+                                    {% if mov.receber %}+{% else %}-{% endif %} R$ {{ mov.valorFloat|number_format(2, ',', '.') }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align: center; color: #666; padding: 10px;">Sem movimentacoes no periodo.</p>
+                {% endif %}
+            {% endfor %}
+
+            {# RESUMO CONSOLIDADO #}
+            <div class="consolidado-box">
+                <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 10px; color: #0d6efd;">
+                    RESUMO CONSOLIDADO
+                </div>
+                <table style="border: none; width: 100%;">
+                    <tr>
+                        <td style="border: none; width: 33%; text-align: center;">
+                            <strong>Total Entradas</strong><br>
+                            <span class="text-success" style="font-size: 14px; font-weight: bold;">
+                                R$ {{ totalEntradas|number_format(2, ',', '.') }}
+                            </span>
+                        </td>
+                        <td style="border: none; width: 33%; text-align: center;">
+                            <strong>Total Saidas</strong><br>
+                            <span class="text-danger" style="font-size: 14px; font-weight: bold;">
+                                R$ {{ totalSaidas|number_format(2, ',', '.') }}
+                            </span>
+                        </td>
+                        <td style="border: none; width: 34%; text-align: center;">
+                            <strong>Saldo Consolidado</strong><br>
+                            <span style="font-size: 16px; font-weight: bold; color: {% if saldoConsolidado >= 0 %}#198754{% else %}#dc3545{% endif %};">
+                                R$ {{ saldoConsolidado|number_format(2, ',', '.') }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        {% else %}
+            <p style="text-align: center; color: #666; padding: 30px;">
+                Nenhuma movimentacao encontrada com os filtros selecionados.
+            </p>
+        {% endif %}
+
+        {% include 'relatorios/pdf/_footer.html.twig' %}
+    </div>
+</body>
+</html>

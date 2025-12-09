@@ -1,0 +1,110 @@
+{# Preview Contas Bancarias #}
+{% if dados is iterable and dados|length > 0 %}
+    {% set totalEntradas = 0 %}
+    {% set totalSaidas = 0 %}
+    {% set saldoConsolidado = 0 %}
+
+    {% for contaId, conta in dados %}
+        {% set totalEntradas = totalEntradas + conta.entradas %}
+        {% set totalSaidas = totalSaidas + conta.saidas %}
+        {% set saldoConsolidado = saldoConsolidado + conta.saldo_final %}
+
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <strong>
+                    <i class="fas fa-university"></i>
+                    {{ conta.conta.idBanco.nome|default('Banco') }} -
+                    Ag {{ conta.conta.idAgencia.codigo|default('') }} /
+                    Conta {{ conta.conta.codigo }}
+                </strong>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="text-muted">Saldo Inicial</div>
+                        <div class="h5">R$ {{ conta.saldo_inicial|number_format(2, ',', '.') }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted">Entradas</div>
+                        <div class="h5 text-success">+ R$ {{ conta.entradas|number_format(2, ',', '.') }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted">Saidas</div>
+                        <div class="h5 text-danger">- R$ {{ conta.saidas|number_format(2, ',', '.') }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted">Saldo Final</div>
+                        <div class="h5 {% if conta.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            R$ {{ conta.saldo_final|number_format(2, ',', '.') }}
+                        </div>
+                    </div>
+                </div>
+
+                {% if conta.movimentos|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th class="text-center">Tipo</th>
+                                    <th>Historico</th>
+                                    <th>Documento</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mov in conta.movimentos %}
+                                    <tr>
+                                        <td>{{ mov.dataPagamento|date('d/m/Y') }}</td>
+                                        <td class="text-center">
+                                            {% if mov.receber %}
+                                                <span class="badge bg-success">E</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">S</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ mov.historico|default('-')|length > 40 ? mov.historico|default('-')|slice(0, 40) ~ '...' : mov.historico|default('-') }}</td>
+                                        <td>{{ mov.numeroDocumento|default('-') }}</td>
+                                        <td class="text-end {% if mov.receber %}text-success{% else %}text-danger{% endif %}">
+                                            {% if mov.receber %}+{% else %}-{% endif %} R$ {{ mov.valorFloat|number_format(2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Resumo Consolidado #}
+    <div class="card border-primary mt-4">
+        <div class="card-header bg-primary text-white">
+            <strong><i class="fas fa-calculator"></i> Resumo Consolidado</strong>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="text-muted">Total Entradas</div>
+                    <div class="h4 text-success">R$ {{ totalEntradas|number_format(2, ',', '.') }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted">Total Saidas</div>
+                    <div class="h4 text-danger">R$ {{ totalSaidas|number_format(2, ',', '.') }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted">Saldo Consolidado</div>
+                    <div class="h4 {% if saldoConsolidado >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        R$ {{ saldoConsolidado|number_format(2, ',', '.') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <p>Nenhuma movimentacao encontrada com os filtros selecionados.</p>
+    </div>
+{% endif %}

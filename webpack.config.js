@@ -40,6 +40,9 @@ Encore
     // Módulo Prestação de Contas
     .addEntry('prestacao_contas', './assets/js/prestacao_contas/app.js')
 
+    // Módulo Relatórios PDF
+    .addEntry('relatorios', './assets/js/relatorios/app.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

@@ -11,6 +11,101 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## 📌 VERSÕES RECENTES (Detalhadas)
 
+## [6.16.0] - 2025-12-08
+
+### Adicionado
+- **Módulo Relatórios PDF - Completo**
+  - Sistema completo de geração de 6 relatórios em PDF com preview AJAX
+  - Dashboard centralizado para seleção de relatórios
+  - Filtros avançados para cada tipo de relatório
+  - Preview em tempo real antes de gerar o PDF
+  - 19 rotas organizadas (dashboard + 3 rotas por relatório: filtros, preview, PDF)
+
+  - **Relatórios Implementados:**
+    1. **Inadimplentes** - Lista de inquilinos em atraso com cálculo de juros/multa
+    2. **Despesas** - Contas a pagar com agrupamento e totalizadores
+    3. **Receitas** - Contas a receber com agrupamento e totalizadores
+    4. **Despesas x Receitas** - Comparativo com saldo do período
+    5. **Contas Bancárias** - Extrato com saldos e movimentações
+    6. **Plano de Contas** - Cadastro de contas contábeis
+
+  - **Service** `RelatorioService.php` (~800 linhas):
+    - Fat Service com toda lógica de negócio
+    - `getInadimplentes()` - busca inadimplentes com cálculo de juros/multa
+    - `getTotaisInadimplentes()` - totaliza valores atualizados
+    - `getDespesas()` / `getTotalDespesas()` - busca e totaliza despesas
+    - `getReceitas()` / `getTotalReceitas()` - busca e totaliza receitas
+    - `getDespesasReceitas()` / `getSaldoPeriodo()` - comparativo
+    - `getResumoContas()` - extrato de contas bancárias
+    - `getPlanoContas()` - listagem do plano de contas
+    - `gerarPdf()` - geração de PDF com DomPDF
+    - Suporte a agrupamento por diversos critérios
+
+  - **Controller** `RelatorioController.php` (~490 linhas):
+    - Thin Controller (delega para RelatorioService)
+    - Validação CSRF em todas requisições AJAX
+    - Métodos auxiliares para extração de filtros
+    - Injeção de dados para selects (proprietários, imóveis, etc.)
+
+  - **Templates de Filtros** (6 arquivos):
+    - `relatorios/index.html.twig` - Dashboard com cards
+    - `relatorios/inadimplentes.html.twig`
+    - `relatorios/despesas.html.twig`
+    - `relatorios/receitas.html.twig`
+    - `relatorios/despesas_receitas.html.twig`
+    - `relatorios/contas_bancarias.html.twig`
+    - `relatorios/plano_contas.html.twig`
+
+  - **Templates de Preview** (6 arquivos):
+    - `relatorios/preview/inadimplentes.html.twig`
+    - `relatorios/preview/despesas.html.twig`
+    - `relatorios/preview/receitas.html.twig`
+    - `relatorios/preview/despesas_receitas.html.twig`
+    - `relatorios/preview/contas_bancarias.html.twig`
+    - `relatorios/preview/plano_contas.html.twig`
+
+  - **Templates PDF** (8 arquivos):
+    - `relatorios/pdf/_header.html.twig` - Header reutilizável
+    - `relatorios/pdf/_footer.html.twig` - Footer reutilizável
+    - `relatorios/pdf/inadimplentes.html.twig`
+    - `relatorios/pdf/despesas.html.twig`
+    - `relatorios/pdf/receitas.html.twig`
+    - `relatorios/pdf/despesas_receitas.html.twig`
+    - `relatorios/pdf/contas_bancarias.html.twig`
+    - `relatorios/pdf/plano_contas.html.twig`
+
+  - **JavaScript Modular** (2 arquivos):
+    - `assets/js/relatorios/relatorios.js` - Classe RelatorioManager
+    - `assets/js/relatorios/app.js` - Entry point e utilitários
+
+### Rotas Disponíveis
+| Método | Rota | Nome |
+|--------|------|------|
+| GET | /relatorios/ | app_relatorios_index |
+| GET | /relatorios/inadimplentes | app_relatorios_inadimplentes |
+| POST | /relatorios/inadimplentes/preview | app_relatorios_inadimplentes_preview |
+| GET | /relatorios/inadimplentes/pdf | app_relatorios_inadimplentes_pdf |
+| GET | /relatorios/despesas | app_relatorios_despesas |
+| POST | /relatorios/despesas/preview | app_relatorios_despesas_preview |
+| GET | /relatorios/despesas/pdf | app_relatorios_despesas_pdf |
+| GET | /relatorios/receitas | app_relatorios_receitas |
+| POST | /relatorios/receitas/preview | app_relatorios_receitas_preview |
+| GET | /relatorios/receitas/pdf | app_relatorios_receitas_pdf |
+| GET | /relatorios/despesas-receitas | app_relatorios_despesas_receitas |
+| POST | /relatorios/despesas-receitas/preview | app_relatorios_despesas_receitas_preview |
+| GET | /relatorios/despesas-receitas/pdf | app_relatorios_despesas_receitas_pdf |
+| GET | /relatorios/contas-bancarias | app_relatorios_contas_bancarias |
+| POST | /relatorios/contas-bancarias/preview | app_relatorios_contas_bancarias_preview |
+| GET | /relatorios/contas-bancarias/pdf | app_relatorios_contas_bancarias_pdf |
+| GET | /relatorios/plano-contas | app_relatorios_plano_contas |
+| POST | /relatorios/plano-contas/preview | app_relatorios_plano_contas_preview |
+| GET | /relatorios/plano-contas/pdf | app_relatorios_plano_contas_pdf |
+
+### Arquivos Modificados
+- `webpack.config.js` - Adicionada entrada `relatorios` para o módulo
+
+---
+
 ## [6.15.0] - 2025-12-08
 
 ### Adicionado

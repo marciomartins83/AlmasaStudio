@@ -1,0 +1,88 @@
+{# Preview Despesas #}
+<div class="table-responsive">
+    <table class="table table-striped table-hover table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Data</th>
+                <th>Documento</th>
+                <th>Fornecedor</th>
+                <th>Historico</th>
+                <th>Plano de Conta</th>
+                <th class="text-end">Valor</th>
+                <th class="text-center">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if dados is iterable and dados|length > 0 %}
+                {% set primeiro = dados|first %}
+                {% if primeiro.itens is defined %}
+                    {# Dados agrupados #}
+                    {% for chave, grupo in dados %}
+                        <tr class="table-secondary">
+                            <td colspan="7"><strong>{{ grupo.nome }}</strong></td>
+                        </tr>
+                        {% for lancamento in grupo.itens %}
+                            <tr>
+                                <td>{{ lancamento.dataVencimento|date('d/m/Y') }}</td>
+                                <td>{{ lancamento.numeroDocumento|default('-') }}</td>
+                                <td>{{ lancamento.pessoaCredor.nome|default('-') }}</td>
+                                <td>{{ lancamento.historico|default('-')|length > 40 ? lancamento.historico|default('-')|slice(0, 40) ~ '...' : lancamento.historico|default('-') }}</td>
+                                <td>{{ lancamento.planoConta.descricao }}</td>
+                                <td class="text-end">R$ {{ lancamento.valorFloat|number_format(2, ',', '.') }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ lancamento.statusBadgeClass }}">{{ lancamento.statusLabel }}</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        <tr class="table-warning">
+                            <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+                            <td class="text-end fw-bold">R$ {{ grupo.total|number_format(2, ',', '.') }}</td>
+                            <td></td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    {# Dados nao agrupados #}
+                    {% for lancamento in dados %}
+                        <tr>
+                            <td>{{ lancamento.dataVencimento|date('d/m/Y') }}</td>
+                            <td>{{ lancamento.numeroDocumento|default('-') }}</td>
+                            <td>{{ lancamento.pessoaCredor.nome|default('-') }}</td>
+                            <td>{{ lancamento.historico|default('-')|length > 40 ? lancamento.historico|default('-')|slice(0, 40) ~ '...' : lancamento.historico|default('-') }}</td>
+                            <td>{{ lancamento.planoConta.descricao }}</td>
+                            <td class="text-end">R$ {{ lancamento.valorFloat|number_format(2, ',', '.') }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ lancamento.statusBadgeClass }}">{{ lancamento.statusLabel }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endif %}
+            {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                        Nenhuma despesa encontrada com os filtros selecionados.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+        {% if totais.quantidade > 0 %}
+        <tfoot class="table-primary">
+            <tr>
+                <td colspan="5" class="text-end"><strong>TOTAIS ({{ totais.quantidade }} registros):</strong></td>
+                <td class="text-end"><strong>R$ {{ totais.total_geral|number_format(2, ',', '.') }}</strong></td>
+                <td></td>
+            </tr>
+            <tr class="table-light">
+                <td colspan="5" class="text-end">Em Aberto:</td>
+                <td class="text-end text-warning">R$ {{ totais.total_aberto|number_format(2, ',', '.') }}</td>
+                <td></td>
+            </tr>
+            <tr class="table-light">
+                <td colspan="5" class="text-end">Pago:</td>
+                <td class="text-end text-success">R$ {{ totais.total_pago|number_format(2, ',', '.') }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatorio Comparativo Despesas x Receitas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
+        .container { padding: 15px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 16px; margin-bottom: 3px; }
+        .header p { font-size: 9px; color: #666; }
+        .header .titulo { font-size: 14px; font-weight: bold; margin-top: 8px; color: #0d6efd; }
+        .header .periodo { font-size: 10px; margin-top: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; font-size: 9px; }
+        th { background: #333; color: #fff; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; }
+        .text-success { color: #198754; }
+        .text-primary { color: #0d6efd; }
+        .grupo-header { background: #555; color: #fff; font-weight: bold; }
+        .grupo-subtotal { background: #f0f0f0; font-weight: bold; }
+        .total-row-receitas { background: #198754; color: #fff; font-weight: bold; }
+        .total-row-despesas { background: #dc3545; color: #fff; font-weight: bold; }
+        .saldo-row { background: #0d6efd; color: #fff; font-weight: bold; font-size: 11px; }
+        .saldo-positivo { background: #198754; }
+        .saldo-negativo { background: #dc3545; }
+        .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+        .secao-titulo { background: #f8f9fa; font-weight: bold; padding: 8px; margin: 15px 0 5px 0; border-left: 4px solid #333; }
+        .secao-receitas { border-left-color: #198754; }
+        .secao-despesas { border-left-color: #dc3545; }
+        .resumo-box { border: 2px solid #333; padding: 10px; margin-top: 15px; }
+        .resumo-item { display: inline-block; width: 32%; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% set periodo_texto = '' %}
+        {% if filtros.data_inicio is defined and filtros.data_fim is defined %}
+            {% set periodo_texto = filtros.data_inicio|date('d/m/Y') ~ ' a ' ~ filtros.data_fim|date('d/m/Y') %}
+        {% endif %}
+
+        {% include 'relatorios/pdf/_header.html.twig' with {
+            titulo: 'COMPARATIVO DESPESAS x RECEITAS',
+            periodo: periodo_texto
+        } %}
+
+        {# SEÇÃO RECEITAS #}
+        <div class="secao-titulo secao-receitas">RECEITAS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Documento</th>
+                    <th>Pagador</th>
+                    <th>Historico</th>
+                    <th>Plano Conta</th>
+                    <th class="text-right">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if dados.receitas is defined and dados.receitas|length > 0 %}
+                    {% for item in dados.receitas %}
+                        <tr>
+                            <td>{{ item.dataVencimento|date('d/m/Y') }}</td>
+                            <td>{{ item.numeroDocumento|default('-') }}</td>
+                            <td>{{ item.pessoa.nome|default('-')|length > 20 ? item.pessoa.nome|default('-')|slice(0, 20) ~ '...' : item.pessoa.nome|default('-') }}</td>
+                            <td>{{ item.historico|default('-')|length > 30 ? item.historico|default('-')|slice(0, 30) ~ '...' : item.historico|default('-') }}</td>
+                            <td>{{ item.planoConta.descricao|default('-')|length > 18 ? item.planoConta.descricao|default('-')|slice(0, 18) ~ '...' : item.planoConta.descricao|default('-') }}</td>
+                            <td class="text-right text-success">{{ item.valorFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhuma receita no periodo.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            {% if totais_receitas is defined %}
+            <tfoot>
+                <tr class="total-row-receitas">
+                    <td colspan="5" class="text-right">TOTAL RECEITAS ({{ totais_receitas.quantidade }} registros):</td>
+                    <td class="text-right">R$ {{ totais_receitas.total|number_format(2, ',', '.') }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+
+        {# SEÇÃO DESPESAS #}
+        <div class="secao-titulo secao-despesas">DESPESAS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Documento</th>
+                    <th>Fornecedor</th>
+                    <th>Historico</th>
+                    <th>Plano Conta</th>
+                    <th class="text-right">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if dados.despesas is defined and dados.despesas|length > 0 %}
+                    {% for item in dados.despesas %}
+                        <tr>
+                            <td>{{ item.dataVencimento|date('d/m/Y') }}</td>
+                            <td>{{ item.numeroDocumento|default('-') }}</td>
+                            <td>{{ item.pessoa.nome|default('-')|length > 20 ? item.pessoa.nome|default('-')|slice(0, 20) ~ '...' : item.pessoa.nome|default('-') }}</td>
+                            <td>{{ item.historico|default('-')|length > 30 ? item.historico|default('-')|slice(0, 30) ~ '...' : item.historico|default('-') }}</td>
+                            <td>{{ item.planoConta.descricao|default('-')|length > 18 ? item.planoConta.descricao|default('-')|slice(0, 18) ~ '...' : item.planoConta.descricao|default('-') }}</td>
+                            <td class="text-right text-danger">{{ item.valorFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhuma despesa no periodo.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            {% if totais_despesas is defined %}
+            <tfoot>
+                <tr class="total-row-despesas">
+                    <td colspan="5" class="text-right">TOTAL DESPESAS ({{ totais_despesas.quantidade }} registros):</td>
+                    <td class="text-right">R$ {{ totais_despesas.total|number_format(2, ',', '.') }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+
+        {# RESUMO CONSOLIDADO #}
+        <div class="resumo-box">
+            <table style="border: none;">
+                <tr>
+                    <td style="border: none; width: 33%; text-align: center;">
+                        <strong>Total Receitas</strong><br>
+                        <span class="text-success" style="font-size: 14px; font-weight: bold;">
+                            R$ {{ totais_receitas.total|default(0)|number_format(2, ',', '.') }}
+                        </span>
+                    </td>
+                    <td style="border: none; width: 33%; text-align: center;">
+                        <strong>Total Despesas</strong><br>
+                        <span class="text-danger" style="font-size: 14px; font-weight: bold;">
+                            R$ {{ totais_despesas.total|default(0)|number_format(2, ',', '.') }}
+                        </span>
+                    </td>
+                    <td style="border: none; width: 34%; text-align: center;">
+                        <strong>SALDO DO PERIODO</strong><br>
+                        {% set saldo_valor = (totais_receitas.total|default(0)) - (totais_despesas.total|default(0)) %}
+                        <span style="font-size: 16px; font-weight: bold; color: {% if saldo_valor >= 0 %}#198754{% else %}#dc3545{% endif %};">
+                            R$ {{ saldo_valor|number_format(2, ',', '.') }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {% include 'relatorios/pdf/_footer.html.twig' %}
+    </div>
+</body>
+</html>

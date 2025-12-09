@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Relatorios - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Relatorios'
+    } %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-file-pdf text-danger"></i> Relatorios
+        </h1>
+    </div>
+
+    <div class="row g-4">
+        {# Inadimplentes #}
+        <div class="col-md-4">
+            <div class="card h-100 border-danger">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+                    </div>
+                    <h5 class="card-title">Inadimplentes</h5>
+                    <p class="card-text text-muted">
+                        Lista de devedores com valores em atraso, juros e multa calculados.
+                    </p>
+                    <a href="{{ path('app_relatorios_inadimplentes') }}" class="btn btn-danger">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {# Despesas #}
+        <div class="col-md-4">
+            <div class="card h-100 border-warning">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-arrow-circle-down fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title">Despesas</h5>
+                    <p class="card-text text-muted">
+                        Relatorio descritivo de contas a pagar por periodo.
+                    </p>
+                    <a href="{{ path('app_relatorios_despesas') }}" class="btn btn-warning">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {# Receitas #}
+        <div class="col-md-4">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-arrow-circle-up fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title">Receitas</h5>
+                    <p class="card-text text-muted">
+                        Relatorio descritivo de contas a receber por periodo.
+                    </p>
+                    <a href="{{ path('app_relatorios_receitas') }}" class="btn btn-success">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {# Comparativo #}
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-balance-scale fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Despesas x Receitas</h5>
+                    <p class="card-text text-muted">
+                        Comparativo entre despesas e receitas com saldo final.
+                    </p>
+                    <a href="{{ path('app_relatorios_despesas_receitas') }}" class="btn btn-primary">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {# Contas Bancarias #}
+        <div class="col-md-4">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-university fa-3x text-info"></i>
+                    </div>
+                    <h5 class="card-title">Contas Bancarias</h5>
+                    <p class="card-text text-muted">
+                        Movimentacao e saldo de cada conta bancaria.
+                    </p>
+                    <a href="{{ path('app_relatorios_contas_bancarias') }}" class="btn btn-info">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {# Plano de Contas #}
+        <div class="col-md-4">
+            <div class="card h-100 border-secondary">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-sitemap fa-3x text-secondary"></i>
+                    </div>
+                    <h5 class="card-title">Plano de Contas</h5>
+                    <p class="card-text text-muted">
+                        Estrutura hierarquica do plano de contas.
+                    </p>
+                    <a href="{{ path('app_relatorios_plano_contas') }}" class="btn btn-secondary">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
