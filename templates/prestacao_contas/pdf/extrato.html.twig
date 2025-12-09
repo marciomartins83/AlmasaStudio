@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Prestacao de Contas {{ prestacao.numeroFormatado }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #333;
+        }
+        .container {
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            font-size: 10px;
+            color: #666;
+        }
+        .header .numero {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .info-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: #f9f9f9;
+        }
+        .info-box p {
+            margin: 3px 0;
+        }
+        .info-box strong {
+            display: inline-block;
+            width: 120px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            background: #333;
+            color: #fff;
+            font-weight: bold;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-danger {
+            color: #c00;
+        }
+        .text-success {
+            color: #080;
+        }
+        .section-header {
+            background: #555;
+            color: #fff;
+            padding: 5px 10px;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        .section-header.receitas {
+            background: #28a745;
+        }
+        .section-header.despesas {
+            background: #dc3545;
+        }
+        .total-row {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        .resumo {
+            width: 60%;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 20px;
+        }
+        .resumo td {
+            padding: 8px 10px;
+        }
+        .resumo .total {
+            background: #007bff;
+            color: #fff;
+            font-size: 14px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 15px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {# Cabecalho #}
+        <div class="header">
+            <h1>ALMASA IMOVEIS LTDA</h1>
+            <p>CNPJ: 47.720.891/0001-14</p>
+            <p class="numero">Prestacao de Contas n {{ prestacao.numeroFormatado }}</p>
+        </div>
+
+        {# Informacoes #}
+        <div class="info-box">
+            <p><strong>PROPRIETARIO:</strong> {{ prestacao.proprietario.nome }}</p>
+            <p><strong>IMOVEL:</strong>
+                {% if prestacao.imovel %}
+                    {{ prestacao.imovel.id }}
+                {% else %}
+                    Todos os imoveis
+                {% endif %}
+            </p>
+            <p><strong>PERIODO:</strong> {{ prestacao.periodoFormatado }} ({{ prestacao.tipoPeriodoLabel }})</p>
+        </div>
+
+        {# Receitas #}
+        <div class="section-header receitas">RECEITAS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="80">Data</th>
+                    <th>Historico</th>
+                    <th width="100" class="text-right">Valor Bruto</th>
+                    <th width="80" class="text-right">Taxa Admin</th>
+                    <th width="60" class="text-right">IR</th>
+                    <th width="100" class="text-right">Valor Liquido</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in prestacao.receitas %}
+                <tr>
+                    <td>{{ item.dataMovimento|date('d/m/Y') }}</td>
+                    <td>{{ item.historico|default('-') }}</td>
+                    <td class="text-right">R$ {{ item.valorBrutoFloat|number_format(2, ',', '.') }}</td>
+                    <td class="text-right text-danger">
+                        {% if item.valorTaxaAdminFloat > 0 %}
+                            ({{ item.valorTaxaAdminFloat|number_format(2, ',', '.') }})
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-right text-danger">
+                        {% if item.valorRetencaoIrFloat > 0 %}
+                            ({{ item.valorRetencaoIrFloat|number_format(2, ',', '.') }})
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-right">R$ {{ item.valorLiquidoFloat|number_format(2, ',', '.') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="empty">Nenhuma receita no periodo</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" class="text-right">TOTAL RECEITAS:</td>
+                    <td class="text-right">R$ {{ prestacao.totalReceitasFloat|number_format(2, ',', '.') }}</td>
+                    <td class="text-right text-danger">({{ prestacao.totalTaxaAdminFloat|number_format(2, ',', '.') }})</td>
+                    <td class="text-right text-danger">({{ prestacao.totalRetencaoIrFloat|number_format(2, ',', '.') }})</td>
+                    <td class="text-right">R$ {{ (prestacao.totalReceitasFloat - prestacao.totalTaxaAdminFloat - prestacao.totalRetencaoIrFloat)|number_format(2, ',', '.') }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {# Despesas #}
+        <div class="section-header despesas">DESPESAS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="80">Data</th>
+                    <th>Historico</th>
+                    <th width="120" class="text-right">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in prestacao.despesas %}
+                <tr>
+                    <td>{{ item.dataMovimento|date('d/m/Y') }}</td>
+                    <td>{{ item.historico|default('-') }}</td>
+                    <td class="text-right text-danger">(R$ {{ item.valorBrutoFloat|number_format(2, ',', '.') }})</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="empty">Nenhuma despesa no periodo</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" class="text-right">TOTAL DESPESAS:</td>
+                    <td class="text-right text-danger">(R$ {{ prestacao.totalDespesasFloat|number_format(2, ',', '.') }})</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {# Resumo #}
+        <table class="resumo">
+            <tr>
+                <td>Total Receitas</td>
+                <td class="text-right">R$ {{ prestacao.totalReceitasFloat|number_format(2, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td class="text-danger">(-) Taxa Administracao</td>
+                <td class="text-right text-danger">(R$ {{ prestacao.totalTaxaAdminFloat|number_format(2, ',', '.') }})</td>
+            </tr>
+            <tr>
+                <td class="text-danger">(-) Retencao IR</td>
+                <td class="text-right text-danger">(R$ {{ prestacao.totalRetencaoIrFloat|number_format(2, ',', '.') }})</td>
+            </tr>
+            <tr>
+                <td class="text-danger">(-) Total Despesas</td>
+                <td class="text-right text-danger">(R$ {{ prestacao.totalDespesasFloat|number_format(2, ',', '.') }})</td>
+            </tr>
+            <tr class="total">
+                <td><strong>VALOR LIQUIDO A REPASSAR</strong></td>
+                <td class="text-right"><strong>R$ {{ prestacao.valorRepasseFloat|number_format(2, ',', '.') }}</strong></td>
+            </tr>
+        </table>
+
+        {# Dados do Repasse (se pago) #}
+        {% if prestacao.pago %}
+        <div class="info-box" style="margin-top: 20px;">
+            <p><strong>REPASSE REALIZADO</strong></p>
+            <p><strong>Data:</strong> {{ prestacao.dataRepasse|date('d/m/Y') }}</p>
+            <p><strong>Forma:</strong> {{ prestacao.formaRepasseLabel }}</p>
+            {% if prestacao.contaBancaria %}
+            <p><strong>Conta:</strong> {{ prestacao.contaBancaria.codigo }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Rodape #}
+        <div class="footer">
+            <p>Emitido em: {{ "now"|date('d/m/Y') }} as {{ "now"|date('H:i') }}</p>
+            <p>Documento gerado eletronicamente pelo Sistema Almasa</p>
+        </div>
+    </div>
+</body>
+</html>

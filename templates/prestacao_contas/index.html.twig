@@ -1,0 +1,264 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prestacao de Contas - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')}
+        ],
+        'current': 'Prestacao de Contas'
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Cards de Estatisticas #}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-primary">Total Geradas</h6>
+                    <h4 class="card-title mb-0">{{ estatisticas.total }}</h4>
+                    <small class="text-muted">prestacoes no ano</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-info">Aguardando Aprovacao</h6>
+                    <h4 class="card-title mb-0">{{ estatisticas.geradas }}</h4>
+                    <small class="text-muted">para aprovar</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-warning">Aguardando Repasse</h6>
+                    <h4 class="card-title mb-0">{{ estatisticas.aguardando_repasse }}</h4>
+                    <small class="text-muted">aprovadas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-success">Pagas no Mes</h6>
+                    <h4 class="card-title mb-0">R$ {{ estatisticasMes.valor_pago|number_format(2, ',', '.') }}</h4>
+                    <small class="text-muted">{{ estatisticasMes.pagas }} repasse(s)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Filtros #}
+    <div class="card mb-4">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" style="cursor: pointer;">
+            <i class="fas fa-filter"></i> Filtros
+            <i class="fas fa-chevron-down float-end"></i>
+        </div>
+        <div class="collapse {{ filtros|length > 0 ? 'show' : '' }}" id="filtrosCollapse">
+            <div class="card-body">
+                <form method="GET" action="{{ path('app_prestacao_contas_index') }}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="gerado" {{ filtros.status|default('') == 'gerado' ? 'selected' : '' }}>Gerado</option>
+                                <option value="aprovado" {{ filtros.status|default('') == 'aprovado' ? 'selected' : '' }}>Aprovado</option>
+                                <option value="pago" {{ filtros.status|default('') == 'pago' ? 'selected' : '' }}>Pago</option>
+                                <option value="cancelado" {{ filtros.status|default('') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ano</label>
+                            <select name="ano" class="form-select">
+                                <option value="">Todos</option>
+                                {% for ano in anosDisponiveis %}
+                                    <option value="{{ ano }}" {{ filtros.ano|default('') == ano ? 'selected' : '' }}>{{ ano }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Filtrar
+                            </button>
+                            <a href="{{ path('app_prestacao_contas_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-eraser"></i> Limpar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# Tabela de Prestacoes #}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-file-invoice-dollar"></i> Prestacoes de Contas</span>
+            <a href="{{ path('app_prestacao_contas_gerar') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-plus"></i> Gerar Nova Prestacao
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="100">Numero</th>
+                            <th>Proprietario</th>
+                            <th>Imovel</th>
+                            <th width="200">Periodo</th>
+                            <th width="120" class="text-end">Valor Repasse</th>
+                            <th width="100">Status</th>
+                            <th width="180">Acoes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prestacao in prestacoes %}
+                        <tr data-id="{{ prestacao.id }}">
+                            <td>{{ prestacao.numeroFormatado }}</td>
+                            <td>{{ prestacao.proprietario.nome }}</td>
+                            <td>
+                                {% if prestacao.imovel %}
+                                    {{ prestacao.imovel.id }}
+                                {% else %}
+                                    <span class="text-muted">Todos</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ prestacao.periodoFormatado }}</td>
+                            <td class="text-end fw-bold">R$ {{ prestacao.valorRepasseFloat|number_format(2, ',', '.') }}</td>
+                            <td>
+                                <span class="badge bg-{{ prestacao.statusBadgeClass }}">
+                                    {{ prestacao.statusLabel }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ path('app_prestacao_contas_visualizar', {id: prestacao.id}) }}"
+                                       class="btn btn-info" title="Visualizar">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ path('app_prestacao_contas_pdf', {id: prestacao.id}) }}"
+                                       class="btn btn-secondary" title="PDF" target="_blank">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                    {% if prestacao.podeAprovar %}
+                                        <button type="button" class="btn btn-success btn-aprovar"
+                                                data-id="{{ prestacao.id }}" title="Aprovar">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    {% endif %}
+                                    {% if prestacao.podeRegistrarRepasse %}
+                                        <a href="{{ path('app_prestacao_contas_repasse_form', {id: prestacao.id}) }}"
+                                           class="btn btn-primary" title="Registrar Repasse">
+                                            <i class="fas fa-hand-holding-usd"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if prestacao.podeCancelar %}
+                                        <button type="button" class="btn btn-warning btn-cancelar"
+                                                data-id="{{ prestacao.id }}" title="Cancelar">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    {% endif %}
+                                    {% if prestacao.podeExcluir %}
+                                        <button type="button" class="btn btn-danger btn-excluir"
+                                                data-id="{{ prestacao.id }}" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                <span>Nenhuma prestacao de contas encontrada</span><br>
+                                <small>Clique em "Gerar Nova Prestacao" para comecar</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal Cancelar #}
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancelar Prestacao</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cancelar_id">
+                <div class="mb-3">
+                    <label class="form-label">Motivo do Cancelamento</label>
+                    <textarea id="cancelar_motivo" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmarCancelar">
+                    <i class="fas fa-ban"></i> Confirmar Cancelamento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal Excluir #}
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Excluir Prestacao</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="excluir_id">
+                <p>Tem certeza que deseja excluir esta prestacao de contas?</p>
+                <p class="text-danger"><strong>Esta acao nao pode ser desfeita.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExcluir">
+                    <i class="fas fa-trash"></i> Confirmar Exclusao
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    window.ROUTES = {
+        aprovar: '{{ path("app_prestacao_contas_aprovar", {id: "__ID__"}) }}',
+        cancelar: '{{ path("app_prestacao_contas_cancelar", {id: "__ID__"}) }}',
+        excluir: '{{ path("app_prestacao_contas_delete", {id: "__ID__"}) }}'
+    };
+</script>
+{{ encore_entry_script_tags('prestacao_contas') }}
+{% endblock %}

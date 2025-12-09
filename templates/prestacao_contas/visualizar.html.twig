@@ -1,0 +1,326 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prestacao {{ prestacao.numeroFormatado }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Prestacao de Contas', 'url': path('app_prestacao_contas_index')}
+        ],
+        'current': 'Prestacao ' ~ prestacao.numeroFormatado
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Cabecalho #}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-file-invoice-dollar"></i>
+                Prestacao de Contas <strong>{{ prestacao.numeroFormatado }}</strong>
+            </span>
+            <span class="badge bg-{{ prestacao.statusBadgeClass }} fs-6">
+                {{ prestacao.statusLabel }}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>Proprietario:</strong></p>
+                    <p class="text-muted">{{ prestacao.proprietario.nome }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>Imovel:</strong></p>
+                    <p class="text-muted">
+                        {% if prestacao.imovel %}
+                            {{ prestacao.imovel.id }}
+                        {% else %}
+                            Todos os imoveis
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>Periodo:</strong></p>
+                    <p class="text-muted">
+                        {{ prestacao.periodoFormatado }}
+                        <br><small>({{ prestacao.tipoPeriodoLabel }})</small>
+                    </p>
+                </div>
+            </div>
+
+            {% if prestacao.pago %}
+            <hr>
+            <div class="row">
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Data do Repasse:</strong></p>
+                    <p class="text-muted">{{ prestacao.dataRepasse|date('d/m/Y') }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Forma:</strong></p>
+                    <p class="text-muted">{{ prestacao.formaRepasseLabel }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Conta Bancaria:</strong></p>
+                    <p class="text-muted">
+                        {% if prestacao.contaBancaria %}
+                            {{ prestacao.contaBancaria.codigo }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Comprovante:</strong></p>
+                    <p class="text-muted">
+                        {% if prestacao.comprovanteRepasse %}
+                            <a href="/{{ prestacao.comprovanteRepasse }}" target="_blank">
+                                <i class="fas fa-file"></i> Ver comprovante
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if prestacao.observacoes %}
+            <hr>
+            <div class="row">
+                <div class="col-12">
+                    <p class="mb-1"><strong>Observacoes:</strong></p>
+                    <p class="text-muted">{{ prestacao.observacoes|nl2br }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Receitas #}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <i class="fas fa-arrow-up"></i> Receitas
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="100">Data</th>
+                            <th>Historico</th>
+                            <th>Origem</th>
+                            <th width="120" class="text-end">Valor Bruto</th>
+                            <th width="100" class="text-end">Taxa Admin</th>
+                            <th width="100" class="text-end">IR</th>
+                            <th width="120" class="text-end">Valor Liquido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in prestacao.receitas %}
+                        <tr>
+                            <td>{{ item.dataMovimento|date('d/m/Y') }}</td>
+                            <td>{{ item.historico|default('-') }}</td>
+                            <td><small class="text-muted">{{ item.origemLabel }}</small></td>
+                            <td class="text-end">R$ {{ item.valorBrutoFloat|number_format(2, ',', '.') }}</td>
+                            <td class="text-end text-danger">
+                                {% if item.valorTaxaAdminFloat > 0 %}
+                                    (R$ {{ item.valorTaxaAdminFloat|number_format(2, ',', '.') }})
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-danger">
+                                {% if item.valorRetencaoIrFloat > 0 %}
+                                    (R$ {{ item.valorRetencaoIrFloat|number_format(2, ',', '.') }})
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold">R$ {{ item.valorLiquidoFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-3">
+                                Nenhuma receita no periodo
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-success">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">TOTAL RECEITAS:</td>
+                            <td class="text-end fw-bold">R$ {{ prestacao.totalReceitasFloat|number_format(2, ',', '.') }}</td>
+                            <td class="text-end fw-bold text-danger">(R$ {{ prestacao.totalTaxaAdminFloat|number_format(2, ',', '.') }})</td>
+                            <td class="text-end fw-bold text-danger">(R$ {{ prestacao.totalRetencaoIrFloat|number_format(2, ',', '.') }})</td>
+                            <td class="text-end fw-bold">
+                                R$ {{ (prestacao.totalReceitasFloat - prestacao.totalTaxaAdminFloat - prestacao.totalRetencaoIrFloat)|number_format(2, ',', '.') }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Despesas #}
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <i class="fas fa-arrow-down"></i> Despesas
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="100">Data</th>
+                            <th>Historico</th>
+                            <th>Origem</th>
+                            <th width="150" class="text-end">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in prestacao.despesas %}
+                        <tr>
+                            <td>{{ item.dataMovimento|date('d/m/Y') }}</td>
+                            <td>{{ item.historico|default('-') }}</td>
+                            <td><small class="text-muted">{{ item.origemLabel }}</small></td>
+                            <td class="text-end text-danger fw-bold">(R$ {{ item.valorBrutoFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">
+                                Nenhuma despesa no periodo
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-danger">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">TOTAL DESPESAS:</td>
+                            <td class="text-end fw-bold">(R$ {{ prestacao.totalDespesasFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Resumo Final #}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-calculator"></i> Resumo
+        </div>
+        <div class="card-body">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td>Total Receitas</td>
+                            <td class="text-end">R$ {{ prestacao.totalReceitasFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-danger">(-) Taxa Administracao</td>
+                            <td class="text-end text-danger">(R$ {{ prestacao.totalTaxaAdminFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        <tr>
+                            <td class="text-danger">(-) Retencao IR</td>
+                            <td class="text-end text-danger">(R$ {{ prestacao.totalRetencaoIrFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        <tr>
+                            <td class="text-danger">(-) Total Despesas</td>
+                            <td class="text-end text-danger">(R$ {{ prestacao.totalDespesasFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td class="fw-bold fs-5 text-primary">(=) VALOR LIQUIDO A REPASSAR</td>
+                            <td class="text-end fw-bold fs-4 text-primary">R$ {{ prestacao.valorRepasseFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Botoes de Acao #}
+    <div class="card">
+        <div class="card-body d-flex justify-content-between">
+            <a href="{{ path('app_prestacao_contas_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            <div>
+                <a href="{{ path('app_prestacao_contas_pdf', {id: prestacao.id}) }}" class="btn btn-info" target="_blank">
+                    <i class="fas fa-file-pdf"></i> Gerar PDF
+                </a>
+
+                {% if prestacao.podeAprovar %}
+                    <button type="button" class="btn btn-success btn-aprovar" data-id="{{ prestacao.id }}">
+                        <i class="fas fa-check"></i> Aprovar
+                    </button>
+                {% endif %}
+
+                {% if prestacao.podeRegistrarRepasse %}
+                    <a href="{{ path('app_prestacao_contas_repasse_form', {id: prestacao.id}) }}" class="btn btn-primary">
+                        <i class="fas fa-hand-holding-usd"></i> Registrar Repasse
+                    </a>
+                {% endif %}
+
+                {% if prestacao.podeCancelar %}
+                    <button type="button" class="btn btn-warning btn-cancelar" data-id="{{ prestacao.id }}">
+                        <i class="fas fa-ban"></i> Cancelar
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal Cancelar #}
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancelar Prestacao</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cancelar_id">
+                <div class="mb-3">
+                    <label class="form-label">Motivo do Cancelamento</label>
+                    <textarea id="cancelar_motivo" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmarCancelar">
+                    <i class="fas fa-ban"></i> Confirmar Cancelamento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    window.ROUTES = {
+        aprovar: '{{ path("app_prestacao_contas_aprovar", {id: "__ID__"}) }}',
+        cancelar: '{{ path("app_prestacao_contas_cancelar", {id: "__ID__"}) }}'
+    };
+    window.PRESTACAO_ID = {{ prestacao.id }};
+</script>
+{{ encore_entry_script_tags('prestacao_contas') }}
+{% endblock %}

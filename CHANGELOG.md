@@ -11,6 +11,94 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## 📌 VERSÕES RECENTES (Detalhadas)
 
+## [6.15.0] - 2025-12-08
+
+### Adicionado
+- **Módulo Prestação de Contas aos Proprietários - Completo**
+  - Migration `Version20251208_PrestacaoContas` - Criação das tabelas:
+    - `prestacoes_contas`: Cabeçalho com identificação, período, vínculos, totais calculados e dados de repasse
+    - `prestacoes_contas_itens`: Itens detalhados (receitas/despesas) com origem e valores
+    - Constraints de status e tipo de período
+    - Índices otimizados para consultas
+  - **Entity** `PrestacoesContas.php` (580+ linhas):
+    - Constantes para status (GERADO, APROVADO, PAGO, CANCELADO)
+    - Constantes para tipos de período (DIARIO a BIENAL)
+    - Constantes para formas de repasse (PIX, TED, etc.)
+    - Relacionamentos com Pessoas, Imoveis, ContasBancarias, Users
+    - OneToMany com PrestacoesContasItens (cascade, orphanRemoval)
+    - Métodos auxiliares: getNumeroFormatado(), getPeriodoFormatado()
+    - Métodos de validação: podeAprovar(), podeRegistrarRepasse(), podeExcluir()
+    - Métodos de badge: getStatusBadgeClass(), getTipoPeriodoLabel()
+    - Método recalcularTotais() para atualizar valores
+  - **Entity** `PrestacoesContasItens.php` (300+ linhas):
+    - Constantes de tipo (RECEITA, DESPESA)
+    - Constantes de origem (FICHA_FINANCEIRA, LANCAMENTO_PAGAR, LANCAMENTO_RECEBER)
+    - Relacionamentos com PrestacoesContas, LancamentosFinanceiros, Lancamentos, PlanoContas, Imoveis
+    - Métodos auxiliares para cálculo de valores
+  - **Repository** `PrestacoesContasRepository.php`:
+    - `findByFiltros()` - listagem com múltiplos filtros
+    - `findByProprietario()` - histórico por proprietário
+    - `getProximoNumero()` - sequencial por ano
+    - `existePrestacaoDuplicada()` - validação de duplicidade
+    - `getEstatisticas()` - totais por status
+    - `getEstatisticasMesAtual()` - métricas do mês
+    - `findByIdComItens()` - carrega prestação com itens
+    - `getAnosDisponiveis()` - anos para filtro
+  - **Repository** `PrestacoesContasItensRepository.php`:
+    - `findByPrestacaoETipo()` - itens filtrados
+    - `getTotaisPorTipo()` - resumo por tipo
+    - `agruparPorImovel()` - agrupamento para relatórios
+  - **Service** `PrestacaoContasService.php` (600+ linhas):
+    - Geração de prestações com busca de dados
+    - Cálculo automático de período por tipo
+    - Preview antes de gerar (sem persistir)
+    - Busca em Ficha Financeira e Lançamentos
+    - Cálculo de taxa de administração e retenção IR
+    - Fluxo de aprovação e repasse
+    - Cancelamento com motivo
+    - Upload de comprovante de repasse
+    - Listagem de imóveis por proprietário
+  - **FormTypes**:
+    - `PrestacaoContasFiltroType.php` - Filtros de geração (período, proprietário, imóvel, origens)
+    - `PrestacaoContasRepasseType.php` - Dados do repasse (data, forma, conta, comprovante)
+  - **Controller** `PrestacaoContasController.php` (350+ linhas):
+    - 13 rotas (CRUD + operações + APIs AJAX)
+    - Padrão Thin Controller
+    - Geração de PDF com DomPDF
+    - Validação CSRF em todas operações AJAX
+    - APIs: preview, imóveis do proprietário, cálculo de período
+  - **Templates** (6 arquivos):
+    - `index.html.twig` - Dashboard com cards de estatísticas, filtros e tabela
+    - `gerar.html.twig` - Formulário de geração com preview lateral
+    - `visualizar.html.twig` - Extrato completo com receitas, despesas e resumo
+    - `repasse.html.twig` - Formulário de registro de repasse
+    - `historico.html.twig` - Histórico por proprietário
+    - `pdf/extrato.html.twig` - Template de PDF formatado para A4
+  - **JavaScript Modular** (2 arquivos):
+    - `prestacao_contas.js` - Funções utilitárias e APIs
+    - `app.js` - Inicialização e event listeners
+
+### Rotas Disponíveis
+| Método | Rota | Nome |
+|--------|------|------|
+| GET | /prestacao-contas/ | app_prestacao_contas_index |
+| GET/POST | /prestacao-contas/gerar | app_prestacao_contas_gerar |
+| POST | /prestacao-contas/preview | app_prestacao_contas_preview |
+| GET | /prestacao-contas/{id} | app_prestacao_contas_visualizar |
+| GET | /prestacao-contas/{id}/pdf | app_prestacao_contas_pdf |
+| POST | /prestacao-contas/{id}/aprovar | app_prestacao_contas_aprovar |
+| GET/POST | /prestacao-contas/{id}/repasse | app_prestacao_contas_repasse |
+| POST | /prestacao-contas/{id}/cancelar | app_prestacao_contas_cancelar |
+| DELETE | /prestacao-contas/{id} | app_prestacao_contas_delete |
+| GET | /prestacao-contas/historico/{id} | app_prestacao_contas_historico |
+| GET | /prestacao-contas/imoveis/{id} | app_prestacao_contas_imoveis |
+| POST | /prestacao-contas/calcular-periodo | app_prestacao_contas_calcular_periodo |
+
+### Arquivos Modificados
+- `webpack.config.js` - Adicionada entrada para o módulo prestacao_contas
+
+---
+
 ## [6.14.0] - 2025-12-07
 
 ### Adicionado

@@ -1,0 +1,189 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gerar Prestacao de Contas - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Prestacao de Contas', 'url': path('app_prestacao_contas_index')}
+        ],
+        'current': 'Gerar'
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        {# Formulario #}
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-invoice-dollar"></i> Gerar Prestacao de Contas
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'id': 'formGerar', 'novalidate': 'novalidate'}}) }}
+
+                    {# Secao: Periodo #}
+                    <h6 class="text-muted mb-3"><i class="fas fa-calendar"></i> Periodo</h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            {{ form_label(form.tipoPeriodo) }}
+                            {{ form_widget(form.tipoPeriodo, {'attr': {'id': 'tipoPeriodo'}}) }}
+                            {{ form_errors(form.tipoPeriodo) }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form_label(form.dataInicio) }}
+                            {{ form_widget(form.dataInicio, {'attr': {'id': 'dataInicio'}}) }}
+                            {{ form_errors(form.dataInicio) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_label(form.dataFim) }}
+                            {{ form_widget(form.dataFim, {'attr': {'id': 'dataFim'}}) }}
+                            {{ form_errors(form.dataFim) }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form_label(form.competencia) }}
+                            {{ form_widget(form.competencia, {'attr': {'id': 'competencia', 'placeholder': 'YYYY-MM'}}) }}
+                            {{ form_errors(form.competencia) }}
+                            <small class="text-muted">Opcional - formato: 2025-12</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    {# Secao: Proprietario/Imovel #}
+                    <h6 class="text-muted mb-3"><i class="fas fa-user"></i> Proprietario / Imovel</h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            {{ form_label(form.proprietario) }}
+                            {{ form_widget(form.proprietario, {'attr': {'id': 'proprietario'}}) }}
+                            {{ form_errors(form.proprietario) }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            {{ form_label(form.imovel) }}
+                            {{ form_widget(form.imovel, {'attr': {'id': 'imovel'}}) }}
+                            {{ form_errors(form.imovel) }}
+                            <small class="text-muted">Deixe em branco para incluir todos os imoveis do proprietario</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    {# Secao: Origem dos Dados #}
+                    <h6 class="text-muted mb-3"><i class="fas fa-database"></i> Origem dos Dados</h6>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form_widget(form.incluirFichaFinanceira, {'attr': {'id': 'incluirFichaFinanceira'}}) }}
+                            {{ form_label(form.incluirFichaFinanceira) }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form_widget(form.incluirLancamentos, {'attr': {'id': 'incluirLancamentos'}}) }}
+                            {{ form_label(form.incluirLancamentos) }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    {# Botoes #}
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('app_prestacao_contas_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <div>
+                            <button type="button" class="btn btn-info" id="btnPreview">
+                                <i class="fas fa-search"></i> Preview
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Gerar Prestacao
+                            </button>
+                        </div>
+                    </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+
+        {# Preview #}
+        <div class="col-lg-6">
+            <div class="card" id="cardPreview" style="display: none;">
+                <div class="card-header">
+                    <i class="fas fa-eye"></i> Preview da Prestacao
+                </div>
+                <div class="card-body" id="previewContent">
+                    {# Conteudo sera preenchido via JS #}
+                </div>
+            </div>
+
+            {# Instrucoes #}
+            <div class="card" id="cardInstrucoes">
+                <div class="card-header">
+                    <i class="fas fa-info-circle"></i> Instrucoes
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li class="mb-2">
+                            <strong>Selecione o tipo de periodo</strong> - O sistema calculara automaticamente as datas de inicio e fim.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Escolha o proprietario</strong> - Obrigatorio. A lista mostra apenas pessoas cadastradas como Locador.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Selecione o imovel (opcional)</strong> - Deixe em branco para incluir todos os imoveis do proprietario.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Marque as origens de dados</strong> - Pelo menos uma deve estar selecionada.
+                        </li>
+                        <li class="mb-2">
+                            <strong>Clique em "Preview"</strong> - Para visualizar o resumo antes de gerar.
+                        </li>
+                        <li>
+                            <strong>Clique em "Gerar Prestacao"</strong> - Para criar a prestacao de contas.
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    window.ROUTES = {
+        preview: '{{ path("app_prestacao_contas_preview") }}',
+        imoveis: '{{ path("app_prestacao_contas_imoveis", {idProprietario: "__ID__"}) }}',
+        calcularPeriodo: '{{ path("app_prestacao_contas_calcular_periodo") }}'
+    };
+</script>
+{{ encore_entry_script_tags('prestacao_contas') }}
+{% endblock %}

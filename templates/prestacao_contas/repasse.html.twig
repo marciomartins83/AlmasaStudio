@@ -1,0 +1,127 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Registrar Repasse - Prestacao {{ prestacao.numeroFormatado }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Prestacao de Contas', 'url': path('app_prestacao_contas_index')},
+            {'label': 'Prestacao ' ~ prestacao.numeroFormatado, 'url': path('app_prestacao_contas_visualizar', {id: prestacao.id})}
+        ],
+        'current': 'Registrar Repasse'
+    } %}
+
+    {# Flash messages #}
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        {# Resumo da Prestacao #}
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-file-invoice-dollar"></i> Resumo da Prestacao
+                </div>
+                <div class="card-body">
+                    <p><strong>Numero:</strong> {{ prestacao.numeroFormatado }}</p>
+                    <p><strong>Proprietario:</strong> {{ prestacao.proprietario.nome }}</p>
+                    <p><strong>Periodo:</strong> {{ prestacao.periodoFormatado }}</p>
+                    <hr>
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td>Total Receitas</td>
+                            <td class="text-end">R$ {{ prestacao.totalReceitasFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                        <tr class="text-danger">
+                            <td>(-) Taxa Admin</td>
+                            <td class="text-end">(R$ {{ prestacao.totalTaxaAdminFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        <tr class="text-danger">
+                            <td>(-) IR</td>
+                            <td class="text-end">(R$ {{ prestacao.totalRetencaoIrFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        <tr class="text-danger">
+                            <td>(-) Despesas</td>
+                            <td class="text-end">(R$ {{ prestacao.totalDespesasFloat|number_format(2, ',', '.') }})</td>
+                        </tr>
+                        <tr class="border-top fs-5 text-primary fw-bold">
+                            <td>Valor Repasse</td>
+                            <td class="text-end">R$ {{ prestacao.valorRepasseFloat|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# Formulario de Repasse #}
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-hand-holding-usd"></i> Registrar Repasse
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form_label(form.dataRepasse) }}
+                            {{ form_widget(form.dataRepasse) }}
+                            {{ form_errors(form.dataRepasse) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_label(form.formaRepasse) }}
+                            {{ form_widget(form.formaRepasse) }}
+                            {{ form_errors(form.formaRepasse) }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form_label(form.contaBancaria) }}
+                            {{ form_widget(form.contaBancaria) }}
+                            {{ form_errors(form.contaBancaria) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_label(form.comprovante) }}
+                            {{ form_widget(form.comprovante) }}
+                            {{ form_errors(form.comprovante) }}
+                            <small class="text-muted">PDF, JPEG ou PNG (max 5MB)</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_label(form.observacoes) }}
+                        {{ form_widget(form.observacoes) }}
+                        {{ form_errors(form.observacoes) }}
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('app_prestacao_contas_visualizar', {id: prestacao.id}) }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check"></i> Confirmar Repasse
+                        </button>
+                    </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

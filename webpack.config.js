@@ -37,6 +37,9 @@ Encore
     // Módulo Lançamentos (Contas a Pagar/Receber)
     .addEntry('lancamentos', './assets/js/lancamentos/app.js')
 
+    // Módulo Prestação de Contas
+    .addEntry('prestacao_contas', './assets/js/prestacao_contas/app.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 
