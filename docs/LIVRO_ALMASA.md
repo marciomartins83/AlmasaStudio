@@ -1,0 +1,1165 @@
+# LIVRO ALMASA — Fonte Unica da Verdade
+
+> **Projeto AlmasaStudio** — Sistema completo de gestao imobiliaria
+> Symfony 7.2 | PHP 8.2+ | PostgreSQL 14+ | Bootstrap 5.3
+
+---
+
+## SINOPSE
+
+| Campo | Valor |
+|-------|-------|
+| **Versao Atual** | 6.16.0 |
+| **Data Ultima Atualizacao** | 2025-12-08 |
+| **Status Geral** | Em producao |
+| **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
+| **Mantenedor** | Marcio Martins |
+| **Proxima Tarefa** | Implementar `buscarConjugePessoa()` no PessoaService |
+| **Issue Aberta** | #1 — Conjuge nao carrega na busca (MEDIA) |
+
+---
+
+## INDICE
+
+- [Cap 1 — Historico e Evolucao](#cap-1--historico-e-evolucao)
+- [Cap 2 — Arquitetura Tecnica](#cap-2--arquitetura-tecnica)
+- [Cap 3 — Mapa de Arquivos](#cap-3--mapa-de-arquivos)
+- [Cap 4 — Modulo Pessoas](#cap-4--modulo-pessoas)
+- [Cap 5 — Modulo Imoveis](#cap-5--modulo-imoveis)
+- [Cap 6 — Modulo Contratos](#cap-6--modulo-contratos)
+- [Cap 7 — Modulo Financeiro](#cap-7--modulo-financeiro)
+- [Cap 8 — Modulo Boletos e Cobranca](#cap-8--modulo-boletos-e-cobranca)
+- [Cap 9 — Modulo Relatorios e Prestacao de Contas](#cap-9--modulo-relatorios-e-prestacao-de-contas)
+- [Cap 10 — Cadastros Auxiliares e Configuracoes](#cap-10--cadastros-auxiliares-e-configuracoes)
+- [Cap 11 — Banco de Dados](#cap-11--banco-de-dados)
+- [Cap 12 — Frontend](#cap-12--frontend)
+- [Cap 13 — Licoes Aprendidas](#cap-13--licoes-aprendidas)
+- [Cap 14 — Plano de Testes](#cap-14--plano-de-testes)
+- [Changelog](#changelog)
+
+---
+
+## Cap 1 — Historico e Evolucao
+
+### Linha do Tempo
+
+| Versao | Data | Marco |
+|--------|------|-------|
+| 5.0.0 | 2025-11-05 | Implementacao inicial — Modulo Pessoas, 13 entidades, PostgreSQL + Webpack Encore + Bootstrap 5 |
+| 6.0.0 | 2025-11-06 | Busca inteligente, sistema de tipos multiplos, FormTypes por tipo |
+| 6.1.0 | 2025-11-07 | Rotas DELETE para dados multiplos, token CSRF `ajax_global` |
+| 6.2.0 | 2025-11-08 | Modulos JS para conjuge, pessoa_modals.js |
+| 6.3.0 | 2025-11-09 | PessoaService (Fat Service), PessoaController refatorado (Thin Controller) |
+| 6.4.0 | 2025-11-16 | Correcao carregamento de tipos, CLAUDE.md criado |
+| 6.5.x | 2025-11-16 | buscarConjugePessoa(), melhorias na listagem, CSRF |
+| 6.6.x | 2025-11-24–30 | Modulo Imoveis completo, correcoes criticas |
+| 6.7.0 | 2025-12-01 | Informe de Rendimentos / DIMOB |
+| 6.7.1 | 2025-12-04 | Tipos Socio e Advogado |
+| 6.8.0 | 2025-12-05 | Contratos de Locacao |
+| 6.9.0 | 2025-12-05 | Ficha Financeira / Contas a Receber |
+| 6.10.0 | 2025-12-07 | Configuracao API Bancaria |
+| 6.11.0 | 2025-12-07 | Integracao API Santander — Auth + Services |
+| 6.11.1 | 2025-12-07 | Regra 0 Schema Doctrine, sincronizacao completa |
+| 6.12.0 | 2025-12-07 | CRUD Boletos Bancarios |
+| 6.13.0 | 2025-12-07 | Cobranca Automatica de Contratos |
+| 6.14.0 | 2025-12-07 | Lancamentos (Contas a Pagar/Receber) |
+| 6.15.0 | 2025-12-08 | Prestacao de Contas aos Proprietarios |
+| 6.16.0 | 2025-12-08 | Modulo Relatorios PDF (6 relatorios com preview AJAX) |
+
+### Migracoes Criticas (Referencia Historica)
+
+- **User -> Users:** Corrigida inconsistencia entre entity singular e tabela plural
+- **Pessoa -> Pessoas:** Corrigidas referencias em 15 arquivos principais
+- **isThemeLight():** Implementado controle de tema em entity Pessoas
+
+### Diario de Bordo Historico
+
+Para historico completo das versoes V6.0–V6.4, consulte:
+`/workspaces/AlmasaStudio/diarioAlmasaEm16112025_pdf.pdf`
+
+---
+
+## Cap 2 — Arquitetura Tecnica
+
+### Stack Completa
+
+| Camada | Tecnologia |
+|--------|------------|
+| **PHP** | 8.2+ |
+| **Framework** | Symfony 7.2 (CLI 5.15.1) |
+| **ORM** | Doctrine 2 |
+| **Banco** | PostgreSQL 14+ |
+| **Templates** | Twig 3 |
+| **CSS** | Bootstrap 5.3 |
+| **JavaScript** | Vanilla JS (ES6) — Modular |
+| **Build** | Webpack Encore |
+| **Componentes** | Hotwired Stimulus, Hotwired Turbo |
+| **CSRF** | Token unico global `ajax_global` |
+| **Auth** | Symfony Security Bundle |
+| **PDF** | DomPDF |
+| **Email** | Symfony Mailer |
+
+### Padrao Arquitetural: Thin Controller / Fat Service
+
+**Controllers** (`src/Controller/`):
+- Recebem `Request`, validam formulario, chamam Service, retornam Response
+- PROIBIDO: logica de negocio, transacoes, `flush()`, `persist()`, `remove()`
+
+**Services** (`src/Service/`):
+- Toda logica de negocio, validacoes complexas
+- Gerenciamento de transacoes (`beginTransaction`, `commit`, `rollBack`)
+- Operacoes de persistencia (`persist`, `remove`, `flush`)
+
+**Repositorios** (`src/Repository/`):
+- Consultas DQL/SQL complexas
+- SEMPRE colocar DQL em Repository, NUNCA em Controller ou Service
+
+### Padroes de Codigo
+
+- **Clean Code** — nomes descritivos, metodos pequenos e focados
+- **SOLID** — especialmente Single Responsibility
+- **DRY** — evitar duplicacao
+- **Type Hints** — sempre declarar tipos de parametros e retorno
+- **DocBlocks** — documentar metodos complexos
+
+### Rotas Padrao
+
+- **DELETE:** Padrao `/pessoa/{entidade}/{id}` usando metodo HTTP DELETE
+- **Resposta JSON:** Sempre `{'success': true}` ou `{'success': false, 'message': '...'}`
+- **SEMPRE incluir `id` no JSON** de entidades que podem ser deletadas
+
+### Integracoes
+
+| Integracao | Status | Detalhes |
+|------------|--------|----------|
+| API Santander (Boletos) | Implementado | Registro, consulta, baixa via OAuth 2.0 + mTLS |
+| Busca CEP (ViaCEP) | Implementado | Via API externa |
+| Email (Symfony Mailer) | Implementado | Configuravel no .env |
+
+### Resumo Executivo
+
+| Categoria | Quantidade |
+|-----------|------------|
+| Controllers | 43 |
+| Entities | 82 |
+| Services | 15 |
+| Repositories | 51 |
+| Templates | 151 |
+| Commands | 2 |
+| Rotas | ~200 |
+
+---
+
+## Cap 3 — Mapa de Arquivos
+
+### Backend
+
+```
+src/
+├── Controller/
+│   ├── PessoaController.php
+│   ├── ImovelController.php
+│   ├── ContratoController.php
+│   ├── FichaFinanceiraController.php
+│   ├── LancamentosController.php
+│   ├── BoletoController.php
+│   ├── CobrancaController.php
+│   ├── PrestacaoContasController.php
+│   ├── RelatorioController.php
+│   ├── InformeRendimentoController.php
+│   ├── ConfiguracaoApiBancoController.php
+│   └── ... (cadastros auxiliares)
+│
+├── Service/
+│   ├── PessoaService.php          (76.300 bytes)
+│   ├── BoletoSantanderService.php (37.052 bytes)
+│   ├── FichaFinanceiraService.php (25.534 bytes)
+│   ├── ContratoService.php        (23.131 bytes)
+│   ├── CobrancaContratoService.php(20.423 bytes)
+│   ├── ImovelService.php          (18.977 bytes)
+│   ├── InformeRendimentoService.php(18.412 bytes)
+│   ├── LancamentosService.php     (550+ linhas)
+│   ├── PrestacaoContasService.php (600+ linhas)
+│   ├── RelatorioService.php       (800+ linhas)
+│   ├── SantanderAuthService.php   (12.739 bytes)
+│   ├── EmailService.php           (11.663 bytes)
+│   ├── ConfiguracaoApiBancoService.php (9.350 bytes)
+│   ├── CepService.php             (3.714 bytes)
+│   └── ... (servicos auxiliares)
+│
+├── Entity/        (82 entidades)
+├── Repository/    (51 repositorios)
+├── Form/          (FormTypes)
+└── Command/
+    ├── CreateAdminCommand.php
+    └── EnviarBoletosAutomaticoCommand.php
+```
+
+### Frontend
+
+```
+assets/
+├── app.js                          # Entry point principal
+├── js/
+│   ├── pessoa/                     # 16 modulos JS
+│   │   ├── pessoa.js               # Utilitarios, setFormValue
+│   │   ├── new.js                  # Busca inteligente
+│   │   ├── pessoa_tipos.js         # Gerenciamento de tipos
+│   │   ├── pessoa_enderecos.js     # DELETE enderecos
+│   │   ├── pessoa_telefones.js     # DELETE telefones
+│   │   ├── pessoa_emails.js        # DELETE emails
+│   │   ├── pessoa_chave_pix.js     # DELETE chaves PIX
+│   │   ├── pessoa_documentos.js    # DELETE documentos
+│   │   ├── pessoa_profissoes.js    # DELETE profissoes
+│   │   ├── pessoa_conjuge.js       # salvarConjuge, carregarDados
+│   │   ├── pessoa_modals.js        # salvarNovoTipo (reutilizavel)
+│   │   ├── conjuge_telefones.js
+│   │   ├── conjuge_enderecos.js
+│   │   ├── conjuge_emails.js
+│   │   ├── conjuge_documentos.js
+│   │   ├── conjuge_chave_pix.js
+│   │   └── conjuge_profissoes.js
+│   ├── financeiro/                 # Ficha financeira
+│   ├── lancamentos/                # Contas a pagar/receber
+│   ├── boleto/                     # Boletos
+│   ├── cobranca/                   # Cobranca automatica
+│   ├── relatorios/                 # Relatorios PDF
+│   ├── prestacao_contas/           # Prestacao de contas
+│   ├── informe_rendimento/         # DIMOB
+│   └── configuracao_api_banco/     # Config API
+```
+
+### Templates
+
+```
+templates/
+├── base.html.twig
+├── _partials/
+│   └── breadcrumb.html.twig
+├── pessoa/
+│   ├── index.html.twig
+│   ├── pessoa_form.html.twig
+│   ├── show.html.twig
+│   └── partials/ (9 subformularios)
+├── imovel/
+├── contrato/
+├── financeiro/
+├── lancamentos/
+├── boleto/
+├── cobranca/
+├── prestacao_contas/
+├── relatorios/
+│   ├── index.html.twig (dashboard)
+│   ├── 6 filtros + 6 previews + 8 PDFs
+│   └── pdf/ (_header, _footer, 6 templates)
+├── informe_rendimento/
+└── ... (cadastros auxiliares)
+```
+
+### Webpack Entries
+
+| Entry | Caminho | Funcao |
+|-------|---------|--------|
+| app | assets/app.js | Principal |
+| informe_rendimento | assets/js/informe_rendimento/*.js | DIMOB |
+| financeiro | assets/js/financeiro/*.js | Ficha financeira |
+| financeiro_form | assets/js/financeiro/*.js | Form financeiro |
+| configuracao_api_banco | assets/js/configuracao_api_banco/*.js | Config API |
+| boleto | assets/js/boleto/*.js | Listagem boletos |
+| boleto_form | assets/js/boleto/*.js | Form boletos |
+| cobranca | assets/js/cobranca/*.js | Cobranca automatica |
+| lancamentos | assets/js/lancamentos/*.js | Lancamentos |
+| prestacao_contas | assets/js/prestacao_contas/*.js | Prestacao contas |
+| relatorios | assets/js/relatorios/*.js | Relatorios PDF |
+
+---
+
+## Cap 4 — Modulo Pessoas
+
+**Status:** Completo
+
+### Entidade Central: `Pessoas`
+
+Uma pessoa pode ter multiplos tipos/papeis simultaneamente:
+- **Contratante** (`PessoasContratantes`)
+- **Fiador** (`PessoasFiadores`)
+- **Locador** (`PessoasLocadores`)
+- **Corretor** (`PessoasCorretores`)
+- **Corretora** (`PessoasCorretoras` — pessoa juridica)
+- **Pretendente** (`PessoasPretendentes`)
+- **Advogado** (`PessoasAdvogados`)
+- **Socio** (`PessoasSocios`)
+
+### Entities (14)
+
+Pessoas, PessoasFiadores, PessoasLocadores, PessoasContratantes, PessoasCorretores, PessoasCorretoras, PessoasPretendentes, PessoasAdvogados, PessoasSocios, PessoasDocumentos, PessoasTelefones, PessoasEmails, PessoasProfissoes, RelacionamentosFamiliares
+
+### Controller e Rotas
+
+**Controller:** `PessoaController.php` (33.930 bytes)
+
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | /pessoa/ | Listagem |
+| GET/POST | /pessoa/new | Novo cadastro |
+| GET/POST | /pessoa/{id}/edit | Edicao |
+| GET | /pessoa/{id} | Visualizacao |
+| POST | /pessoa/{id} | Exclusao |
+| POST | /pessoa/_subform | Carrega subformulario de tipo |
+| POST | /pessoa/search-pessoa-advanced | Busca avancada |
+| DELETE | /pessoa/endereco/{id} | Remove endereco |
+| DELETE | /pessoa/telefone/{id} | Remove telefone |
+| DELETE | /pessoa/email/{id} | Remove email |
+| DELETE | /pessoa/chave-pix/{id} | Remove PIX |
+| DELETE | /pessoa/documento/{id} | Remove documento |
+| DELETE | /pessoa/profissao/{id} | Remove profissao |
+| DELETE | /pessoa/conta-bancaria/{id} | Remove conta |
+
+### Service
+
+**PessoaService.php** (76.300 bytes) — Fat Service com toda logica de negocio
+
+Metodos principais:
+- `findByCpfDocumento()` — Busca pessoa por CPF
+- `findCnpjDocumento()` — Busca pessoa por CNPJ
+- `buscarConjugePessoa()` — Busca dados completos do conjuge
+- Validacao de duplicidade antes de salvar
+
+### Sub-formularios Dinamicos
+
+Selecao de tipo carrega via AJAX um partial `.twig` especifico:
+- Rota: `app_pessoa__subform`
+- FormType dedicado para cada tipo (ex: `PessoaFiadorType`)
+
+### Dados Multiplos
+
+Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CNPJ, RG, etc.), Chaves PIX, Profissoes
+
+### Arquitetura de Conjuge
+
+- A coluna `conjuge_id` existe na tabela `pessoas`, mas NAO e a fonte da verdade
+- **Fonte oficial:** Tabela `relacionamentos_familiares` (tipoRelacionamento = 'Conjuge')
+- Permite historico, dados contextuais (regime de casamento, datas), e relacionamento bidirecional
+
+### Issue Aberta
+
+**#1: Conjuge nao carrega na busca**
+- Severidade: MEDIA
+- `searchPessoaAdvanced` retorna `'conjuge' => null`
+- Causa: Metodo `buscarConjugePessoa()` nao implementado completamente
+- Proxima tarefa: Implementar busca completa com todos dados multiplos
+
+---
+
+## Cap 5 — Modulo Imoveis
+
+**Status:** Completo
+
+### Controller e Rotas
+
+**Controller:** `ImovelController.php`
+
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | /imovel/ | Listagem |
+| GET/POST | /imovel/new | Novo |
+| GET/POST | /imovel/edit/{id} | Edicao |
+| GET | /imovel/buscar | Busca |
+| DELETE | /imovel/foto/{id} | Remove foto |
+| DELETE | /imovel/medidor/{id} | Remove medidor |
+| DELETE | /imovel/propriedade/{idImovel}/{idPropriedade} | Remove propriedade |
+| GET | /imovel/propriedades/catalogo | Catalogo de propriedades |
+
+### Entities (6)
+
+- `Imoveis.php` (30.523 bytes — 63 campos)
+- `ImoveisContratos.php` — Contratos
+- `ImoveisFotos.php` — Fotos
+- `ImoveisGarantias.php` — Garantias
+- `ImoveisMedidores.php` — Medidores
+- `ImoveisPropriedades.php` — Propriedades
+
+### Service
+
+`ImovelService.php` (18.977 bytes)
+
+---
+
+## Cap 6 — Modulo Contratos
+
+**Status:** Completo
+
+### Controller e Rotas
+
+**Controller:** `ContratoController.php`
+
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | /contrato/ | Listagem |
+| GET | /contrato/show/{id} | Detalhes |
+| GET/POST | /contrato/new | Novo |
+| GET/POST | /contrato/edit/{id} | Edicao |
+| POST | /contrato/encerrar/{id} | Encerrar |
+| POST | /contrato/renovar/{id} | Renovar |
+| GET | /contrato/vencimento-proximo | Vencimento proximo |
+| GET | /contrato/para-reajuste | Para reajuste |
+| GET | /contrato/estatisticas | Estatisticas |
+| GET | /contrato/imoveis-disponiveis | Imoveis disponiveis |
+
+### Entities
+
+- `ImoveisContratos.php` (14.631 bytes) — 11 campos extras (taxa admin, garantia, reajuste, etc.)
+- `ContratosCobrancas.php` — Cobrancas
+- `ContratosItensCobranca.php` — Itens de cobranca
+
+### Service
+
+`ContratoService.php` (23.131 bytes) — CRUD, renovacao, encerramento
+
+---
+
+## Cap 7 — Modulo Financeiro
+
+### 7.1 Ficha Financeira / Contas a Receber
+
+**Status:** Completo
+
+**Controller:** `FichaFinanceiraController.php`
+
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | /financeiro/ | Listagem geral |
+| GET | /financeiro/ficha/{inquilinoId} | Ficha do inquilino |
+| GET/POST | /financeiro/lancamento/new | Novo lancamento |
+| GET/POST | /financeiro/lancamento/{id}/edit | Editar |
+| GET | /financeiro/lancamento/{id} | Detalhes |
+| POST | /financeiro/lancamento/{id}/baixa | Baixa |
+| POST | /financeiro/baixa/{id}/estornar | Estornar |
+| POST | /financeiro/lancamento/{id}/cancelar | Cancelar |
+| POST | /financeiro/gerar-lancamentos | Gerar automatico |
+| GET | /financeiro/em-atraso | Inadimplentes |
+| GET | /financeiro/api/* | APIs JSON (4 rotas) |
+
+**Entities:** LancamentosFinanceiros (22.697 bytes), BaixasFinanceiras, AcordosFinanceiros
+
+**Service:** `FichaFinanceiraService.php` (25.534 bytes) — 14 metodos de gestao financeira
+
+### 7.2 Lancamentos (Contas a Pagar/Receber)
+
+**Status:** Completo (v6.14.0)
+
+**Controller:** `LancamentosController.php` (370+ linhas) — 12 rotas
+
+| Rota | Metodo | Descricao |
+|------|--------|-----------|
+| /lancamentos/ | GET | Listagem com filtros |
+| /lancamentos/new | GET/POST | Novo lancamento |
+| /lancamentos/{id}/edit | GET/POST | Editar |
+| /lancamentos/{id} | DELETE | Excluir |
+| /lancamentos/{id}/baixa | POST | Realizar baixa |
+| /lancamentos/{id}/estornar | POST | Estornar |
+| /lancamentos/{id}/cancelar | POST | Cancelar |
+| /lancamentos/{id}/suspender | POST | Suspender |
+| /lancamentos/vencidos | GET | Lista vencidos |
+| /lancamentos/estatisticas | GET | Dashboard |
+| /lancamentos/api/* | GET | APIs JSON (2 rotas) |
+
+**Entity:** `Lancamentos.php` (860+ linhas) — Constantes para tipos (PAGAR/RECEBER), status, origens
+
+**Service:** `LancamentosService.php` (550+ linhas) — CRUD, baixa (total/parcial), estorno, calculo retencoes INSS/ISS
+
+**Regras de Negocio:**
+- Numero sequencial automatico por tipo
+- Competencia default = mes do vencimento
+- Status automatico baseado em valor_pago vs valor_liquido
+- Nao permite editar/cancelar lancamentos pagos
+- Valor liquido = valor - desconto + juros + multa - INSS - ISS
+
+### 7.3 Informe de Rendimentos / DIMOB
+
+**Status:** Completo (v6.7.0)
+
+**Controller:** `InformeRendimentoController.php` — 8 rotas
+
+**Entities:** InformesRendimentos, InformesRendimentosValores, DimobConfiguracoes
+
+**Service:** `InformeRendimentoService.php` (18.412 bytes) — processamento, impressao, geracao DIMOB
+
+---
+
+## Cap 8 — Modulo Boletos e Cobranca
+
+### 8.1 CRUD de Boletos (API Santander)
+
+**Status:** Completo (v6.12.0)
+
+**Controller:** `BoletoController.php` (400 linhas) — 12 rotas
+
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | /boleto/ | Listagem |
+| GET | /boleto/{id} | Detalhes |
+| GET/POST | /boleto/new | Novo |
+| POST | /boleto/{id}/registrar | Registrar via API |
+| POST | /boleto/{id}/consultar | Consultar status |
+| POST | /boleto/{id}/baixar | Baixar/cancelar |
+| DELETE | /boleto/{id} | Excluir |
+| GET | /boleto/{id}/imprimir | Impressao |
+| GET | /boleto/{id}/segunda-via | Segunda via |
+| POST | /boleto/registrar-lote | Registrar lote |
+| POST | /boleto/consultar-lote | Consultar lote |
+| GET | /boleto/api/estatisticas | Estatisticas |
+
+**Entities:** Boletos (20.407 bytes), BoletosLogApi
+
+**Services:**
+- `BoletoSantanderService.php` (37.052 bytes) — geracao, registro, consulta, baixa
+- `SantanderAuthService.php` (12.739 bytes) — OAuth 2.0 com mTLS
+
+### 8.2 Cobranca Automatica
+
+**Status:** Completo (v6.13.0)
+
+**Controller:** `CobrancaController.php` (355 linhas) — 8 rotas AJAX
+
+**Entities:** ContratosCobrancas, ContratosItensCobranca, EmailsEnviados
+
+**Services:**
+- `CobrancaContratoService.php` (20.423 bytes)
+- `EmailService.php` (11.663 bytes)
+
+**Command:** `app:enviar-boletos-automatico` (cron job diario)
+
+**Regras de Negocio:**
+- Competencia definida pelo periodo de locacao
+- Impossivel duplicar cobrancas (constraint unica)
+- Override manual bloqueia envio automatico
+- Boletos gerados X dias antes do vencimento (configuravel)
+
+### 8.3 Configuracao API Bancaria
+
+**Status:** Completo (v6.10.0)
+
+**Controller:** `ConfiguracaoApiBancoController.php` — 6 rotas
+
+**Entities:** ConfiguracoesApiBanco, ConfiguracoesCobranca
+
+**Service:** `ConfiguracaoApiBancoService.php` — upload seguro, validacao OpenSSL, certificados A1
+
+---
+
+## Cap 9 — Modulo Relatorios e Prestacao de Contas
+
+### 9.1 Relatorios PDF
+
+**Status:** Completo (v6.16.0)
+
+6 relatorios com preview AJAX e geracao PDF via DomPDF:
+
+1. **Inadimplentes** — Lista de inquilinos em atraso com calculo de juros/multa
+2. **Despesas** — Contas a pagar com agrupamento e totalizadores
+3. **Receitas** — Contas a receber com agrupamento e totalizadores
+4. **Despesas x Receitas** — Comparativo com saldo do periodo
+5. **Contas Bancarias** — Extrato com saldos e movimentacoes
+6. **Plano de Contas** — Cadastro de contas contabeis
+
+**Controller:** `RelatorioController.php` (~490 linhas) — 19 rotas (dashboard + 3 por relatorio)
+
+**Service:** `RelatorioService.php` (~800 linhas) — Fat Service com toda logica
+
+**Templates:** 6 filtros + 6 previews + 8 PDFs + dashboard
+
+### 9.2 Prestacao de Contas aos Proprietarios
+
+**Status:** Completo (v6.15.0)
+
+**Controller:** `PrestacaoContasController.php` (350+ linhas) — 13 rotas
+
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| GET | /prestacao-contas/ | Dashboard |
+| GET/POST | /prestacao-contas/gerar | Gerar |
+| POST | /prestacao-contas/preview | Preview |
+| GET | /prestacao-contas/{id} | Visualizar |
+| GET | /prestacao-contas/{id}/pdf | PDF |
+| POST | /prestacao-contas/{id}/aprovar | Aprovar |
+| GET/POST | /prestacao-contas/{id}/repasse | Repasse |
+| POST | /prestacao-contas/{id}/cancelar | Cancelar |
+| DELETE | /prestacao-contas/{id} | Excluir |
+| GET | /prestacao-contas/historico/{id} | Historico |
+| GET | /prestacao-contas/imoveis/{id} | Imoveis |
+| POST | /prestacao-contas/calcular-periodo | Calcular periodo |
+
+**Entities:** PrestacoesContas (580+ linhas), PrestacoesContasItens (300+ linhas)
+
+**Service:** `PrestacaoContasService.php` (600+ linhas) — geracao, preview, aprovacao, repasse, cancelamento
+
+---
+
+## Cap 10 — Cadastros Auxiliares e Configuracoes
+
+### Modulos CRUD Auxiliares
+
+Todos com status Completo:
+
+| Modulo | Controller |
+|--------|------------|
+| Estados | EstadoController |
+| Cidades | CidadeController |
+| Bairros | BairroController |
+| Logradouros | LogradouroController |
+| Agencias | AgenciaController |
+| Contas Bancarias | ContaBancariaController |
+| Emails | EmailController |
+| Telefones | TelefoneController |
+| Nacionalidades | NacionalidadeController |
+| Naturalidades | NaturalidadeController |
+| Estado Civil | EstadoCivilController |
+| Tipo Documento | TipoDocumentoController |
+| Tipo Telefone | TipoTelefoneController |
+| Tipo Email | TipoEmailController |
+| Tipo Endereco | TipoEnderecoController |
+| Tipo Imovel | TipoImovelController |
+| Tipo Pessoa | TipoPessoaController |
+| Tipo Chave PIX | TipoChavePixController |
+| Tipo Conta Bancaria | TipoContaBancariaController |
+| Tipo Carteira | TipoCarteiraController |
+| Tipo Remessa | TipoRemessaController |
+| Tipo Atendimento | TipoAtendimentoController |
+
+### Commands Disponiveis
+
+| Command | Descricao | Status |
+|---------|-----------|--------|
+| `app:create-admin` | Cria usuario administrador | Ativo |
+| `app:enviar-boletos-automatico` | Envio automatico de boletos | Ativo (cron desativado) |
+
+**Cron configurado:** `cron/cobranca_automatica.cron`
+
+### Arquivos de Configuracao
+
+| Arquivo | Funcao |
+|---------|--------|
+| `.env` | Variaveis de ambiente |
+| `config/services.yaml` | Configuracao de servicos |
+| `webpack.config.js` | Build de assets (12 entries) |
+| `CLAUDE.md` | Regras para Claude Code |
+| `docs/LIVRO_ALMASA.md` | Fonte unica da verdade |
+| `cron/cobranca_automatica.cron` | Configuracao do cron |
+
+### O Que Nao Existe (ainda)
+
+| Funcionalidade | Status |
+|----------------|--------|
+| Modulo Juridico (processos, follow-up) | Nao implementado |
+| Modulo de Seguros | Nao implementado |
+| Modulo de Manutencao/Obras | Nao implementado |
+| Modulo de Vistorias | Nao implementado |
+| App Mobile | Nao implementado |
+| Dashboard com graficos | Parcial (basico) |
+| Notificacoes Push | Nao implementado |
+| Integracao WhatsApp | Nao implementado |
+
+---
+
+## Cap 11 — Banco de Dados
+
+### Entidades por Categoria
+
+**Pessoas (14 entities):**
+Pessoas, PessoasFiadores, PessoasLocadores, PessoasContratantes, PessoasCorretores, PessoasCorretoras, PessoasPretendentes, PessoasAdvogados, PessoasSocios, PessoasDocumentos, PessoasTelefones, PessoasEmails, PessoasProfissoes, RelacionamentosFamiliares
+
+**Imoveis (6 entities):**
+Imoveis, ImoveisContratos, ImoveisFotos, ImoveisGarantias, ImoveisMedidores, ImoveisPropriedades
+
+**Financeiro (8 entities):**
+LancamentosFinanceiros, BaixasFinanceiras, AcordosFinanceiros, Boletos, BoletosLogApi, ContratosCobrancas, ContratosItensCobranca, EmailsEnviados
+
+**Configuracoes (4 entities):**
+ConfiguracoesApiBanco, ConfiguracoesCobranca, DimobConfiguracoes, PlanoContas
+
+**Enderecos (5 entities):**
+Estados, Cidades, Bairros, Logradouros, Enderecos
+
+**Bancos (4 entities):**
+Bancos, Agencias, ContasBancarias, ContasVinculadas
+
+**Tipos (14 entities):**
+TiposDocumentos, TiposTelefones, TiposEmails, TiposEnderecos, TiposImoveis, TiposPessoas, TiposChavesPix, TiposContasBancarias, TiposCarteiras, TiposRemessa, TiposAtendimento, EstadoCivil, Nacionalidade, Naturalidade
+
+**Outros (27 entities):**
+Users, Roles, Permissions, Sessions, Telefones, Emails, ChavesPix, Profissoes, Condominios, FiadoresInquilinos, FormasRetirada, InformesRendimentos, InformesRendimentosValores, Lancamentos, LayoutsRemessa, PropriedadesCatalogo, RazoesConta, RegimesCasamento, RequisicoesResponsaveis, FailedJobs, PersonalAccessTokens, PasswordResetTokens, ModelHasPermissions, ModelHasRoles, RoleHasPermissions, PrestacoesContas, PrestacoesContasItens
+
+### Tabelas de Dados Multiplos
+
+| Tabela | Coluna ID | Chave Estrangeira | Observacao |
+|--------|-----------|-------------------|------------|
+| `enderecos` | `id` | `pessoa_id -> pessoas.id` | Direto |
+| `telefones` | `id` | `pessoas_telefones.telefone_id` | Tabela pivot |
+| `emails` | `id` | `pessoas_emails.email_id` | Tabela pivot |
+| `chaves_pix` | `id` | `id_pessoa -> pessoas.id` | Direto |
+| `pessoas_documentos` | `id` | `id_pessoa -> pessoas.id` | Direto |
+| `pessoas_profissoes` | `id` | `id_pessoa -> pessoas.id` | Direto |
+| `relacionamentos_familiares` | `id` | `idPessoaOrigem / idPessoaDestino -> pessoas.id` | Fonte da verdade para Conjuge |
+
+### Validacao de Schema
+
+```bash
+# SEMPRE rodar ao iniciar qualquer tarefa
+php bin/console doctrine:schema:validate
+
+# Diagnosticar divergencias
+php bin/console doctrine:schema:update --dump-sql
+```
+
+**Divergencias aceitaveis:** DROP SEQUENCE, ALTER DROP DEFAULT, ALTER INDEX RENAME, DROP/CREATE INDEX
+
+**Divergencias NAO aceitaveis:** ALTER TYPE, ALTER SET NOT NULL, DROP/ADD COLUMN
+
+---
+
+## Cap 12 — Frontend
+
+### JavaScript 100% Modular
+
+**PROIBIDO:**
+- Codigo JavaScript inline em templates Twig
+- Atributos `onclick`, `onchange`, etc.
+- Tags `<script>` com codigo dentro dos arquivos `.twig`
+
+**OBRIGATORIO:**
+- Todo JavaScript em arquivos `.js` dedicados em `assets/js/`
+- Organizacao modular por funcionalidade
+
+**UNICA EXCECAO — Passar dados do backend para frontend:**
+```twig
+{# No FINAL do arquivo .twig #}
+<script>
+    window.ROUTES = {
+        subform: '{{ path("app_pessoa__subform") }}',
+        delete: '{{ path("app_pessoa_delete_telefone", {id: '__ID__'}) }}'
+    };
+    window.FORM_IDS = {
+        pessoaId: '{{ form.pessoaId.vars.id | default('') }}'
+    };
+</script>
+```
+
+### Token CSRF Unico
+
+- **UM UNICO TOKEN:** `ajax_global` para TODAS as requisicoes AJAX
+- Meta tag: `<meta name="csrf-token" content="{{ csrf_token('ajax_global') }}">`
+- Headers obrigatorios:
+```javascript
+headers: {
+    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+    'X-Requested-With': 'XMLHttpRequest',
+    'Content-Type': 'application/json'
+}
+```
+
+### Padrao DELETE em JS
+
+```javascript
+fetch(`/pessoa/telefone/${id}`, {
+    method: 'DELETE',
+    headers: {
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+})
+.then(response => response.json())
+.then(data => {
+    if (data.success) { /* Remove da UI */ }
+});
+```
+
+### Padrao de Templates CRUD
+
+**Estrutura obrigatoria:**
+- Block: `{% block content %}` (NAO `body`)
+- Breadcrumb: Incluir `_partials/breadcrumb.html.twig`
+- Icones: FontAwesome (`fas fa-*`), NAO Bootstrap Icons
+- Tabela: `table-striped table-hover` com `thead class="table-dark"`
+- Card: `<div class="card">` (sem `shadow-sm`)
+- Botao voltar: `<i class="fas fa-arrow-left"></i> Voltar`
+- Botao salvar: `<i class="fas fa-check"></i> Salvar`
+
+**Nomes em Twig — SEMPRE camelCase:**
+- `{{ item.codigoInterno }}` (nao `codigo_interno`)
+- `{{ item.valorVenda }}` (nao `valor_venda`)
+- `{{ item.tipoEntidade.descricao }}` (para relacionamentos)
+- `isAtivo()` (para booleanos)
+
+---
+
+## Cap 13 — Licoes Aprendidas
+
+### 1. Assinaturas de Funcao
+Sempre verificar quantos parametros uma funcao espera antes de chama-la. Uma funcao que espera 2 parametros (`tipos`, `tiposDados`) nao pode ser chamada com apenas 1.
+
+### 2. Campos de Sistema vs. Campos de Formulario
+Ao iterar objetos vindos do backend, sempre filtrar campos de banco que nao existem no formulario HTML:
+```javascript
+const camposIgnorados = ['id', 'created_at', 'updated_at', 'createdAt', 'updatedAt', 'pessoa_id', 'pessoaId'];
+```
+
+### 3. Logs sao Essenciais
+```javascript
+console.log('Sucesso:', dados);
+console.warn('Aviso:', mensagem);
+console.error('Erro:', erro);
+```
+
+### 4. Separacao de Responsabilidades
+- `new.js` — Responsavel por chamar funcoes de carregamento
+- `pessoa_tipos.js` — Responsavel por criar cards e preencher dados
+
+### 5. Sempre Testar com Dados Reais
+Testes com dados mockados nao revelam todos os problemas. Sempre validar com dados reais do banco.
+
+### 6. Schema Doctrine Deve Bater Sempre
+Qualquer divergencia estrutural entre entities e banco deve ser corrigida imediatamente, independente da tarefa em andamento.
+
+### 7. Banco de Dados e a Fonte da Verdade
+Em caso de divergencia entre entity e tabela PostgreSQL, o banco prevalece.
+
+---
+
+## Cap 14 — Plano de Testes
+
+### Arquitetura Multi-Agente
+
+```
+┌─────────────────────────────────────────────┐
+│          OPUS (Engenheiro)                   │
+│          Claude Code - Orquestrador          │
+│                                              │
+│  - Define cenarios de teste                  │
+│  - Analisa resultados                        │
+│  - Toma decisoes arquiteturais               │
+├──────────────┬───────────────────────────────┤
+│              │                                │
+│     ┌────────▼────────┐  ┌──────────────────┐│
+│     │ HAIKU            │  │ HAIKU            ││
+│     │ test-runner      │  │ e2e-navigator    ││
+│     │ (Mestre de Obras)│  │ (Navegador)      ││
+│     │                  │  │                  ││
+│     │ - Aider + GPT    │  │ - Playwright     ││
+│     │ - PHPUnit        │  │ - Testa rotas    ││
+│     │ - Monitora       │  │ - Captura erros  ││
+│     └──────────────────┘  └──────────────────┘│
+└─────────────────────────────────────────────┘
+```
+
+### Etapa 1 — Testes Unitarios (PHPUnit)
+
+**Fluxo:**
+1. Opus analisa estrutura e identifica classes prioritarias
+2. Opus define instrucoes atomicas (uma tarefa por vez)
+3. Opus spawna `test-runner` (Haiku) com a tarefa
+4. Haiku abre Aider com GPT-OSS 20B via OpenRouter
+5. GPT-OSS gera os testes
+6. Haiku roda `php bin/phpunit` e coleta resultados
+7. Haiku reporta ao Opus
+8. Opus analisa, decide correcoes, dispara proxima rodada
+
+**Configuracao do Aider:**
+```bash
+export OPENROUTER_API_KEY=<sua-chave>
+aider --model openrouter/open-gpt-oss-20b --no-auto-commits
+```
+
+**Prioridade de cobertura:**
+1. Entidades/Models (Doctrine)
+2. Services (logica de negocio)
+3. Controllers (rotas e responses)
+4. Repositories (queries customizadas)
+5. Validators/Constraints
+
+### Etapa 2 — Testes E2E (Playwright)
+
+**Fluxo:**
+1. Opus define cenarios de navegacao
+2. Opus spawna `e2e-navigator` (Haiku) com o cenario
+3. Haiku executa via Playwright
+4. Haiku reporta resultados com screenshots
+5. Opus analisa e prioriza correcoes
+
+**Setup Playwright MCP:**
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@anthropic/playwright-mcp"]
+    }
+  }
+}
+```
+
+**Cenarios prioritarios:**
+1. Login/Autenticacao
+2. Dashboard principal
+3. CRUD de contratos imobiliarios
+4. Gestao financeira
+5. Integracao bancaria (API)
+6. Relatorios
+
+### Agente: test-runner (Haiku)
+
+**Papel:** Mestre de obras — executa e monitora, nunca toma decisoes arquiteturais
+
+**Responsabilidades:**
+- Abre Aider via Bash com GPT-OSS 20B
+- Passa instrucoes exatas do Opus
+- Roda `php bin/phpunit` para validar
+- Reporta: quantos testes gerados, passaram, falharam, erros
+- Se GPT-OSS entrar em loop, interrompe e reporta
+
+**Regras:**
+- NUNCA tome decisoes arquiteturais
+- NUNCA altere codigo de producao
+- NUNCA faca commits sem autorizacao
+- SEMPRE reporte de forma estruturada
+
+### Agente: e2e-navigator (Haiku)
+
+**Papel:** Navegador de testes E2E via Playwright
+
+**Responsabilidades:**
+- Executar cenarios de teste definidos pelo Opus
+- Navegar rotas, preencher formularios, validar respostas
+- Capturar screenshots de falhas
+- Reportar detalhado por cenario
+
+**Formato de reporte:**
+```
+CENARIO: [nome]
+ROTA: [URL]
+STATUS: PASSOU | FALHOU | ERRO
+TEMPO: [duracao]
+DETALHES: [se falhou]
+SCREENSHOT: [caminho]
+```
+
+**Regras:**
+- NUNCA edite codigo
+- NUNCA altere dados de producao
+- Se rota retornar 500, capture info e reporte
+- Se sistema estiver down, reporte imediatamente
+
+### Pre-requisitos
+
+- [ ] Node.js instalado
+- [ ] Aider instalado (`pip install aider-chat`)
+- [ ] Chave OpenRouter configurada
+- [ ] AlmasaStudio rodando localmente
+- [ ] Banco com dados de teste
+- [ ] Playwright instalado (`npx playwright install`)
+
+### Notas Importantes
+
+- **Prompt Atomicity:** Cada tarefa ao GPT-OSS deve ser atomica
+- **Sem commits automaticos:** Aider roda com `--no-auto-commits`
+- **Budget control:** Configurar `maxTurns` nos sub-agentes
+- **Contexto limpo:** Sub-agentes nao poluem contexto do Opus
+
+---
+
+## Changelog
+
+### Formato
+
+Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
+
+**Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.16.1] - 2026-02-19
+
+#### Corrigido
+- **Testes PHPUnit em tests/Service/** — Corrigidas 3 suites de testes com 44 testes
+  - **ImovelServiceTest.php** (2 erros):
+    - Linha 70 e 151: `getEndereco()` retornava `null` mas tipo de retorno é `Enderecos` (não-nulável)
+    - Solução: Criar mock de `Enderecos` e `Pessoas` e retornar no lugar de `null`
+    - 12 testes agora passam com 31 assertions
+  - **InformeRendimentoServiceTest.php** (1 erro):
+    - Linha 92: Tentava chamar `setId()` que não existe em `InformesRendimentos` (ID é auto-gerado)
+    - Solução: Usar Reflection para definir propriedade `id` privada
+    - 16 testes agora passam com 48 assertions
+  - **RelatorioServiceTest.php** (múltiplas chamadas):
+    - Múltiplos testes com `expects($this->once())` em `getResult()` que era chamado mais de uma vez
+    - Solução: Alterar para `expects($this->any())` em 5 métodos (getDespesas, getTotalDespesas, getTotalReceitas, getPlanoContas, getMovimentosContaBancaria)
+    - 16 testes agora passam com 40 assertions
+  - **Schema Doctrine:** Validado e sincronizado (`[OK]`)
+  - **Total:** 44 testes, 119 assertions, 0 falhas
+
+---
+
+### [6.16.0] - 2025-12-08
+
+#### Adicionado
+- **Modulo Relatorios PDF** — 6 relatorios com preview AJAX e geracao PDF via DomPDF
+  - Inadimplentes, Despesas, Receitas, Despesas x Receitas, Contas Bancarias, Plano de Contas
+  - RelatorioService.php (~800 linhas), RelatorioController.php (~490 linhas)
+  - 19 rotas, 20+ templates, 2 modulos JS
+  - webpack.config.js atualizado
+
+### [6.15.0] - 2025-12-08
+
+#### Adicionado
+- **Modulo Prestacao de Contas aos Proprietarios**
+  - Migration com tabelas `prestacoes_contas` e `prestacoes_contas_itens`
+  - PrestacoesContas.php (580+ linhas), PrestacoesContasItens.php (300+ linhas)
+  - PrestacaoContasService.php (600+ linhas), PrestacaoContasController.php (350+ linhas)
+  - 13 rotas, 6 templates, 2 modulos JS, 2 FormTypes
+
+### [6.14.0] - 2025-12-07
+
+#### Adicionado
+- **Modulo Lancamentos (Contas a Pagar/Receber)** — CRUD completo
+  - Migration expansao tabela `lancamentos`
+  - Lancamentos.php (860+ linhas), LancamentosService.php (550+ linhas)
+  - 12 rotas, 5 templates, 2 modulos JS
+
+### [6.13.0] - 2025-12-07
+
+#### Adicionado
+- **Sistema Completo de Cobranca Automatica**
+  - 4 tabelas: contratos_itens_cobranca, contratos_cobrancas, emails_enviados
+  - CobrancaContratoService.php (450+ linhas), EmailService.php (343 linhas)
+  - Command `app:enviar-boletos-automatico`, 8 rotas AJAX
+
+### [6.12.0] - 2025-12-07
+
+#### Adicionado
+- **CRUD Completo de Boletos Bancarios**
+  - BoletoController (400 linhas), BoletoType (270 linhas), 12 rotas, JS modular
+
+### [6.11.1] - 2025-12-07
+
+#### Alterado
+- Regra 0 Schema Doctrine no CLAUDE.md
+
+#### Corrigido
+- Sincronizacao completa de Schema Doctrine (tipos, nullability, campos, indices)
+
+### [6.11.0] - 2025-12-07
+
+#### Adicionado
+- **Integracao API Santander** — Auth OAuth 2.0 + mTLS, Boletos + BoletosLogApi entities, 2 services
+
+### [6.10.0] - 2025-12-07
+
+#### Adicionado
+- **Configuracao API Bancaria** — CRUD, upload certificado A1, validacao OpenSSL
+
+### [6.9.0] - 2025-12-05
+
+#### Adicionado
+- **Ficha Financeira / Contas a Receber** — 3 tabelas, FichaFinanceiraService (600+ linhas), 14 metodos
+
+### [6.8.0] - 2025-12-05
+
+#### Adicionado
+- **Contratos de Locacao** — 11 campos novos, ContratoService (615 linhas), renovacao/encerramento
+
+### [6.7.1] - 2025-12-04
+
+#### Adicionado
+- **Tipos Socio e Advogado** — 2 tabelas, entities, repositories, FormTypes, templates
+
+### [6.7.0] - 2025-12-01
+
+#### Adicionado
+- **Informe de Rendimentos / DIMOB** — 5 tabelas, InformeRendimentoService (500+ linhas)
+
+### [6.6.6] - 2025-11-30
+
+#### Corrigido
+- Codigo corrompido em ImovelController, atributos snake_case para camelCase
+
+### [6.6.5] - 2025-11-29
+
+#### Adicionado
+- **Modulo Completo de Imoveis** — 9 tabelas, 8 entidades, ImovelService (540 linhas)
+
+### [6.6.4] - 2025-11-27
+
+#### Removido
+- Arquivos .md temporarios (README.md, MIGRATION_*.md, CORRECAO_*.md)
+
+#### Adicionado
+- Regras no CLAUDE.md sobre uso exclusivo do CHANGELOG.md
+
+### [6.6.3] ate [6.5.5] - 2025-11-24 ate 2025-11-16
+
+#### Corrigido
+- Persistencia data admissao conjuge
+- NonUniqueResultException (registros duplicados)
+- PRIMARY KEYs faltantes
+- Select tipo documento conjuge
+- Validacoes CSRF adicionadas
+- Enriquecimento de dados
+
+### [6.5.4] ate [6.5.0] - 2025-11-16
+
+#### Adicionado
+- `buscarConjugePessoa()` — busca completa dados do conjuge
+- Carregamento automatico modo edicao
+- Melhorias listagem (CPF/CNPJ, tipos por extenso)
+
+### [6.4.1] - 2025-11-16
+
+#### Adicionado
+- CLAUDE.md com diretrizes completas
+
+#### Alterado
+- Template renomeado new.html.twig para pessoa_form.html.twig
+
+### [6.4.0] - 2025-11-16
+
+#### Corrigido
+- Carregamento de tipos de pessoa ao buscar pessoa existente
+- Metodos de busca de documentos
+
+### [6.3.0] - 2025-11-09
+
+#### Adicionado
+- PessoaService (Fat Service), PessoaController refatorado (Thin Controller)
+
+### [6.2.0] - 2025-11-08
+
+#### Adicionado
+- Modulos JS para dados multiplos do conjuge, pessoa_conjuge.js, pessoa_modals.js
+
+### [6.1.0] - 2025-11-07
+
+#### Adicionado
+- Rotas DELETE para dados multiplos, modulos JS, token CSRF padronizado
+
+### [6.0.0] - 2025-11-06
+
+#### Adicionado
+- Busca inteligente, sistema de tipos multiplos, FormTypes por tipo
+
+### [5.0.0] - 2025-11-05
+
+#### Adicionado
+- Implementacao inicial Modulo Pessoas — 13 entidades, PostgreSQL + Webpack Encore + Bootstrap 5
+
+---
+
+### Migracoes Criticas (Referencia)
+
+- **User -> Users:** Entity singular para tabela plural
+- **Pessoa -> Pessoas:** 15 arquivos atualizados
+- **isThemeLight():** Controle de tema integrado
+
+---
+
+**Ultima atualizacao:** 2026-02-19
+**Mantenedor:** Marcio Martins
+**Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code)

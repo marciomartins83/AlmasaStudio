@@ -608,25 +608,26 @@ class ContratoService
 
         $logradouro = $endereco->getLogradouro();
         if ($logradouro) {
-            $partes[] = $logradouro->getTipo() . ' ' . $logradouro->getNome();
+            $partes[] = $logradouro->getLogradouro();
         }
 
-        if ($endereco->getNumero()) {
-            $partes[] = 'nº ' . $endereco->getNumero();
+        if ($endereco->getEndNumero()) {
+            $partes[] = 'nº ' . $endereco->getEndNumero();
         }
 
         if ($endereco->getComplemento()) {
             $partes[] = $endereco->getComplemento();
         }
 
-        $bairro = $endereco->getBairro();
-        if ($bairro) {
-            $partes[] = $bairro->getNome();
-        }
-
-        $cidade = $endereco->getCidade();
-        if ($cidade) {
-            $partes[] = $cidade->getNome() . '/' . $cidade->getEstado()->getUf();
+        if ($logradouro) {
+            $bairro = $logradouro->getBairro();
+            if ($bairro) {
+                $partes[] = $bairro->getNome();
+                $cidade = $bairro->getCidade();
+                if ($cidade) {
+                    $partes[] = $cidade->getNome() . '/' . $cidade->getEstado()->getUf();
+                }
+            }
         }
 
         return implode(', ', $partes);

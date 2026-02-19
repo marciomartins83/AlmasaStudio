@@ -3,6 +3,8 @@
 namespace App\Tests\Entity;
 
 use App\Entity\PessoasLocadores;
+use App\Entity\Pessoas;
+use App\Entity\FormasRetirada;
 use DateTime;
 use PHPUnit\Framework\TestCase;
 
@@ -17,21 +19,21 @@ class PessoasLocadoresTest extends TestCase
     public function testPessoaLocadorBasicGettersAndSetters(): void
     {
         $pessoaLocador = new PessoasLocadores();
-        $idPessoa = 1;
+        $pessoa = $this->createMock(Pessoas::class);
         $dependentes = 2;
         $situacao = 1;
         $carencia = 30;
         $protesto = 1;
         $diasProtesto = 10;
 
-        $pessoaLocador->setIdPessoa($idPessoa);
+        $pessoaLocador->setPessoa($pessoa);
         $pessoaLocador->setDependentes($dependentes);
         $pessoaLocador->setSituacao($situacao);
         $pessoaLocador->setCarencia($carencia);
         $pessoaLocador->setProtesto($protesto);
         $pessoaLocador->setDiasProtesto($diasProtesto);
 
-        $this->assertEquals($idPessoa, $pessoaLocador->getIdPessoa());
+        $this->assertSame($pessoa, $pessoaLocador->getPessoa());
         $this->assertEquals($dependentes, $pessoaLocador->getDependentes());
         $this->assertEquals($situacao, $pessoaLocador->getSituacao());
         $this->assertEquals($carencia, $pessoaLocador->getCarencia());
@@ -42,7 +44,7 @@ class PessoasLocadoresTest extends TestCase
     public function testPessoaLocadorBooleanFields(): void
     {
         $pessoaLocador = new PessoasLocadores();
-        
+
         $pessoaLocador->setCobrarCpmf(true);
         $pessoaLocador->setEtiqueta(false);
         $pessoaLocador->setCobrarTarifaRec(true);
@@ -53,36 +55,37 @@ class PessoasLocadoresTest extends TestCase
         $pessoaLocador->setCondominioConta(false);
         $pessoaLocador->setExtEmail(true);
 
-        $this->assertTrue($pessoaLocador->getCobrarCpmf());
-        $this->assertFalse($pessoaLocador->getEtiqueta());
-        $this->assertTrue($pessoaLocador->getCobrarTarifaRec());
-        $this->assertFalse($pessoaLocador->getMultaItau());
-        $this->assertTrue($pessoaLocador->getMoraDiaria());
-        $this->assertFalse($pessoaLocador->getNaoGerarJudicial());
-        $this->assertTrue($pessoaLocador->getEnderecoCobranca());
-        $this->assertFalse($pessoaLocador->getCondominioConta());
-        $this->assertTrue($pessoaLocador->getExtEmail());
+        $this->assertTrue($pessoaLocador->isCobrarCpmf());
+        $this->assertFalse($pessoaLocador->isEtiqueta());
+        $this->assertTrue($pessoaLocador->isCobrarTarifaRec());
+        $this->assertFalse($pessoaLocador->isMultaItau());
+        $this->assertTrue($pessoaLocador->isMoraDiaria());
+        $this->assertFalse($pessoaLocador->isNaoGerarJudicial());
+        $this->assertTrue($pessoaLocador->isEnderecoCobranca());
+        $this->assertFalse($pessoaLocador->isCondominioConta());
+        $this->assertTrue($pessoaLocador->isExtEmail());
     }
 
     public function testPessoaLocadorNullableFields(): void
     {
         $pessoaLocador = new PessoasLocadores();
-        
+
         // Test that nullable fields can be null
-        $this->assertNull($pessoaLocador->getIdFormaRetirada());
+        $this->assertNull($pessoaLocador->getFormaRetirada());
         $this->assertNull($pessoaLocador->getDiaRetirada());
         $this->assertNull($pessoaLocador->getCodigoContabil());
         $this->assertNull($pessoaLocador->getDataFechamento());
 
         // Test setting nullable fields
-        $pessoaLocador->setIdFormaRetirada(1);
+        $formaRetirada = $this->createMock(FormasRetirada::class);
+        $pessoaLocador->setFormaRetirada($formaRetirada);
         $pessoaLocador->setDiaRetirada(15);
         $pessoaLocador->setCodigoContabil(123);
-        
+
         $dataFechamento = new DateTime('2024-12-31');
         $pessoaLocador->setDataFechamento($dataFechamento);
 
-        $this->assertEquals(1, $pessoaLocador->getIdFormaRetirada());
+        $this->assertSame($formaRetirada, $pessoaLocador->getFormaRetirada());
         $this->assertEquals(15, $pessoaLocador->getDiaRetirada());
         $this->assertEquals(123, $pessoaLocador->getCodigoContabil());
         $this->assertEquals($dataFechamento, $pessoaLocador->getDataFechamento());
@@ -99,24 +102,24 @@ class PessoasLocadoresTest extends TestCase
     public function testPessoaLocadorMethodsExist(): void
     {
         $pessoaLocador = new PessoasLocadores();
-        
+
         // Test basic methods
         $this->assertTrue(method_exists($pessoaLocador, 'getId'));
-        $this->assertTrue(method_exists($pessoaLocador, 'getIdPessoa'));
-        $this->assertTrue(method_exists($pessoaLocador, 'setIdPessoa'));
-        
-        // Test nullable field methods
-        $this->assertTrue(method_exists($pessoaLocador, 'getIdFormaRetirada'));
-        $this->assertTrue(method_exists($pessoaLocador, 'setIdFormaRetirada'));
+        $this->assertTrue(method_exists($pessoaLocador, 'getPessoa'));
+        $this->assertTrue(method_exists($pessoaLocador, 'setPessoa'));
+
+        // Test nullable field methods (for FormaRetirada relationship)
+        $this->assertTrue(method_exists($pessoaLocador, 'getFormaRetirada'));
+        $this->assertTrue(method_exists($pessoaLocador, 'setFormaRetirada'));
         $this->assertTrue(method_exists($pessoaLocador, 'getDiaRetirada'));
         $this->assertTrue(method_exists($pessoaLocador, 'setDiaRetirada'));
-        
-        // Test boolean field methods
-        $this->assertTrue(method_exists($pessoaLocador, 'getCobrarCpmf'));
+
+        // Test boolean field methods (using is* prefix)
+        $this->assertTrue(method_exists($pessoaLocador, 'isCobrarCpmf'));
         $this->assertTrue(method_exists($pessoaLocador, 'setCobrarCpmf'));
-        $this->assertTrue(method_exists($pessoaLocador, 'getEtiqueta'));
+        $this->assertTrue(method_exists($pessoaLocador, 'isEtiqueta'));
         $this->assertTrue(method_exists($pessoaLocador, 'setEtiqueta'));
-        
+
         // Test date field methods
         $this->assertTrue(method_exists($pessoaLocador, 'getDataFechamento'));
         $this->assertTrue(method_exists($pessoaLocador, 'setDataFechamento'));
@@ -125,19 +128,20 @@ class PessoasLocadoresTest extends TestCase
     public function testPessoaLocadorFluentInterface(): void
     {
         $pessoaLocador = new PessoasLocadores();
-        
+        $pessoa = $this->createMock(Pessoas::class);
+
         // Test that setters return self for fluent interface
-        $result = $pessoaLocador->setIdPessoa(1)
+        $result = $pessoaLocador->setPessoa($pessoa)
                               ->setDependentes(2)
                               ->setCobrarCpmf(true)
                               ->setEtiqueta(false)
                               ->setSituacao(1);
-        
+
         $this->assertSame($pessoaLocador, $result);
-        $this->assertEquals(1, $pessoaLocador->getIdPessoa());
+        $this->assertSame($pessoa, $pessoaLocador->getPessoa());
         $this->assertEquals(2, $pessoaLocador->getDependentes());
-        $this->assertTrue($pessoaLocador->getCobrarCpmf());
-        $this->assertFalse($pessoaLocador->getEtiqueta());
+        $this->assertTrue($pessoaLocador->isCobrarCpmf());
+        $this->assertFalse($pessoaLocador->isEtiqueta());
         $this->assertEquals(1, $pessoaLocador->getSituacao());
     }
 

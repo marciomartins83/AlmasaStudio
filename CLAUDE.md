@@ -1,191 +1,144 @@
-# CLAUDE.md - Projeto Almasa
+# CLAUDE.md — Regras do Projeto AlmasaStudio
 
-Este arquivo fornece orientação completa para o Claude Code ao trabalhar neste repositório.
+> Sistema de gestao imobiliaria | Symfony 7.2 | PHP 8.2+ | PostgreSQL 14+
 
----
-
-## 🚨 ATENÇÃO - ARQUIVO ÚNICO DE MUDANÇAS
-
-**⚠️ PARA TODOS OS MODELOS (Sonnet, Opus, Haiku):**
-
-### CHANGELOG.md É O ÚNICO ARQUIVO PARA REGISTRAR MUDANÇAS
-
-✅ **PERMITIDO:**
-- `CLAUDE.md` - Diretrizes e documentação do projeto
-- `CHANGELOG.md` - **ÚNICO** arquivo para registrar mudanças
-
-❌ **PROIBIDO - NUNCA CRIE:**
-- `CORRECAO_*.md`
-- `MIGRATION_*.md`
-- `FIX_*.md`
-- `UPDATE_*.md`
-- Qualquer outro arquivo `.md` temporário
-
-**REGRA DE OURO:** Se você fez uma mudança, atualize **IMEDIATAMENTE** o `CHANGELOG.md` seguindo o formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
-
-Veja detalhes completos na seção "📚 Documentação e Histórico" abaixo.
+**Toda documentacao detalhada esta em `docs/LIVRO_ALMASA.md` — a fonte unica da verdade.**
 
 ---
 
-## 🎯 Visão Geral do Projeto
+## Metodologia Multi-Agente
 
-**AlmasaStudio** é um sistema completo de gestão imobiliária desenvolvido em **Symfony 7.2** e **PHP 8.2+**. 
+- **Opus 4.6** = Engenheiro (orquestrador, decisoes arquiteturais)
+- **Haiku 4.5** = Mestre de Obras (subagente via Task tool, executa e monitora)
+- **GPT-OSS 20B** = Pedreiro (executor via Aider + OpenRouter)
 
-O sistema gerencia relacionamentos complexos entre pessoas (locadores, inquilinos, fiadores, corretores), imóveis, contratos e entidades de negócio relacionadas. O modelo de domínio está em **português brasileiro**, refletindo o mercado imobiliário do Brasil.
-
----
-
-## 📚 Stack Tecnológica (REFERÊNCIA OFICIAL)
-
-### Backend
-- **PHP:** 8.2+
-- **Framework:** Symfony 7.2 (CLI: Symfony CLI 5.15.1)
-- **ORM:** Doctrine 2
-- **Banco de Dados:** PostgreSQL 14+
-
-### Frontend
-- **Templates:** Twig 3
-- **CSS Framework:** Bootstrap 5.3
-- **JavaScript:** Vanilla JS (ES6) - Modular
-- **Build Tool:** Webpack Encore
-- **Componentes:** Hotwired Stimulus, Hotwired Turbo
-
-### Segurança
-- **CSRF:** Token único global `ajax_global` para TODAS as requisições AJAX
-- **Autenticação:** Symfony Security Bundle
-
-### Rotas Padrão
-- **DELETE:** Padrão `/pessoa/{entidade}/{id}` usando método HTTP DELETE
-- **Resposta JSON:** Sempre `{'success': true}` ou `{'success': false, 'message': '...'}`
+A chave OpenRouter esta salva no MEMORY.md (privado, fora do git).
+Modelo Aider: `openrouter/openai/gpt-oss-20b`
 
 ---
 
-## 🚨 REGRAS DE OURO (INQUEBRÁVEIS)
+## Regra 0 — Ao abrir sessao, iniciar reminder
 
-### 0. Schema Doctrine DEVE BATER - LEI SUPREMA 🪖⚔️
+Ao iniciar qualquer sessao de trabalho:
+1. Rodar `scripts/automacao/reminder_update_docs.sh` em background
+2. Ler a **Sinopse** e o **Indice** do livro (`docs/LIVRO_ALMASA.md`)
+3. Rodar `php bin/console doctrine:schema:validate`
 
-**⚠️ REGRA ABSOLUTA - PRIORIDADE MÁXIMA - SEM EXCEÇÕES:**
+---
+
+## Regra 1 — Ler o livro antes de agir
+
+Antes de modificar qualquer modulo, leia o capitulo correspondente no livro.
+O livro tem 14 capitulos + changelog. Consulte o indice para navegar.
+
+---
+
+## Regra 2 — A estrutura do livro e sagrada
+
+O `docs/LIVRO_ALMASA.md` segue esta estrutura fixa:
+
+```
+SINOPSE (status atual, versao, proxima tarefa)
+INDICE
+Cap 1 — Historico e Evolucao
+Cap 2 — Arquitetura Tecnica
+Cap 3 — Mapa de Arquivos
+Cap 4 — Modulo Pessoas
+Cap 5 — Modulo Imoveis
+Cap 6 — Modulo Contratos
+Cap 7 — Modulo Financeiro
+Cap 8 — Modulo Boletos e Cobranca
+Cap 9 — Modulo Relatorios e Prestacao de Contas
+Cap 10 — Cadastros Auxiliares e Configuracoes
+Cap 11 — Banco de Dados
+Cap 12 — Frontend
+Cap 13 — Licoes Aprendidas
+Cap 14 — Plano de Testes
+CHANGELOG
+```
+
+NUNCA remova ou reordene capitulos. Pode adicionar novos ao final (antes do Changelog).
+
+---
+
+## Regra 3 — Como atualizar o livro
+
+Apos QUALQUER mudanca no codigo:
+1. Atualize o capitulo relevante do livro
+2. Adicione entrada no Changelog (fundo do livro)
+3. Atualize a Sinopse se mudou versao, status ou proxima tarefa
+
+Formato changelog: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
+Categorias: Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+## Regra 4 — Nao criar documentos avulsos
+
+**PROIBIDO criar:**
+- `CORRECAO_*.md`, `MIGRATION_*.md`, `FIX_*.md`, `UPDATE_*.md`
+- Qualquer `.md` temporario fora do livro
+
+**PERMITIDO:**
+- `CLAUDE.md` — este arquivo (so regras)
+- `docs/LIVRO_ALMASA.md` — fonte unica da verdade
+
+---
+
+## Regra 5 — MEMORY.md e complementar
+
+O `~/.claude/projects/*/memory/MEMORY.md` e para notas rapidas entre sessoes:
+- Estado atual de trabalho em progresso
+- Bugs sendo investigados
+- Contexto de sessao anterior
+
+NAO duplicar conteudo do livro no MEMORY.md.
+
+---
+
+## Regra 6 — Schema Doctrine DEVE bater (Lei Suprema)
 
 ```bash
 php bin/console doctrine:schema:validate
 ```
 
-**O schema Doctrine DEVE ESTAR SINCRONIZADO COM O BANCO. SEMPRE. PONTO FINAL.**
+**SE O SCHEMA NAO BATER, PARA TUDO E CORRIGE. IMEDIATAMENTE.**
 
-🪖 **ANALOGIA MILITAR:** É como um soldado em missão externa que descobre que seu país está sendo atacado. **NÃO IMPORTA** a missão atual - ele tem o **DEVER ABSOLUTO** de voltar e defender sua pátria, que é mais importante que a própria vida.
+1. SEMPRE rodar ao iniciar qualquer tarefa
+2. SE `[ERROR]` → PARAR tarefa atual
+3. Diagnosticar com `php bin/console doctrine:schema:update --dump-sql`
+4. Corrigir entidades (banco e fonte da verdade)
+5. Validar ate `[OK]` no Mapping
 
-**Da mesma forma:**
-- **NÃO IMPORTA** qual tarefa você está fazendo
-- **NÃO IMPORTA** se a divergência foi causada por você ou não
-- **NÃO IMPORTA** se "não tem relação" com o que você está trabalhando
-
-**SE O SCHEMA NÃO BATER, VOCÊ PARA TUDO E CORRIGE. IMEDIATAMENTE.**
-
-**Procedimento OBRIGATÓRIO:**
-
-1. **SEMPRE rodar** `php bin/console doctrine:schema:validate` ao iniciar qualquer tarefa
-2. **SE aparecer `[ERROR]`** → PARAR a tarefa atual
-3. **DIAGNOSTICAR** com `php bin/console doctrine:schema:update --dump-sql`
-4. **CORRIGIR** as entidades para refletir o banco (banco é a fonte da verdade)
-5. **VALIDAR novamente** até aparecer `[OK]` nos dois checks (Mapping e Database)
-6. **SÓ ENTÃO** continuar com a tarefa original
-
-**Resultado MÍNIMO esperado:**
-```
-Mapping
--------
- [OK] The mapping files are correct.
-```
-
-**IMPORTANTE:** O check `Database` pode mostrar `[ERROR]` em casos específicos que são **ACEITÁVEIS**:
-
-| Tipo de Divergência | Aceitável? | Motivo |
-|---------------------|------------|--------|
-| DROP SEQUENCE | ✅ SIM | Sequências criadas por migrations para geração de números |
-| ALTER ... DROP DEFAULT | ✅ SIM | Defaults são apenas para inserções diretas no banco |
-| ALTER INDEX ... RENAME TO | ✅ SIM | Nomes customizados vs automáticos |
-| DROP/CREATE INDEX (mesmo nome) | ✅ SIM | Índices já existem com nomes corretos |
-| ALTER ... TYPE | ❌ NÃO | Tipo de coluna diferente - CORRIGIR |
-| ALTER ... SET NOT NULL | ❌ NÃO | Nullability diferente - CORRIGIR |
-| DROP COLUMN / ADD COLUMN | ❌ NÃO | Estrutura diferente - CORRIGIR |
-
-**❌ PROIBIDO:**
-- Ignorar erros de schema que afetam estrutura (colunas, tipos, nullability)
-- Deixar para "arrumar depois"
-- Criar código novo com mapping incorreto
-- Dizer "isso já estava assim antes"
-
-**✅ OBRIGATÓRIO:**
-- O Mapping DEVE estar OK (`[OK] The mapping files are correct.`)
-- Divergências estruturais DEVEM ser corrigidas
-- Divergências cosméticas (defaults, índices) podem ser ignoradas
-- Documentar no CHANGELOG.md correções feitas
+**Aceitaveis:** DROP SEQUENCE, ALTER DROP DEFAULT, ALTER INDEX RENAME
+**NAO aceitaveis:** ALTER TYPE, ALTER SET NOT NULL, DROP/ADD COLUMN
 
 ---
 
-### 1. Arquitetura: "Thin Controller, Fat Service"
+## Regra 7 — Thin Controller / Fat Service
 
-**Controllers** (`src/Controller/`):
-- Apenas recebem `Request`
-- Validam formulário (se houver)
-- Chamam o `Service` apropriado
-- Retornam `Response` (View ou JSON)
-- **PROIBIDO:** Lógica de negócio, transações, `flush()`, `persist()`, `remove()`
+**Controllers:** Recebem Request, validam form, chamam Service, retornam Response.
+PROIBIDO: logica de negocio, transacoes, flush(), persist(), remove().
 
-**Services** (`src/Service/`):
-- Contêm TODA a lógica de negócio
-- Validações complexas
-- Gerenciamento de transações (`beginTransaction`, `commit`, `rollBack`)
-- Operações de persistência (`persist`, `remove`, `flush`)
+**Services:** Toda logica de negocio, transacoes, persistencia.
 
-**Repositórios** (`src/Repository/`):
-- Consultas DQL/SQL complexas
-- Métodos de busca customizados
-- **SEMPRE colocar DQL em Repository, NUNCA em Controller ou Service**
-- Exemplo: `findByCpfDocumento`, `searchPessoa`
+**Repositories:** DQL/SQL complexo. NUNCA colocar DQL em Controller ou Service.
 
-### 2. Frontend: JavaScript 100% Modular
+---
 
-**PROIBIDO:**
-- Código JavaScript inline em templates Twig
-- Atributos `onclick`, `onchange`, etc.
-- Tags `<script>` com código dentro dos arquivos `.twig`
+## Regra 8 — JavaScript 100% modular
 
-**OBRIGATÓRIO:**
-- Todo JavaScript em arquivos `.js` dedicados em `assets/js/`
-- Organização modular por funcionalidade
+**PROIBIDO:** JS inline, onclick/onchange, `<script>` com codigo em .twig
 
-**ÚNICA EXCEÇÃO:**
-- Passar dados do backend para frontend via variáveis globais no final do Twig:
-```twig
-{# No FINAL do arquivo .twig #}
+**OBRIGATORIO:** Todo JS em `assets/js/` — modular por funcionalidade.
 
-    window.ROUTES = {
-        subform: '{{ path("app_pessoa__subform") }}',
-        delete: '{{ path("app_pessoa_delete_telefone", {id: '__ID__'}) }}'
-    };
-    
-    window.FORM_IDS = {
-        pessoaId: '{{ form.pessoaId.vars.id | default('') }}'
-    };
+**EXCECAO:** Variaveis globais (`window.ROUTES`, `window.FORM_IDS`) no final do .twig para passar dados do backend.
 
+---
 
-{# Depois carrega os scripts externos #}
+## Regra 9 — Token CSRF unico
 
-
-```
-
-### 3. Banco de Dados é a Fonte da Verdade
-
-- Entidades Doctrine devem **refletir exatamente** as tabelas PostgreSQL
-- Em caso de divergência: **O BANCO PREVALECE**
-- Sempre validar com `php bin/console doctrine:schema:validate`
-
-### 4. Token CSRF Único
-
-- **UM ÚNICO TOKEN:** `ajax_global` para TODAS as requisições AJAX
-- Definido em meta tag: `<meta name="csrf-token" content="{{ csrf_token('ajax_global') }}">`
-- Headers obrigatórios em fetch:
+Token `ajax_global` para TODAS as requisicoes AJAX.
 ```javascript
 headers: {
     'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
@@ -194,619 +147,66 @@ headers: {
 }
 ```
 
-### 5. JSON de Entidades com DELETE
+---
 
-**SEMPRE incluir `id` no JSON** de entidades que podem ser deletadas:
-```php
-// ✅ CORRETO
-return new JsonResponse([
-    'id' => $telefone->getId(),
-    'numero' => $telefone->getNumero(),
-    'tipo' => $telefone->getTipo()
-]);
+## Regra 10 — Padrao CRUD templates
 
-// ❌ ERRADO (sem id)
-return new JsonResponse([
-    'numero' => $telefone->getNumero(),
-    'tipo' => $telefone->getTipo()
-]);
-```
+- Block: `{% block content %}` (NAO `body`)
+- Breadcrumb: `_partials/breadcrumb.html.twig`
+- Icones: FontAwesome (`fas fa-*`)
+- Tabela: `table-striped table-hover`, `thead class="table-dark"`
+- Twig: SEMPRE camelCase (`{{ item.codigoInterno }}`)
+- Booleanos: `isAtivo()` (nao `getAtivo()`)
 
-### 6. Symfony Best Practices
-
-**SEMPRE aplicar:**
-- ✅ **Clean Code** - nomes descritivos, métodos pequenos e focados
-- ✅ **SOLID Principles** - especialmente Single Responsibility
-- ✅ **DRY** - evitar duplicação de código
-- ✅ **Type Hints** - sempre declarar tipos de parâmetros e retorno
-- ✅ **DocBlocks** - documentar métodos complexos
-
-**Exemplos práticos:**
-```php
-// ✅ CORRETO - DQL em Repository
-class PessoasRepository extends ServiceEntityRepository
-{
-    public function findByCpfDocumento(string $cpf): ?Pessoas
-    {
-        return $this->createQueryBuilder('p')
-            ->innerJoin('p.documentos', 'd')
-            ->where('d.numero = :cpf')
-            ->andWhere('d.tipo = :tipo')
-            ->setParameter('cpf', $cpf)
-            ->setParameter('tipo', 'CPF')
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
-}
-
-// ❌ ERRADO - DQL em Controller
-class PessoaController extends AbstractController
-{
-    public function search(EntityManagerInterface $em): Response
-    {
-        // ❌ NUNCA fazer isso
-        $pessoa = $em->createQueryBuilder()
-            ->select('p')
-            ->from(Pessoas::class, 'p')
-            ->where('p.id = :id')
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
-}
-```
-
-### 7. Code Review e Aprovação
-
-Antes de aplicar qualquer mudança:
-1. **Claude Code mostra o diff** (o que será alterado)
-2. **Você pode:**
-   - ✅ **Aprovar** - mudança é aplicada
-   - ❌ **Rejeitar** - mudança é descartada
-   - 🔄 **Pedir ajustes** - exemplo:
-     - "DQL sempre em Repository, não em Service"
-     - "Aplique Symfony best practices"
-     - "Use Clean Code, esse método está muito grande"
-     - "Adicione type hints e DocBlocks"
-3. **Processo iterativo** - pode ajustar quantas vezes precisar
-
-**Comandos úteis para feedback:**
-```
-❌ "Rejeitado. DQL deve estar em Repository, não em Controller"
-❌ "Rejeitado. Aplique Clean Code - esse método tem 500 linhas"
-❌ "Rejeitado. Faltam type hints nos parâmetros"
-✅ "Aprovado, mas adicione DocBlock explicando a lógica"
-🔄 "Refatore usando Symfony best practices"
-```
-
-### 8. Padrão de Templates CRUD (OBRIGATÓRIO)
-
-**⚠️ REGRA CRÍTICA PARA CRIAÇÃO DE MÓDULOS CRUD:**
-
-Ao criar templates Twig para módulos CRUD (index, new, edit, show), SIGA RIGOROSAMENTE o padrão existente:
-
-**Estrutura OBRIGATÓRIA:**
-
-```twig
-{% extends 'base.html.twig' %}
-
-{% block title %}Título da Página - {{ parent() }}{% endblock %}
-
-{% block content %}  {# ⚠️ USAR "content", NÃO "body" #}
-<div class="container-fluid">
-    {% include '_partials/breadcrumb.html.twig' with {
-        'items': [
-            {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Módulo', 'url': path('app_modulo_index')}
-        ],
-        'current': 'Página Atual'
-    } %}
-
-    {# Flash messages #}
-    {% for message in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
-
-    {# Conteúdo da página #}
-</div>
-{% endblock %}
-```
-
-**Checklist OBRIGATÓRIO para templates CRUD:**
-
-| Item | ✅ Correto | ❌ Errado |
-|------|-----------|----------|
-| Block principal | `{% block content %}` | `{% block body %}` |
-| Breadcrumb | Incluir `_partials/breadcrumb.html.twig` | Omitir breadcrumb |
-| Ícones | `<i class="fas fa-*">` (FontAwesome) | `<i class="bi bi-*">` (Bootstrap Icons) |
-| Tabela index | `table-striped table-hover` | `table` simples |
-| Header tabela | `thead class="table-dark"` | `thead class="table-light"` |
-| Mensagem vazia | Ícone + texto + subtexto | Só texto simples |
-| Card | `<div class="card">` | `<div class="card shadow-sm">` |
-| Botão voltar | `<i class="fas fa-arrow-left"></i> Voltar` | `<i class="bi bi-arrow-left"></i>` |
-| Botão salvar | `<i class="fas fa-check"></i> Salvar` | `<i class="bi bi-check-circle"></i>` |
-
-**Template de Referência para index.html.twig:**
-
-```twig
-<table class="table table-striped table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th width="80">ID</th>
-            <th>Nome</th>
-            <th width="100">Status</th>
-            <th width="200">Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in items %}
-        <tr>
-            <td>{{ item.id }}</td>
-            <td>{{ item.nome }}</td>
-            <td>
-                {% if item.ativo %}
-                    <span class="badge bg-success">Ativo</span>
-                {% else %}
-                    <span class="badge bg-danger">Inativo</span>
-                {% endif %}
-            </td>
-            <td>
-                <div class="btn-group" role="group">
-                    <a href="{{ path('app_modulo_edit', {id: item.id}) }}"
-                       class="btn btn-warning btn-sm">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                </div>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4" class="text-center text-muted py-4">
-                <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-                <span>Nenhum registro cadastrado</span><br>
-                <small>Clique em "Novo" para começar</small>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-```
-
-**Nomes de Atributos em Templates:**
-
-⚠️ **IMPORTANTE:** Em Twig, use **camelCase** para acessar propriedades de entidades Doctrine:
-
-| ❌ Errado (snake_case) | ✅ Correto (camelCase) |
-|------------------------|------------------------|
-| `{{ item.codigo_interno }}` | `{{ item.codigoInterno }}` |
-| `{{ item.valor_venda }}` | `{{ item.valorVenda }}` |
-| `{{ item.data_criacao }}` | `{{ item.dataCriacao }}` |
-| `{{ item.is_ativo }}` | `{{ item.ativo }}` ou `{{ item.isAtivo }}` |
-
-**Para relacionamentos:**
-
-| ❌ Errado | ✅ Correto |
-|-----------|-----------|
-| `{{ item.tipo }}` (string) | `{{ item.tipoEntidade.descricao }}` |
-| `{{ item.endereco }}` (string) | `{{ item.endereco.logradouro.nome }}` |
-| `{{ item.proprietario }}` (string) | `{{ item.pessoaProprietario.nome }}` |
-
-**Métodos booleanos (is*):**
-
-| ❌ Errado | ✅ Correto |
-|-----------|-----------|
-| `getAtivo()` | `isAtivo()` |
-| `getDisponivel()` | `isDisponivel()` |
+Para detalhes e exemplos completos, ver **Cap 12** do livro.
 
 ---
 
-## 📁 Estrutura de Pastas e Arquivos
+## Comandos Essenciais
 
-### Backend
-```
-src/
-├── Controller/
-│   └── PessoaController.php          # Thin Controller (delega para Service)
-│
-├── Service/
-│   ├── PessoaService.php              # Fat Service (lógica de negócio)
-│   └── CepService.php                 # Busca CEP (API + banco local)
-│
-├── Entity/
-│   ├── Pessoas.php                    # Entidade central
-│   ├── PessoasFiadores.php           # Tipo: Fiador
-│   ├── PessoasLocadores.php          # Tipo: Locador
-│   ├── PessoasCorretores.php         # Tipo: Corretor
-│   ├── Enderecos.php                  # Dados múltiplos
-│   ├── Telefones.php                  # Dados múltiplos
-│   └── ...
-│
-├── Repository/
-│   ├── PessoasRepository.php          # Consultas DQL customizadas
-│   └── ...
-│
-└── Form/
-    ├── PessoaFormType.php             # Formulário principal
-    └── ...
-```
-
-### Frontend
-```
-assets/js/pessoa/
-├── pessoa.js                    # Utilitários, setFormValue, carregar tipos
-├── new.js                       # Busca inteligente, preencherFormulario
-├── pessoa_tipos.js              # Gerenciamento de tipos múltiplos
-├── pessoa_enderecos.js          # DELETE de endereços
-├── pessoa_telefones.js          # DELETE de telefones
-├── pessoa_emails.js             # DELETE de emails
-├── pessoa_chave_pix.js          # DELETE de chaves PIX
-├── pessoa_documentos.js         # DELETE de documentos
-├── pessoa_profissoes.js         # DELETE de profissões
-├── pessoa_conjuge.js            # salvarConjuge, carregarDadosConjuge
-├── pessoa_modals.js             # salvarNovoTipo (reutilizável)
-├── conjuge_telefones.js         # Dados múltiplos do cônjuge
-├── conjuge_enderecos.js         # Dados múltiplos do cônjuge
-├── conjuge_emails.js            # Dados múltiplos do cônjuge
-├── conjuge_documentos.js        # Dados múltiplos do cônjuge
-├── conjuge_chave_pix.js         # Dados múltiplos do cônjuge
-└── conjuge_profissoes.js        # Dados múltiplos do cônjuge
-```
-
-### Templates
-```
-templates/
-├── pessoa/
-│   ├── index.html.twig          # Listagem
-│   ├── new.html.twig            # Cadastro
-│   ├── edit.html.twig           # Edição
-│   └── partials/
-│       ├── _subform_fiador.html.twig
-│       ├── _subform_locador.html.twig
-│       └── ...
-```
-
----
-
-## 🗄️ Referência do Banco de Dados
-
-### Tabelas de Dados Múltiplos
-
-**ATENÇÃO:** Coluna `id` é OBRIGATÓRIA em TODOS os SELECT de entidades deletáveis.
-
-| Tabela | Coluna ID | Chave Estrangeira | Observação |
-|--------|-----------|-------------------|------------|
-| `enderecos` | `id` | `pessoa_id -> pessoas.id` | Já devolve `id` no JSON |
-| `telefones` | `id` | Ligação via `pessoas_telefones.telefone_id` | Tabela pivot |
-| `emails` | `id` | Ligação via `pessoas_emails.email_id` | Tabela pivot |
-| `chaves_pix` | `id` | `id_pessoa -> pessoas.id` | Direto na tabela |
-| `pessoas_documentos` | `id` | `id_pessoa -> pessoas.id` | Direto na tabela |
-| `pessoas_profissoes` | `id` | `id_pessoa -> pessoas.id` | Direto na tabela |
-| `relacionamentos_familiares` | `id` | `idPessoaOrigem -> pessoas.id`<br>`idPessoaDestino -> pessoas.id` | **Fonte da verdade para Cônjuge**<br>`tipoRelacionamento = 'Cônjuge'` |
-
-### Arquitetura de Cônjuge
-
-**Observação Importante:**
-- A coluna `conjuge_id` existe na tabela `pessoas`, mas **NÃO é a fonte da verdade**
-- **Fonte oficial:** Tabela `relacionamentos_familiares`
-- **Por quê?** Permite histórico, dados contextuais (regime de casamento, datas), e relacionamento bidirecional
-
----
-
-## 🏗️ Arquitetura e Padrões
-
-### Módulo de Pessoas
-
-**Entidade Central:** `Pessoas`
-
-Uma pessoa pode ter **múltiplos tipos/papéis simultaneamente:**
-- **Contratante** (`PessoasContratantes`)
-- **Fiador** (`PessoasFiadores`)
-- **Locador** (`PessoasLocadores`)
-- **Corretor** (`PessoasCorretores`)
-- **Corretora** (`PessoasCorretoras` - pessoa jurídica)
-- **Pretendente** (`PessoasPretendentes`)
-
-**Sub-formulários Dinâmicos:**
-- Seleção de tipo carrega via AJAX um partial `.twig` específico
-- Rota: `app_pessoa__subform`
-- FormType dedicado para cada tipo (ex: `PessoaFiadorType`)
-
-### Dados Múltiplos
-
-Uma pessoa pode ter múltiplos:
-- Telefones
-- Endereços
-- Emails
-- Documentos (CPF, CNPJ, RG, etc.)
-- Chaves PIX
-- Profissões
-
-**Padrão de DELETE:**
-```javascript
-// Exemplo: deletar telefone
-fetch(`/pessoa/telefone/${id}`, {
-    method: 'DELETE',
-    headers: {
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
-        'X-Requested-With': 'XMLHttpRequest'
-    }
-})
-.then(response => response.json())
-.then(data => {
-    if (data.success) {
-        // Remove da UI
-    }
-});
-```
-
-### Validação de CPF/CNPJ
-
-**Service:** `PessoaService`
-- `findByCpfDocumento()` - Busca pessoa por CPF
-- `findCnpjDocumento()` - Busca pessoa por CNPJ
-- Valida duplicidade ANTES de salvar
-
----
-
-## 📋 Comandos Essenciais
-
-### Desenvolvimento
 ```bash
-# Instalar dependências
-composer install
-npm install
-
-# Servidor de desenvolvimento
+# Desenvolvimento
+composer install && npm install
 symfony server:start
+npm run dev | npm run build | npm run watch
 
-# Build de assets
-npm run dev          # Desenvolvimento
-npm run build        # Produção
-npm run watch        # Watch mode (auto-rebuild)
-```
-
-### Banco de Dados
-```bash
-# Criar database
-php bin/console doctrine:database:create
-
-# Gerar migration (SEMPRE após alterar entidades)
+# Banco de Dados
+php bin/console doctrine:schema:validate
 php bin/console make:migration
-
-# Executar migrations
 php bin/console doctrine:migrations:migrate
 
-# Validar schema (comparar entidades vs banco)
-php bin/console doctrine:schema:validate
-```
-
-### Debug
-```bash
-# Limpar cache
+# Debug
 php bin/console cache:clear
-
-# Listar rotas
 php bin/console debug:router
-
-# Ver detalhes de rota específica
-php bin/console debug:router app_pessoa_index
-
-# Listar services
 php bin/console debug:container
 ```
 
 ---
 
-## 🎯 Contexto Atual do Projeto
+## Organizacao de Pastas
 
-### Status: V6.4 (16/11/2025)
-
-**Último Bug Corrigido:**
-- Tipos de pessoa não carregavam no frontend ao buscar pessoa existente
-- **Arquivos corrigidos:**
-  - `assets/js/pessoa/new.js` (2 correções)
-  - `assets/js/pessoa/pessoa_tipos.js` (2 correções)
-- **Status:** Código corrigido, aguardando validação
-
-### Próxima Tarefa Planejada
-
-**Implementar buscarConjugePessoa() no PessoaService:**
-
-O método deve:
-1. Buscar relacionamento em `relacionamentos_familiares` onde:
-   - `idPessoaOrigem = $pessoaId`
-   - `tipoRelacionamento = 'Cônjuge'`
-2. Se encontrar, buscar entidade `Pessoas` do `idPessoaDestino`
-3. Recuperar TODOS os dados múltiplos do cônjuge:
-   - Telefones (`buscarTelefonesPessoa($conjugeId)`)
-   - Endereços (`buscarEnderecosPessoa($conjugeId)`)
-   - Emails (`buscarEmailsPessoa($conjugeId)`)
-   - Documentos (`buscarDocumentosPessoa($conjugeId)`)
-   - Chaves PIX (`buscarChavesPixPessoa($conjugeId)`)
-   - Profissões (`buscarProfissoesPessoa($conjugeId)`)
-4. Retornar array completo ou `null`
-
-**Validações necessárias:**
-- Relacionamento bidirecional está correto (A→B E B→A)
-- Remoção de cônjuge exclui AMBOS os registros
-- Não existem cônjuges órfãos (relacionamento em apenas uma direção)
-
----
-
-## 🐛 Issues Conhecidos
-
-### Issue #1: Cônjuge não carrega na busca
-- **Severidade:** MÉDIA
-- **Status:** Planejado
-- **Descrição:** `searchPessoaAdvanced` retorna `'conjuge' => null`
-- **Causa:** Método `buscarConjugePessoa()` não implementado
-- **Solução:** Implementar conforme descrito em "Próxima Tarefa Planejada"
-
----
-
-## 📖 Glossário Técnico
-
-| Termo | Definição |
-|-------|-----------|
-| **Thin Controller** | Controller que apenas delega para Services, sem lógica de negócio. Responsabilidades: receber Request, validar formulário, chamar Service, retornar Response. |
-| **Fat Service** | Service que contém toda a lógica de negócio, validações complexas, gerenciamento de transações e operações de persistência. |
-| **Tipos de Pessoa** | Papéis que uma pessoa pode assumir simultaneamente (Fiador, Locador, Contratante, Corretor, Corretora, Pretendente). Uma pessoa pode ter múltiplos tipos ativos. |
-| **Dados Múltiplos** | Entidades relacionadas a uma pessoa que podem ter múltiplos registros: Telefones, Endereços, Emails, Documentos, Chaves PIX, Profissões. |
-| **tiposDados** | Objeto JSON contendo dados específicos salvos para cada tipo de pessoa. Estrutura: `{"contratante": {"id": 1}, "fiador": {"id": 2, "valor_patrimonio": 500000}}` |
-| **Sub-formulário** | Formulário dinâmico carregado via AJAX para cada tipo de pessoa, contendo campos específicos. Carregado pela rota `app_pessoa__subform`. |
-| **Campo de Sistema** | Campos de banco de dados que NÃO devem aparecer em formulários HTML: `id`, `created_at`, `updated_at`, chaves estrangeiras, etc. |
-| **Relacionamento Bidirecional** | Relacionamento que existe nas duas direções na tabela `relacionamentos_familiares`. Ex: se A é cônjuge de B, deve existir registro de A→B e de B→A. |
-
----
-
-## �� Aprendizados Recentes
-
-### 1. Assinaturas de Função
-Sempre verificar quantos parâmetros uma função espera antes de chamá-la. Uma função que espera 2 parâmetros (`tipos`, `tiposDados`) não pode ser chamada com apenas 1.
-
-### 2. Campos de Sistema vs. Campos de Formulário
-Ao iterar objetos vindos do backend, sempre filtrar campos de banco (`id`, `created_at`, `updated_at`, etc.) que não existem no formulário HTML.
-
-**Lista de campos a ignorar:**
-```javascript
-const camposIgnorados = [
-    'id', 
-    'created_at', 
-    'updated_at', 
-    'createdAt', 
-    'updatedAt', 
-    'pessoa_id', 
-    'pessoaId'
-];
 ```
-
-### 3. Logs são Essenciais
-Sempre usar logs detalhados no JavaScript:
-```javascript
-console.log('✅ Sucesso:', dados);
-console.warn('⚠️ Aviso:', mensagem);
-console.error('❌ Erro:', erro);
-```
-
-### 4. Separação de Responsabilidades
-- `new.js` → Responsável por chamar funções de carregamento
-- `pessoa_tipos.js` → Responsável por criar cards e preencher dados
-
-### 5. Sempre Testar com Dados Reais
-Testes com dados mockados não revelam todos os problemas. Sempre validar com dados reais do banco.
-
----
-
-## 📚 Documentação e Histórico
-
-### CHANGELOG.md - FONTE DA VERDADE PARA MUDANÇAS
-
-**⚠️ REGRA OBRIGATÓRIA PARA CLAUDE CODE (todos os modelos: Sonnet, Opus, Haiku):**
-
-1. **CHANGELOG.md é o ÚNICO arquivo para registrar mudanças**
-2. **NUNCA crie arquivos `.md` extras** (como `CORRECAO_*.md`, `MIGRATION_*.md`, etc.)
-3. **SEMPRE atualize o CHANGELOG.md IMEDIATAMENTE** após qualquer mudança no código
-4. **Formato obrigatório:** Siga o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
-
-**Estrutura de versionamento:**
-- **MAJOR** (X.0.0): Mudanças incompatíveis na API
-- **MINOR** (x.Y.0): Novas funcionalidades compatíveis
-- **PATCH** (x.y.Z): Correções de bugs compatíveis
-
-**Categorias de mudanças:**
-- **Adicionado** - novas funcionalidades
-- **Alterado** - mudanças em funcionalidades existentes
-- **Descontinuado** - funcionalidades a serem removidas
-- **Removido** - funcionalidades removidas
-- **Corrigido** - correção de bugs
-- **Segurança** - vulnerabilidades corrigidas
-
-**O que SEMPRE incluir:**
-- Data no formato YYYY-MM-DD
-- Descrição clara e concisa
-- Arquivos afetados (com números de linha quando relevante)
-- Motivação (quando relevante)
-- Links para issues/PRs quando aplicável
-
-**Exemplo de entrada no CHANGELOG.md:**
-```markdown
-## [6.6.4] - 2025-11-27
-
-### Corrigido
-- **CRÍTICO:** Descrição do problema
-  - **Sintoma:** O que acontecia
-  - **Causa raiz:** Por que acontecia
-  - **Solução implementada:** Como foi resolvido
-  - **Arquivos modificados:**
-    - `src/Controller/PessoaController.php` (linhas 123-145)
-    - `assets/js/pessoa/pessoa_form.js` (linha 67)
-```
-
-### Diário de Bordo (Referência Histórica)
-
-**Para histórico completo de versões anteriores, consulte:**
-
-`/workspaces/AlmasaStudio/diarioAlmasaEm16112025_pdf.pdf`
-
-O diário contém:
-- Histórico completo de todas as versões (V6.0 - V6.4)
-- Bugs resolvidos com análise detalhada
-- Decisões de arquitetura
-- Code reviews
-- Lições aprendidas
-
-**⚠️ IMPORTANTE:** O diário em PDF é apenas referência histórica. **TODAS as novas mudanças devem ser registradas APENAS no CHANGELOG.md**
-
----
-
-## ⚡ Início Rápido
-```bash
-# 1. Clone o repositório
-git clone <repo-url>
-cd AlmasaStudio
-
-# 2. Instale dependências
-composer install
-npm install
-
-# 3. Configure o banco
-php bin/console doctrine:database:create
-php bin/console doctrine:migrations:migrate
-
-# 4. Build assets
-npm run dev
-
-# 5. Inicie servidor
-symfony server:start
-
-# 6. Acesse
-# http://localhost:8000
+AlmasaStudio/
+├── CLAUDE.md                    — REGRAS (este arquivo)
+├── docs/
+│   └── LIVRO_ALMASA.md          — FONTE UNICA DA VERDADE
+├── src/
+│   ├── Controller/              — Thin Controllers
+│   ├── Service/                 — Fat Services
+│   ├── Entity/                  — 82 entidades Doctrine
+│   ├── Repository/              — 51 repositorios
+│   ├── Form/                    — FormTypes
+│   └── Command/                 — 2 commands
+├── assets/js/                   — JavaScript modular
+├── templates/                   — Twig templates (151)
+├── scripts/
+│   └── automacao/
+│       └── reminder_update_docs.sh
+├── logs/                        — Logs do reminder
+└── config/                      — Symfony config
 ```
 
 ---
 
-## 🔒 Segurança
-
-### Flash Messages
-```php
-$this->addFlash('success', 'Operação realizada com sucesso');
-$this->addFlash('error', 'Erro ao processar requisição');
-```
-
-### CSRF em Formulários
-```twig
-{{ form_start(form) }}
-    {# Token CSRF incluído automaticamente #}
-    {{ form_widget(form) }}
-{{ form_end(form) }}
-```
-
----
-
-**FIM DO CLAUDE.MD**
-
-Última atualização: 07/12/2025
-Mantenedor: Marcio Martins
-Desenvolvedor Ativo: Claude Opus 4.5 (via Claude Code)
+**Ultima atualizacao:** 2026-02-19
+**Mantenedor:** Marcio Martins

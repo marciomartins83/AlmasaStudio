@@ -11,6 +11,7 @@ Thumbs.db
 ###< IDE ###
 
 ###> symfony/framework-bundle ###
+/.env
 /.env.local
 /.env.local.php
 /.env.*.local
@@ -39,6 +40,16 @@ yarn-error.log
 
 ###> logs e cache de ferramentas ###
 .aider*
-.env
 yay/
 ###< logs e cache de ferramentas ###
+
+###> playwright ###
+/playwright-report/
+/test-results/
+/e2e/fixtures/.auth/
+###< playwright ###
+
+###> logs do projeto ###
+/logs/
+###< logs do projeto ###
+__pycache__/

@@ -16,21 +16,21 @@ class EnderecosTest extends TestCase
     public function testEnderecoGettersAndSetters(): void
     {
         $endereco = new Enderecos();
-        $idPessoa = 1;
-        $idLogradouro = 123;
-        $idTipo = 2;
+        $mockPessoa = $this->createMock(\App\Entity\Pessoas::class);
+        $mockLogradouro = $this->createMock(\App\Entity\Logradouros::class);
+        $mockTipo = $this->createMock(\App\Entity\TiposEnderecos::class);
         $endNumero = 456;
         $complemento = "Apto 101";
 
-        $endereco->setIdPessoa($idPessoa);
-        $endereco->setIdLogradouro($idLogradouro);
-        $endereco->setIdTipo($idTipo);
+        $endereco->setPessoa($mockPessoa);
+        $endereco->setLogradouro($mockLogradouro);
+        $endereco->setTipo($mockTipo);
         $endereco->setEndNumero($endNumero);
         $endereco->setComplemento($complemento);
 
-        $this->assertEquals($idPessoa, $endereco->getIdPessoa());
-        $this->assertEquals($idLogradouro, $endereco->getIdLogradouro());
-        $this->assertEquals($idTipo, $endereco->getIdTipo());
+        $this->assertSame($mockPessoa, $endereco->getPessoa());
+        $this->assertSame($mockLogradouro, $endereco->getLogradouro());
+        $this->assertSame($mockTipo, $endereco->getTipo());
         $this->assertEquals($endNumero, $endereco->getEndNumero());
         $this->assertEquals($complemento, $endereco->getComplemento());
     }
@@ -58,15 +58,15 @@ class EnderecosTest extends TestCase
     public function testEnderecoMethodsExist(): void
     {
         $endereco = new Enderecos();
-        
+
         // Test that all required methods exist
         $this->assertTrue(method_exists($endereco, 'getId'));
-        $this->assertTrue(method_exists($endereco, 'getIdPessoa'));
-        $this->assertTrue(method_exists($endereco, 'setIdPessoa'));
-        $this->assertTrue(method_exists($endereco, 'getIdLogradouro'));
-        $this->assertTrue(method_exists($endereco, 'setIdLogradouro'));
-        $this->assertTrue(method_exists($endereco, 'getIdTipo'));
-        $this->assertTrue(method_exists($endereco, 'setIdTipo'));
+        $this->assertTrue(method_exists($endereco, 'getPessoa'));
+        $this->assertTrue(method_exists($endereco, 'setPessoa'));
+        $this->assertTrue(method_exists($endereco, 'getLogradouro'));
+        $this->assertTrue(method_exists($endereco, 'setLogradouro'));
+        $this->assertTrue(method_exists($endereco, 'getTipo'));
+        $this->assertTrue(method_exists($endereco, 'setTipo'));
         $this->assertTrue(method_exists($endereco, 'getEndNumero'));
         $this->assertTrue(method_exists($endereco, 'setEndNumero'));
         $this->assertTrue(method_exists($endereco, 'getComplemento'));
@@ -110,32 +110,40 @@ class EnderecosTest extends TestCase
     public function testEnderecoIdRelationships(): void
     {
         $endereco = new Enderecos();
-        
-        // Test with different ID combinations
-        $endereco->setIdPessoa(1);
-        $endereco->setIdLogradouro(100);
-        $endereco->setIdTipo(2);
-        
-        $this->assertEquals(1, $endereco->getIdPessoa());
-        $this->assertEquals(100, $endereco->getIdLogradouro());
-        $this->assertEquals(2, $endereco->getIdTipo());
+
+        // Test with different entity relationships
+        $mockPessoa = $this->createMock(\App\Entity\Pessoas::class);
+        $mockLogradouro = $this->createMock(\App\Entity\Logradouros::class);
+        $mockTipo = $this->createMock(\App\Entity\TiposEnderecos::class);
+
+        $endereco->setPessoa($mockPessoa);
+        $endereco->setLogradouro($mockLogradouro);
+        $endereco->setTipo($mockTipo);
+
+        $this->assertSame($mockPessoa, $endereco->getPessoa());
+        $this->assertSame($mockLogradouro, $endereco->getLogradouro());
+        $this->assertSame($mockTipo, $endereco->getTipo());
     }
 
     public function testEnderecoFluentInterface(): void
     {
         $endereco = new Enderecos();
-        
+
         // Test that setters return self for fluent interface
-        $result = $endereco->setIdPessoa(1)
-                          ->setIdLogradouro(100)
-                          ->setIdTipo(2)
+        $mockPessoa = $this->createMock(\App\Entity\Pessoas::class);
+        $mockLogradouro = $this->createMock(\App\Entity\Logradouros::class);
+        $mockTipo = $this->createMock(\App\Entity\TiposEnderecos::class);
+
+        $result = $endereco->setPessoa($mockPessoa)
+                          ->setLogradouro($mockLogradouro)
+                          ->setTipo($mockTipo)
                           ->setEndNumero(123)
                           ->setComplemento("Apto 101");
-        
+
         $this->assertSame($endereco, $result);
-        $this->assertEquals(1, $endereco->getIdPessoa());
-        $this->assertEquals(100, $endereco->getIdLogradouro());
-        $this->assertEquals(2, $endereco->getIdTipo());
+        $this->assertSame($mockPessoa, $endereco->getPessoa());
+        $this->assertSame($mockLogradouro, $endereco->getLogradouro());
+        $this->assertSame($mockTipo, $endereco->getTipo());
         $this->assertEquals(123, $endereco->getEndNumero());
         $this->assertEquals("Apto 101", $endereco->getComplemento());
     }

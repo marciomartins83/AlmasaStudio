@@ -3,6 +3,7 @@
 namespace App\Tests\Entity;
 
 use App\Entity\Bairros;
+use App\Entity\Cidades;
 use PHPUnit\Framework\TestCase;
 
 class BairrosTest extends TestCase
@@ -16,15 +17,15 @@ class BairrosTest extends TestCase
     public function testBairroGettersAndSetters(): void
     {
         $bairro = new Bairros();
-        $idCidade = 1;
+        $mockCidade = $this->createMock(Cidades::class);
         $nome = "Centro";
         $codigo = "001";
 
-        $bairro->setIdCidade($idCidade);
+        $bairro->setCidade($mockCidade);
         $bairro->setNome($nome);
         $bairro->setCodigo($codigo);
 
-        $this->assertEquals($idCidade, $bairro->getIdCidade());
+        $this->assertSame($mockCidade, $bairro->getCidade());
         $this->assertEquals($nome, $bairro->getNome());
         $this->assertEquals($codigo, $bairro->getCodigo());
     }
@@ -52,11 +53,11 @@ class BairrosTest extends TestCase
     public function testBairroMethodsExist(): void
     {
         $bairro = new Bairros();
-        
+
         // Test that all required methods exist
         $this->assertTrue(method_exists($bairro, 'getId'));
-        $this->assertTrue(method_exists($bairro, 'getIdCidade'));
-        $this->assertTrue(method_exists($bairro, 'setIdCidade'));
+        $this->assertTrue(method_exists($bairro, 'getCidade'));
+        $this->assertTrue(method_exists($bairro, 'setCidade'));
         $this->assertTrue(method_exists($bairro, 'getNome'));
         $this->assertTrue(method_exists($bairro, 'setNome'));
         $this->assertTrue(method_exists($bairro, 'getCodigo'));
@@ -88,27 +89,32 @@ class BairrosTest extends TestCase
     public function testBairroCidadeRelationship(): void
     {
         $bairro = new Bairros();
-        
-        // Test with different cidade IDs
-        $cidadeIds = [1, 25, 33, 31, 43]; // Different city IDs
-        
-        foreach ($cidadeIds as $cidadeId) {
-            $bairro->setIdCidade($cidadeId);
-            $this->assertEquals($cidadeId, $bairro->getIdCidade());
+
+        // Test with different cidade instances
+        $mockCidades = [
+            $this->createMock(Cidades::class),
+            $this->createMock(Cidades::class),
+            $this->createMock(Cidades::class),
+        ];
+
+        foreach ($mockCidades as $mockCidade) {
+            $bairro->setCidade($mockCidade);
+            $this->assertSame($mockCidade, $bairro->getCidade());
         }
     }
 
     public function testBairroFluentInterface(): void
     {
         $bairro = new Bairros();
-        
+        $mockCidade = $this->createMock(Cidades::class);
+
         // Test that setters return self for fluent interface
-        $result = $bairro->setIdCidade(1)
+        $result = $bairro->setCidade($mockCidade)
                         ->setNome("Centro")
                         ->setCodigo("001");
-        
+
         $this->assertSame($bairro, $result);
-        $this->assertEquals(1, $bairro->getIdCidade());
+        $this->assertSame($mockCidade, $bairro->getCidade());
         $this->assertEquals("Centro", $bairro->getNome());
         $this->assertEquals("001", $bairro->getCodigo());
     }

@@ -3,6 +3,7 @@
 namespace App\Tests\Entity;
 
 use App\Entity\Cidades;
+use App\Entity\Estados;
 use PHPUnit\Framework\TestCase;
 
 class CidadesTest extends TestCase
@@ -16,15 +17,15 @@ class CidadesTest extends TestCase
     public function testCidadeGettersAndSetters(): void
     {
         $cidade = new Cidades();
-        $idEstado = 25; // São Paulo
+        $mockEstado = $this->createMock(Estados::class);
         $nome = "São Paulo";
         $codigo = "3550308";
 
-        $cidade->setIdEstado($idEstado);
+        $cidade->setEstado($mockEstado);
         $cidade->setNome($nome);
         $cidade->setCodigo($codigo);
 
-        $this->assertEquals($idEstado, $cidade->getIdEstado());
+        $this->assertSame($mockEstado, $cidade->getEstado());
         $this->assertEquals($nome, $cidade->getNome());
         $this->assertEquals($codigo, $cidade->getCodigo());
     }
@@ -52,11 +53,11 @@ class CidadesTest extends TestCase
     public function testCidadeMethodsExist(): void
     {
         $cidade = new Cidades();
-        
+
         // Test that all required methods exist
         $this->assertTrue(method_exists($cidade, 'getId'));
-        $this->assertTrue(method_exists($cidade, 'getIdEstado'));
-        $this->assertTrue(method_exists($cidade, 'setIdEstado'));
+        $this->assertTrue(method_exists($cidade, 'getEstado'));
+        $this->assertTrue(method_exists($cidade, 'setEstado'));
         $this->assertTrue(method_exists($cidade, 'getNome'));
         $this->assertTrue(method_exists($cidade, 'setNome'));
         $this->assertTrue(method_exists($cidade, 'getCodigo'));
@@ -66,13 +67,19 @@ class CidadesTest extends TestCase
     public function testCidadeWithDifferentEstados(): void
     {
         $cidade = new Cidades();
-        
-        // Test with different state IDs
-        $estadoIds = [25, 33, 31, 43, 41]; // SP, RJ, MG, RS, PR
-        
-        foreach ($estadoIds as $estadoId) {
-            $cidade->setIdEstado($estadoId);
-            $this->assertEquals($estadoId, $cidade->getIdEstado());
+
+        // Test with different estado instances
+        $mockEstados = [
+            $this->createMock(Estados::class),
+            $this->createMock(Estados::class),
+            $this->createMock(Estados::class),
+            $this->createMock(Estados::class),
+            $this->createMock(Estados::class),
+        ];
+
+        foreach ($mockEstados as $mockEstado) {
+            $cidade->setEstado($mockEstado);
+            $this->assertSame($mockEstado, $cidade->getEstado());
         }
     }
 

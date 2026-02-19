@@ -16,10 +16,13 @@ class PessoasContratantesTest extends TestCase
     public function testBasicMethods(): void
     {
         $entity = new PessoasContratantes();
-        
+
         // Test that basic methods exist
         $this->assertTrue(method_exists($entity, 'getId'));
-        $this->assertTrue(method_exists($entity, 'getIdPessoa'));
+        $this->assertTrue(method_exists($entity, 'getPessoa'));
+        $this->assertTrue(method_exists($entity, 'setPessoa'));
+        $this->assertTrue(method_exists($entity, 'getCreatedAt'));
+        $this->assertTrue(method_exists($entity, 'getUpdatedAt'));
     }
 
     public function testEntityStructure(): void

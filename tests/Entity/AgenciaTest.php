@@ -5,7 +5,6 @@ namespace App\Tests\Entity;
 use App\Entity\Agencias;
 use App\Entity\Bancos;
 use App\Entity\Enderecos;
-use DateTime;
 use PHPUnit\Framework\TestCase;
 
 class AgenciaTest extends TestCase
@@ -21,31 +20,31 @@ class AgenciaTest extends TestCase
         $agencia = new Agencias();
         $codigo = "001";
         $nome = "Agencia Central";
-        $idBanco = 123;
-        $idEndereco = 456;
+        $mockBanco = $this->createMock(Bancos::class);
+        $mockEndereco = $this->createMock(Enderecos::class);
 
         $agencia->setCodigo($codigo);
         $agencia->setNome($nome);
-        $agencia->setIdBanco($idBanco);
-        $agencia->setIdEndereco($idEndereco);
+        $agencia->setBanco($mockBanco);
+        $agencia->setEndereco($mockEndereco);
 
         $this->assertEquals($codigo, $agencia->getCodigo());
         $this->assertEquals($nome, $agencia->getNome());
-        $this->assertEquals($idBanco, $agencia->getIdBanco());
-        $this->assertEquals($idEndereco, $agencia->getIdEndereco());
+        $this->assertSame($mockBanco, $agencia->getBanco());
+        $this->assertSame($mockEndereco, $agencia->getEndereco());
     }
 
     public function testAgenciaRelationships(): void
     {
         $agencia = new Agencias();
-        $idBanco = 1;
-        $idEndereco = 2;
+        $mockBanco = $this->createMock(Bancos::class);
+        $mockEndereco = $this->createMock(Enderecos::class);
 
-        $agencia->setIdBanco($idBanco);
-        $agencia->setIdEndereco($idEndereco);
+        $agencia->setBanco($mockBanco);
+        $agencia->setEndereco($mockEndereco);
 
-        $this->assertEquals($idBanco, $agencia->getIdBanco());
-        $this->assertEquals($idEndereco, $agencia->getIdEndereco());
+        $this->assertSame($mockBanco, $agencia->getBanco());
+        $this->assertSame($mockEndereco, $agencia->getEndereco());
     }
 
     public function testAgenciaTimestampsAutomatic(): void

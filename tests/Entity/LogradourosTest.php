@@ -16,17 +16,17 @@ class LogradourosTest extends TestCase
     public function testLogradouroGettersAndSetters(): void
     {
         $logradouro = new Logradouros();
-        $idBairro = 1;
+        $mockBairro = $this->createMock(\App\Entity\Bairros::class);
         $logradouroNome = "Rua das Flores";
         $cep = "01234-567";
 
-        $logradouro->setIdBairro($idBairro);
+        $logradouro->setBairro($mockBairro);
         $logradouro->setLogradouro($logradouroNome);
         $logradouro->setCep($cep);
 
-        $this->assertEquals($idBairro, $logradouro->getIdBairro());
+        $this->assertSame($mockBairro, $logradouro->getBairro());
         $this->assertEquals($logradouroNome, $logradouro->getLogradouro());
-        $this->assertEquals($cep, $logradouro->getCep());
+        $this->assertEquals('01234567', $logradouro->getCep()); // setCep strips non-digits
     }
 
     public function testLogradouroId(): void
@@ -40,11 +40,11 @@ class LogradourosTest extends TestCase
     public function testLogradouroMethodsExist(): void
     {
         $logradouro = new Logradouros();
-        
+
         // Test that all required methods exist
         $this->assertTrue(method_exists($logradouro, 'getId'));
-        $this->assertTrue(method_exists($logradouro, 'getIdBairro'));
-        $this->assertTrue(method_exists($logradouro, 'setIdBairro'));
+        $this->assertTrue(method_exists($logradouro, 'getBairro'));
+        $this->assertTrue(method_exists($logradouro, 'setBairro'));
         $this->assertTrue(method_exists($logradouro, 'getLogradouro'));
         $this->assertTrue(method_exists($logradouro, 'setLogradouro'));
         $this->assertTrue(method_exists($logradouro, 'getCep'));
@@ -78,46 +78,46 @@ class LogradourosTest extends TestCase
         $logradouro = new Logradouros();
         
         // Test with different CEP formats
-        $ceps = [
-            "01234-567",
-            "04567-890",
-            "12345678",
-            "00000-000",
-            "99999-999"
+        // setCep strips non-digit characters
+        $cepTests = [
+            ["01234-567", "01234567"],
+            ["04567-890", "04567890"],
+            ["12345678", "12345678"],
+            ["00000-000", "00000000"],
+            ["99999-999", "99999999"],
         ];
-        
-        foreach ($ceps as $cep) {
-            $logradouro->setCep($cep);
-            $this->assertEquals($cep, $logradouro->getCep());
+
+        foreach ($cepTests as [$input, $expected]) {
+            $logradouro->setCep($input);
+            $this->assertEquals($expected, $logradouro->getCep());
         }
     }
 
     public function testLogradouroBairroRelationship(): void
     {
         $logradouro = new Logradouros();
-        
-        // Test with different bairro IDs
-        $bairroIds = [1, 50, 100, 999, 1234];
-        
-        foreach ($bairroIds as $bairroId) {
-            $logradouro->setIdBairro($bairroId);
-            $this->assertEquals($bairroId, $logradouro->getIdBairro());
-        }
+
+        // Test with different bairro entities
+        $mockBairro = $this->createMock(\App\Entity\Bairros::class);
+        $logradouro->setBairro($mockBairro);
+        $this->assertSame($mockBairro, $logradouro->getBairro());
     }
 
     public function testLogradouroFluentInterface(): void
     {
         $logradouro = new Logradouros();
-        
+
         // Test that setters return self for fluent interface
-        $result = $logradouro->setIdBairro(1)
+        $mockBairro = $this->createMock(\App\Entity\Bairros::class);
+
+        $result = $logradouro->setBairro($mockBairro)
                             ->setLogradouro("Rua das Flores")
                             ->setCep("01234-567");
-        
+
         $this->assertSame($logradouro, $result);
-        $this->assertEquals(1, $logradouro->getIdBairro());
+        $this->assertSame($mockBairro, $logradouro->getBairro());
         $this->assertEquals("Rua das Flores", $logradouro->getLogradouro());
-        $this->assertEquals("01234-567", $logradouro->getCep());
+        $this->assertEquals("01234567", $logradouro->getCep()); // setCep strips non-digits
     }
 
     public function testLogradouroSpecialCharacters(): void
