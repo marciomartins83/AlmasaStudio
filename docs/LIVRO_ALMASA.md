@@ -9,9 +9,11 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.16.0 |
-| **Data Ultima Atualizacao** | 2025-12-08 |
+| **Versao Atual** | 6.17.0 |
+| **Data Ultima Atualizacao** | 2026-02-19 |
 | **Status Geral** | Em producao |
+| **URL Produção** | https://www.liviago.com.br/almasa |
+| **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
 | **Proxima Tarefa** | Implementar `buscarConjugePessoa()` no PessoaService |
@@ -974,6 +976,17 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.17.0] - 2026-02-19
+
+#### Adicionado
+- Deploy em produção: https://www.liviago.com.br/almasa
+- Config Nginx subfolder /almasa (deploy/nginx-almasa.conf)
+- Banco PostgreSQL Neon Cloud funcional em produção
+- MetodologiaAPI v1.1.0 criada e deployada em /apiCode
+- API coercitiva que injeta regras no CLAUDE.md dos projetos
 
 ---
 
