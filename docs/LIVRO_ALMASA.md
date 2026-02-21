@@ -19,6 +19,8 @@
 | **Proxima Tarefa** | Deploy v6.19.0 no VPS + testar sistema em producao |
 | **Issue Aberta** | Nenhuma |
 | **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
+| **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
+| **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
 
 ---
 
@@ -725,7 +727,9 @@ php bin/console doctrine:schema:update --dump-sql
 
 ### Script de Migracao MySQL -> PostgreSQL
 
-**Localização:** `scripts/migration/migrate.py` + `scripts/migration/config.py`
+**Repositório separado:** https://github.com/marciomartins83/almasa-migration (privado)
+
+**NÃO está dentro do AlmasaStudio.** Foi movido para repo próprio em 2026-02-21.
 
 **Versão atual:** v2 (2026-02-21) — reescrito com parametrização completa
 
@@ -1071,6 +1075,9 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 #### Alterado
 - config.py: IDs de parametrizacao documentados e confirmados contra banco real
 - Migracao completa: 702.174 registros em 19 fases, 0 erros, 0 warnings
+- Script de migracao movido para repo separado: https://github.com/marciomartins83/almasa-migration
+  - Removido de `scripts/migration/` do AlmasaStudio
+  - Repo privado, independente, não vai para VPS
 
 #### Registros Migrados (2026-02-21)
 
