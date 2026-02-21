@@ -1,10 +1,10 @@
 <?php
 
-namespace AppDataFixtures;
+namespace App\DataFixtures;
 
-use AppEntityTipoEmail;
-use DoctrineBundleFixturesBundleFixture;
-use DoctrinePersistenceObjectManager;
+use App\Entity\TipoEmail;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
 
 class TipoEmailFixtures extends Fixture
 {

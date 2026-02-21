@@ -53,3 +53,9 @@ yay/
 /logs/
 ###< logs do projeto ###
 __pycache__/
+.env
+
+###> migracao ###
+/bkpBancoFormatoAntigo/
+/logs/migration/
+###< migracao ###

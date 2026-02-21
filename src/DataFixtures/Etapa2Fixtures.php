@@ -1,14 +1,14 @@
 <?php
 
-namespace AppDataFixtures;
+namespace App\DataFixtures;
 
-use AppEntityEstado;
-use AppEntityCidade;
-use AppEntityBairro;
-use AppEntityLogradouro;
-use AppEntityTipoDocumento;
-use DoctrineBundleFixturesBundleFixture;
-use DoctrinePersistenceObjectManager;
+use App\Entity\Estado;
+use App\Entity\Cidade;
+use App\Entity\Bairro;
+use App\Entity\Logradouro;
+use App\Entity\TipoDocumento;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
 
 class Etapa2Fixtures extends Fixture
 {

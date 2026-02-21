@@ -9,15 +9,16 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.17.0 |
-| **Data Ultima Atualizacao** | 2026-02-19 |
-| **Status Geral** | Em producao |
+| **Versao Atual** | 6.19.0 |
+| **Data Ultima Atualizacao** | 2026-02-21 |
+| **Status Geral** | Em producao com dados migrados |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Implementar `buscarConjugePessoa()` no PessoaService |
-| **Issue Aberta** | #1 — Conjuge nao carrega na busca (MEDIA) |
+| **Proxima Tarefa** | Deploy v6.19.0 no VPS + testar sistema em producao |
+| **Issue Aberta** | Nenhuma |
+| **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
 
 ---
 
@@ -67,6 +68,10 @@
 | 6.14.0 | 2025-12-07 | Lancamentos (Contas a Pagar/Receber) |
 | 6.15.0 | 2025-12-08 | Prestacao de Contas aos Proprietarios |
 | 6.16.0 | 2025-12-08 | Modulo Relatorios PDF (6 relatorios com preview AJAX) |
+| 6.17.0 | 2026-02-19 | Deploy producao em liviago.com.br/almasa |
+| 6.17.1 | 2026-02-20 | Correcao assets producao, login, dados teste |
+| 6.18.0 | 2026-02-20 | Paginacao em 29 CRUDs, CRUD Bancos, correcoes templates |
+| 6.19.0 | 2026-02-21 | Migracao MySQL->PostgreSQL v2 — 702k registros, 100% sucesso, 0 erros |
 
 ### Migracoes Criticas (Referencia Historica)
 
@@ -718,6 +723,64 @@ php bin/console doctrine:schema:update --dump-sql
 
 **Divergencias NAO aceitaveis:** ALTER TYPE, ALTER SET NOT NULL, DROP/ADD COLUMN
 
+### Script de Migracao MySQL -> PostgreSQL
+
+**Localização:** `scripts/migration/migrate.py` + `scripts/migration/config.py`
+
+**Versão atual:** v2 (2026-02-21) — reescrito com parametrização completa
+
+**Pré-requisitos obrigatórios:**
+1. Tabelas de parâmetros populadas (tipos_pessoas, tipos_documentos, tipos_telefones, etc.)
+2. Dump MySQL em `bkpBancoFormatoAntigo/bkpjpw_20260220_121003.sql`
+3. PostgreSQL acessível (Neon Cloud)
+
+**Cadeia de dependência respeitada:**
+```
+Grupo 0: tipos_* (parametros puros, sem FK)
+Grupo 1: estados, bancos
+Grupo 2: cidades, agencias, pessoas
+Grupo 3: bairros, contas_bancarias, telefones
+Grupo 4: logradouros
+Grupo 5: enderecos
+Grupo 6: imoveis, condominios
+Grupo 7: contratos
+Grupo 8: lancamentos_financeiros
+Grupo 9: boletos, prestacoes_contas
+```
+
+**IDs de parametrização confirmados (2026-02-21):**
+
+| Tabela | Tipo | ID |
+|--------|------|----|
+| tipos_pessoas | fiador | 1 |
+| tipos_pessoas | locador | 4 |
+| tipos_pessoas | contratante | 6 |
+| tipos_pessoas | inquilino | 12 |
+| tipos_documentos | CPF | 1 |
+| tipos_documentos | RG | 2 |
+| tipos_documentos | CNPJ | 4 |
+| tipos_telefones | Residencial | 2 |
+| tipos_telefones | Comercial | 3 |
+| tipos_telefones | Celular | 6 |
+| tipos_enderecos | Residencial | 1 |
+| tipos_emails | Pessoal | 1 |
+| tipos_imoveis | Casa | 1 |
+
+**Bugs corrigidos na v2:**
+- tipos_pessoas estavam INVERTIDOS (locador=1 era fiador, fiador=4 era locador)
+- Todos telefones classificados como Celular (agora Residencial/Celular/Comercial)
+- Cache de bairros stale causava 23 falhas de FK violation
+- enderecos de imoveis apontavam para placeholder em vez do proprietario real
+
+**Uso:**
+```bash
+cd scripts/migration
+python3 migrate.py --phase all      # Executa tudo (inclui validacao)
+python3 migrate.py --phase 08       # So locadores
+python3 migrate.py --list           # Ver status das fases
+python3 migrate.py --reset-phase 08 # Desmarca fase para re-executar
+```
+
 ---
 
 ## Cap 12 — Frontend
@@ -976,6 +1039,79 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.19.0] - 2026-02-21
+
+#### Adicionado
+- **Script de migracao v2 com parametrizacao completa** (scripts/migration/migrate.py)
+  - Fase 00: Validacao automatica de TODAS tabelas de parametros antes de importar
+  - IDs carregados dinamicamente do banco (nunca mais hardcoded errado)
+  - Tipo "inquilino" adicionado a tabela tipos_pessoas (id=12)
+- **PaginationService** (src/Service/PaginationService.php) — paginacao 15/30/50/100 por pagina
+- **BancoController + CRUD completo** (src/Controller/BancoController.php) — antes nao existia
+- **Paginacao e busca em TODOS os 29 CRUDs** do sistema
+
+#### Corrigido
+- **tipos_pessoas INVERTIDOS na migracao anterior**: locador era id=1 (fiador!), fiador era id=4 (locador!)
+  - Corrigido: locador=4, fiador=1, contratante=6, inquilino=12
+- **Telefones TODOS como Celular**: script antigo usava DEFAULT_TIPO_TELEFONE_ID=6 para tudo
+  - Corrigido: campo "telefone"=Residencial(2), "celular"=Celular(6), "comercial"=Comercial(3)
+  - Resultado: 2450 Residencial + 3315 Celular + 298 Comercial (antes: 6063 todos Celular)
+- **23 imoveis falhavam por FK de bairro** (cache stale de transacao rollback)
+  - Corrigido: validacao de cache contra DB antes de usar ID cacheado
+  - Resultado: 3236/3236 imoveis migrados (100%, antes 99.3%)
+- **enderecos.id_pessoa de imoveis apontava para placeholder**
+  - Corrigido: Fase 12 agora atualiza enderecos.id_pessoa para proprietario real (2997 corrigidos)
+- **Memory error em /almasa/imovel/** — carregava todos 3236 registros sem paginacao
+- **Agencia template RuntimeError** — `agencia.idBanco` nao existia como propriedade
+- **Tipo imovel sem botao "Novo"**
+
+#### Alterado
+- config.py: IDs de parametrizacao documentados e confirmados contra banco real
+- Migracao completa: 702.174 registros em 19 fases, 0 erros, 0 warnings
+
+#### Registros Migrados (2026-02-21)
+
+| Fase | Tabela Origem | Destino | Registros |
+|------|--------------|---------|-----------|
+| 00 | — | Validacao | 13 IDs |
+| 01 | banco | bancos | 15 |
+| 02 | agencia | agencias | 16 |
+| 03 | conta | contas_bancarias | 14 |
+| 04 | locplano | plano_contas | 159 |
+| 05 | p_estado | estados | 18 |
+| 06 | p_cidade | cidades | 9.627 |
+| 07 | p_bairro | bairros | 51.603 |
+| 08 | loclocadores | pessoas (locador) | 2.498 |
+| 09 | locfiadores | pessoas (fiador) | 288 |
+| 10 | loccontratantes | pessoas (contratante) | 3 |
+| 11 | locimoveis | imoveis | 3.236 |
+| 12 | locimovelprop | vinculos proprietario | 2.998 + 2.997 end |
+| 13 | locinquilino | pessoas + contratos | 2.132 + 2.130 |
+| 14 | locrecibo | lancamentos_financeiros | 80.009 |
+| 15 | locrechist | verbas lancamentos | 80.002 |
+| 16 | loclanctocc | lancamentos CC | 426.695 |
+| 17 | locacordo | acordos_financeiros | 4 |
+| 18 | locrepasse | prestacoes_contas | 42.844 |
+| **TOTAL** | | | **702.174** |
+
+---
+
+### [6.17.1] - 2026-02-20
+
+#### Corrigido
+- **Assets em producao quebrados** — Webpack publicPath apontava `/build` mas site roda em `/almasa`
+  - webpack.config.js: `setPublicPath` agora usa env var `PUBLIC_PATH` + `setManifestKeyPrefix`
+  - Build producao com `PUBLIC_PATH=/almasa/build` gera manifest e entrypoints corretos
+  - Nginx config: corrigido regex location com capture group para alias funcionar
+- **Login quebrado em producao** — `dump()` no UserAuthenticator enviava output antes dos headers HTTP
+  - Removidos todos os `dump()` de debug do metodo `authenticate()`
+- **Dados de teste no banco** — Limpeza de dados com marcacao "(Fake)" e profissao "Teste Migration"
+  - Removida profissao "Teste Migration"
+  - Limpados complementos "(Fake)" dos enderecos
+  - Corrigida empresa e observacoes das profissoes
 
 ---
 
