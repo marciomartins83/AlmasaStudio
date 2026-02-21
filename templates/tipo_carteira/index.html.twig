@@ -32,7 +32,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for tipo_carteira in tipos_carteiras %}
+                                {% for tipo_carteira in pagination.items %}
                                 <tr>
                                     <td>{{ tipo_carteira.id }}</td>
                                     <td><strong>{{ tipo_carteira.tipo }}</strong></td>
@@ -72,6 +72,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_tipo_carteira_index'
+                    } %}
                 </div>
             </div>
         </div>

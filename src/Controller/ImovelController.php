@@ -6,6 +6,7 @@ use App\Entity\Imoveis;
 use App\Form\ImovelFormType;
 use App\Repository\ImoveisRepository;
 use App\Service\ImovelService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,12 +32,15 @@ class ImovelController extends AbstractController
      * Lista todos os imóveis
      */
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(ImoveisRepository $imoveisRepository): Response
+    public function index(ImoveisRepository $imoveisRepository, PaginationService $paginator, Request $request): Response
     {
-        // ✅ Refatorado para usar findBy com ordenação decrescente por ID
-        $imoveis = $imoveisRepository->findBy([], ['id' => 'DESC']);
+        $qb = $imoveisRepository->createQueryBuilder('i')
+            ->orderBy('i.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['i.codigoInterno', 'i.descricao']);
+
         return $this->render('imovel/index.html.twig', [
-            'imoveis' => $imoveis,
+            'pagination' => $pagination,
         ]);
     }
 

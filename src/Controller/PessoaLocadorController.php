@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\PessoasLocadores;
 use App\Form\PessoaLocadorType;
 use App\Repository\PessoaLocadorRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,10 +16,16 @@ use Symfony\Component\Routing\Annotation\Route;
 class PessoaLocadorController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(PessoaLocadorRepository $pessoaLocadorRepository): Response
+    public function index(PessoaLocadorRepository $pessoaLocadorRepository, PaginationService $paginator, Request $request): Response
     {
+        $qb = $pessoaLocadorRepository->createQueryBuilder('l')
+            ->join('l.pessoa', 'p')
+            ->orderBy('l.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome']);
+
         return $this->render('pessoa_locador/index.html.twig', [
-            'pessoa_locadores' => $pessoaLocadorRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

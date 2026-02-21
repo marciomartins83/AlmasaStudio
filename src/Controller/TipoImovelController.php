@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\TiposImoveis;
 use App\Form\TipoImovelType;
 use App\Repository\TiposImoveisRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,10 +25,15 @@ class TipoImovelController extends AbstractController
     }
 
     #[Route('/', name: 'app_tipo_imovel_index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request, PaginationService $paginator): Response
     {
+        $qb = $this->tipoImovelRepository->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
+
         return $this->render('tipo_imovel/index.html.twig', [
-            'tipo_imovels' => $this->tipoImovelRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

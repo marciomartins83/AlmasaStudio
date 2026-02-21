@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\TiposEnderecos;
 use App\Form\TipoEnderecoType;
 use App\Repository\TiposEnderecosRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,12 +24,15 @@ class TipoEnderecoController extends AbstractController
     }
 
     #[Route('/tipo/endereco', name: 'app_tipo_endereco_index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request, PaginationService $paginator): Response
     {
-        $tiposEndereco = $this->tipoEnderecoRepository->findAll();
+        $qb = $this->tipoEnderecoRepository->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
 
         return $this->render('tipo_endereco/index.html.twig', [
-            'tipos_endereco' => $tiposEndereco,
+            'pagination' => $pagination,
         ]);
     }
 

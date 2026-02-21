@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\TiposDocumentos;
 use App\Form\TipoDocumentoType;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,12 +14,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoDocumentoController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $tiposDocumentos = $entityManager->getRepository(TiposDocumentos::class)->findAll();
+        $qb = $entityManager->getRepository(TiposDocumentos::class)->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
 
         return $this->render('tipo_documento/index.html.twig', [
-            'tipos_documentos' => $tiposDocumentos,
+            'pagination' => $pagination,
         ]);
     }
 

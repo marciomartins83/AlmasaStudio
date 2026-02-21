@@ -51,7 +51,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for config in configuracoes %}
+                                {% for config in pagination.items %}
                                 <tr data-id="{{ config.id }}">
                                     <td>{{ config.id }}</td>
                                     <td>
@@ -146,6 +146,14 @@
                             </tbody>
                         </table>
                     </div>
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_configuracao_api_banco_index'
+                    } %}
                 </div>
             </div>
         </div>

@@ -5,6 +5,7 @@ use App\Entity\Bairros;
 use App\Entity\Cidades;
 use App\Form\BairroType;
 use App\Repository\CidadeRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,20 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class BairroController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $bairros = $entityManager->getRepository(Bairros::class)->findAll();
-        $cidades = $entityManager->getRepository(Cidades::class)->findAll();
-        
-        // Criar um mapa de cidades para fácil acesso
-        $cidadesMap = [];
-        foreach ($cidades as $cidade) {
-            $cidadesMap[$cidade->getId()] = $cidade;
-        }
+        $qb = $entityManager->getRepository(Bairros::class)->createQueryBuilder('b')
+            ->orderBy('b.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['b.nome']);
 
         return $this->render('bairro/index.html.twig', [
-            'bairros' => $bairros,
-            'cidades_map' => $cidadesMap,
+            'pagination' => $pagination,
         ]);
     }
 

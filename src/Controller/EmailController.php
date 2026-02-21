@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Emails;
 use App\Form\EmailType;
 use App\Repository\EmailRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,29 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class EmailController extends AbstractController
 {
     #[Route('/', name: 'app_email_index', methods: ['GET'])]
-    public function index(EmailRepository $emailRepository, Request $request): Response
+    public function index(EmailRepository $emailRepository, PaginationService $paginator, Request $request): Response
     {
-        $search = $request->query->get('search', '');
-        $page = $request->query->getInt('page', 1);
+        $qb = $emailRepository->createQueryBuilder('e')
+            ->orderBy('e.id', 'DESC');
 
-        $queryBuilder = $emailRepository->createQueryBuilder('e');
-
-        if ($search) {
-            $queryBuilder->where('e.email LIKE :search')
-                        ->setParameter('search', '%' . $search . '%');
-        }
-
-        $queryBuilder->orderBy('e.id', 'DESC');
-
-        $emails = $queryBuilder->getQuery()
-            ->setFirstResult(($page - 1) * 10)
-            ->setMaxResults(10)
-            ->getResult();
+        $pagination = $paginator->paginate($qb, $request, null, ['e.email']);
 
         return $this->render('email/index.html.twig', [
-            'emails' => $emails,
-            'search' => $search,
-            'page' => $page,
+            'pagination' => $pagination,
         ]);
     }
 

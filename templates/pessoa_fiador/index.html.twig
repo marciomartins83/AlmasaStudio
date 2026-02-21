@@ -28,7 +28,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for fiador in pessoa_fiadores %}
+                {% for fiador in pagination.items %}
                 <tr>
                     <td>{{ fiador.id }}</td>
                     <td>{{ fiador.idPessoa }}</td>
@@ -47,5 +47,14 @@
             </tbody>
         </table>
     </div>
+
+    {% include '_partials/pagination.html.twig' with {
+        totalItems: pagination.totalItems,
+        currentPage: pagination.currentPage,
+        itemsPerPage: pagination.itemsPerPage,
+        totalPages: pagination.totalPages,
+        search: pagination.search,
+        routeName: 'app_pessoa_fiador_index'
+    } %}
 </div>
 {% endblock %} 

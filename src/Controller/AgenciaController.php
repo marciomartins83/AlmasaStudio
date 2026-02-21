@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Agencias;
 use App\Form\AgenciaType;
 use App\Repository\AgenciaRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,10 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class AgenciaController extends AbstractController
 {
     #[Route('/', name: 'app_agencia_index', methods: ['GET'])]
-    public function index(AgenciaRepository $agenciaRepository): Response
+    public function index(AgenciaRepository $agenciaRepository, PaginationService $paginator, Request $request): Response
     {
+        $qb = $agenciaRepository->createQueryBuilder('a')
+            ->orderBy('a.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['a.codigo', 'a.nome']);
+
         return $this->render('agencia/index.html.twig', [
-            'agencias' => $agenciaRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

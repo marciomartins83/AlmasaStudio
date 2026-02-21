@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\Telefones;
 use App\Form\TelefoneType;
 use App\Repository\TelefoneRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,10 +15,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class TelefoneController extends AbstractController
 {
     #[Route('/', name: 'app_telefone_index', methods: ['GET'])]
-    public function index(TelefoneRepository $telefoneRepository): Response
+    public function index(TelefoneRepository $telefoneRepository, PaginationService $paginator, Request $request): Response
     {
+        $qb = $telefoneRepository->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.numero']);
+
         return $this->render('telefone/index.html.twig', [
-            'telefones' => $telefoneRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

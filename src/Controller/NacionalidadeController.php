@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Nacionalidade;
 use App\Form\NacionalidadeType;
 use App\Service\NacionalidadeService;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,12 +23,15 @@ class NacionalidadeController extends AbstractController
         $this->nacionalidadeService = $nacionalidadeService;
     }
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $nacionalidades = $entityManager->getRepository(Nacionalidade::class)->findAll();
+        $qb = $entityManager->getRepository(Nacionalidade::class)->createQueryBuilder('n')
+            ->orderBy('n.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['n.nome']);
 
         return $this->render('nacionalidade/index.html.twig', [
-            'nacionalidades' => $nacionalidades,
+            'pagination' => $pagination,
         ]);
     }
 

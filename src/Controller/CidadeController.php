@@ -5,6 +5,7 @@ use App\Entity\Cidades;
 use App\Entity\Estados;
 use App\Form\CidadeType;
 use App\Repository\EstadosRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,20 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class CidadeController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $cidades = $entityManager->getRepository(Cidades::class)->findAll();
-        $estados = $entityManager->getRepository(Estados::class)->findAll();
-        
-        // Criar um mapa de estados para fácil acesso
-        $estadosMap = [];
-        foreach ($estados as $estado) {
-            $estadosMap[$estado->getId()] = $estado;
-        }
+        $qb = $entityManager->getRepository(Cidades::class)->createQueryBuilder('c')
+            ->orderBy('c.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.nome']);
 
         return $this->render('cidade/index.html.twig', [
-            'cidades' => $cidades,
-            'estados_map' => $estadosMap,
+            'pagination' => $pagination,
         ]);
     }
 

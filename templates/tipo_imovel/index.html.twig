@@ -1,38 +1,76 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Tipos de Imóvel{% endblock %}
+{% block title %}Tipos de Imóvel - {{ parent() }}{% endblock %}
 
-{% block body %}
-    <h1>Tipos de Imóvel</h1>
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [],
+        'current': 'Lista de Tipos de Imóvel'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-home"></i> Tipos de Imóvel</h1>
+                <a href="{{ path('app_tipo_imovel_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Tipo de Imóvel
+                </a>
+            </div>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Tipo</th>
-                <th>Descrição</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for tipo_imovel in tipo_imovels %}
-            <tr>
-                <td>{{ tipo_imovel.id }}</td>
-                <td>{{ tipo_imovel.tipo }}</td>
-                <td>{{ tipo_imovel.descricao }}</td>
-                <td>
-                    <a href="{{ path('app_tipo_imovel_show', {'id': tipo_imovel.id}) }}" class="btn btn-sm btn-info">Ver</a>
-                    <a href="{{ path('app_tipo_imovel_edit', {'id': tipo_imovel.id}) }}" class="btn btn-sm btn-primary">Editar</a>
-                    {{ include('tipo_imovel/_delete_form.html.twig', {tipo_imovel: tipo_imovel}) }}
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="6">Nenhum tipo de imóvel encontrado.</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="80">ID</th>
+                                    <th>Tipo</th>
+                                    <th>Descrição</th>
+                                    <th width="200">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tipo_imovel in pagination.items %}
+                                <tr>
+                                    <td>{{ tipo_imovel.id }}</td>
+                                    <td><strong>{{ tipo_imovel.tipo }}</strong></td>
+                                    <td>{{ tipo_imovel.descricao }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ path('app_tipo_imovel_show', {'id': tipo_imovel.id}) }}" class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_tipo_imovel_edit', {'id': tipo_imovel.id}) }}" class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            {{ include('tipo_imovel/_delete_form.html.twig', {tipo_imovel: tipo_imovel}) }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum tipo de imóvel cadastrado</span><br>
+                                        <small>Clique em "Novo Tipo de Imóvel" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-    <a href="{{ path('app_tipo_imovel_new') }}" class="btn btn-success">Novo Tipo de Imóvel</a>
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_tipo_imovel_index'
+                    } %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

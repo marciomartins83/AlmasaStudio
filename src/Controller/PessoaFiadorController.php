@@ -10,6 +10,7 @@ use App\Form\PessoaFiadorFormType;
 use App\Repository\PessoaFiadorRepository;
 use App\Repository\PessoaRepository;
 use App\Service\CepService;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,10 +22,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class PessoaFiadorController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(PessoaFiadorRepository $pessoaFiadorRepository): Response
+    public function index(PessoaFiadorRepository $pessoaFiadorRepository, PaginationService $paginator, Request $request): Response
     {
+        $qb = $pessoaFiadorRepository->createQueryBuilder('f')
+            ->orderBy('f.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request);
+
         return $this->render('pessoa_fiador/index.html.twig', [
-            'pessoa_fiadores' => $pessoaFiadorRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

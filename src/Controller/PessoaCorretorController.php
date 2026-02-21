@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\PessoasCorretores;
 use App\Form\PessoaCorretorType;
 use App\Repository\PessoaCorretorRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,10 +16,16 @@ use Symfony\Component\Routing\Annotation\Route;
 class PessoaCorretorController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(PessoaCorretorRepository $pessoaCorretorRepository): Response
+    public function index(PessoaCorretorRepository $pessoaCorretorRepository, PaginationService $paginator, Request $request): Response
     {
+        $qb = $pessoaCorretorRepository->createQueryBuilder('c')
+            ->join('c.pessoa', 'p')
+            ->orderBy('c.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome']);
+
         return $this->render('pessoa_corretor/index.html.twig', [
-            'pessoa_corretores' => $pessoaCorretorRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

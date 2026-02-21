@@ -7,6 +7,7 @@ use App\Form\PessoaFormType;
 use App\Repository\PessoaRepository;
 use App\Service\PessoaService;
 use App\Service\CepService;
+use App\Service\PaginationService;
 use App\Service\ProfissaoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,13 +35,15 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(PessoaRepository $pessoaRepository, PaginationService $paginator, Request $request): Response
     {
-        // ✅ Thin Controller: Delega para Service
-        $pessoasEnriquecidas = $this->pessoaService->listarPessoasEnriquecidas();
+        $qb = $pessoaRepository->createQueryBuilder('p')
+            ->orderBy('p.idpessoa', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], 'p.idpessoa');
 
         return $this->render('pessoa/index.html.twig', [
-            'pessoas' => $pessoasEnriquecidas,
+            'pagination' => $pagination,
         ]);
     }
 

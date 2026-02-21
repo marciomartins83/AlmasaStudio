@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\TiposEmails;
 use App\Form\TipoEmailType;
 use App\Repository\TipoEmailRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,12 +15,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoEmailController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $tiposEmails = $entityManager->getRepository(TiposEmails::class)->findAll();
+        $qb = $entityManager->getRepository(TiposEmails::class)->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
 
         return $this->render('tipo_email/index.html.twig', [
-            'tipos_emails' => $tiposEmails,
+            'pagination' => $pagination,
         ]);
     }
 

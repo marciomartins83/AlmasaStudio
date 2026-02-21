@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\EstadoCivil;
 use App\Form\EstadoCivilType;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,12 +15,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class EstadoCivilController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $estadosCivis = $entityManager->getRepository(EstadoCivil::class)->findAll();
+        $qb = $entityManager->getRepository(EstadoCivil::class)->createQueryBuilder('e')
+            ->orderBy('e.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['e.nome']);
 
         return $this->render('estado_civil/index.html.twig', [
-            'estados_civis' => $estadosCivis,
+            'pagination' => $pagination,
         ]);
     }
 

@@ -4,8 +4,10 @@ namespace App\Controller;
 
 use App\Entity\ConfiguracoesApiBanco;
 use App\Form\ConfiguracaoApiBancoType;
-use App\Service\ConfiguracaoApiBancoService;
+use App\Repository\ConfiguracoesApiBancoRepository;
 use App\Repository\ContasBancariasRepository;
+use App\Service\ConfiguracaoApiBancoService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,12 +22,15 @@ class ConfiguracaoApiBancoController extends AbstractController
     ) {}
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(ConfiguracoesApiBancoRepository $configuracaoRepository, PaginationService $paginator, Request $request): Response
     {
-        $configuracoes = $this->service->listar();
+        $qb = $configuracaoRepository->createQueryBuilder('c')
+            ->orderBy('c.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.convenio', 'c.ambiente']);
 
         return $this->render('configuracao_api_banco/index.html.twig', [
-            'configuracoes' => $configuracoes,
+            'pagination' => $pagination,
         ]);
     }
 

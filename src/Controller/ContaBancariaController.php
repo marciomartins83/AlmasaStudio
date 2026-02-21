@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ContasBancarias;
 use App\Form\ContaBancariaType;
 use App\Repository\ContasBancariasRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,12 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class ContaBancariaController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $contasBancarias = $entityManager->getRepository(ContasBancarias::class)->findAll();
+        $qb = $entityManager->getRepository(ContasBancarias::class)->createQueryBuilder('c')
+            ->orderBy('c.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.codigo', 'c.titular']);
 
         return $this->render('conta_bancaria/index.html.twig', [
-            'conta_bancarias' => $contasBancarias,
+            'pagination' => $pagination,
         ]);
     }
 

@@ -27,7 +27,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for email in emails %}
+                {% for email in pagination.items %}
                 <tr>
                     <td>{{ email.id }}</td>
                     <td>{{ email.email }}</td>
@@ -45,5 +45,14 @@
             </tbody>
         </table>
     </div>
+
+    {% include '_partials/pagination.html.twig' with {
+        totalItems: pagination.totalItems,
+        currentPage: pagination.currentPage,
+        itemsPerPage: pagination.itemsPerPage,
+        totalPages: pagination.totalPages,
+        search: pagination.search,
+        routeName: 'app_email_index'
+    } %}
 </div>
 {% endblock %}

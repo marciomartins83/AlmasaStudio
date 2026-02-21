@@ -33,14 +33,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for cidade in cidades %}
+                                {% for cidade in pagination.items %}
                                 <tr>
                                     <td>{{ cidade.id }}</td>
                                     <td><strong>{{ cidade.nome }}</strong></td>
                                     <td>
-                                        {% if estados_map[cidade.estado.id] is defined %}
-                                            <span class="badge bg-primary">{{ estados_map[cidade.estado.id].uf }}</span>
-                                            <br><small class="text-muted">{{ estados_map[cidade.estado.id].nome }}</small>
+                                        {% if cidade.estado %}
+                                            <span class="badge bg-primary">{{ cidade.estado.uf }}</span>
+                                            <br><small class="text-muted">{{ cidade.estado.nome }}</small>
                                         {% else %}
                                             <span class="text-muted">Estado não encontrado</span>
                                         {% endif %}
@@ -97,6 +97,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_cidade_index'
+                    } %}
                 </div>
             </div>
         </div>

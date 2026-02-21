@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Naturalidade;
 use App\Form\NaturalidadeType;
 use App\Service\NaturalidadeService;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,12 +23,15 @@ class NaturalidadeController extends AbstractController
         $this->naturalidadeService = $naturalidadeService;
     }
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $naturalidades = $entityManager->getRepository(Naturalidade::class)->findAll();
+        $qb = $entityManager->getRepository(Naturalidade::class)->createQueryBuilder('n')
+            ->orderBy('n.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['n.nome']);
 
         return $this->render('naturalidade/index.html.twig', [
-            'naturalidades' => $naturalidades,
+            'pagination' => $pagination,
         ]);
     }
 

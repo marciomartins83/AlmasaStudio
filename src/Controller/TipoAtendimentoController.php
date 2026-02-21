@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\TiposAtendimento;
 use App\Form\TipoAtendimentoType;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,12 +14,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoAtendimentoController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $tiposAtendimento = $entityManager->getRepository(TiposAtendimento::class)->findAll();
+        $qb = $entityManager->getRepository(TiposAtendimento::class)->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
 
         return $this->render('tipo_atendimento/index.html.twig', [
-            'tipos_atendimento' => $tiposAtendimento,
+            'pagination' => $pagination,
         ]);
     }
 

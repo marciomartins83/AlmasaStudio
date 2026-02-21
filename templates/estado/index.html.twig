@@ -32,7 +32,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for estado in estados %}
+                                {% for estado in pagination.items %}
                                 <tr>
                                     <td>{{ estado.id }}</td>
                                     <td><span class="badge bg-primary">{{ estado.uf }}</span></td>
@@ -82,6 +82,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_estado_index'
+                    } %}
                 </div>
             </div>
         </div>

@@ -164,43 +164,52 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for contrato in contratos %}
+                                {% for contrato in pagination.items %}
                                 <tr>
                                     <td><strong>{{ contrato.id }}</strong></td>
                                     <td>
-                                        <strong>{{ contrato.imovel_codigo|default('-') }}</strong><br>
-                                        <small class="text-muted">{{ contrato.imovel_endereco|default('-') }}</small>
-                                    </td>
-                                    <td>{{ contrato.locatario_nome|default('-') }}</td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ contrato.tipo_contrato_label|default('-') }}</span>
-                                    </td>
-                                    <td>
-                                        {% if contrato.data_inicio %}
-                                            {{ contrato.data_inicio|date('d/m/Y') }}
+                                        {% if contrato.imovel %}
+                                            <strong>{{ contrato.imovel.codigoInterno|default('-') }}</strong>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if contrato.data_fim %}
-                                            {{ contrato.data_fim|date('d/m/Y') }}
+                                        {% if contrato.pessoaLocatario %}
+                                            {{ contrato.pessoaLocatario.nome }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ contrato.tipoContrato|default('-') }}</span>
+                                    </td>
+                                    <td>
+                                        {% if contrato.dataInicio %}
+                                            {{ contrato.dataInicio|date('d/m/Y') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if contrato.dataFim %}
+                                            {{ contrato.dataFim|date('d/m/Y') }}
                                         {% else %}
                                             <span class="badge bg-info">Indeterminado</span>
                                         {% endif %}
                                     </td>
                                     <td class="text-end">
-                                        R$ {{ contrato.valor_contrato|default(0)|number_format(2, ',', '.') }}
+                                        R$ {{ contrato.valorContrato|default(0)|number_format(2, ',', '.') }}
                                     </td>
                                     <td>
                                         {% if contrato.status == 'ativo' %}
-                                            <span class="badge bg-success">{{ contrato.status_label }}</span>
+                                            <span class="badge bg-success">Ativo</span>
                                         {% elseif contrato.status == 'encerrado' %}
-                                            <span class="badge bg-info">{{ contrato.status_label }}</span>
+                                            <span class="badge bg-info">Encerrado</span>
                                         {% elseif contrato.status == 'rescindido' %}
-                                            <span class="badge bg-danger">{{ contrato.status_label }}</span>
+                                            <span class="badge bg-danger">Rescindido</span>
                                         {% else %}
-                                            <span class="badge bg-warning">{{ contrato.status_label }}</span>
+                                            <span class="badge bg-warning">{{ contrato.status|default('-') }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -233,11 +242,18 @@
                 </div>
             </div>
 
-            {% if contratos|length > 0 %}
-            <div class="mt-2">
-                <small class="text-muted">Total: {{ contratos|length }} contrato(s)</small>
+            <div class="card mt-2">
+                <div class="card-body py-2">
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_contrato_index'
+                    } %}
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>

@@ -20,7 +20,7 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>ID Pessoa</th>
+                    <th>Pessoa</th>
                     <th>CRECI</th>
                     <th>Status</th>
                     <th>Data Cadastro</th>
@@ -29,10 +29,10 @@
                 </tr>
             </thead>
             <tbody>
-                {% for corretor in pessoa_corretores %}
+                {% for corretor in pagination.items %}
                 <tr>
                     <td>{{ corretor.id }}</td>
-                    <td>{{ corretor.idPessoa }}</td>
+                    <td>{{ corretor.pessoa ? corretor.pessoa.nome : '-' }}</td>
                     <td>{{ corretor.creci ?? '-' }}</td>
                     <td>{{ corretor.status ? 'Ativo' : 'Inativo' }}</td>
                     <td>{{ corretor.dataCadastro ? corretor.dataCadastro|date('d/m/Y') : '-' }}</td>
@@ -49,5 +49,14 @@
             </tbody>
         </table>
     </div>
+
+    {% include '_partials/pagination.html.twig' with {
+        totalItems: pagination.totalItems,
+        currentPage: pagination.currentPage,
+        itemsPerPage: pagination.itemsPerPage,
+        totalPages: pagination.totalPages,
+        search: pagination.search,
+        routeName: 'app_pessoa_corretor_index'
+    } %}
 </div>
 {% endblock %} 

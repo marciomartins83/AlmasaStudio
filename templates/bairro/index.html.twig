@@ -33,12 +33,12 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for bairro in bairros %}
+                                {% for bairro in pagination.items %}
                                 <tr>
                                     <td>{{ bairro.id }}</td>
                                     <td><strong>{{ bairro.nome }}</strong></td>
                                     <td>
-{% if cidades_map[bairro.cidade.id] is defined %}
+                                        {% if bairro.cidade %}
                                             <span class="badge bg-success">{{ bairro.cidade.nome }}</span>
                                         {% else %}
                                             <span class="text-muted">Cidade não encontrada</span>
@@ -96,6 +96,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_bairro_index'
+                    } %}
                 </div>
             </div>
         </div>

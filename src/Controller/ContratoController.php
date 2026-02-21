@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ImoveisContratos;
 use App\Repository\ImoveisContratosRepository;
 use App\Service\ContratoService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,7 +41,7 @@ class ContratoController extends AbstractController
      * Lista todos os contratos com filtros
      */
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(Request $request): Response
+    public function index(Request $request, ImoveisContratosRepository $contratosRepository, PaginationService $paginator): Response
     {
         $filtros = [
             'status' => $request->query->get('status'),
@@ -53,12 +54,16 @@ class ContratoController extends AbstractController
         // Remove filtros vazios
         $filtros = array_filter($filtros, fn($valor) => $valor !== null && $valor !== '');
 
+        $qb = $contratosRepository->createQueryBuilder('c')
+            ->orderBy('c.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.observacoes']);
+
         // Delega para Service
-        $contratos = $this->contratoService->listarContratosEnriquecidos($filtros);
         $estatisticas = $this->contratoService->obterEstatisticas();
 
         return $this->render('contrato/index.html.twig', [
-            'contratos' => $contratos,
+            'pagination' => $pagination,
             'estatisticas' => $estatisticas,
             'filtros' => $filtros,
         ]);

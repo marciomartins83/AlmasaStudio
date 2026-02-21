@@ -31,7 +31,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for tipo_chave_pix in tipos_chaves_pix %}
+                                {% for tipo_chave_pix in pagination.items %}
                                 <tr>
                                     <td>{{ tipo_chave_pix.id }}</td>
                                     <td><strong>{{ tipo_chave_pix.tipo }}</strong></td>
@@ -80,6 +80,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_tipo_chave_pix_index'
+                    } %}
                 </div>
             </div>
         </div>

@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use App\Entity\TiposChavesPix;
 use App\Form\TipoChavePixType;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,12 +14,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoChavePixController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $tiposChavesPix = $entityManager->getRepository(TiposChavesPix::class)->findAll();
+        $qb = $entityManager->getRepository(TiposChavesPix::class)->createQueryBuilder('t')
+            ->orderBy('t.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
 
         return $this->render('tipo_chave_pix/index.html.twig', [
-            'tipos_chaves_pix' => $tiposChavesPix,
+            'pagination' => $pagination,
         ]);
     }
 

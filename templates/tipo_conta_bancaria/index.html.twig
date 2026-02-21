@@ -31,7 +31,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for tipo_conta_bancaria in tipos_contas_bancarias %}
+                                {% for tipo_conta_bancaria in pagination.items %}
                                 <tr>
                                     <td>{{ tipo_conta_bancaria.id }}</td>
                                     <td><strong>{{ tipo_conta_bancaria.tipo }}</strong></td>
@@ -80,6 +80,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_tipo_conta_bancaria_index'
+                    } %}
                 </div>
             </div>
         </div>

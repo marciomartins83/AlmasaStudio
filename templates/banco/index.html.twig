@@ -1,19 +1,19 @@
-
 {% extends 'base.html.twig' %}
 
-{% block title %}Agências - {{ parent() }}{% endblock %}
+{% block title %}Bancos - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
-        'current': 'Lista de Agências'
+        'items': [],
+        'current': 'Lista de Bancos'
     } %}
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1><i class="fas fa-building"></i> Agências</h1>
-                <a href="{{ path('app_agencia_new') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Nova Agência
+                <h1><i class="fas fa-university"></i> Bancos</h1>
+                <a href="{{ path('app_banco_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Banco
                 </a>
             </div>
 
@@ -24,47 +24,43 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th width="80">ID</th>
-                                    <th>Código</th>
+                                    <th width="100">Número</th>
                                     <th>Nome</th>
-                                    <th>Banco</th>
-                                    <th>Endereço</th>
                                     <th width="200">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for agencia in pagination.items %}
+                                {% for banco in pagination.items %}
                                 <tr>
-                                    <td>{{ agencia.id }}</td>
-                                    <td><strong>{{ agencia.codigo }}</strong></td>
-                                    <td>{{ agencia.nome }}</td>
-                                    <td>{{ agencia.banco ? agencia.banco.numero ~ ' - ' ~ agencia.banco.nome : '-' }}</td>
-                                    <td>{{ agencia.endereco ? agencia.endereco.logradouro.logradouro ?? '-' : '-' }}</td>
+                                    <td>{{ banco.id }}</td>
+                                    <td><span class="badge bg-secondary">{{ banco.numero }}</span></td>
+                                    <td><strong>{{ banco.nome }}</strong></td>
                                     <td>
                                         <div class="btn-group-vertical btn-group-sm d-md-none" role="group">
-                                            <a href="{{ path('app_agencia_show', {'id': agencia.id}) }}" 
+                                            <a href="{{ path('app_banco_show', {'id': banco.id}) }}"
                                                class="btn btn-info btn-sm">
                                                 <i class="fas fa-eye"></i> Ver
                                             </a>
-                                            <a href="{{ path('app_agencia_edit', {'id': agencia.id}) }}" 
+                                            <a href="{{ path('app_banco_edit', {'id': banco.id}) }}"
                                                class="btn btn-warning btn-sm">
                                                 <i class="fas fa-edit"></i> Editar
                                             </a>
                                         </div>
                                         <div class="btn-group d-none d-md-flex" role="group">
-                                            <a href="{{ path('app_agencia_show', {'id': agencia.id}) }}" 
+                                            <a href="{{ path('app_banco_show', {'id': banco.id}) }}"
                                                class="btn btn-info btn-sm">
                                                 <i class="fas fa-eye"></i> Ver
                                             </a>
-                                            <a href="{{ path('app_agencia_edit', {'id': agencia.id}) }}" 
+                                            <a href="{{ path('app_banco_edit', {'id': banco.id}) }}"
                                                class="btn btn-warning btn-sm">
                                                 <i class="fas fa-edit"></i> Editar
                                             </a>
-                                            <form method="post" 
-                                                  action="{{ path('app_agencia_delete', {'id': agencia.id}) }}" 
+                                            <form method="post"
+                                                  action="{{ path('app_banco_delete', {'id': banco.id}) }}"
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir esta agência?')">
-                                                <input type="hidden" name="_token" 
-                                                       value="{{ csrf_token('delete' ~ agencia.id) }}">
+                                                  onsubmit="return confirm('Tem certeza que deseja excluir este banco?')">
+                                                <input type="hidden" name="_token"
+                                                       value="{{ csrf_token('delete' ~ banco.id) }}">
                                                 <button class="btn btn-danger btn-sm">
                                                     <i class="fas fa-trash"></i> Excluir
                                                 </button>
@@ -74,10 +70,10 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">
+                                    <td colspan="4" class="text-center text-muted py-4">
                                         <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-                                        <span>Nenhuma agência cadastrada</span><br>
-                                        <small>Clique em "Nova Agência" para começar</small>
+                                        <span>Nenhum banco cadastrado</span><br>
+                                        <small>Clique em "Novo Banco" para começar</small>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -91,11 +87,11 @@
                         itemsPerPage: pagination.itemsPerPage,
                         totalPages: pagination.totalPages,
                         search: pagination.search,
-                        routeName: 'app_agencia_index'
+                        routeName: 'app_banco_index'
                     } %}
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

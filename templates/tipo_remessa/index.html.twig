@@ -32,7 +32,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for tipo_remessa in tipos_remessa %}
+                                {% for tipo_remessa in pagination.items %}
                                 <tr>
                                     <td>{{ tipo_remessa.id }}</td>
                                     <td><strong>{{ tipo_remessa.tipo }}</strong></td>
@@ -72,6 +72,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_tipo_remessa_index'
+                    } %}
                 </div>
             </div>
         </div>

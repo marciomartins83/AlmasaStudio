@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\Estados;
 use App\Form\EstadoType;
 use App\Repository\EstadosRepository;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,10 +15,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class EstadoController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EstadosRepository $estadosRepository): Response
+    public function index(EstadosRepository $estadosRepository, PaginationService $paginator, Request $request): Response
     {
+        $qb = $estadosRepository->createQueryBuilder('e')
+            ->orderBy('e.id', 'DESC');
+
+        $pagination = $paginator->paginate($qb, $request, null, ['e.uf', 'e.nome']);
+
         return $this->render('estado/index.html.twig', [
-            'estados' => $estadosRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

@@ -53,7 +53,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for imovel in imoveis %}
+                                {% for imovel in pagination.items %}
                                 <tr>
                                     <td>
                                         <strong>{{ imovel.codigoInterno|default('-') }}</strong>
@@ -135,11 +135,18 @@
                 </div>
             </div>
 
-            {% if imoveis|length > 0 %}
-            <div class="mt-2">
-                <small class="text-muted">Total: {{ imoveis|length }} imóvel(is)</small>
+            <div class="card mt-2">
+                <div class="card-body py-2">
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_imovel_index'
+                    } %}
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>

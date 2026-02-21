@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ banco.nome }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Lista de Bancos', 'url': path('app_banco_index')}
+        ],
+        'current': 'Ver Banco'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-university"></i> {{ banco.nome }}</h1>
+                <div>
+                    <a href="{{ path('app_banco_edit', {'id': banco.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Banco
+                    </a>
+                    <a href="{{ path('app_banco_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ banco.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Número:</th>
+                                    <td><span class="badge bg-secondary fs-6">{{ banco.numero }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Nome:</th>
+                                    <td><strong>{{ banco.nome }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

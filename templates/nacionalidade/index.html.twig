@@ -31,7 +31,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for nacionalidade in nacionalidades %}
+                                {% for nacionalidade in pagination.items %}
                                 <tr>
                                     <td>{{ nacionalidade.id }}</td>
                                     <td><strong>{{ nacionalidade.nome }}</strong></td>
@@ -80,6 +80,15 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_nacionalidade_index'
+                    } %}
                 </div>
             </div>
         </div>

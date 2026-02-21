@@ -20,7 +20,7 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>ID Pessoa</th>
+                    <th>Pessoa</th>
                     <th>ID Forma Retirada</th>
                     <th>Dependentes</th>
                     <th>Dia Retirada</th>
@@ -30,10 +30,10 @@
                 </tr>
             </thead>
             <tbody>
-                {% for locador in pessoa_locadores %}
+                {% for locador in pagination.items %}
                 <tr>
                     <td>{{ locador.id }}</td>
-                    <td>{{ locador.idPessoa }}</td>
+                    <td>{{ locador.pessoa ? locador.pessoa.nome : '-' }}</td>
                     <td>{{ locador.idFormaRetirada ?? '-' }}</td>
                     <td>{{ locador.dependentes }}</td>
                     <td>{{ locador.diaRetirada ?? '-' }}</td>
@@ -51,5 +51,14 @@
             </tbody>
         </table>
     </div>
+
+    {% include '_partials/pagination.html.twig' with {
+        totalItems: pagination.totalItems,
+        currentPage: pagination.currentPage,
+        itemsPerPage: pagination.itemsPerPage,
+        totalPages: pagination.totalPages,
+        search: pagination.search,
+        routeName: 'app_pessoa_locador_index'
+    } %}
 </div>
 {% endblock %} 
