@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\TiposEnderecos;
 use App\Form\TipoEnderecoType;
 use App\Repository\TiposEnderecosRepository;
@@ -29,7 +31,14 @@ class TipoEnderecoController extends AbstractController
         $qb = $this->tipoEnderecoRepository->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
+        $filters = [
+            new SearchFilterDTO('tipo', 'Tipo', 'text', 't.tipo', 'LIKE', [], 'Buscar...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('tipo', 'Tipo'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo'], null, $filters, $sortOptions, 'tipo', 'ASC');
 
         return $this->render('tipo_endereco/index.html.twig', [
             'pagination' => $pagination,

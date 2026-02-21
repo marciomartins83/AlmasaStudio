@@ -65,78 +65,25 @@
         </div>
     </div>
 
-    {# Filtros #}
-    <div class="card mb-4">
-        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" style="cursor: pointer;">
-            <i class="fas fa-filter"></i> Filtros
-            <i class="fas fa-chevron-down float-end"></i>
-        </div>
-        <div class="collapse {{ filtros|length > 0 ? 'show' : '' }}" id="filtrosCollapse">
-            <div class="card-body">
-                <form method="GET" action="{{ path('app_lancamentos_index') }}">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <label class="form-label">Tipo</label>
-                            <select name="tipo" class="form-select">
-                                <option value="">Todos</option>
-                                <option value="pagar" {{ filtros.tipo|default('') == 'pagar' ? 'selected' : '' }}>Pagar</option>
-                                <option value="receber" {{ filtros.tipo|default('') == 'receber' ? 'selected' : '' }}>Receber</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="">Todos</option>
-                                <option value="aberto" {{ filtros.status|default('') == 'aberto' ? 'selected' : '' }}>Aberto</option>
-                                <option value="pago" {{ filtros.status|default('') == 'pago' ? 'selected' : '' }}>Pago</option>
-                                <option value="pago_parcial" {{ filtros.status|default('') == 'pago_parcial' ? 'selected' : '' }}>Pago Parcial</option>
-                                <option value="cancelado" {{ filtros.status|default('') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
-                                <option value="suspenso" {{ filtros.status|default('') == 'suspenso' ? 'selected' : '' }}>Suspenso</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Vencimento De</label>
-                            <input type="date" name="data_vencimento_de" class="form-control" value="{{ filtros.data_vencimento_de|default('') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Vencimento Ate</label>
-                            <input type="date" name="data_vencimento_ate" class="form-control" value="{{ filtros.data_vencimento_ate|default('') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Competencia</label>
-                            <select name="competencia" class="form-select">
-                                <option value="">Todas</option>
-                                {% for comp in competencias %}
-                                    <option value="{{ comp }}" {{ filtros.competencia|default('') == comp ? 'selected' : '' }}>{{ comp }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Plano Conta</label>
-                            <select name="id_plano_conta" class="form-select">
-                                <option value="">Todos</option>
-                                {% for plano in planosContas %}
-                                    <option value="{{ plano.id }}" {{ filtros.id_plano_conta|default('') == plano.id ? 'selected' : '' }}>
-                                        {{ plano.codigo }} - {{ plano.descricao }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Filtrar
-                            </button>
-                            <a href="{{ path('app_lancamentos_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-eraser"></i> Limpar
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    {# Busca Avancada #}
+    {% include '_partials/search_panel.html.twig' with {
+        filterDefs: filterDefs,
+        filters: filters,
+        routeName: 'app_lancamentos_index',
+        itemsPerPage: itemsPerPage,
+        sortField: sortField,
+        sortDir: sortDir
+    } %}
+
+    {# Ordenacao #}
+    {% include '_partials/sort_panel.html.twig' with {
+        sortOptions: sortOptions,
+        sortField: sortField,
+        sortDir: sortDir,
+        routeName: 'app_lancamentos_index',
+        filters: filters,
+        itemsPerPage: itemsPerPage
+    } %}
 
     {# Tabela de Lancamentos #}
     <div class="card">
@@ -145,6 +92,19 @@
             <a href="{{ path('app_lancamentos_new') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-plus"></i> Novo Lancamento
             </a>
+        </div>
+        <div class="card-footer py-1">
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: totalItems,
+                currentPage: currentPage,
+                itemsPerPage: itemsPerPage,
+                totalPages: totalPages,
+                routeName: 'app_lancamentos_index',
+                filters: filters,
+                sortField: sortField,
+                sortDir: sortDir,
+                showSearch: false
+            } %}
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -321,6 +281,7 @@
 
 {% block javascripts %}
 {{ parent() }}
+{{ encore_entry_script_tags('crud_filters') }}
 <script>
     window.ROUTES = {
         baixa: '{{ path("app_lancamentos_baixa", {id: "__ID__"}) }}',

@@ -45,6 +45,9 @@ Encore
     // Módulo Relatórios PDF
     .addEntry('relatorios', './assets/js/relatorios/app.js')
 
+    // CRUD Filters — busca avancada, collapse, limpar
+    .addEntry('crud_filters', './assets/js/crud/crud_filters.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

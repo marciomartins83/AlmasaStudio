@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\PrestacoesContas;
 use App\Form\PrestacaoContasFiltroType;
 use App\Form\PrestacaoContasRepasseType;
+use App\Repository\PrestacoesContasRepository;
+use App\Service\PaginationService;
 use App\Service\PrestacaoContasService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,7 +33,9 @@ use Dompdf\Options;
 class PrestacaoContasController extends AbstractController
 {
     public function __construct(
-        private PrestacaoContasService $prestacaoService
+        private PrestacaoContasService $prestacaoService,
+        private PrestacoesContasRepository $prestacaoRepository,
+        private PaginationService $paginator
     ) {}
 
     /**
@@ -38,27 +44,50 @@ class PrestacaoContasController extends AbstractController
     #[Route('/', name: 'app_prestacao_contas_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $filtros = [
-            'proprietario' => $request->query->get('proprietario'),
-            'status' => $request->query->get('status'),
-            'ano' => $request->query->get('ano'),
+        $anosDisponiveis = $this->prestacaoService->getAnosDisponiveis();
+        $anosChoices = array_combine($anosDisponiveis, $anosDisponiveis);
+
+        $qb = $this->prestacaoRepository->createBaseQueryBuilder()
+            ->orderBy('p.ano', 'DESC')
+            ->addOrderBy('p.numero', 'DESC');
+
+        $filters = [
+            new SearchFilterDTO('proprietario', 'Proprietario', 'text', 'prop.nome', 'LIKE', [], 'Nome...', 3),
+            new SearchFilterDTO('status', 'Status', 'select', 'p.status', 'EXACT', [
+                PrestacoesContas::STATUS_GERADO   => 'Gerado',
+                PrestacoesContas::STATUS_APROVADO => 'Aprovado',
+                PrestacoesContas::STATUS_PAGO     => 'Pago',
+                PrestacoesContas::STATUS_CANCELADO => 'Cancelado',
+            ], null, 2),
+            new SearchFilterDTO('ano', 'Ano', 'select', 'p.ano', 'EXACT', $anosChoices, null, 2),
         ];
 
-        $filtros = array_filter($filtros, fn($v) => $v !== null && $v !== '');
+        $sortOptions = [
+            new SortOptionDTO('ano', 'Ano', 'DESC'),
+            new SortOptionDTO('numero', 'Numero', 'DESC'),
+            new SortOptionDTO('valorRepasse', 'Valor Repasse', 'DESC'),
+        ];
 
-        $prestacoes = $this->prestacaoService->listarPrestacoes($filtros);
-        $estatisticas = $this->prestacaoService->getEstatisticas(
-            $filtros['ano'] ?? (int) date('Y')
-        );
+        $pagination = $this->paginator->paginate($qb, $request, null, [], 'p.id', $filters, $sortOptions, 'ano', 'DESC');
+
+        $anoFiltro = $request->query->get('ano') ? (int) $request->query->get('ano') : (int) date('Y');
+        $estatisticas = $this->prestacaoService->getEstatisticas($anoFiltro);
         $estatisticasMes = $this->prestacaoService->getEstatisticasMesAtual();
-        $anosDisponiveis = $this->prestacaoService->getAnosDisponiveis();
 
         return $this->render('prestacao_contas/index.html.twig', [
-            'prestacoes' => $prestacoes,
-            'estatisticas' => $estatisticas,
+            'prestacoes'      => $pagination['items'],
+            'estatisticas'    => $estatisticas,
             'estatisticasMes' => $estatisticasMes,
             'anosDisponiveis' => $anosDisponiveis,
-            'filtros' => $filtros,
+            'totalItems'      => $pagination['totalItems'],
+            'currentPage'     => $pagination['currentPage'],
+            'itemsPerPage'    => $pagination['itemsPerPage'],
+            'totalPages'      => $pagination['totalPages'],
+            'filters'         => $pagination['filters'],
+            'filterDefs'      => $pagination['filterDefs'],
+            'sortField'       => $pagination['sortField'],
+            'sortDir'         => $pagination['sortDir'],
+            'sortOptions'     => $pagination['sortOptions'],
         ]);
     }
 

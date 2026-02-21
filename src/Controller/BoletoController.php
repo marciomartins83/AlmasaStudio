@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Boletos;
 use App\Form\BoletoType;
 use App\Repository\BoletosRepository;
 use App\Repository\ConfiguracoesApiBancoRepository;
 use App\Service\BoletoSantanderService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,7 +26,8 @@ class BoletoController extends AbstractController
     public function __construct(
         private BoletoSantanderService $boletoService,
         private BoletosRepository $boletosRepository,
-        private ConfiguracoesApiBancoRepository $configRepository
+        private ConfiguracoesApiBancoRepository $configRepository,
+        private PaginationService $paginator
     ) {}
 
     /**
@@ -32,42 +36,31 @@ class BoletoController extends AbstractController
     #[Route('/', name: 'app_boleto_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        // Montar filtros a partir da query string
-        $filtros = [];
+        $qb = $this->boletosRepository->createBaseQueryBuilder();
 
-        if ($request->query->get('status')) {
-            $filtros['status'] = $request->query->all('status');
-        }
+        $filters = [
+            new SearchFilterDTO('nossoNumero', 'Nosso Numero', 'text', 'b.nossoNumero', 'LIKE', [], 'Buscar...', 2),
+            new SearchFilterDTO('status', 'Status', 'select', 'b.status', 'EXACT', [
+                Boletos::STATUS_PENDENTE   => 'Pendente',
+                Boletos::STATUS_REGISTRADO => 'Registrado',
+                Boletos::STATUS_PAGO       => 'Pago',
+                Boletos::STATUS_VENCIDO    => 'Vencido',
+                Boletos::STATUS_BAIXADO    => 'Baixado',
+                Boletos::STATUS_PROTESTADO => 'Protestado',
+                Boletos::STATUS_ERRO       => 'Erro',
+            ], null, 2),
+            new SearchFilterDTO('vencimentoDe', 'Venc. De', 'date', 'b.dataVencimento', 'GTE', [], null, 2),
+            new SearchFilterDTO('vencimentoAte', 'Venc. Ate', 'date', 'b.dataVencimento', 'LTE', [], null, 2),
+        ];
 
-        if ($request->query->get('data_inicio')) {
-            $filtros['data_vencimento_inicio'] = new \DateTime($request->query->get('data_inicio'));
-        }
+        $sortOptions = [
+            new SortOptionDTO('dataVencimento', 'Vencimento', 'DESC'),
+            new SortOptionDTO('valorNominal', 'Valor', 'DESC'),
+            new SortOptionDTO('dataEmissao', 'Emissao', 'DESC'),
+            new SortOptionDTO('status', 'Status', 'ASC'),
+        ];
 
-        if ($request->query->get('data_fim')) {
-            $filtros['data_vencimento_fim'] = new \DateTime($request->query->get('data_fim'));
-        }
-
-        if ($request->query->get('pagador_id')) {
-            $filtros['pagador_id'] = (int) $request->query->get('pagador_id');
-        }
-
-        if ($request->query->get('configuracao_id')) {
-            $filtros['configuracao_id'] = (int) $request->query->get('configuracao_id');
-        }
-
-        if ($request->query->get('nosso_numero')) {
-            $filtros['nosso_numero'] = $request->query->get('nosso_numero');
-        }
-
-        // Paginação
-        $page = max(1, (int) $request->query->get('page', 1));
-        $limit = 20;
-        $offset = ($page - 1) * $limit;
-
-        // Buscar boletos
-        $resultado = $this->boletoService->listarBoletos($filtros, $limit, $offset);
-        $boletos = $resultado['boletos'];
-        $total = $resultado['total'];
+        $pagination = $this->paginator->paginate($qb, $request, null, [], 'b.id', $filters, $sortOptions, 'dataVencimento', 'DESC');
 
         // Estatísticas
         $estatisticas = $this->boletoService->getEstatisticas();
@@ -75,26 +68,19 @@ class BoletoController extends AbstractController
         // Configurações para filtro
         $configuracoes = $this->configRepository->findBy(['ativo' => true]);
 
-        // Status disponíveis
-        $statusOptions = [
-            Boletos::STATUS_PENDENTE => 'Pendente',
-            Boletos::STATUS_REGISTRADO => 'Registrado',
-            Boletos::STATUS_PAGO => 'Pago',
-            Boletos::STATUS_VENCIDO => 'Vencido',
-            Boletos::STATUS_BAIXADO => 'Baixado',
-            Boletos::STATUS_ERRO => 'Erro',
-        ];
-
         return $this->render('boleto/index.html.twig', [
-            'boletos' => $boletos,
-            'total' => $total,
-            'page' => $page,
-            'totalPages' => ceil($total / $limit),
+            'boletos'      => $pagination['items'],
             'estatisticas' => $estatisticas,
             'configuracoes' => $configuracoes,
-            'statusOptions' => $statusOptions,
-            'filtros' => $filtros,
-            'queryParams' => $request->query->all(),
+            'totalItems'   => $pagination['totalItems'],
+            'currentPage'  => $pagination['currentPage'],
+            'itemsPerPage' => $pagination['itemsPerPage'],
+            'totalPages'   => $pagination['totalPages'],
+            'filters'      => $pagination['filters'],
+            'filterDefs'   => $pagination['filterDefs'],
+            'sortField'    => $pagination['sortField'],
+            'sortDir'      => $pagination['sortDir'],
+            'sortOptions'  => $pagination['sortOptions'],
         ]);
     }
 

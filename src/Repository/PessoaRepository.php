@@ -153,71 +153,99 @@ class PessoaRepository extends ServiceEntityRepository
     {
         $em = $this->getEntityManager();
 
-        // 1) Tipos ativos (boolean)
-        // [REMOVIDO] $tipos = $this->findTiposByPessoaId($pessoaId);
-        // Esta era a linha que buscava da tabela antiga (PessoasTipos) e causava o bug.
+        // 1) Buscar tipos da tabela pessoas_tipos (fonte de verdade para TODOS os tipos)
+        $pessoasTipos = $em->getRepository(PessoasTipos::class)
+            ->findBy(['idPessoa' => $pessoaId, 'ativo' => true]);
 
-        // 2) Objetos completos (null se não existe) - Lógica NOVA
-        // IMPORTANTE: Usar setMaxResults(1) para evitar erro de NonUniqueResult com dados duplicados
+        // Mapa id_tipo_pessoa -> nome do tipo
+        $tipoIdParaNome = [
+            1  => 'fiador',
+            2  => 'corretor',
+            3  => 'corretora',
+            4  => 'locador',
+            5  => 'pretendente',
+            6  => 'contratante',
+            7  => 'socio',
+            8  => 'advogado',
+            12 => 'inquilino',
+        ];
+
+        // Inicializar todos como false
+        $tipos = [];
+        foreach ($tipoIdParaNome as $nome) {
+            $tipos[$nome] = false;
+        }
+
+        // Marcar os ativos vindos de pessoas_tipos
+        foreach ($pessoasTipos as $pt) {
+            $nome = $tipoIdParaNome[$pt->getIdTipoPessoa()] ?? null;
+            if ($nome) {
+                $tipos[$nome] = true;
+            }
+        }
+
+        // 2) Buscar objetos de dados específicos (tabelas dedicadas)
+        // IMPORTANTE: Usar setMaxResults(1) para evitar erro de NonUniqueResult
         $contratanteObj = $em->createQueryBuilder()
             ->select('c')->from(PessoasContratantes::class, 'c')
             ->where('c.pessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('c.id', 'DESC') // Pega o mais recente em caso de duplicata
-            ->setMaxResults(1)
+            ->orderBy('c.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $fiadorObj = $em->createQueryBuilder()
             ->select('f')->from(PessoasFiadores::class, 'f')
             ->where('f.idPessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('f.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('f.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $locadorObj = $em->createQueryBuilder()
             ->select('l')->from(PessoasLocadores::class, 'l')
             ->where('l.pessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('l.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('l.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $corretorObj = $em->createQueryBuilder()
             ->select('r')->from(PessoasCorretores::class, 'r')
             ->where('r.pessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('r.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('r.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $corretoraObj = $em->createQueryBuilder()
             ->select('rr')->from(PessoasCorretoras::class, 'rr')
             ->where('rr.pessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('rr.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('rr.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $pretendenteObj = $em->createQueryBuilder()
             ->select('p')->from(PessoasPretendentes::class, 'p')
             ->where('p.pessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('p.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('p.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $socioObj = $em->createQueryBuilder()
             ->select('s')->from(PessoasSocios::class, 's')
             ->where('s.idPessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('s.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('s.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
         $advogadoObj = $em->createQueryBuilder()
             ->select('a')->from(PessoasAdvogados::class, 'a')
             ->where('a.idPessoa = :id')->setParameter('id', $pessoaId)
-            ->orderBy('a.id', 'DESC')
-            ->setMaxResults(1)
+            ->orderBy('a.id', 'DESC')->setMaxResults(1)
             ->getQuery()->getOneOrNullResult();
 
-        // 3. [NOVO] Montar os arrays na estrutura que o Controller espera
-        
-        // Array de dados (objetos ou null)
+        // 3) Também marcar como true se tem dados na tabela específica
+        // (garante consistência mesmo se pessoas_tipos estiver incompleta)
+        if ($contratanteObj) $tipos['contratante'] = true;
+        if ($fiadorObj) $tipos['fiador'] = true;
+        if ($locadorObj) $tipos['locador'] = true;
+        if ($corretorObj) $tipos['corretor'] = true;
+        if ($corretoraObj) $tipos['corretora'] = true;
+        if ($pretendenteObj) $tipos['pretendente'] = true;
+        if ($socioObj) $tipos['socio'] = true;
+        if ($advogadoObj) $tipos['advogado'] = true;
+
+        // Array de dados (objetos ou null) — inquilino não tem tabela dedicada
         $tiposDados = [
             'contratante' => $contratanteObj,
             'fiador'      => $fiadorObj,
@@ -229,19 +257,6 @@ class PessoaRepository extends ServiceEntityRepository
             'advogado'    => $advogadoObj,
         ];
 
-        // Array de booleanos (derivado dos objetos acima)
-        $tipos = [
-            'contratante' => ($contratanteObj !== null),
-            'fiador'      => ($fiadorObj !== null),
-            'locador'     => ($locadorObj !== null),
-            'corretor'    => ($corretorObj !== null),
-            'corretora'   => ($corretoraObj !== null),
-            'pretendente' => ($pretendenteObj !== null),
-            'socio'       => ($socioObj !== null),
-            'advogado'    => ($advogadoObj !== null),
-        ];
-
-        // 4. [NOVO] Retornar a estrutura correta (aninhada)
         return [
             'tipos'      => $tipos,
             'tiposDados' => $tiposDados,

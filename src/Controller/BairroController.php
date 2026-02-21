@@ -1,6 +1,8 @@
 <?php
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Bairros;
 use App\Entity\Cidades;
 use App\Form\BairroType;
@@ -18,10 +20,18 @@ class BairroController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $qb = $entityManager->getRepository(Bairros::class)->createQueryBuilder('b')
-            ->orderBy('b.id', 'DESC');
+        $qb = $entityManager->getRepository(Bairros::class)->createQueryBuilder('b');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['b.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'b.nome', 'LIKE', [], 'Nome do bairro...', 4),
+            new SearchFilterDTO('codigo', 'Código', 'text', 'b.codigo', 'LIKE', [], 'Código...', 3),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['b.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('bairro/index.html.twig', [
             'pagination' => $pagination,

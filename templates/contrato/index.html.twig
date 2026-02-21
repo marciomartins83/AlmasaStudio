@@ -88,62 +88,29 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1><i class="fas fa-file-contract"></i> Contratos de Locação</h1>
                 <div>
-                    <button type="button" class="btn btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
-                        <i class="fas fa-filter"></i> Filtros
-                    </button>
                     <a href="{{ path('app_contrato_new') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Novo Contrato
                     </a>
                 </div>
             </div>
 
-            {# Painel de filtros (colapsável) #}
-            <div class="collapse {% if filtros|length > 0 %}show{% endif %} mb-3" id="filtrosCollapse">
-                <div class="card">
-                    <div class="card-body">
-                        <form method="GET" action="{{ path('app_contrato_index') }}">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">Status</label>
-                                    <select name="status" class="form-select">
-                                        <option value="">Todos</option>
-                                        <option value="ativo" {% if filtros.status|default('') == 'ativo' %}selected{% endif %}>Ativo</option>
-                                        <option value="encerrado" {% if filtros.status|default('') == 'encerrado' %}selected{% endif %}>Encerrado</option>
-                                        <option value="rescindido" {% if filtros.status|default('') == 'rescindido' %}selected{% endif %}>Rescindido</option>
-                                        <option value="pendente" {% if filtros.status|default('') == 'pendente' %}selected{% endif %}>Pendente</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Tipo de Contrato</label>
-                                    <select name="tipo_contrato" class="form-select">
-                                        <option value="">Todos</option>
-                                        <option value="locacao" {% if filtros.tipoContrato|default('') == 'locacao' %}selected{% endif %}>Locação</option>
-                                        <option value="temporada" {% if filtros.tipoContrato|default('') == 'temporada' %}selected{% endif %}>Temporada</option>
-                                        <option value="comercial" {% if filtros.tipoContrato|default('') == 'comercial' %}selected{% endif %}>Comercial</option>
-                                        <option value="residencial" {% if filtros.tipoContrato|default('') == 'residencial' %}selected{% endif %}>Residencial</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Situação</label>
-                                    <select name="ativo" class="form-select">
-                                        <option value="">Todos</option>
-                                        <option value="true" {% if filtros.ativo|default('') == 'true' %}selected{% endif %}>Ativos</option>
-                                        <option value="false" {% if filtros.ativo|default('') == 'false' %}selected{% endif %}>Inativos</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary me-2">
-                                        <i class="fas fa-search"></i> Buscar
-                                    </button>
-                                    <a href="{{ path('app_contrato_index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Limpar
-                                    </a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+            {% include '_partials/search_panel.html.twig' with {
+                filterDefs: pagination.filterDefs,
+                filters: pagination.filters,
+                routeName: 'app_contrato_index',
+                itemsPerPage: pagination.itemsPerPage,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir
+            } %}
+
+            {% include '_partials/sort_panel.html.twig' with {
+                sortOptions: pagination.sortOptions,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                routeName: 'app_contrato_index',
+                filters: pagination.filters,
+                itemsPerPage: pagination.itemsPerPage
+            } %}
 
             {# Tabela de contratos #}
             <div class="card">
@@ -250,7 +217,11 @@
                         itemsPerPage: pagination.itemsPerPage,
                         totalPages: pagination.totalPages,
                         search: pagination.search,
-                        routeName: 'app_contrato_index'
+                        routeName: 'app_contrato_index',
+                        filters: pagination.filters,
+                        sortField: pagination.sortField,
+                        sortDir: pagination.sortDir,
+                        showSearch: false
                     } %}
                 </div>
             </div>
@@ -258,11 +229,16 @@
     </div>
 </div>
 
-<script>
-    window.ROUTES = {
-        vencimentoProximo: '{{ path('app_contrato_vencimento_proximo') }}',
-        paraReajuste: '{{ path('app_contrato_para_reajuste') }}',
-        estatisticas: '{{ path('app_contrato_estatisticas') }}'
-    };
-</script>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('crud_filters') }}
+    <script>
+        window.ROUTES = {
+            vencimentoProximo: '{{ path('app_contrato_vencimento_proximo') }}',
+            paraReajuste: '{{ path('app_contrato_para_reajuste') }}',
+            estatisticas: '{{ path('app_contrato_estatisticas') }}'
+        };
+    </script>
 {% endblock %}

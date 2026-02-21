@@ -89,9 +89,6 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1><i class="fas fa-file-invoice-dollar"></i> Ficha Financeira</h1>
                 <div>
-                    <button type="button" class="btn btn-secondary me-2" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
-                        <i class="fas fa-filter"></i> Filtros
-                    </button>
                     <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#modalGerarLancamentos">
                         <i class="fas fa-magic"></i> Gerar Automático
                     </button>
@@ -101,42 +98,25 @@
                 </div>
             </div>
 
-            {# Painel de filtros (colapsável) #}
-            <div class="collapse {% if filtros|length > 0 %}show{% endif %} mb-3" id="filtrosCollapse">
-                <div class="card">
-                    <div class="card-body">
-                        <form method="GET" action="{{ path('app_financeiro_index') }}">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">Situação</label>
-                                    <select name="situacao" class="form-select">
-                                        <option value="">Todas</option>
-                                        <option value="aberto" {% if filtros.situacao|default('') == 'aberto' %}selected{% endif %}>Em Aberto</option>
-                                        <option value="pago" {% if filtros.situacao|default('') == 'pago' %}selected{% endif %}>Pago</option>
-                                        <option value="parcial" {% if filtros.situacao|default('') == 'parcial' %}selected{% endif %}>Parcial</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Competência Início</label>
-                                    <input type="month" name="competenciaInicio" class="form-control" value="{{ filtros.competenciaInicio|default('') }}">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Competência Fim</label>
-                                    <input type="month" name="competenciaFim" class="form-control" value="{{ filtros.competenciaFim|default('') }}">
-                                </div>
-                                <div class="col-md-3 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary me-2">
-                                        <i class="fas fa-search"></i> Buscar
-                                    </button>
-                                    <a href="{{ path('app_financeiro_index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Limpar
-                                    </a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+                {# Busca Avancada #}
+            {% include '_partials/search_panel.html.twig' with {
+                filterDefs: filterDefs,
+                filters: filters,
+                routeName: 'app_financeiro_index',
+                itemsPerPage: itemsPerPage,
+                sortField: sortField,
+                sortDir: sortDir
+            } %}
+
+            {# Ordenacao #}
+            {% include '_partials/sort_panel.html.twig' with {
+                sortOptions: sortOptions,
+                sortField: sortField,
+                sortDir: sortDir,
+                routeName: 'app_financeiro_index',
+                filters: filters,
+                itemsPerPage: itemsPerPage
+            } %}
 
             {# Tabela de lançamentos #}
             <div class="card">
@@ -225,11 +205,17 @@
                 </div>
             </div>
 
-            {% if lancamentos|length > 0 %}
-            <div class="mt-2">
-                <small class="text-muted">Total: {{ lancamentos|length }} lançamento(s)</small>
-            </div>
-            {% endif %}
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: totalItems,
+                currentPage: currentPage,
+                itemsPerPage: itemsPerPage,
+                totalPages: totalPages,
+                routeName: 'app_financeiro_index',
+                filters: filters,
+                sortField: sortField,
+                sortDir: sortDir,
+                showSearch: false
+            } %}
         </div>
 
         {# Coluna lateral - Inadimplentes #}
@@ -345,15 +331,16 @@
     </div>
 </div>
 
-<script>
-    window.ROUTES = {
-        gerarLancamentos: '{{ path('app_financeiro_gerar') }}',
-        realizarBaixa: '{{ path('app_financeiro_baixa', {id: '__ID__'}) }}'
-    };
-</script>
 {% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
+    {{ encore_entry_script_tags('crud_filters') }}
     {{ encore_entry_script_tags('financeiro') }}
+    <script>
+        window.ROUTES = {
+            gerarLancamentos: '{{ path('app_financeiro_gerar') }}',
+            realizarBaixa: '{{ path('app_financeiro_baixa', {id: '__ID__'}) }}'
+        };
+    </script>
 {% endblock %}

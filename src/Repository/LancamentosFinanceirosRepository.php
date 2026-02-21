@@ -17,6 +17,20 @@ class LancamentosFinanceirosRepository extends ServiceEntityRepository
     }
 
     /**
+     * Cria QueryBuilder base com joins necessarios para paginacao
+     */
+    public function createBaseQueryBuilder(): \Doctrine\ORM\QueryBuilder
+    {
+        return $this->createQueryBuilder('l')
+            ->leftJoin('l.contrato', 'c')
+            ->leftJoin('l.imovel', 'i')
+            ->leftJoin('l.inquilino', 'inq')
+            ->leftJoin('l.proprietario', 'prop')
+            ->addSelect('c', 'i', 'inq', 'prop')
+            ->andWhere('l.ativo = true');
+    }
+
+    /**
      * Busca lançamentos com filtros
      *
      * @param array $filtros

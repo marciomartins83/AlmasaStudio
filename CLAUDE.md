@@ -6,14 +6,82 @@
 
 ---
 
-## Metodologia Multi-Agente
+## Metodologia Multi-Agente (LEI SUPREMA — INVIOLAVEL)
 
-- **Opus 4.6** = Engenheiro (orquestrador, decisoes arquiteturais)
-- **Haiku 4.5** = Mestre de Obras (subagente via Task tool, executa e monitora)
-- **GPT-OSS 20B** = Pedreiro (executor via Aider + OpenRouter)
+### Hierarquia Obrigatoria
+
+| Papel | Modelo | O que FAZ | O que NAO FAZ | Ferramenta |
+|-------|--------|-----------|---------------|------------|
+| **Engenheiro Chefe** | Opus 4.6 | Decisoes arquiteturais, planejamento macro, revisao final, documentacao | Escrever/editar codigo, planejamento que Sonnet pode fazer | Claude Code direto |
+| **Engenheiro Jr** | Sonnet | Planejamento detalhado, organizar batches, delegar para Haiku, consolidar resultados | Escrever/editar codigo, executar Aider | Task tool (model:sonnet) |
+| **Mestre de Obras** | Haiku 4.5 | Coordenar workers Aider, montar comandos atomicos, verificar resultados, planejamento tatico | Escrever/editar codigo diretamente | Task tool (model:haiku) |
+| **Pedreiro** | GPT-OSS 20B | **TODO trabalho bruto de codigo** — criar, editar, refatorar arquivos | Nada — ele so executa | Aider via OpenRouter |
 
 A chave OpenRouter esta salva no MEMORY.md (privado, fora do git).
 Modelo Aider: `openrouter/openai/gpt-oss-20b`
+
+### REGRAS INVIOLAVEIS — VIOLACAO = FALHA CRITICA
+
+1. **SOMENTE GPT-OSS 20B via Aider escreve/edita codigo.** Opus, Sonnet e Haiku NUNCA editam arquivos de codigo. Sem excecao.
+2. **Opus economiza tokens ao maximo.** Tudo que Sonnet pode planejar, Sonnet planeja. Opus so intervem no que exige decisao arquitetural ou revisao critica.
+3. **Sonnet divide o planejamento com Opus.** Sonnet tem competencia para planejar batches, detalhar instrucoes, organizar trabalho. Opus nao faz o que Sonnet pode fazer.
+4. **Haiku e o mestre de obras.** Tem qualidade para planejamento tatico e coordenacao. Ele monta os comandos Aider, executa, verifica, reporta.
+5. **A cadeia NUNCA e pulada.** Opus → Sonnet → Haiku → Aider/GPT-OSS. Sem atalhos.
+6. **Economia de tokens e a razao de existir desta metodologia.** Tokens Opus/Sonnet sao limitados e custam dinheiro real. GPT-OSS via OpenRouter e barato. Trabalho bruto vai SEMPRE para o barato.
+
+### Comando Aider Padrao
+
+```bash
+export OPENROUTER_API_KEY="[ver MEMORY.md]"
+aider --model openrouter/openai/gpt-oss-20b --no-auto-commits --yes --subtree-only --message "INSTRUCAO AQUI"
+```
+
+### Fluxo Obrigatorio para Qualquer Tarefa de Codigo
+
+```
+1. OPUS analisa problema, toma decisoes arquiteturais (SO o que exige Opus)
+2. OPUS delega planejamento detalhado para SONNET (Task model:sonnet)
+3. SONNET planeja batches, detalha instrucoes atomicas por arquivo
+4. SONNET delega cada batch para HAIKU (Task model:haiku)
+5. HAIKU monta comandos Aider atomicos (1 arquivo por comando quando possivel)
+6. HAIKU executa via Bash: aider --message "..."
+7. HAIKU verifica resultado (cache:clear, schema:validate, php -l)
+8. HAIKU reporta para SONNET
+9. SONNET consolida e reporta para OPUS
+10. OPUS revisa resultado final, testa, documenta
+```
+
+### Principio de Economia de Tokens
+
+```
+CARO ←————————————————————————→ BARATO
+Opus        Sonnet        Haiku        GPT-OSS
+Menos       Mais          Ainda        Maximo
+trabalho    trabalho      mais         trabalho
+                                       (todo codigo)
+
+Se Sonnet pode fazer → NAO use Opus
+Se Haiku pode fazer  → NAO use Sonnet
+Se GPT-OSS pode fazer → NAO use Haiku
+```
+
+### Checklist de Auto-Verificacao (antes de cada acao)
+
+- [ ] Estou (Opus/Sonnet/Haiku) prestes a ESCREVER/EDITAR codigo?
+  - Se SIM → **PARE. USE AIDER/GPT-OSS.**
+- [ ] Estou (Opus) fazendo algo que Sonnet poderia fazer?
+  - Se SIM → **PARE. DELEGUE PARA SONNET.**
+- [ ] Estou (Sonnet) fazendo algo que Haiku poderia fazer?
+  - Se SIM → **PARE. DELEGUE PARA HAIKU.**
+- [ ] A cadeia Opus→Sonnet→Haiku→Aider esta sendo respeitada?
+  - Se NAO → **PARE. CORRIJA O FLUXO.**
+
+### Consequencia de Violacao
+
+Qualquer violacao desta metodologia DEVE ser:
+1. Reportada imediatamente ao usuario via email
+2. Registrada no MEMORY.md como incidente
+3. O trabalho feito fora da metodologia DEVE ser refeito pela cadeia correta
 
 ---
 
@@ -208,5 +276,5 @@ AlmasaStudio/
 
 ---
 
-**Ultima atualizacao:** 2026-02-19
+**Ultima atualizacao:** 2026-02-21
 **Mantenedor:** Marcio Martins

@@ -4,11 +4,30 @@
    - currentPage: int
    - itemsPerPage: int
    - totalPages: int
-   - search: string
+   - search: string (legacy)
    - routeName: string
    - routeParams: array (optional)
+   - filters: array (optional) — filtros ativos
+   - sortField: string (optional)
+   - sortDir: string (optional)
+   - showSearch: bool (optional, default false) — retrocompat: mostra busca inline
 #}
 {% set routeParams = routeParams ?? {} %}
+{% set showSearch = showSearch ?? true %}
+
+{# Build persistent params to preserve across pagination/perPage links #}
+{% set persistParams = {} %}
+{% if search is defined and search %}
+    {% set persistParams = persistParams|merge({'search': search}) %}
+{% endif %}
+{% if sortField is defined and sortField %}
+    {% set persistParams = persistParams|merge({'sort': sortField, 'dir': sortDir|default('DESC')}) %}
+{% endif %}
+{% for key, val in filters|default({}) %}
+    {% if val is not empty %}
+        {% set persistParams = persistParams|merge({(key): val}) %}
+    {% endif %}
+{% endfor %}
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-3">
 
@@ -18,17 +37,20 @@
             <strong>{{ totalItems }}</strong> registro{{ totalItems != 1 ? 's' : '' }} encontrado{{ totalItems != 1 ? 's' : '' }}
         </span>
         <form method="GET" action="{{ path(routeName, routeParams) }}" class="d-inline">
-            <input type="hidden" name="search" value="{{ search }}">
+            {% for key, val in persistParams %}
+                <input type="hidden" name="{{ key }}" value="{{ val }}">
+            {% endfor %}
             <input type="hidden" name="page" value="1">
             <select name="perPage" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
                 {% for opt in [15, 30, 50, 100] %}
-                    <option value="{{ opt }}" {% if itemsPerPage == opt %}selected{% endif %}>{{ opt }} por página</option>
+                    <option value="{{ opt }}" {% if itemsPerPage == opt %}selected{% endif %}>{{ opt }} por pagina</option>
                 {% endfor %}
             </select>
         </form>
     </div>
 
-    {# Center: search box #}
+    {# Center: legacy search box (retrocompat — hidden by default) #}
+    {% if showSearch %}
     <form method="GET" action="{{ path(routeName, routeParams) }}" class="d-flex gap-2">
         <input type="hidden" name="page" value="1">
         <input type="hidden" name="perPage" value="{{ itemsPerPage }}">
@@ -44,6 +66,7 @@
             {% endif %}
         </div>
     </form>
+    {% endif %}
 
     {# Right: page navigation #}
     {% if totalPages > 1 %}
@@ -51,13 +74,13 @@
         <ul class="pagination pagination-sm mb-0">
             {# First #}
             <li class="page-item {% if currentPage == 1 %}disabled{% endif %}">
-                <a class="page-link" href="{{ path(routeName, routeParams|merge({'page': 1, 'perPage': itemsPerPage, 'search': search})) }}" title="Primeira">
+                <a class="page-link" href="{{ path(routeName, routeParams|merge(persistParams)|merge({'page': 1, 'perPage': itemsPerPage})) }}" title="Primeira">
                     <i class="fas fa-angle-double-left"></i>
                 </a>
             </li>
             {# Prev #}
             <li class="page-item {% if currentPage == 1 %}disabled{% endif %}">
-                <a class="page-link" href="{{ path(routeName, routeParams|merge({'page': max(1, currentPage - 1), 'perPage': itemsPerPage, 'search': search})) }}" title="Anterior">
+                <a class="page-link" href="{{ path(routeName, routeParams|merge(persistParams)|merge({'page': max(1, currentPage - 1), 'perPage': itemsPerPage})) }}" title="Anterior">
                     <i class="fas fa-angle-left"></i>
                 </a>
             </li>
@@ -73,7 +96,7 @@
 
             {% for p in startPage..endPage %}
                 <li class="page-item {% if p == currentPage %}active{% endif %}">
-                    <a class="page-link" href="{{ path(routeName, routeParams|merge({'page': p, 'perPage': itemsPerPage, 'search': search})) }}">{{ p }}</a>
+                    <a class="page-link" href="{{ path(routeName, routeParams|merge(persistParams)|merge({'page': p, 'perPage': itemsPerPage})) }}">{{ p }}</a>
                 </li>
             {% endfor %}
 
@@ -83,13 +106,13 @@
 
             {# Next #}
             <li class="page-item {% if currentPage == totalPages %}disabled{% endif %}">
-                <a class="page-link" href="{{ path(routeName, routeParams|merge({'page': min(totalPages, currentPage + 1), 'perPage': itemsPerPage, 'search': search})) }}" title="Próxima">
+                <a class="page-link" href="{{ path(routeName, routeParams|merge(persistParams)|merge({'page': min(totalPages, currentPage + 1), 'perPage': itemsPerPage})) }}" title="Proxima">
                     <i class="fas fa-angle-right"></i>
                 </a>
             </li>
             {# Last #}
             <li class="page-item {% if currentPage == totalPages %}disabled{% endif %}">
-                <a class="page-link" href="{{ path(routeName, routeParams|merge({'page': totalPages, 'perPage': itemsPerPage, 'search': search})) }}" title="Última">
+                <a class="page-link" href="{{ path(routeName, routeParams|merge(persistParams)|merge({'page': totalPages, 'perPage': itemsPerPage})) }}" title="Ultima">
                     <i class="fas fa-angle-double-right"></i>
                 </a>
             </li>

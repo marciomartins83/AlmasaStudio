@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Agencias;
 use App\Form\AgenciaType;
 use App\Repository\AgenciaRepository;
@@ -19,9 +21,20 @@ class AgenciaController extends AbstractController
     public function index(AgenciaRepository $agenciaRepository, PaginationService $paginator, Request $request): Response
     {
         $qb = $agenciaRepository->createQueryBuilder('a')
+            ->leftJoin('a.banco', 'bk')
             ->orderBy('a.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['a.codigo', 'a.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'a.nome', 'LIKE', [], 'Nome...', 3),
+            new SearchFilterDTO('codigo', 'Código', 'text', 'a.codigo', 'LIKE', [], 'Código...', 2),
+            new SearchFilterDTO('banco', 'Banco', 'text', 'bk.nome', 'LIKE', [], 'Banco...', 3),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('codigo', 'Código'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['a.codigo', 'a.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('agencia/index.html.twig', [
             'pagination' => $pagination,

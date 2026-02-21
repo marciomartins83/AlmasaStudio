@@ -19,6 +19,20 @@ class LancamentosRepository extends ServiceEntityRepository
     }
 
     /**
+     * Cria QueryBuilder base com joins necessarios para paginacao
+     */
+    public function createBaseQueryBuilder(): \Doctrine\ORM\QueryBuilder
+    {
+        return $this->createQueryBuilder('l')
+            ->leftJoin('l.planoConta', 'pc')
+            ->leftJoin('l.pessoaCredor', 'credor')
+            ->leftJoin('l.pessoaPagador', 'pagador')
+            ->leftJoin('l.contrato', 'c')
+            ->leftJoin('l.imovel', 'i')
+            ->addSelect('pc', 'credor', 'pagador', 'c', 'i');
+    }
+
+    /**
      * Lista lançamentos com filtros
      *
      * @param array $filtros

@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Naturalidade;
 use App\Form\NaturalidadeType;
 use App\Service\NaturalidadeService;
@@ -28,7 +30,14 @@ class NaturalidadeController extends AbstractController
         $qb = $entityManager->getRepository(Naturalidade::class)->createQueryBuilder('n')
             ->orderBy('n.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['n.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'n.nome', 'LIKE', [], 'Buscar...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['n.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('naturalidade/index.html.twig', [
             'pagination' => $pagination,

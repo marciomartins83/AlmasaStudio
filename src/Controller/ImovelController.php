@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Imoveis;
 use App\Form\ImovelFormType;
 use App\Repository\ImoveisRepository;
@@ -37,7 +39,27 @@ class ImovelController extends AbstractController
         $qb = $imoveisRepository->createQueryBuilder('i')
             ->orderBy('i.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['i.codigoInterno', 'i.descricao']);
+        $filters = [
+            new SearchFilterDTO('codigo', 'Código', 'text', 'i.codigoInterno', 'LIKE', [], 'Código...', 2),
+            new SearchFilterDTO('descricao', 'Descrição', 'text', 'i.descricao', 'LIKE', [], 'Descrição...', 3),
+            new SearchFilterDTO('situacao', 'Situação', 'select', 'i.situacao', 'EXACT', [
+                'disponivel' => 'Disponível',
+                'alugado' => 'Alugado',
+                'vendido' => 'Vendido',
+                'reservado' => 'Reservado',
+                'em_reforma' => 'Em Reforma',
+            ]),
+        ];
+
+        $sortOptions = [
+            new SortOptionDTO('codigoInterno', 'Código'),
+            new SortOptionDTO('valorAluguel', 'Aluguel', 'DESC'),
+            new SortOptionDTO('valorVenda', 'Venda', 'DESC'),
+            new SortOptionDTO('areaTotal', 'Área', 'DESC'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['i.codigoInterno', 'i.descricao'], 'i.id', $filters, $sortOptions, 'id', 'DESC');
 
         return $this->render('imovel/index.html.twig', [
             'pagination' => $pagination,

@@ -1,6 +1,8 @@
 <?php
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Estados;
 use App\Form\EstadoType;
 use App\Repository\EstadosRepository;
@@ -17,10 +19,19 @@ class EstadoController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EstadosRepository $estadosRepository, PaginationService $paginator, Request $request): Response
     {
-        $qb = $estadosRepository->createQueryBuilder('e')
-            ->orderBy('e.id', 'DESC');
+        $qb = $estadosRepository->createQueryBuilder('e');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['e.uf', 'e.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'e.nome', 'LIKE', [], 'Nome...', 4),
+            new SearchFilterDTO('uf', 'UF', 'text', 'e.uf', 'LIKE', [], 'UF...', 2),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('uf', 'UF'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['e.uf', 'e.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('estado/index.html.twig', [
             'pagination' => $pagination,

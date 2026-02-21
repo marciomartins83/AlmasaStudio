@@ -1,6 +1,8 @@
 <?php
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\TiposAtendimento;
 use App\Form\TipoAtendimentoType;
 use App\Service\PaginationService;
@@ -19,7 +21,14 @@ class TipoAtendimentoController extends AbstractController
         $qb = $entityManager->getRepository(TiposAtendimento::class)->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
+        $filters = [
+            new SearchFilterDTO('tipo', 'Tipo', 'text', 't.tipo', 'LIKE', [], 'Buscar...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('tipo', 'Tipo'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo'], null, $filters, $sortOptions, 'tipo', 'ASC');
 
         return $this->render('tipo_atendimento/index.html.twig', [
             'pagination' => $pagination,

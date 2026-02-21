@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Lancamentos;
 use App\Form\LancamentosType;
+use App\Repository\LancamentosRepository;
 use App\Service\LancamentosService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,7 +30,9 @@ use Symfony\Component\Routing\Attribute\Route;
 class LancamentosController extends AbstractController
 {
     public function __construct(
-        private LancamentosService $lancamentosService
+        private LancamentosService $lancamentosService,
+        private LancamentosRepository $lancamentosRepository,
+        private PaginationService $paginator
     ) {}
 
     /**
@@ -35,31 +41,54 @@ class LancamentosController extends AbstractController
     #[Route('/', name: 'app_lancamentos_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $filtros = [
-            'tipo' => $request->query->get('tipo'),
-            'status' => $request->query->get('status'),
-            'data_vencimento_de' => $request->query->get('data_vencimento_de'),
-            'data_vencimento_ate' => $request->query->get('data_vencimento_ate'),
-            'competencia' => $request->query->get('competencia'),
-            'id_plano_conta' => $request->query->get('id_plano_conta'),
-            'id_pessoa_credor' => $request->query->get('id_pessoa_credor'),
-            'id_pessoa_pagador' => $request->query->get('id_pessoa_pagador'),
+        $competencias = $this->lancamentosService->listarCompetencias();
+        $competenciasChoices = array_combine($competencias, $competencias);
+
+        $qb = $this->lancamentosRepository->createBaseQueryBuilder();
+
+        $filters = [
+            new SearchFilterDTO('tipo', 'Tipo', 'select', 'l.tipo', 'EXACT', [
+                Lancamentos::TIPO_RECEBER => 'A Receber',
+                Lancamentos::TIPO_PAGAR   => 'A Pagar',
+            ], null, 2),
+            new SearchFilterDTO('status', 'Status', 'select', 'l.status', 'EXACT', [
+                Lancamentos::STATUS_ABERTO      => 'Aberto',
+                Lancamentos::STATUS_PAGO        => 'Pago',
+                Lancamentos::STATUS_PAGO_PARCIAL => 'Pago Parcial',
+                Lancamentos::STATUS_CANCELADO   => 'Cancelado',
+                Lancamentos::STATUS_SUSPENSO    => 'Suspenso',
+            ], null, 2),
+            new SearchFilterDTO('vencimentoDe', 'Venc. De', 'date', 'l.dataVencimento', 'GTE', [], null, 2),
+            new SearchFilterDTO('vencimentoAte', 'Venc. Ate', 'date', 'l.dataVencimento', 'LTE', [], null, 2),
+            new SearchFilterDTO('competencia', 'Competencia', 'select', 'l.competencia', 'EXACT', $competenciasChoices, null, 2),
         ];
 
-        // Remove filtros vazios
-        $filtros = array_filter($filtros, fn($v) => $v !== null && $v !== '');
+        $sortOptions = [
+            new SortOptionDTO('dataVencimento', 'Vencimento', 'DESC'),
+            new SortOptionDTO('competencia', 'Competencia', 'DESC'),
+            new SortOptionDTO('valor', 'Valor', 'DESC'),
+            new SortOptionDTO('status', 'Status', 'ASC'),
+        ];
 
-        $lancamentos = $this->lancamentosService->listarLancamentos($filtros);
+        $pagination = $this->paginator->paginate($qb, $request, null, [], 'l.id', $filters, $sortOptions, 'dataVencimento', 'DESC');
+
         $estatisticas = $this->lancamentosService->getEstatisticas();
         $planosContas = $this->lancamentosService->listarPlanosContaAtivos();
-        $competencias = $this->lancamentosService->listarCompetencias();
 
         return $this->render('lancamentos/index.html.twig', [
-            'lancamentos' => $lancamentos,
+            'lancamentos'  => $pagination['items'],
             'estatisticas' => $estatisticas,
             'planosContas' => $planosContas,
             'competencias' => $competencias,
-            'filtros' => $filtros,
+            'totalItems'   => $pagination['totalItems'],
+            'currentPage'  => $pagination['currentPage'],
+            'itemsPerPage' => $pagination['itemsPerPage'],
+            'totalPages'   => $pagination['totalPages'],
+            'filters'      => $pagination['filters'],
+            'filterDefs'   => $pagination['filterDefs'],
+            'sortField'    => $pagination['sortField'],
+            'sortDir'      => $pagination['sortDir'],
+            'sortOptions'  => $pagination['sortOptions'],
         ]);
     }
 

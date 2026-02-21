@@ -19,6 +19,24 @@
                 </a>
             </div>
 
+            {% include '_partials/search_panel.html.twig' with {
+                filterDefs: pagination.filterDefs,
+                filters: pagination.filters,
+                routeName: 'app_tipo_telefone_index',
+                itemsPerPage: pagination.itemsPerPage,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir
+            } %}
+
+            {% include '_partials/sort_panel.html.twig' with {
+                sortOptions: pagination.sortOptions,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                routeName: 'app_tipo_telefone_index',
+                filters: pagination.filters,
+                itemsPerPage: pagination.itemsPerPage
+            } %}
+
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -87,11 +105,20 @@
                         itemsPerPage: pagination.itemsPerPage,
                         totalPages: pagination.totalPages,
                         search: pagination.search,
-                        routeName: 'app_tipo_telefone_index'
+                        routeName: 'app_tipo_telefone_index',
+                        filters: pagination.filters,
+                        sortField: pagination.sortField,
+                        sortDir: pagination.sortDir,
+                        showSearch: false
                     } %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('crud_filters') }}
 {% endblock %}

@@ -2,7 +2,11 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
+use App\Repository\LancamentosFinanceirosRepository;
 use App\Service\FichaFinanceiraService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +26,9 @@ use Symfony\Component\Routing\Attribute\Route;
 class FichaFinanceiraController extends AbstractController
 {
     public function __construct(
-        private FichaFinanceiraService $fichaService
+        private FichaFinanceiraService $fichaService,
+        private LancamentosFinanceirosRepository $fichaRepository,
+        private PaginationService $paginator
     ) {}
 
     /**
@@ -31,26 +37,45 @@ class FichaFinanceiraController extends AbstractController
     #[Route('/', name: 'app_financeiro_index', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $filtros = [
-            'situacao' => $request->query->get('situacao'),
-            'inquilino' => $request->query->get('inquilino'),
-            'competenciaInicio' => $request->query->get('competenciaInicio'),
-            'competenciaFim' => $request->query->get('competenciaFim'),
-            'emAtraso' => $request->query->getBoolean('emAtraso'),
+        $qb = $this->fichaRepository->createBaseQueryBuilder();
+
+        $filters = [
+            new SearchFilterDTO('situacao', 'Situacao', 'select', 'l.situacao', 'EXACT', [
+                'aberto'    => 'Em Aberto',
+                'pago'      => 'Pago',
+                'parcial'   => 'Parcial',
+                'atrasado'  => 'Atrasado',
+                'cancelado' => 'Cancelado',
+            ], null, 2),
+            new SearchFilterDTO('inquilino', 'Inquilino', 'text', 'inq.nome', 'LIKE', [], 'Nome...', 3),
+            new SearchFilterDTO('competenciaDe', 'Comp. De', 'month', 'l.competencia', 'MONTH_GTE', [], null, 2),
+            new SearchFilterDTO('competenciaAte', 'Comp. Ate', 'month', 'l.competencia', 'MONTH_LTE', [], null, 2),
         ];
 
-        // Remove filtros vazios
-        $filtros = array_filter($filtros, fn($v) => $v !== null && $v !== '');
+        $sortOptions = [
+            new SortOptionDTO('competencia', 'Competencia', 'DESC'),
+            new SortOptionDTO('dataVencimento', 'Vencimento', 'DESC'),
+            new SortOptionDTO('valorTotal', 'Valor', 'DESC'),
+        ];
 
-        $lancamentos = $this->fichaService->listarLancamentos($filtros);
+        $pagination = $this->paginator->paginate($qb, $request, null, [], 'l.id', $filters, $sortOptions, 'competencia', 'DESC');
+
         $estatisticas = $this->fichaService->obterEstatisticas();
         $inadimplentes = $this->fichaService->listarInquilinosComDebitos();
 
         return $this->render('financeiro/index.html.twig', [
-            'lancamentos' => $lancamentos,
+            'lancamentos'  => $pagination['items'],
             'estatisticas' => $estatisticas,
             'inadimplentes' => $inadimplentes,
-            'filtros' => $filtros,
+            'totalItems'   => $pagination['totalItems'],
+            'currentPage'  => $pagination['currentPage'],
+            'itemsPerPage' => $pagination['itemsPerPage'],
+            'totalPages'   => $pagination['totalPages'],
+            'filters'      => $pagination['filters'],
+            'filterDefs'   => $pagination['filterDefs'],
+            'sortField'    => $pagination['sortField'],
+            'sortDir'      => $pagination['sortDir'],
+            'sortOptions'  => $pagination['sortOptions'],
         ]);
     }
 

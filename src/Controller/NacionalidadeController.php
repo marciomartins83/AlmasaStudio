@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Nacionalidade;
 use App\Form\NacionalidadeType;
 use App\Service\NacionalidadeService;
@@ -28,7 +30,14 @@ class NacionalidadeController extends AbstractController
         $qb = $entityManager->getRepository(Nacionalidade::class)->createQueryBuilder('n')
             ->orderBy('n.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['n.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'n.nome', 'LIKE', [], 'Buscar...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['n.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('nacionalidade/index.html.twig', [
             'pagination' => $pagination,

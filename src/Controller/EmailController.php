@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Emails;
 use App\Form\EmailType;
 use App\Repository\EmailRepository;
@@ -21,7 +23,14 @@ class EmailController extends AbstractController
         $qb = $emailRepository->createQueryBuilder('e')
             ->orderBy('e.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['e.email']);
+        $filters = [
+            new SearchFilterDTO('email', 'Email', 'text', 'e.email', 'LIKE', [], 'Email...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('email', 'Email'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['e.email'], null, $filters, $sortOptions, 'email', 'ASC');
 
         return $this->render('email/index.html.twig', [
             'pagination' => $pagination,

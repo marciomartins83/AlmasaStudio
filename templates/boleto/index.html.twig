@@ -120,56 +120,25 @@
         </div>
     </div>
 
-    {# Filtros #}
-    <div class="card filtros-card mb-4">
-        <div class="card-body">
-            <form method="get" action="{{ path('app_boleto_index') }}" id="form-filtros">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select name="status[]" class="form-select form-select-sm" multiple>
-                            {% for value, label in statusOptions %}
-                                <option value="{{ value }}" {{ value in (queryParams.status ?? []) ? 'selected' : '' }}>
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Venc. Início</label>
-                        <input type="date" name="data_inicio" class="form-control form-control-sm"
-                               value="{{ queryParams.data_inicio ?? '' }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Venc. Fim</label>
-                        <input type="date" name="data_fim" class="form-control form-control-sm"
-                               value="{{ queryParams.data_fim ?? '' }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Nosso Número</label>
-                        <input type="text" name="nosso_numero" class="form-control form-control-sm"
-                               value="{{ queryParams.nosso_numero ?? '' }}" placeholder="Buscar...">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Configuração</label>
-                        <select name="configuracao_id" class="form-select form-select-sm">
-                            <option value="">Todas</option>
-                            {% for config in configuracoes %}
-                                <option value="{{ config.id }}" {{ queryParams.configuracao_id == config.id ? 'selected' : '' }}>
-                                    {{ config.banco.nome }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-sm btn-primary w-100">
-                            <i class="fas fa-search me-1"></i> Filtrar
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+    {# Busca Avancada #}
+    {% include '_partials/search_panel.html.twig' with {
+        filterDefs: filterDefs,
+        filters: filters,
+        routeName: 'app_boleto_index',
+        itemsPerPage: itemsPerPage,
+        sortField: sortField,
+        sortDir: sortDir
+    } %}
+
+    {# Ordenacao #}
+    {% include '_partials/sort_panel.html.twig' with {
+        sortOptions: sortOptions,
+        sortField: sortField,
+        sortDir: sortDir,
+        routeName: 'app_boleto_index',
+        filters: filters,
+        itemsPerPage: itemsPerPage
+    } %}
 
     {# Ações em Lote #}
     <div class="mb-3 d-flex gap-2 align-items-center" id="acoes-lote" style="display: none !important;">
@@ -201,7 +170,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for boleto in boletos %}
+                        {% for boleto in boletos|default([]) %}
                         <tr data-boleto-id="{{ boleto.id }}">
                             <td>
                                 <input type="checkbox" class="form-check-input checkbox-boleto"
@@ -291,42 +260,19 @@
             </div>
         </div>
 
-        {% if totalPages > 1 %}
         <div class="card-footer">
-            <nav>
-                <ul class="pagination pagination-sm mb-0 justify-content-center">
-                    {% if page > 1 %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ path('app_boleto_index', queryParams|merge({page: page - 1})) }}">
-                            <i class="fas fa-chevron-left"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    {% for p in range(max(1, page - 2), min(totalPages, page + 2)) %}
-                    <li class="page-item {{ p == page ? 'active' : '' }}">
-                        <a class="page-link" href="{{ path('app_boleto_index', queryParams|merge({page: p})) }}">
-                            {{ p }}
-                        </a>
-                    </li>
-                    {% endfor %}
-
-                    {% if page < totalPages %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ path('app_boleto_index', queryParams|merge({page: page + 1})) }}">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            <div class="text-center mt-2">
-                <small class="text-muted">
-                    Mostrando {{ ((page - 1) * 20) + 1 }} a {{ min(page * 20, total) }} de {{ total }} boletos
-                </small>
-            </div>
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: totalItems,
+                currentPage: currentPage,
+                itemsPerPage: itemsPerPage,
+                totalPages: totalPages,
+                routeName: 'app_boleto_index',
+                filters: filters,
+                sortField: sortField,
+                sortDir: sortDir,
+                showSearch: false
+            } %}
         </div>
-        {% endif %}
     </div>
 </div>
 
@@ -386,6 +332,7 @@
 
 {% block javascripts %}
     {{ parent() }}
+    {{ encore_entry_script_tags('crud_filters') }}
     {{ encore_entry_script_tags('boleto') }}
 
     <script>

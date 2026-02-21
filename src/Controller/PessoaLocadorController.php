@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\PessoasLocadores;
 use App\Form\PessoaLocadorType;
 use App\Repository\PessoaLocadorRepository;
@@ -22,7 +24,19 @@ class PessoaLocadorController extends AbstractController
             ->join('l.pessoa', 'p')
             ->orderBy('l.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['p.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Nome do locador...', 4),
+            new SearchFilterDTO('situacao', 'Situação', 'select', 'l.situacao', 'EXACT', [
+                '0' => 'Ativo',
+                '1' => 'Inativo',
+            ]),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('p.nome', 'Nome'),
+            new SortOptionDTO('l.id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], null, $filters, $sortOptions, 'l.id', 'DESC');
 
         return $this->render('pessoa_locador/index.html.twig', [
             'pagination' => $pagination,

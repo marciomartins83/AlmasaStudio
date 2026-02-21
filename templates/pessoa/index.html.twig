@@ -15,11 +15,29 @@
         </a>
     </div>
 
+    {% include '_partials/search_panel.html.twig' with {
+        filterDefs: pagination.filterDefs,
+        filters: pagination.filters,
+        routeName: 'app_pessoa_index',
+        itemsPerPage: pagination.itemsPerPage,
+        sortField: pagination.sortField,
+        sortDir: pagination.sortDir
+    } %}
+
+    {% include '_partials/sort_panel.html.twig' with {
+        sortOptions: pagination.sortOptions,
+        sortField: pagination.sortField,
+        sortDir: pagination.sortDir,
+        routeName: 'app_pessoa_index',
+        filters: pagination.filters,
+        itemsPerPage: pagination.itemsPerPage
+    } %}
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
-                    <thead>
+                    <thead class="table-dark">
                         <tr>
                             <th>ID</th>
                             <th>Nome</th>
@@ -72,9 +90,18 @@
                 itemsPerPage: pagination.itemsPerPage,
                 totalPages: pagination.totalPages,
                 search: pagination.search,
-                routeName: 'app_pessoa_index'
+                routeName: 'app_pessoa_index',
+                filters: pagination.filters,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                showSearch: false
             } %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('crud_filters') }}
 {% endblock %}

@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Pessoas;
 use App\Form\PessoaFormType;
 use App\Repository\PessoaRepository;
@@ -40,7 +42,25 @@ class PessoaController extends AbstractController
         $qb = $pessoaRepository->createQueryBuilder('p')
             ->orderBy('p.idpessoa', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], 'p.idpessoa');
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Buscar por nome...', 3),
+            new SearchFilterDTO('fisicaJuridica', 'Física/Jurídica', 'select', 'p.fisicaJuridica', 'EXACT', [
+                'fisica' => 'Física',
+                'juridica' => 'Jurídica',
+            ]),
+            new SearchFilterDTO('status', 'Status', 'select', 'p.status', 'BOOL', [
+                '1' => 'Ativo',
+                '0' => 'Inativo',
+            ]),
+        ];
+
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('idpessoa', 'ID', 'DESC'),
+            new SortOptionDTO('dtCadastro', 'Dt Cadastro', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], 'p.idpessoa', $filters, $sortOptions, 'idpessoa', 'DESC');
 
         return $this->render('pessoa/index.html.twig', [
             'pagination' => $pagination,
@@ -232,6 +252,9 @@ class PessoaController extends AbstractController
                 'corretor' => 2,
                 'corretora' => 3,
                 'pretendente' => 5,
+                'socio' => 7,
+                'advogado' => 8,
+                'inquilino' => 12,
             ];
 
             $ativos = array_keys(array_filter($tipos));

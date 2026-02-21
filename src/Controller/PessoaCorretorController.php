@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\PessoasCorretores;
 use App\Form\PessoaCorretorType;
 use App\Repository\PessoaCorretorRepository;
@@ -22,7 +24,19 @@ class PessoaCorretorController extends AbstractController
             ->join('c.pessoa', 'p')
             ->orderBy('c.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['p.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Nome do corretor...', 4),
+            new SearchFilterDTO('ativo', 'Status', 'select', 'c.ativo', 'BOOL', [
+                '1' => 'Ativo',
+                '0' => 'Inativo',
+            ]),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('p.nome', 'Nome'),
+            new SortOptionDTO('c.id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], null, $filters, $sortOptions, 'c.id', 'DESC');
 
         return $this->render('pessoa_corretor/index.html.twig', [
             'pagination' => $pagination,

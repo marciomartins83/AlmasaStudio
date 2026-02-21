@@ -19,6 +19,17 @@ class PrestacoesContasRepository extends ServiceEntityRepository
     }
 
     /**
+     * Cria QueryBuilder base com joins necessarios para paginacao
+     */
+    public function createBaseQueryBuilder(): \Doctrine\ORM\QueryBuilder
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.proprietario', 'prop')
+            ->leftJoin('p.imovel', 'i')
+            ->addSelect('prop', 'i');
+    }
+
+    /**
      * Busca prestações com filtros diversos
      *
      * @param array $filtros [proprietario, imovel, status, ano, dataInicio, dataFim]

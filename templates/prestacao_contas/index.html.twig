@@ -65,48 +65,25 @@
         </div>
     </div>
 
-    {# Filtros #}
-    <div class="card mb-4">
-        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" style="cursor: pointer;">
-            <i class="fas fa-filter"></i> Filtros
-            <i class="fas fa-chevron-down float-end"></i>
-        </div>
-        <div class="collapse {{ filtros|length > 0 ? 'show' : '' }}" id="filtrosCollapse">
-            <div class="card-body">
-                <form method="GET" action="{{ path('app_prestacao_contas_index') }}">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="">Todos</option>
-                                <option value="gerado" {{ filtros.status|default('') == 'gerado' ? 'selected' : '' }}>Gerado</option>
-                                <option value="aprovado" {{ filtros.status|default('') == 'aprovado' ? 'selected' : '' }}>Aprovado</option>
-                                <option value="pago" {{ filtros.status|default('') == 'pago' ? 'selected' : '' }}>Pago</option>
-                                <option value="cancelado" {{ filtros.status|default('') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Ano</label>
-                            <select name="ano" class="form-select">
-                                <option value="">Todos</option>
-                                {% for ano in anosDisponiveis %}
-                                    <option value="{{ ano }}" {{ filtros.ano|default('') == ano ? 'selected' : '' }}>{{ ano }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary me-2">
-                                <i class="fas fa-search"></i> Filtrar
-                            </button>
-                            <a href="{{ path('app_prestacao_contas_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-eraser"></i> Limpar
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    {# Busca Avancada #}
+    {% include '_partials/search_panel.html.twig' with {
+        filterDefs: filterDefs,
+        filters: filters,
+        routeName: 'app_prestacao_contas_index',
+        itemsPerPage: itemsPerPage,
+        sortField: sortField,
+        sortDir: sortDir
+    } %}
+
+    {# Ordenacao #}
+    {% include '_partials/sort_panel.html.twig' with {
+        sortOptions: sortOptions,
+        sortField: sortField,
+        sortDir: sortDir,
+        routeName: 'app_prestacao_contas_index',
+        filters: filters,
+        itemsPerPage: itemsPerPage
+    } %}
 
     {# Tabela de Prestacoes #}
     <div class="card">
@@ -115,6 +92,19 @@
             <a href="{{ path('app_prestacao_contas_gerar') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-plus"></i> Gerar Nova Prestacao
             </a>
+        </div>
+        <div class="card-footer py-1">
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: totalItems,
+                currentPage: currentPage,
+                itemsPerPage: itemsPerPage,
+                totalPages: totalPages,
+                routeName: 'app_prestacao_contas_index',
+                filters: filters,
+                sortField: sortField,
+                sortDir: sortDir,
+                showSearch: false
+            } %}
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -253,6 +243,7 @@
 
 {% block javascripts %}
 {{ parent() }}
+{{ encore_entry_script_tags('crud_filters') }}
 <script>
     window.ROUTES = {
         aprovar: '{{ path("app_prestacao_contas_aprovar", {id: "__ID__"}) }}',

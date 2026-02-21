@@ -1,6 +1,8 @@
 <?php
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Bancos;
 use App\Form\BancoType;
 use App\Repository\BancosRepository;
@@ -20,7 +22,16 @@ class BancoController extends AbstractController
         $qb = $bancosRepository->createQueryBuilder('b')
             ->orderBy('b.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['b.nome', 'b.numero']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'b.nome', 'LIKE', [], 'Nome do banco...', 4),
+            new SearchFilterDTO('numero', 'Número', 'text', 'b.numero', 'LIKE', [], 'Número...', 3),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('numero', 'Número'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['b.nome', 'b.numero'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('banco/index.html.twig', [
             'pagination' => $pagination,

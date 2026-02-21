@@ -2,10 +2,13 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Logradouros;
 use App\Entity\Bairros;
 use App\Entity\Cidades;
 use App\Entity\Estados;
+use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,12 +20,24 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class LogradouroController extends AbstractController
 {
-    public function index(EntityManagerInterface $em): Response
+    public function index(EntityManagerInterface $em, PaginationService $paginator, Request $request): Response
     {
-        $logradouros = $em->getRepository(Logradouros::class)->findAll();
+        $qb = $em->getRepository(Logradouros::class)->createQueryBuilder('l');
+
+        $filters = [
+            new SearchFilterDTO('logradouro', 'Logradouro', 'text', 'l.logradouro', 'LIKE', [], 'Logradouro...', 4),
+            new SearchFilterDTO('cep', 'CEP', 'text', 'l.cep', 'LIKE', [], 'CEP...', 3),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('logradouro', 'Logradouro'),
+            new SortOptionDTO('cep', 'CEP'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['l.logradouro', 'l.cep'], null, $filters, $sortOptions, 'logradouro', 'ASC');
 
         return $this->render('logradouro/index.html.twig', [
-            'logradouros' => $logradouros
+            'pagination' => $pagination,
         ]);
     }
 

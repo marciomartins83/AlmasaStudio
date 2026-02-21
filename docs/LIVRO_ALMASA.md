@@ -9,14 +9,14 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.19.10 |
+| **Versao Atual** | 6.20.0 |
 | **Data Ultima Atualizacao** | 2026-02-21 |
-| **Status Geral** | Em producao — links dashboard corrigidos, permissoes VPS corrigidas |
+| **Status Geral** | Em producao — padronizacao completa de 33 CRUDs com busca avancada, ordenacao e paginacao |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Validar telas de pessoa/contrato/financeiro com dados completos |
+| **Proxima Tarefa** | Deploy v6.20.0 na VPS + validar todas as telas em producao |
 | **Issue Aberta** | Nenhuma |
 | **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
@@ -903,6 +903,38 @@ fetch(`/pessoa/telefone/${id}`, {
 - `{{ item.tipoEntidade.descricao }}` (para relacionamentos)
 - `isAtivo()` (para booleanos)
 
+### Sistema de Busca Avancada, Ordenacao e Paginacao (v6.20.0)
+
+**Arquitetura:**
+- `src/DTO/SearchFilterDTO.php` — Define filtros de busca (nome, label, tipo, campo DQL, operador, choices)
+- `src/DTO/SortOptionDTO.php` — Define opcoes de ordenacao (campo, label, direcao padrao)
+- `src/Service/PaginationService.php` — Centraliza paginacao, filtragem e ordenacao. Retrocompativel.
+
+**Tipos de filtro suportados:** text, select, date, month, boolean
+**Operadores:** LIKE, EXACT, GTE, LTE, IN, BOOL, MONTH_GTE, MONTH_LTE
+
+**Partials Twig:**
+- `_partials/search_panel.html.twig` — Card colapsavel no topo com filtros dinamicos
+- `_partials/sort_panel.html.twig` — Barra de botoes de ordenacao ASC/DESC
+- `_partials/pagination.html.twig` — Total registros, seletor por pagina, navegacao (preserva GET params)
+
+**JavaScript:** `assets/js/crud/crud_filters.js` — Toggle collapse, Enter submete form, webpack entry `crud_filters`
+
+**Layout padrao de todo CRUD index:**
+```
+Breadcrumb
+Titulo + [+ Novo Registro]
+[Cards estatisticas — se aplicavel]
+Busca Avancada (card colapsavel)
+Ordenar: [botoes]
+Tabela (table-striped table-hover, thead table-dark)
+Paginacao (total, por pagina, navegacao)
+```
+
+**CRUDs padronizados (33):** Pessoas, Imoveis, Contratos, Boletos, Lancamentos, FichaFinanceira, PrestacaoContas, ConfiguracaoApiBanco, 11x Tipo*, Estado, Cidade, Bairro, Logradouro, Banco, Agencia, ContaBancaria, EstadoCivil, Nacionalidade, Naturalidade, Email, Telefone, PessoaLocador, PessoaFiador, PessoaCorretor
+
+**CRUDs nao aplicaveis (3):** InformeRendimento (SPA multi-tab), Cobranca (filtros custom), Profissao (controller inexistente)
+
 ---
 
 ## Cap 13 — Licoes Aprendidas
@@ -1086,6 +1118,33 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.20.0] - 2026-02-21
+
+#### Adicionado
+- **Busca Avancada padronizada em 33 CRUDs** — card colapsavel no topo com filtros dinamicos por tipo (text, select, date, month, boolean)
+- **Ordenacao padronizada em 33 CRUDs** — barra de botoes abaixo da busca, clique alterna ASC/DESC, botao ativo destacado
+- **Paginacao unificada** — preserva todos os GET params (filtros + sort) nos links de navegacao
+- `src/DTO/SearchFilterDTO.php` — DTO para definicao de filtros de busca
+- `src/DTO/SortOptionDTO.php` — DTO para definicao de opcoes de ordenacao
+- `templates/_partials/search_panel.html.twig` — Partial de busca avancada colapsavel
+- `templates/_partials/sort_panel.html.twig` — Partial de barra de ordenacao
+- `assets/js/crud/crud_filters.js` — JS modular para toggle collapse, Enter submit, webpack entry
+- `{% block javascripts %}` no `base.html.twig` para scripts de pagina
+
+#### Alterado
+- `src/Service/PaginationService.php` — Suporte a SearchFilterDTO[], SortOptionDTO[], defaultSort, retrocompativel
+- `templates/_partials/pagination.html.twig` — Preserva GET params, variavel showSearch para retrocompat
+- 33 Controllers atualizados com filtros e ordenacao via PaginationService
+- 33 Templates atualizados com search_panel + sort_panel + pagination padronizado
+- 4 Repositories (Boletos, Lancamentos, LancamentosFinanceiros, PrestacoesContas) — novo metodo `createBaseQueryBuilder()`
+- Boletos, Lancamentos, FichaFinanceira, PrestacaoContas migrados de filtro custom para PaginationService
+- LogradouroController migrado de findAll() para PaginationService
+
+#### Corrigido
+- **Bug Contratos: filtros nao aplicados** — `$filtros` eram coletados mas nunca passados ao QueryBuilder. Corrigido via SearchFilterDTO no PaginationService
 
 ---
 

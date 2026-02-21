@@ -1,0 +1,94 @@
+{# Search Panel — Busca Avancada Colapsavel
+   Variables:
+   - filterDefs: SearchFilterDTO[] — definicoes dos filtros
+   - filters: array — valores ativos dos filtros (name => value)
+   - routeName: string — rota do CRUD
+   - routeParams: array (optional)
+   - itemsPerPage: int
+   - sortField: string
+   - sortDir: string
+#}
+{% set routeParams = routeParams ?? {} %}
+{% set hasActiveFilter = false %}
+{% for key, val in filters|default({}) %}
+    {% if val is not empty %}{% set hasActiveFilter = true %}{% endif %}
+{% endfor %}
+
+<div class="card mb-3 border-secondary" id="searchPanel">
+    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center"
+         style="cursor: pointer;"
+         data-bs-toggle="collapse"
+         data-bs-target="#searchPanelBody"
+         aria-expanded="{{ hasActiveFilter ? 'true' : 'false' }}"
+         aria-controls="searchPanelBody">
+        <span>
+            <i class="fas fa-search me-1"></i> Busca Avancada
+            {% if hasActiveFilter %}
+                <span class="badge bg-primary ms-1">Filtros ativos</span>
+            {% endif %}
+        </span>
+        <i class="fas fa-chevron-down" id="searchPanelIcon"></i>
+    </div>
+    <div class="collapse {{ hasActiveFilter ? 'show' : '' }}" id="searchPanelBody">
+        <div class="card-body py-2">
+            <form method="GET" action="{{ path(routeName, routeParams) }}" id="searchForm">
+                <input type="hidden" name="page" value="1">
+                <input type="hidden" name="perPage" value="{{ itemsPerPage }}">
+                {% if sortField is defined and sortField %}
+                    <input type="hidden" name="sort" value="{{ sortField }}">
+                    <input type="hidden" name="dir" value="{{ sortDir }}">
+                {% endif %}
+                <div class="row g-2 align-items-end">
+                    {% for filter in filterDefs %}
+                        <div class="col-md-{{ filter.colSize }}">
+                            <label class="form-label small mb-0">{{ filter.label }}</label>
+                            {% if filter.type == 'text' %}
+                                <input type="text"
+                                       name="{{ filter.name }}"
+                                       value="{{ filters[filter.name]|default('') }}"
+                                       class="form-control form-control-sm"
+                                       placeholder="{{ filter.placeholder ?? filter.label }}">
+                            {% elseif filter.type == 'select' %}
+                                <select name="{{ filter.name }}"
+                                        class="form-select form-select-sm"
+                                        {% if filter.multiple %}multiple{% endif %}>
+                                    <option value="">Todos</option>
+                                    {% for key, label in filter.choices %}
+                                        <option value="{{ key }}" {% if filters[filter.name]|default('') == key|string %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            {% elseif filter.type == 'date' %}
+                                <input type="date"
+                                       name="{{ filter.name }}"
+                                       value="{{ filters[filter.name]|default('') }}"
+                                       class="form-control form-control-sm">
+                            {% elseif filter.type == 'month' %}
+                                <input type="month"
+                                       name="{{ filter.name }}"
+                                       value="{{ filters[filter.name]|default('') }}"
+                                       class="form-control form-control-sm">
+                            {% elseif filter.type == 'boolean' %}
+                                <select name="{{ filter.name }}"
+                                        class="form-select form-select-sm">
+                                    <option value="">Todos</option>
+                                    <option value="1" {% if filters[filter.name]|default('') == '1' %}selected{% endif %}>Sim</option>
+                                    <option value="0" {% if filters[filter.name]|default('') == '0' %}selected{% endif %}>Nao</option>
+                                </select>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="col-md-auto d-flex gap-1">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <a href="{{ path(routeName, routeParams) }}" class="btn btn-outline-secondary btn-sm" id="btnLimpar">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

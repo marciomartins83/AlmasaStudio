@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\ImoveisContratos;
 use App\Repository\ImoveisContratosRepository;
 use App\Service\ContratoService;
@@ -43,21 +45,37 @@ class ContratoController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(Request $request, ImoveisContratosRepository $contratosRepository, PaginationService $paginator): Response
     {
-        $filtros = [
-            'status' => $request->query->get('status'),
-            'tipoContrato' => $request->query->get('tipo_contrato'),
-            'idImovel' => $request->query->get('imovel_id'),
-            'idLocatario' => $request->query->get('locatario_id'),
-            'ativo' => $request->query->get('ativo'),
-        ];
-
-        // Remove filtros vazios
-        $filtros = array_filter($filtros, fn($valor) => $valor !== null && $valor !== '');
-
         $qb = $contratosRepository->createQueryBuilder('c')
             ->orderBy('c.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['c.observacoes']);
+        $filters = [
+            new SearchFilterDTO('status', 'Status', 'select', 'c.status', 'EXACT', [
+                'ativo' => 'Ativo',
+                'encerrado' => 'Encerrado',
+                'rescindido' => 'Rescindido',
+            ]),
+            new SearchFilterDTO('tipoContrato', 'Tipo', 'select', 'c.tipoContrato', 'EXACT', [
+                'locacao' => 'Locação',
+                'temporada' => 'Temporada',
+                'comercial' => 'Comercial',
+                'residencial' => 'Residencial',
+            ]),
+            new SearchFilterDTO('ativo', 'Ativo', 'select', 'c.ativo', 'BOOL', [
+                '1' => 'Sim',
+                '0' => 'Não',
+            ]),
+            new SearchFilterDTO('dataInicioDe', 'Início De', 'date', 'c.dataInicio', 'GTE'),
+            new SearchFilterDTO('dataInicioAte', 'Início Até', 'date', 'c.dataInicio', 'LTE'),
+        ];
+
+        $sortOptions = [
+            new SortOptionDTO('dataInicio', 'Dt Início', 'DESC'),
+            new SortOptionDTO('dataFim', 'Dt Fim', 'DESC'),
+            new SortOptionDTO('valorContrato', 'Valor', 'DESC'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.observacoes'], 'c.id', $filters, $sortOptions, 'id', 'DESC');
 
         // Delega para Service
         $estatisticas = $this->contratoService->obterEstatisticas();
@@ -65,7 +83,6 @@ class ContratoController extends AbstractController
         return $this->render('contrato/index.html.twig', [
             'pagination' => $pagination,
             'estatisticas' => $estatisticas,
-            'filtros' => $filtros,
         ]);
     }
 

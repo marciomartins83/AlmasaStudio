@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\TiposImoveis;
 use App\Form\TipoImovelType;
 use App\Repository\TiposImoveisRepository;
@@ -30,7 +32,14 @@ class TipoImovelController extends AbstractController
         $qb = $this->tipoImovelRepository->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo']);
+        $filters = [
+            new SearchFilterDTO('tipo', 'Tipo', 'text', 't.tipo', 'LIKE', [], 'Buscar...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('tipo', 'Tipo'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['t.tipo'], null, $filters, $sortOptions, 'tipo', 'ASC');
 
         return $this->render('tipo_imovel/index.html.twig', [
             'pagination' => $pagination,

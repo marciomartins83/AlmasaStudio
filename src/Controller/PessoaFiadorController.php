@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\PessoasFiadores;
 use App\Entity\Pessoas;
 use App\Entity\PessoasDocumentos;
@@ -25,9 +27,18 @@ class PessoaFiadorController extends AbstractController
     public function index(PessoaFiadorRepository $pessoaFiadorRepository, PaginationService $paginator, Request $request): Response
     {
         $qb = $pessoaFiadorRepository->createQueryBuilder('f')
+            ->leftJoin('App\Entity\Pessoas', 'p', 'WITH', 'p.idpessoa = f.idPessoa')
             ->orderBy('f.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Nome do fiador...', 4),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('p.nome', 'Nome'),
+            new SortOptionDTO('f.id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], null, $filters, $sortOptions, 'f.id', 'DESC');
 
         return $this->render('pessoa_fiador/index.html.twig', [
             'pagination' => $pagination,

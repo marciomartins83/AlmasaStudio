@@ -1,0 +1,41 @@
+{# Sort Panel — Barra de botoes de ordenacao
+   Variables:
+   - sortOptions: SortOptionDTO[] — opcoes de ordenacao
+   - sortField: string — campo ativo
+   - sortDir: string — ASC ou DESC
+   - routeName: string
+   - routeParams: array (optional)
+   - filters: array — filtros ativos (para preservar nos links)
+   - itemsPerPage: int
+#}
+{% set routeParams = routeParams ?? {} %}
+
+{% if sortOptions|length > 0 %}
+<div class="d-flex align-items-center gap-1 mb-3 flex-wrap">
+    <span class="text-muted small me-1"><i class="fas fa-sort me-1"></i>Ordenar:</span>
+    {% for opt in sortOptions %}
+        {% set isActive = sortField == opt.field %}
+        {% set nextDir = isActive ? (sortDir == 'ASC' ? 'DESC' : 'ASC') : opt.defaultDir %}
+        {% set linkParams = routeParams|merge({
+            'page': 1,
+            'perPage': itemsPerPage,
+            'sort': opt.field,
+            'dir': nextDir
+        }) %}
+        {# Preserve active filters in sort links #}
+        {% for key, val in filters|default({}) %}
+            {% if val is not empty %}
+                {% set linkParams = linkParams|merge({(key): val}) %}
+            {% endif %}
+        {% endfor %}
+        <a href="{{ path(routeName, linkParams) }}"
+           class="btn btn-sm {{ isActive ? 'btn-primary' : 'btn-outline-secondary' }}"
+           title="Ordenar por {{ opt.label }}">
+            {{ opt.label }}
+            {% if isActive %}
+                <i class="fas fa-arrow-{{ sortDir == 'ASC' ? 'up' : 'down' }} ms-1"></i>
+            {% endif %}
+        </a>
+    {% endfor %}
+</div>
+{% endif %}

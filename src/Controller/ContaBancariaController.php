@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\ContasBancarias;
 use App\Form\ContaBancariaType;
 use App\Repository\ContasBancariasRepository;
@@ -21,7 +23,16 @@ class ContaBancariaController extends AbstractController
         $qb = $entityManager->getRepository(ContasBancarias::class)->createQueryBuilder('c')
             ->orderBy('c.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['c.codigo', 'c.titular']);
+        $filters = [
+            new SearchFilterDTO('conta', 'Conta', 'text', 'c.codigo', 'LIKE', [], 'Conta...', 3),
+            new SearchFilterDTO('titular', 'Titular', 'text', 'c.titular', 'LIKE', [], 'Titular...', 3),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('codigo', 'Conta'),
+            new SortOptionDTO('titular', 'Titular'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['c.codigo', 'c.titular'], null, $filters, $sortOptions, 'codigo', 'ASC');
 
         return $this->render('conta_bancaria/index.html.twig', [
             'pagination' => $pagination,

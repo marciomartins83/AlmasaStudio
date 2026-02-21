@@ -39,6 +39,18 @@ class BoletosRepository extends ServiceEntityRepository
     }
 
     /**
+     * Cria QueryBuilder base com joins necessarios para paginacao
+     */
+    public function createBaseQueryBuilder(): \Doctrine\ORM\QueryBuilder
+    {
+        return $this->createQueryBuilder('b')
+            ->leftJoin('b.pessoaPagador', 'p')
+            ->leftJoin('b.imovel', 'i')
+            ->leftJoin('b.configuracaoApi', 'c')
+            ->addSelect('p', 'i', 'c');
+    }
+
+    /**
      * Busca boletos com filtros
      */
     public function findByFiltros(array $filtros): array

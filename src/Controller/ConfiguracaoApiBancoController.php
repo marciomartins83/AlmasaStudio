@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\ConfiguracoesApiBanco;
 use App\Form\ConfiguracaoApiBancoType;
 use App\Repository\ConfiguracoesApiBancoRepository;
@@ -27,7 +29,21 @@ class ConfiguracaoApiBancoController extends AbstractController
         $qb = $configuracaoRepository->createQueryBuilder('c')
             ->orderBy('c.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['c.convenio', 'c.ambiente']);
+        $filters = [
+            new SearchFilterDTO('convenio', 'Convênio', 'text', 'c.convenio', 'LIKE', [], 'Convênio...', 3),
+            new SearchFilterDTO('ambiente', 'Ambiente', 'select', 'c.ambiente', 'EQ', [
+                'sandbox'  => 'Sandbox',
+                'producao' => 'Produção',
+            ], null, 3),
+            new SearchFilterDTO('ativo', 'Ativo', 'boolean', 'c.ativo', 'EQ', [], null, 2),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('id', 'ID', 'DESC'),
+            new SortOptionDTO('convenio', 'Convênio'),
+            new SortOptionDTO('ambiente', 'Ambiente'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.convenio', 'c.ambiente'], null, $filters, $sortOptions, 'id', 'DESC');
 
         return $this->render('configuracao_api_banco/index.html.twig', [
             'pagination' => $pagination,

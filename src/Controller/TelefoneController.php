@@ -1,6 +1,8 @@
 <?php
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Telefones;
 use App\Form\TelefoneType;
 use App\Repository\TelefoneRepository;
@@ -20,7 +22,14 @@ class TelefoneController extends AbstractController
         $qb = $telefoneRepository->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['t.numero']);
+        $filters = [
+            new SearchFilterDTO('numero', 'Número', 'text', 't.numero', 'LIKE', [], 'Número...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('numero', 'Número'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['t.numero'], null, $filters, $sortOptions, 'numero', 'ASC');
 
         return $this->render('telefone/index.html.twig', [
             'pagination' => $pagination,

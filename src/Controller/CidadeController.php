@@ -1,6 +1,8 @@
 <?php
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\Cidades;
 use App\Entity\Estados;
 use App\Form\CidadeType;
@@ -18,10 +20,17 @@ class CidadeController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
-        $qb = $entityManager->getRepository(Cidades::class)->createQueryBuilder('c')
-            ->orderBy('c.id', 'DESC');
+        $qb = $entityManager->getRepository(Cidades::class)->createQueryBuilder('c');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['c.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'c.nome', 'LIKE', [], 'Nome da cidade...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['c.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('cidade/index.html.twig', [
             'pagination' => $pagination,

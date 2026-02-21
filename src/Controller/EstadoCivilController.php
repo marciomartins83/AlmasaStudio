@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\EstadoCivil;
 use App\Form\EstadoCivilType;
 use App\Service\PaginationService;
@@ -20,7 +22,14 @@ class EstadoCivilController extends AbstractController
         $qb = $entityManager->getRepository(EstadoCivil::class)->createQueryBuilder('e')
             ->orderBy('e.id', 'DESC');
 
-        $pagination = $paginator->paginate($qb, $request, null, ['e.nome']);
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'e.nome', 'LIKE', [], 'Buscar...', 6),
+        ];
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('id', 'ID', 'DESC'),
+        ];
+        $pagination = $paginator->paginate($qb, $request, null, ['e.nome'], null, $filters, $sortOptions, 'nome', 'ASC');
 
         return $this->render('estado_civil/index.html.twig', [
             'pagination' => $pagination,
