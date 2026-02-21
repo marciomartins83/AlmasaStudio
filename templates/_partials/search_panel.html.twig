@@ -54,7 +54,7 @@
                                         {% if filter.multiple %}multiple{% endif %}>
                                     <option value="">Todos</option>
                                     {% for key, label in filter.choices %}
-                                        <option value="{{ key }}" {% if filters[filter.name]|default('') == key|string %}selected{% endif %}>
+                                        <option value="{{ key }}" {% if filters[filter.name]|default('') == key ~ '' %}selected{% endif %}>
                                             {{ label }}
                                         </option>
                                     {% endfor %}
