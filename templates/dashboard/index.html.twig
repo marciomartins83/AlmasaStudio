@@ -45,14 +45,14 @@
     <h3 class="mt-5 mb-3 text-dark">Financeiro e Documentos</h3>
     <div class="row g-4">
         {% set cards_financeiro = [
-            {'title': 'Bancos', 'description': 'Lista de bancos cadastrados.', 'link': '#', 'icon': 'bank2', 'details': 'Gerencie os bancos disponíveis para transações financeiras.'},
+            {'title': 'Bancos', 'description': 'Lista de bancos cadastrados.', 'link': path('app_banco_index'), 'icon': 'bank2', 'details': 'Gerencie os bancos disponíveis para transações financeiras.'},
             {'title': 'Imóveis', 'description': 'Gerencie o cadastro completo de imóveis.', 'link': path('app_imovel_index'), 'icon': 'building', 'details': 'Cadastro completo com 63 campos: proprietário, endereço, valores, características, propriedades, fotos, medidores e documentação.'},
             {'title': 'Contratos', 'description': 'Gerencie contratos de locação.', 'link': path('app_contrato_index'), 'icon': 'file-earmark-text', 'details': 'Sistema completo de gestão de contratos de locação: cadastro, renovação, encerramento, reajustes automáticos e estatísticas.'},
             {'title': 'Ficha Financeira', 'description': 'Gerencie lançamentos e contas a receber.', 'link': path('app_financeiro_index'), 'icon': 'cash-stack', 'details': 'Sistema completo de contas a receber: lançamentos automáticos, baixas, estornos, ficha do inquilino, inadimplentes e estatísticas.'},
             {'title': 'Informe de Rendimentos', 'description': 'Gerencie informes de rendimentos e DIMOB.', 'link': path('app_informe_rendimento_index'), 'icon': 'file-earmark-bar-graph', 'details': 'Processamento, manutenção e impressão de informes de rendimentos. Geração de arquivo DIMOB para Receita Federal.'},
             {'title': 'Boletos', 'description': 'Emissão e gestão de boletos bancários.', 'link': path('app_boleto_index'), 'icon': 'receipt', 'details': 'Sistema completo de boletos: emissão, registro via API Santander, consulta de status, baixa, impressão e operações em lote.'},
             {'title': 'API Bancária', 'description': 'Configure credenciais para integração com APIs de cobrança.', 'link': path('app_configuracao_api_banco_index'), 'icon': 'gear', 'details': 'Configure Client ID, Client Secret e certificados digitais para integração com APIs bancárias (Santander, etc.).'},
-            {'title': 'Relatórios', 'description': 'Gerencie relatórios do sistema.', 'link': '#', 'icon': 'graph-up', 'details': 'Acesse diversos relatórios de gestão do sistema.'}
+            {'title': 'Relatórios', 'description': 'Gerencie relatórios do sistema.', 'link': path('app_relatorios_index'), 'icon': 'graph-up', 'details': 'Acesse diversos relatórios de gestão do sistema.'}
         ] %}
 
         {% for card in cards_financeiro %}

@@ -9,14 +9,14 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.19.0 |
+| **Versao Atual** | 6.19.10 |
 | **Data Ultima Atualizacao** | 2026-02-21 |
-| **Status Geral** | Em producao com dados migrados |
+| **Status Geral** | Em producao — links dashboard corrigidos, permissoes VPS corrigidas |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Deploy v6.19.0 no VPS + testar sistema em producao |
+| **Proxima Tarefa** | Validar telas de pessoa/contrato/financeiro com dados completos |
 | **Issue Aberta** | Nenhuma |
 | **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
@@ -74,6 +74,10 @@
 | 6.17.1 | 2026-02-20 | Correcao assets producao, login, dados teste |
 | 6.18.0 | 2026-02-20 | Paginacao em 29 CRUDs, CRUD Bancos, correcoes templates |
 | 6.19.0 | 2026-02-21 | Migracao MySQL->PostgreSQL v2 — 702k registros, 100% sucesso, 0 erros |
+| 6.19.3 | 2026-02-21 | Fix: AssetMapper compile no VPS, remocao .md proibidos |
+| 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
+| 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
+| 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
 
 ### Migracoes Criticas (Referencia Historica)
 
@@ -101,7 +105,7 @@ Para historico completo das versoes V6.0–V6.4, consulte:
 | **Templates** | Twig 3 |
 | **CSS** | Bootstrap 5.3 |
 | **JavaScript** | Vanilla JS (ES6) — Modular |
-| **Build** | Webpack Encore |
+| **Build** | Webpack Encore (entries gerais) + Symfony AssetMapper (JS de pessoa) |
 | **Componentes** | Hotwired Stimulus, Hotwired Turbo |
 | **CSRF** | Token unico global `ajax_global` |
 | **Auth** | Symfony Security Bundle |
@@ -281,6 +285,18 @@ templates/
 | prestacao_contas | assets/js/prestacao_contas/*.js | Prestacao contas |
 | relatorios | assets/js/relatorios/*.js | Relatorios PDF |
 
+**JS via Symfony AssetMapper (versionados com hash):**
+
+| Pasta Fonte | Arquivos | Funcao |
+|-------------|----------|--------|
+| assets/js/pessoa/ | 19 arquivos (pessoa_form.js, pessoa_tipos.js, etc.) | Formulario completo de Pessoa (CRUD + conjuge) |
+
+> **ATENCAO:** Os JS de pessoa passam pelo **Symfony AssetMapper**. O template usa `{{ asset('js/pessoa/...') }}` que gera URLs versionadas tipo `/almasa/assets/js/pessoa/pessoa_form-3XJfXni.js`. Apos qualquer alteracao em `assets/js/pessoa/`, executar no VPS:
+> ```bash
+> php bin/console asset-map:compile --env=prod
+> php bin/console cache:clear --env=prod
+> ```
+
 ---
 
 ## Cap 4 — Modulo Pessoas
@@ -298,6 +314,11 @@ Uma pessoa pode ter multiplos tipos/papeis simultaneamente:
 - **Pretendente** (`PessoasPretendentes`)
 - **Advogado** (`PessoasAdvogados`)
 - **Socio** (`PessoasSocios`)
+- **Inquilino** (tipo_pessoa=12, sem tabela de dados especificos)
+
+**Tabela `pessoas_tipos`:** Registra QUAIS papeis cada pessoa tem (id_pessoa, id_tipo_pessoa, data_inicio, ativo). A UI le dessa tabela para exibir a secao "Tipos de Pessoa". Cada papel tambem tem uma tabela de dados especificos (ex: `pessoas_locadores` com 19 campos financeiros).
+
+**Fluxo:** `PessoaRepository::findTiposComDados()` busca diretamente das tabelas de dados (PessoasLocadores, PessoasFiadores, etc.) e retorna booleanos + objetos. A tabela `pessoas_tipos` e usada como registro auxiliar.
 
 ### Entities (14)
 
@@ -349,6 +370,11 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 - A coluna `conjuge_id` existe na tabela `pessoas`, mas NAO e a fonte da verdade
 - **Fonte oficial:** Tabela `relacionamentos_familiares` (tipoRelacionamento = 'Conjuge')
 - Permite historico, dados contextuais (regime de casamento, datas), e relacionamento bidirecional
+- **Conjuges de fiadores:** Tabela `pessoas_fiadores.id_conjuge` aponta para uma `Pessoa` independente (tipo fiador)
+  - 165 conjuges migrados com CPF, RG, profissao, telefone, pai/mae, nacionalidade
+  - Campo `pessoas_fiadores.conjuge_trabalha` preenchido a partir dos dados do sistema antigo
+- **Conjuges de inquilinos:** 11 registros criados (apenas nome disponivel em `locinquilino.nomecjg`)
+  - Referencia salva em `pessoas.observacoes` do inquilino principal
 
 ### Issue Aberta
 
@@ -452,6 +478,18 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 **Entities:** LancamentosFinanceiros (22.697 bytes), BaixasFinanceiras, AcordosFinanceiros
 
 **Service:** `FichaFinanceiraService.php` (25.534 bytes) — 14 metodos de gestao financeira
+
+**Campos financeiros migrados (lancamentos_financeiros):**
+- `id_proprietario`: Derivado via contrato→imovel→proprietario (367.686 registros preenchidos)
+- `valor_principal`: Aluguel puro (dump.valor - verbas separadas). Corrigido em 80.009 recibos para 100% consistencia
+- `valor_condominio`, `valor_iptu`, `valor_agua`, `valor_luz`, `valor_gas`, `valor_outros`: Verbas individuais do `locrechist`
+- `valor_total`: Recalculado como soma de todas verbas + multa + juros
+- Verificacao 100%: 80.009/80.009 recibos batem campo a campo com dump MySQL (valor, valor_pago, situacao)
+
+**Cadeia financeira completa:**
+- Inquilino paga → `lancamentos_financeiros` com `id_inquilino` + `id_proprietario` + `id_imovel` + `id_contrato`
+- Proprietario recebe → `prestacoes_contas` com `id_proprietario` + `id_imovel` (14.882 com imovel inferido)
+- 139.018 lancamentos sem proprietario sao despesas/receitas administrativas da imobiliaria (correto)
 
 ### 7.2 Lancamentos (Contas a Pagar/Receber)
 
@@ -731,7 +769,7 @@ php bin/console doctrine:schema:update --dump-sql
 
 **NÃO está dentro do AlmasaStudio.** Foi movido para repo próprio em 2026-02-21.
 
-**Versão atual:** v2 (2026-02-21) — reescrito com parametrização completa
+**Versão atual:** v3.2 (2026-02-21) — 19 fases, conjuges, cadeia financeira completa, valores 100%
 
 **Pré-requisitos obrigatórios:**
 1. Tabelas de parâmetros populadas (tipos_pessoas, tipos_documentos, tipos_telefones, etc.)
@@ -770,11 +808,16 @@ Grupo 9: boletos, prestacoes_contas
 | tipos_emails | Pessoal | 1 |
 | tipos_imoveis | Casa | 1 |
 
-**Bugs corrigidos na v2:**
+**Bugs corrigidos na v2/v3:**
 - tipos_pessoas estavam INVERTIDOS (locador=1 era fiador, fiador=4 era locador)
 - Todos telefones classificados como Celular (agora Residencial/Celular/Comercial)
 - Cache de bairros stale causava 23 falhas de FK violation
 - enderecos de imoveis apontavam para placeholder em vez do proprietario real
+- `id_proprietario` era NULL em 100% dos lancamentos — corrigido via cadeia contrato→imovel→proprietario
+- `valor_principal` duplicado em 62.742 recibos — corrigido: principal = dump.valor - verbas separadas
+- Conjuges de fiadores/inquilinos nao eram migrados — 176 Pessoas criadas com docs e profissoes
+- `pessoas_tipos` vazia — 4.921 registros inseridos
+- Inquilinos sem endereco proprio (2.088) recebem endereco do imovel locado
 
 **Uso:**
 ```bash
@@ -1043,6 +1086,184 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.19.10] - 2026-02-21
+
+#### Corrigido
+- **Dashboard: links quebrados dos cards Bancos e Relatórios** — apontavam para `#` em vez das rotas corretas (`app_banco_index`, `app_relatorios_index`)
+- **VPS: permissões de arquivos** — 9 controllers, templates, services e assets tinham permissão `600` (só dono), PHP-FPM (`www-data`) não conseguia ler → erro 500 em `/contrato/`, `/boleto/`, `/financeiro/`, etc.
+- **VPS: cache Twig sem permissão de escrita** — diretório `var/cache/prod/` pertencia a `deployer`, alterado para `www-data:www-data` com `775`
+
+---
+
+### [6.19.9] - 2026-02-21
+
+#### Corrigido
+- **Valores de boletos/recibos corrigidos — 100% consistência com sistema antigo**
+  - `valor_principal` estava duplicado em 62.742 recibos: continha o total (aluguel+verbas) e as verbas (condomínio, IPTU, água) foram adicionadas separadamente nos campos próprios
+  - Causa: Phase 15 setava verbas nos campos separados mas NÃO subtraía do `valor_principal` quando a conta 1001 (aluguel puro) não existia no `locrechist`
+  - Correção: `valor_principal = dump.valor - (condomínio + IPTU + água + luz + gás + outros)`
+  - `valor_total` recalculado: `principal + verbas + multa + juros`
+  - Verificação 100%: 80.009/80.009 recibos com soma_verbas = dump.valor, valor_pago e situação OK
+  - `migrate.py` Phase 15 atualizada para corrigir automaticamente em futuras execuções
+
+---
+
+### [6.19.8] - 2026-02-21
+
+#### Corrigido
+- **Cadeia financeira inquilino→proprietário completada**
+  - `lancamentos_financeiros.id_proprietario` preenchido para 367.686 lancamentos (era NULL em 100%)
+  - 80.009 recibos (migracao_mysql): proprietário derivado via contrato → imóvel → proprietário
+  - 287.677 extrato CC com imóvel: proprietário derivado via imóvel → proprietário
+  - 139.018 restantes são despesas/receitas administrativas da imobiliária (sem proprietário — correto)
+  - `prestacoes_contas.id_imovel` preenchido para 14.882 registros (proprietários com 1 imóvel)
+  - 27.962 prestações restantes: proprietários com múltiplos imóveis, dump sem campo `imovel` (100% zerado)
+  - `migrate.py` Phases 14, 16, 18 atualizadas para preencher id_proprietario em futuras execuções
+
+#### Verificação da cadeia completa
+- **100% contratos** têm imóvel válido (0 quebras)
+- **100% imóveis** têm proprietário válido (0 quebras)
+- **100% recibos** (migracao_mysql) têm id_proprietario preenchido
+- **100% proprietários** de imóveis locados ativos têm prestações de contas (139/139)
+- **6 contratos ativos sem lançamento**: são contratos novos criados em 20/fev/2026 (ainda não geraram boleto)
+- **13 contratos encerrados sem lançamento**: dados antigos do sistema (imovel=0, contratos de 2004-2024)
+
+---
+
+### [6.19.7] - 2026-02-21
+
+#### Adicionado
+- **Migracao de conjuges (relacionamentos familiares)**
+  - 165 conjuges de fiadores criados como Pessoa independente (com CPF, RG, profissao, telefone)
+  - `pessoas_fiadores.id_conjuge` vinculado para todos os 165 fiadores casados
+  - `pessoas_fiadores.conjuge_trabalha` preenchido a partir de `locfiadores.conjtrabalha`
+  - 11 conjuges de inquilinos criados (apenas nome disponivel em `locinquilino.nomecjg`)
+  - Total: 176 novas Pessoas criadas, 319 documentos, 9 profissoes, 1 telefone
+  - Script `migrate.py` Phase 09 e Phase 13 atualizados para contemplar conjuges em futuras execucoes
+  - Script `hotfix_conjuges.py` idempotente criado para correcoes ad-hoc
+
+#### Dados de conjuges migrados (locfiadores -> pessoas)
+- **nomeconj** -> pessoas.nome
+- **cpfconj** -> pessoas_documentos (tipo=CPF)
+- **rgconj** -> pessoas_documentos (tipo=RG)
+- **dtnascconj** -> pessoas.data_nascimento
+- **rendaconj** -> pessoas.renda + pessoas_profissoes.renda
+- **conjpaif/conjmaef** -> pessoas.nome_pai/nome_mae
+- **atividadeconj** -> profissoes + pessoas_profissoes
+- **conjempresaf** -> pessoas_profissoes.empresa
+- **conjtelemp** -> telefones + pessoas_telefones
+- **conjtrabalha** -> pessoas_fiadores.conjuge_trabalha
+
+---
+
+### [6.19.6] - 2026-02-21
+
+#### Corrigido
+- **Inquilinos sem endereco proprio agora recebem endereco do imovel locado**
+  - No sistema antigo, inquilinos sem campo `endac` tinham como endereco implicito o imovel que alugavam
+  - Script Phase 13 atualizado: se `endac` vazio, copia endereco do imovel vinculado via `locinquilino.imovel`
+  - 2.088 enderecos copiados do imovel para o inquilino + 42 enderecos proprios = 2.130 total
+  - Apenas 2 inquilinos ficaram sem endereco (sem imovel vinculado no dump)
+
+---
+
+### [6.19.5] - 2026-02-21
+
+#### Corrigido
+- **Enderecos proprios de inquilinos (campo endac) nao eram migrados na Fase 13**
+  - 42 inquilinos com endereco proprio no dump MySQL — inseridos no banco
+
+#### Relacoes Inquilino-Imovel-Proprietario (verificadas)
+- **Cadeia completa**: `ImoveisContratos.id_pessoa_locatario` -> `Pessoas` (inquilino)
+- **Imovel**: `ImoveisContratos.id_imovel` -> `Imoveis.id_pessoa_proprietario` -> `Pessoas` (dono)
+- **Fiador**: `ImoveisContratos.id_pessoa_fiador` -> `Pessoas` (fiador)
+- 2.130 contratos migrados, todos com inquilino e imovel vinculados
+
+---
+
+### [6.19.4] - 2026-02-21
+
+#### Corrigido
+- **Tipo Inquilino (e outros) nao aparecia na tela de edicao de pessoa**
+  - `PessoaRepository::findTiposComDados()` so buscava em tabelas dedicadas (PessoasLocadores, PessoasFiadores, etc.)
+  - Nao existia `PessoasInquilinos` entity, entao inquilinos nunca eram detectados
+  - Corrigido: agora le da tabela `pessoas_tipos` como fonte de verdade para TODOS os tipos
+  - Tambem mantem busca nas tabelas dedicadas para consistencia
+- **Select de tipos no template faltava opcoes: Socio, Advogado, Inquilino**
+  - Adicionadas 3 opcoes no select do template `pessoa_form.html.twig`
+- **JS `pessoa_tipos.js` nao tinha configuracao para Inquilino**
+  - Adicionado `inquilino` no `tiposConfig` com icone `fas fa-home`
+- **Controller `tipoParaId` faltava socio, advogado, inquilino**
+  - Adicionados mapeamentos: socio=7, advogado=8, inquilino=12
+
+---
+
+### [6.19.3] - 2026-02-21
+
+#### Corrigido
+- **Assets JS nao compilados no VPS — Symfony AssetMapper retornava 404 para todos os 19 JS de pessoa**
+  - O Symfony AssetMapper versiona arquivos de `assets/` para `public/assets/` com hashes (ex: `pessoa_form-3XJfXni.js`)
+  - O comando `php bin/console asset-map:compile` nunca havia sido executado no VPS
+  - Template renderizava `<script src="/almasa/assets/js/pessoa/pessoa_form-3XJfXni.js">` → HTTP 404
+  - Sem JS, nenhum AJAX de carregamento de dados era executado — todas as secoes ficavam vazias
+  - Corrigido: executado `asset-map:compile --env=prod` no VPS, 19 arquivos compilados
+- **Arquivos .md proibidos removidos (Regra 4 do CLAUDE.md)**
+  - Removido `CHANGELOG.md` (avulso, redundante com o Changelog do livro)
+  - Removido `src/DataFixtures/README.md` (documento avulso proibido)
+  - Removido `docs/.UPDATE_PENDING` (arquivo temporario)
+
+#### Importante — Deploy no VPS
+- Apos qualquer alteracao em `assets/js/`, executar no VPS:
+  ```bash
+  php bin/console asset-map:compile --env=prod
+  php bin/console cache:clear --env=prod
+  ```
+
+---
+
+### [6.19.2] - 2026-02-21
+
+#### Corrigido
+- **Arquivos JS de pessoa NAO existiam em public/ — UI ficava 100% vazia**
+  - Template `pessoa_form.html.twig` usa `asset('js/pessoa/...')` que resolve para `public/js/pessoa/`
+  - A pasta `public/js/pessoa/` NAO existia — 19 arquivos JS estavam apenas em `assets/js/pessoa/`
+  - Sem o JS, nenhum AJAX rodava e todas as secoes (telefones, emails, docs, etc.) ficavam vazias
+  - Corrigido: 19 arquivos copiados para `public/js/pessoa/` local e VPS
+- **Tabela `pessoas_tipos` estava VAZIA (0 registros)**
+  - Secao "Tipos de Pessoa" da UI le de `pessoas_tipos` para saber os papeis (locador, fiador, etc.)
+  - Script de migracao nunca inseriu nessa tabela — apenas nas tabelas de dados especificos
+  - Corrigido: 4.921 registros inseridos (2.498 locadores + 288 fiadores + 3 contratantes + 2.132 inquilinos)
+  - Script `migrate.py` atualizado com `INSERT INTO pessoas_tipos` em todas as 4 fases de pessoas
+
+#### Alterado
+- Script de migracao atualizado para v3.2 no repo almasa-migration
+
+---
+
+### [6.19.1] - 2026-02-21
+
+#### Adicionado
+- **Migracao v3.1 — associacoes de tipo, profissoes, chaves PIX completas**
+  - `pessoas_locadores`: 2.498 registros com 19 campos financeiros (forma_retirada, dependentes, multa, etc.)
+  - `pessoas_fiadores`: 288 registros com motivo_fianca, conjuge_trabalha, etc.
+  - `pessoas_contratantes`: 3 registros
+  - `pessoas_profissoes`: 2.311 vinculos pessoa-profissao com empresa e renda
+  - `profissoes`: 1.453 profissoes unicas extraidas dos dados MySQL
+  - `chaves_pix`: 22 chaves PIX importadas (CPF, CNPJ, Telefone, Email, Aleatoria)
+  - `formas_retirada`: 5 formas cadastradas (Transferencia, Credito, Cheque, Dinheiro, Outro)
+  - Pai/Mae e nacionalidade dos inquilinos importados
+
+#### Corrigido
+- **Enderecos de imoveis distribuidos corretamente**: Fase 12 agora atribui id_pessoa ao proprietario real (antes todos iam para placeholder)
+- **Profissoes nao eram importadas**: iam apenas como texto no campo observacoes — agora vao para tabela propria com vinculo
+- **Papeis nunca atribuidos**: pessoas_locadores/fiadores/contratantes estavam VAZIOS — agora populados
+
+#### Alterado
+- Script de migracao atualizado para v3.1 no repo almasa-migration
+- config.py: adicionados TIPO_CHAVE_PIX_MAP, FORMAS_RETIRADA_SEED, FORMA_RETIRADA_MYSQL_MAP, DEFAULT_NACIONALIDADE_ID
 
 ---
 
