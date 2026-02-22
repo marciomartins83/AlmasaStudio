@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.1 |
+| **Versao Atual** | 6.20.2 |
 | **Data Ultima Atualizacao** | 2026-02-22 |
-| **Status Geral** | Em producao — code review completo de 16 modulos + correcao de bugs sistêmicos |
+| **Status Geral** | Em producao — Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Deploy v6.20.1 na VPS + validar telas corrigidas em producao |
-| **Issue Aberta** | 14 Controllers violam Thin Controller (persist/flush direto) — refactor pendente |
+| **Proxima Tarefa** | Deploy v6.20.2 na VPS + refatorar 4 Pessoa*Controllers (próxima fase) |
+| **Issue Aberta** | #1 RESOLVIDA - Conjugue na busca. #2 NOVO: 4 Pessoa*Controllers Thin Controller pendente |
 | **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
@@ -78,6 +78,7 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
+| 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
 | 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
 
 ### Migracoes Criticas (Referencia Historica)
@@ -1124,6 +1125,19 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.20.2] - 2026-02-22
+
+#### Corrigido
+- **Issue #1: Conjugue não carregava na busca avançada** — Implementado `buscarConjugePessoa()` completo, retorna dados via `relacionamentos_familiares`
+- **10 Controllers Thin Controller refatorados** — Movido persist/flush/remove para Services (8 Tipo* + ContratoController + GenericTipoService base)
+- **64 registros de teste removidos do Neon** — Estados, cidades, bairros, pessoas, documentos (limpeza completa de E2E test data)
+
+#### Pendente (Próxima Fase)
+- 4 Pessoa*Controllers ainda violam Thin Controller (PessoaController, PessoaCorretorController, PessoaFiadorController, PessoaLocadorController)
+- Maior complexidade — requer planejamento especializado de Services
 
 ---
 

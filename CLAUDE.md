@@ -278,5 +278,7 @@ AlmasaStudio/
 
 ---
 
-**Ultima atualizacao:** 2026-02-22
+**Ultima atualizacao:** 2026-02-22 (v6.20.2)
+**Issue #1 Status:** ✅ RESOLVIDA (Conjugue na busca)
+**Thin Controller Status:** ✅ 10/14 corrigidos
 **Mantenedor:** Marcio Martins
