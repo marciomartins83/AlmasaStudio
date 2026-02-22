@@ -18,7 +18,7 @@ class EmailControllerTest extends WebTestCase
 
     public function testFormTypeExists(): void
     {
-        $this->assertTrue(class_exists('App\\Form\\EmailType'));
+        $this->assertTrue(class_exists('App\\Form\\EmailFormType'));
     }
 
     public function testBasicStructure(): void

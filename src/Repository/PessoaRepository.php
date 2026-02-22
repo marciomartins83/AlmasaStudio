@@ -41,6 +41,7 @@ class PessoaRepository extends ServiceEntityRepository
             ->andWhere('pd.ativo = true')
             ->setParameter('tipoCpf', 'CPF')
             ->setParameter('numero', $numeroCpf)
+            ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
     }
@@ -51,13 +52,14 @@ class PessoaRepository extends ServiceEntityRepository
     public function findByCnpj(string $cnpj): ?Pessoas
     {
         return $this->createQueryBuilder('p')
-            ->innerJoin('App\Entity\PessoasDocumentos', 'pd', 'WITH', 'pd.idPessoa = p.idpessoa')
-            ->innerJoin('App\Entity\TiposDocumentos', 'td', 'WITH', 'td.id = pd.idTipoDocumento')
+            ->join('p.pessoasDocumentos', 'pd')
+            ->join('pd.tipoDocumento', 'td')
             ->andWhere('td.tipo = :tipoCnpj')
             ->andWhere('pd.numeroDocumento = :cnpj')
             ->andWhere('pd.ativo = true')
             ->setParameter('tipoCnpj', 'CNPJ')
             ->setParameter('cnpj', $cnpj)
+            ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
     }
@@ -84,12 +86,22 @@ class PessoaRepository extends ServiceEntityRepository
 
         // Se for numérico e tem 11 dígitos, busca por CPF
         if (ctype_digit($searchTerm) && strlen($searchTerm) === 11) {
-            $qb->andWhere('p.cpf = :searchTerm')
+            $qb->join('p.pessoasDocumentos', 'pd')
+                ->join('pd.tipoDocumento', 'td')
+                ->andWhere('td.tipo = :tipoCpf')
+                ->andWhere('pd.numeroDocumento = :searchTerm')
+                ->andWhere('pd.ativo = true')
+                ->setParameter('tipoCpf', 'CPF')
                 ->setParameter('searchTerm', $searchTerm);
         }
         // Se for numérico e tem 14 dígitos, busca por CNPJ
         elseif (ctype_digit($searchTerm) && strlen($searchTerm) === 14) {
-            $qb->andWhere('p.cnpj = :searchTerm')
+            $qb->join('p.pessoasDocumentos', 'pd')
+                ->join('pd.tipoDocumento', 'td')
+                ->andWhere('td.tipo = :tipoCnpj')
+                ->andWhere('pd.numeroDocumento = :searchTerm')
+                ->andWhere('pd.ativo = true')
+                ->setParameter('tipoCnpj', 'CNPJ')
                 ->setParameter('searchTerm', $searchTerm);
         }
         // Se for numérico e menor que 11 dígitos, busca por ID
@@ -114,7 +126,7 @@ class PessoaRepository extends ServiceEntityRepository
     public function existsByCpfOrCnpj(?string $cpf, ?string $cnpj): ?Pessoas
     {
         if ($cpf) {
-            return $this->findByCpf($cpf);
+            return $this->findByCpfDocumento($cpf);
         } elseif ($cnpj) {
             return $this->findByCnpj($cnpj);
         }
@@ -166,7 +178,7 @@ class PessoaRepository extends ServiceEntityRepository
             5  => 'pretendente',
             6  => 'contratante',
             7  => 'socio',
-            8  => 'advogado',
+            8 => 'advogado',
             12 => 'inquilino',
         ];
 

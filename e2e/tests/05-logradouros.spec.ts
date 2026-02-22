@@ -50,10 +50,10 @@ test.describe.serial('Logradouros CRUD', () => {
       await page.goto('/bairro/new');
       await page.fill('input[name="bairro[nome]"]', 'Test Bairro');
       await page.fill('input[name="bairro[codigo]"]', '999999');
-      const cidadeSelect = page.locator('select[name="bairro_type[cidade]"]');
+      const cidadeSelect = page.locator('select[name="bairro[cidade]"]');
       const options = await cidadeSelect.locator('option').count();
       if (options > 1) {
-        await page.selectOption('select[name="bairro_type[cidade]"]', { index: 1 });
+        await page.selectOption('select[name="bairro[cidade]"]', { index: 1 });
       }
       await submitForm(page);
       await expectFlashMessage(page, 'success');
@@ -76,6 +76,16 @@ test.describe.serial('Logradouros CRUD', () => {
 
     // Verify table header
     await expect(page.locator('thead th').first()).toContainText('ID');
+  });
+
+  test('search panel is present', async ({ page }) => {
+    await page.goto('/logradouro/');
+    await expect(page.locator('#searchPanel')).toBeVisible();
+  });
+
+  test('pagination controls exist', async ({ page }) => {
+    await page.goto('/logradouro/');
+    await expect(page.locator('select[name="perPage"]')).toBeVisible();
   });
 
   test('new form page loads', async ({ page }) => {

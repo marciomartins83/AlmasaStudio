@@ -642,7 +642,7 @@ class RelatorioService
     public function getSaldoInicialConta(int $contaId, \DateTime $data): float
     {
         $qb = $this->em->createQueryBuilder();
-        $qb->select('SUM(CASE WHEN l.tipo = :tipoReceber THEN CAST(l.valor AS float) ELSE -CAST(l.valor AS float) END) as saldo')
+        $qb->select('SUM(CASE WHEN l.tipo = :tipoReceber THEN l.valor ELSE -l.valor END) as saldo')
             ->from(Lancamentos::class, 'l')
             ->where('l.contaBancaria = :contaId')
             ->andWhere('l.status = :status')
@@ -760,7 +760,7 @@ class RelatorioService
     public function getTotaisPlanoContas(array $filtros): array
     {
         $qb = $this->em->createQueryBuilder();
-        $qb->select('IDENTITY(l.planoConta) as planoContaId, SUM(CAST(l.valor AS float)) as total')
+        $qb->select('IDENTITY(l.planoConta) as planoContaId, SUM(l.valor) as total')
             ->from(Lancamentos::class, 'l')
             ->where('l.planoConta IS NOT NULL')
             ->groupBy('l.planoConta');

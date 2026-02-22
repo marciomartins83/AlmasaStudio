@@ -7,8 +7,8 @@ use App\DTO\SortOptionDTO;
 use App\Entity\TiposImoveis;
 use App\Form\TipoImovelType;
 use App\Repository\TiposImoveisRepository;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,12 +17,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-imovel')]
 class TipoImovelController extends AbstractController
 {
-    private EntityManagerInterface $entityManager;
     private TiposImoveisRepository $tipoImovelRepository;
+    private GenericTipoService $tipoService;
 
-    public function __construct(EntityManagerInterface $entityManager, TiposImoveisRepository $tipoImovelRepository)
+    public function __construct(GenericTipoService $tipoService, TiposImoveisRepository $tipoImovelRepository)
     {
-        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
         $this->tipoImovelRepository = $tipoImovelRepository;
     }
 
@@ -54,9 +54,7 @@ class TipoImovelController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->entityManager->persist($tipoImovel);
-            $this->entityManager->flush();
-
+            $this->tipoService->criar($tipoImovel);
             return $this->redirectToRoute('app_tipo_imovel_index');
         }
 
@@ -81,8 +79,7 @@ class TipoImovelController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->entityManager->flush();
-
+            $this->tipoService->atualizar($tipoImovel);
             return $this->redirectToRoute('app_tipo_imovel_index');
         }
 
@@ -96,8 +93,7 @@ class TipoImovelController extends AbstractController
     public function delete(Request $request, TiposImoveis $tipoImovel): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoImovel->getId(), $request->request->get('_token'))) {
-            $this->entityManager->remove($tipoImovel);
-            $this->entityManager->flush();
+            $this->tipoService->deletar($tipoImovel);
         }
 
         return $this->redirectToRoute('app_tipo_imovel_index');

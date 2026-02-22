@@ -76,7 +76,7 @@
                                             <form method="post" 
                                                   action="{{ path('app_estado_civil_delete', {'id': estado_civil.id}) }}" 
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir este estado civil?')">
+                                                  data-confirm-delete="Tem certeza que deseja excluir este estado civil?">
                                                 <input type="hidden" name="_token" 
                                                        value="{{ csrf_token('delete' ~ estado_civil.id) }}">
                                                 <button class="btn btn-danger btn-sm">

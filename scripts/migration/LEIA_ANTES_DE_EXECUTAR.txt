@@ -1,0 +1,167 @@
+================================================================================
+MIGRAÇÃO MySQL -> PostgreSQL — AlmasaStudio
+================================================================================
+LEIA ESTE ARQUIVO INTEIRO ANTES DE EXECUTAR QUALQUER COISA.
+================================================================================
+
+AUTOR: Engenheiro Sr. (Opus 4.6) + Engenheiro Jr. (Sonnet 4.6)
+DATA:  2026-02-20
+DUMP:  bkpjpw_20260220_121003.sql (~285MB, MySQL 5.5, latin1)
+DESTINO: PostgreSQL 15 Neon Cloud (almasaStudio)
+
+--------------------------------------------------------------------------------
+PRÉ-REQUISITOS
+--------------------------------------------------------------------------------
+
+1. Python 3.10+
+   python3 --version
+
+2. psycopg2 (driver PostgreSQL)
+   pip3 install psycopg2-binary
+
+3. Confirmar IDs reais no banco NOVO antes de executar fases 08-13:
+
+   -- Tipos de pessoa (locador, inquilino, fiador, contratante)
+   SELECT id, nome FROM pessoas_tipos ORDER BY id;
+
+   -- Estado civil (solteiro, casado, etc.)
+   SELECT id, descricao FROM estado_civil ORDER BY id;
+
+   -- Tipos de imóvel
+   SELECT id, nome FROM tipos_imoveis ORDER BY id;
+
+   -- Tipos de endereço
+   SELECT id, nome FROM tipos_enderecos ORDER BY id;
+
+   -- Tipos de telefone
+   SELECT id, nome FROM tipos_telefones ORDER BY id;
+
+   -- Tipos de documento (CPF, RG, CNPJ)
+   SELECT id, nome FROM tipos_documentos ORDER BY id;
+
+4. Atualizar config.py com os IDs corretos:
+   - TIPO_LOCADOR (Phase08)
+   - TIPO_INQUILINO (Phase13)
+   - TIPO_FIADOR (Phase09)
+   - TIPO_CONTRATANTE (Phase10)
+   - DEFAULT_TIPO_DOCUMENTO_CPF_ID
+   - DEFAULT_TIPO_DOCUMENTO_RG_ID
+   - DEFAULT_TIPO_DOCUMENTO_CNPJ_ID
+   - DEFAULT_TIPO_ENDERECO_ID
+   - DEFAULT_TIPO_TELEFONE_ID
+   - ESTADO_CIVIL_MAP
+
+--------------------------------------------------------------------------------
+ORDEM DE EXECUÇÃO RECOMENDADA
+--------------------------------------------------------------------------------
+
+PASSO 1 — Verificar pré-condições:
+  python3 scripts/migration/migrate.py --check
+
+PASSO 2 — Ver fases disponíveis:
+  python3 scripts/migration/migrate.py --list
+
+PASSO 3 — Dry run de uma fase específica:
+  python3 scripts/migration/migrate.py --phase 01 --dry-run
+
+PASSO 4 — Executar fase a fase (na ordem):
+  python3 scripts/migration/migrate.py --phase 01   # bancos
+  python3 scripts/migration/migrate.py --phase 02   # agencias
+  python3 scripts/migration/migrate.py --phase 03   # contas_bancarias
+  python3 scripts/migration/migrate.py --phase 04   # plano_contas
+  python3 scripts/migration/migrate.py --phase 05   # estados
+  python3 scripts/migration/migrate.py --phase 06   # cidades
+  python3 scripts/migration/migrate.py --phase 07   # bairros
+  python3 scripts/migration/migrate.py --phase 08   # locadores -> pessoas
+  python3 scripts/migration/migrate.py --phase 09   # fiadores -> pessoas
+  python3 scripts/migration/migrate.py --phase 10   # contratantes -> pessoas
+  python3 scripts/migration/migrate.py --phase 11   # imóveis
+  python3 scripts/migration/migrate.py --phase 12   # vínculo imovel-proprietario
+  python3 scripts/migration/migrate.py --phase 13   # inquilinos + contratos
+  python3 scripts/migration/migrate.py --phase 14   # recibos -> lancamentos
+  python3 scripts/migration/migrate.py --phase 15   # verbas dos recibos
+  python3 scripts/migration/migrate.py --phase 16   # extrato CC
+  python3 scripts/migration/migrate.py --phase 17   # acordos
+  python3 scripts/migration/migrate.py --phase 18   # repasses
+
+PASSO 5 — Ou executar tudo de uma vez (após validar dry-run):
+  python3 scripts/migration/migrate.py --phase all
+
+--------------------------------------------------------------------------------
+IDEMPOTÊNCIA
+--------------------------------------------------------------------------------
+
+Cada fase é IDEMPOTENTE:
+- Se uma fase foi marcada como concluída, ela será pulada automaticamente.
+- Para re-executar uma fase específica:
+    python3 scripts/migration/migrate.py --reset-phase 08
+    python3 scripts/migration/migrate.py --phase 08
+
+O mapeamento de IDs (old -> new) é persistido em:
+  logs/migration/id_map.json
+
+As fases concluídas são persistidas em:
+  logs/migration/phases_done.json
+
+--------------------------------------------------------------------------------
+TRATAMENTO DE ENCODING
+--------------------------------------------------------------------------------
+
+O dump MySQL usa latin-1 internamente (apesar do SET NAMES utf8).
+O script lê o arquivo com encoding='latin-1' e converte para UTF-8.
+Caracteres não mapeáveis são substituídos por '?' (errors='replace').
+
+--------------------------------------------------------------------------------
+DATAS INVÁLIDAS
+--------------------------------------------------------------------------------
+
+As seguintes datas são convertidas para NULL:
+  0000-00-00, 1900-01-01, 1901-01-01
+
+--------------------------------------------------------------------------------
+LOGS
+--------------------------------------------------------------------------------
+
+Cada execução gera um arquivo de log em:
+  logs/migration/migrate_YYYYMMDD_HHMMSS.log
+
+Acompanhe em tempo real:
+  tail -f logs/migration/migrate_*.log | grep -E "(ERROR|WARN|INFO)"
+
+--------------------------------------------------------------------------------
+ATENÇÃO: USUÁRIO ADMIN PRESERVADO
+--------------------------------------------------------------------------------
+
+O script NÃO toca no registro do usuário admin existente:
+  marcioramos1983@gmail.com / 123
+
+Verificação automática no --check.
+
+--------------------------------------------------------------------------------
+ROLLBACK
+--------------------------------------------------------------------------------
+
+Em caso de problema após a migração:
+1. As fases concluídas ficam no phases_done.json
+2. O id_map.json preserva todos os mapeamentos
+3. Para reverter uma tabela específica (CUIDADO — dados reais!):
+   TRUNCATE TABLE bancos CASCADE;
+   (e então resetar a fase correspondente)
+
+--------------------------------------------------------------------------------
+ESTIMATIVA DE TEMPO
+--------------------------------------------------------------------------------
+
+Baseado no tamanho do dump (~285MB):
+  Fases 01-07 (tabelas pequenas):     ~2 min
+  Fase 08 (loclocadores):             ~5-10 min
+  Fase 09-10 (fiadores/contratantes): ~1-2 min
+  Fase 11 (imóveis):                  ~5 min
+  Fase 12-13 (propriedades/inquilinos): ~5-10 min
+  Fase 14 (recibos):                  ~30-60 min (dados históricos)
+  Fase 15 (verbas recibos):           ~10-20 min
+  Fase 16 (extrato CC):               ~30-60 min (440k registros)
+  Fases 17-18:                        ~5 min
+  TOTAL ESTIMADO:                     ~2-3 horas
+
+================================================================================

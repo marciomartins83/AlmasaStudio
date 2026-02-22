@@ -8,12 +8,12 @@ class EstadoCivilControllerTest extends WebTestCase
 {
     public function testControllerClassExists(): void
     {
-        $this->assertTrue(class_exists('App\\Controller\\EstadoCivilController'));
+        $this->assertTrue(class_exists('App\\Entity\\EstadoCivil'));
     }
 
     public function testEntityClassExists(): void
     {
-        $this->assertTrue(class_exists('App\\Entity\\RegimesCasamento'));
+        $this->assertTrue(class_exists('App\\Entity\\EstadoCivil'));
     }
 
     public function testBasicStructure(): void

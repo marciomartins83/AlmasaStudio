@@ -8,6 +8,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Validator\Constraints as Assert;
 
 class TipoImovelType extends AbstractType
 {
@@ -17,12 +18,27 @@ class TipoImovelType extends AbstractType
             ->add('tipo', TextType::class, [
                 'label' => 'Tipo de Imóvel',
                 'attr' => ['class' => 'form-control'],
-                'required' => true
+                'required' => true,
+                'constraints' => [
+                    new Assert\NotBlank(['message' => 'Campo obrigatório']),
+                    new Assert\Length([
+                        'min' => 2,
+                        'max' => 255,
+                        'minMessage' => 'Mínimo 2 caracteres',
+                        'maxMessage' => 'Máximo 255 caracteres',
+                    ]),
+                ],
             ])
             ->add('descricao', TextareaType::class, [
                 'label' => 'Descrição',
                 'attr' => ['class' => 'form-control', 'rows' => 3],
-                'required' => false
+                'required' => false,
+                'constraints' => [
+                    new Assert\Length([
+                        'max' => 500,
+                        'maxMessage' => 'Máximo 500 caracteres',
+                    ]),
+                ],
             ]);
     }
 

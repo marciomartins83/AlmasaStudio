@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposAtendimento;
 use App\Form\TipoAtendimentoType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,10 +16,19 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-atendimento', name: 'app_tipo_atendimento_')]
 class TipoAtendimentoController extends AbstractController
 {
-    #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
     {
-        $qb = $entityManager->getRepository(TiposAtendimento::class)->createQueryBuilder('t')
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(PaginationService $paginator, Request $request): Response
+    {
+        $qb = $this->entityManager->getRepository(TiposAtendimento::class)->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
         $filters = [
@@ -36,7 +46,7 @@ class TipoAtendimentoController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tipoAtendimento = new TiposAtendimento();
         $form = $this->createForm(TipoAtendimentoType::class, $tipoAtendimento);
@@ -44,8 +54,7 @@ class TipoAtendimentoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoAtendimento);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoAtendimento);
                 $this->addFlash('success', 'Tipo de atendimento criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_atendimento_index');
             } catch (\Exception $e) {
@@ -68,14 +77,14 @@ class TipoAtendimentoController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TiposAtendimento $tipoAtendimento, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, TiposAtendimento $tipoAtendimento): Response
     {
         $form = $this->createForm(TipoAtendimentoType::class, $tipoAtendimento);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar($tipoAtendimento);
                 $this->addFlash('success', 'Tipo de atendimento atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_atendimento_index');
             } catch (\Exception $e) {
@@ -90,11 +99,10 @@ class TipoAtendimentoController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, TiposAtendimento $tipoAtendimento, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, TiposAtendimento $tipoAtendimento): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoAtendimento->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoAtendimento);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoAtendimento);
             $this->addFlash('success', 'Tipo de atendimento excluído com sucesso!');
         }
 

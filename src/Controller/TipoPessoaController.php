@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposPessoas;
 use App\Form\TipoPessoaType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-pessoa', name: 'app_tipo_pessoa_')]
 class TipoPessoaController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
+    {
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -44,8 +54,7 @@ class TipoPessoaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoPessoa);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoPessoa);
                 $this->addFlash('success', 'Tipo de pessoa criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_pessoa_index');
             } catch (\Exception $e) {
@@ -75,7 +84,7 @@ class TipoPessoaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar();
                 $this->addFlash('success', 'Tipo de pessoa atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_pessoa_index');
             } catch (\Exception $e) {
@@ -93,8 +102,7 @@ class TipoPessoaController extends AbstractController
     public function delete(Request $request, TiposPessoas $tipoPessoa, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoPessoa->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoPessoa);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoPessoa);
             $this->addFlash('success', 'Tipo de pessoa excluído com sucesso!');
         }
 

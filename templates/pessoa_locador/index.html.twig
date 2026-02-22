@@ -59,9 +59,10 @@
                     <td>{{ locador.situacao == 0 ? 'Ativo' : 'Inativo' }}</td>
                     <td>
                         <a href="{{ path('app_pessoa_locador_edit', {'id': locador.id}) }}" class="btn btn-sm btn-primary">Editar</a>
-                        <form method="post" action="{{ path('app_pessoa_locador_delete', {'id': locador.id}) }}" style="display: inline;">
+                        <form method="post" action="{{ path('app_pessoa_locador_delete', {'id': locador.id}) }}" style="display: inline;"
+                              data-confirm-delete="Confirma exclusão?">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ locador.id) }}">
-                            <button class="btn btn-sm btn-danger" onclick="return confirm('Confirma exclusão?')">Excluir</button>
+                            <button class="btn btn-sm btn-danger">Excluir</button>
                         </form>
                     </td>
                 </tr>

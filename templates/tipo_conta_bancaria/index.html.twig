@@ -76,7 +76,7 @@
                                             <form method="post" 
                                                   action="{{ path('app_tipo_conta_bancaria_delete', {'id': tipo_conta_bancaria.id}) }}" 
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir este tipo de conta bancária?')">
+                                                  data-confirm-delete="Tem certeza que deseja excluir este tipo de conta bancária?">
                                                 <input type="hidden" name="_token" 
                                                        value="{{ csrf_token('delete' ~ tipo_conta_bancaria.id) }}">
                                                 <button class="btn btn-danger btn-sm">

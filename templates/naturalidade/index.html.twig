@@ -76,7 +76,7 @@
                                             <form method="post" 
                                                   action="{{ path('app_naturalidade_delete', {'id': naturalidade.id}) }}" 
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir esta naturalidade?')">
+                                                  data-confirm-delete="Tem certeza que deseja excluir esta naturalidade?">
                                                 <input type="hidden" name="_token" 
                                                        value="{{ csrf_token('delete' ~ naturalidade.id) }}">
                                                 <button class="btn btn-danger btn-sm">

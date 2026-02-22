@@ -2,7 +2,7 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\TipoImovel;
+use App\Entity\TiposImoveis;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
@@ -25,7 +25,7 @@ class TipoImovelFixtures extends Fixture implements FixtureGroupInterface
         ];
 
         foreach ($tipos as $tipoData) {
-            $tipoImovel = new TipoImovel();
+            $tipoImovel = new TiposImoveis();
             $tipoImovel->setTipo($tipoData['tipo']);
             $tipoImovel->setDescricao($tipoData['descricao']);
             $manager->persist($tipoImovel);

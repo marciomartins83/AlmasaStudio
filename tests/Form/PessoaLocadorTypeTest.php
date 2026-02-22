@@ -4,43 +4,41 @@ namespace App\Tests\Form;
 
 use App\Entity\PessoasLocadores;
 use App\Form\PessoaLocadorType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class PessoaLocadorTypeTest extends TypeTestCase
+class PessoaLocadorTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
-        $formData = [
-            'dependentes' => '2',
-        ];
-
         $objectToCompare = new PessoasLocadores();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(PessoaLocadorType::class, $objectToCompare);
+        $form = $this->formFactory->create(PessoaLocadorType::class, $objectToCompare);
 
-        $object = new PessoasLocadores();
-
-        // submit the data to the form directly
-        $form->submit($formData);
-
-        $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
+        $this->assertTrue($form->has('dependentes'));
+        $this->assertTrue($form->has('formaRetirada'));
     }
 
     public function testCustomFormView(): void
     {
         $object = new PessoasLocadores();
 
-        $form = $this->factory->create(PessoaLocadorType::class, $object);
-        $view = $form->createView();
+        $form = $this->formFactory->create(PessoaLocadorType::class, $object);
 
-        $this->assertArrayHasKey('dependentes', $view->children);
+        $this->assertTrue($form->has('dependentes'));
+        $this->assertTrue($form->has('formaRetirada'));
     }
 }

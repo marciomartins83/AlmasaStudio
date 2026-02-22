@@ -5,8 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposEmails;
 use App\Form\TipoEmailType;
-use App\Repository\TipoEmailRepository;
-use App\Service\PaginationService;
+use App\Service\GenericTipoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,10 +15,19 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-email', name: 'app_tipo_email_')]
 class TipoEmailController extends AbstractController
 {
-    #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
     {
-        $qb = $entityManager->getRepository(TiposEmails::class)->createQueryBuilder('t')
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(PaginationService $paginator, Request $request): Response
+    {
+        $qb = $this->entityManager->getRepository(TiposEmails::class)->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
         $filters = [
@@ -37,7 +45,7 @@ class TipoEmailController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tipoEmail = new TiposEmails();
         $form = $this->createForm(TipoEmailType::class, $tipoEmail);
@@ -45,8 +53,7 @@ class TipoEmailController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoEmail);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoEmail);
                 $this->addFlash('success', 'Tipo de email criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_email_index');
             } catch (\Exception $e) {
@@ -69,14 +76,14 @@ class TipoEmailController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TiposEmails $tipoEmail, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, TiposEmails $tipoEmail): Response
     {
         $form = $this->createForm(TipoEmailType::class, $tipoEmail);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar($tipoEmail);
                 $this->addFlash('success', 'Tipo de email atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_email_index');
             } catch (\Exception $e) {
@@ -91,14 +98,13 @@ class TipoEmailController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, TiposEmails $tipoEmail, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, TiposEmails $tipoEmail): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoEmail->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoEmail);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoEmail);
             $this->addFlash('success', 'Tipo de email excluído com sucesso!');
         }
 
         return $this->redirectToRoute('app_tipo_email_index');
     }
-} 
+}

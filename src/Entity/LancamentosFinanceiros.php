@@ -779,6 +779,33 @@ class LancamentosFinanceiros
         return $this->competencia->format('m/Y');
     }
 
+    public function getDataVencimentoFormatada(): string
+    {
+        return $this->dataVencimento->format('d/m/Y');
+    }
+
+    public function getValorTotalFormatado(): string
+    {
+        return 'R$ ' . number_format((float) ($this->valorTotal ?? 0), 2, ',', '.');
+    }
+
+    public function getValorSaldoFormatado(): string
+    {
+        return 'R$ ' . number_format((float) ($this->valorSaldo ?? 0), 2, ',', '.');
+    }
+
+    public function getSituacaoLabel(): string
+    {
+        return match ($this->situacao) {
+            'aberto' => 'Aberto',
+            'pago' => 'Pago',
+            'cancelado' => 'Cancelado',
+            'estornado' => 'Estornado',
+            'parcial' => 'Parcial',
+            default => ucfirst($this->situacao ?? 'N/A'),
+        };
+    }
+
     public function getDataGeracao(): ?\DateTimeInterface
     {
         return $this->dataGeracao;

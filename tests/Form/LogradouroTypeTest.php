@@ -4,10 +4,24 @@ namespace App\Tests\Form;
 
 use App\Entity\Logradouros;
 use App\Form\LogradouroType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class LogradouroTypeTest extends TypeTestCase
+class LogradouroTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
         $formData = [
@@ -16,31 +30,19 @@ class LogradouroTypeTest extends TypeTestCase
 
         $objectToCompare = new Logradouros();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(LogradouroType::class, $objectToCompare);
-
-        $object = new Logradouros();
-
-        // submit the data to the form directly
+        $form = $this->formFactory->create(LogradouroType::class, $objectToCompare);
         $form->submit($formData);
 
         $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
+        $this->assertEquals('Rua das Flores', $form->get('logradouro')->getData());
     }
 
     public function testCustomFormView(): void
     {
         $object = new Logradouros();
 
-        $form = $this->factory->create(LogradouroType::class, $object);
-        $view = $form->createView();
+        $form = $this->formFactory->create(LogradouroType::class, $object);
 
-        $this->assertArrayHasKey('logradouro', $view->children);
+        $this->assertTrue($form->has('logradouro'));
     }
 }

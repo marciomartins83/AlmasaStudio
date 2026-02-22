@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposCarteiras;
 use App\Form\TipoCarteiraType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-carteira', name: 'app_tipo_carteira_')]
 class TipoCarteiraController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
+    {
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -44,8 +54,7 @@ class TipoCarteiraController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoCarteira);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoCarteira);
                 $this->addFlash('success', 'Tipo de carteira criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_carteira_index');
             } catch (\Exception $e) {
@@ -75,7 +84,7 @@ class TipoCarteiraController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar();
                 $this->addFlash('success', 'Tipo de carteira atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_carteira_index');
             } catch (\Exception $e) {
@@ -93,8 +102,7 @@ class TipoCarteiraController extends AbstractController
     public function delete(Request $request, TiposCarteiras $tipoCarteira, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoCarteira->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoCarteira);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoCarteira);
             $this->addFlash('success', 'Tipo de carteira excluído com sucesso!');
         }
 

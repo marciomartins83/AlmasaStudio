@@ -53,7 +53,7 @@ class InformesRendimentosValoresRepository extends ServiceEntityRepository
     public function somarPorInforme(int $informeId): float
     {
         $result = $this->createQueryBuilder('v')
-            ->select('SUM(CAST(v.valor AS float)) as total')
+            ->select('SUM(v.valor) as total')
             ->where('v.informe = :informe')
             ->setParameter('informe', $informeId)
             ->getQuery()

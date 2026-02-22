@@ -3,8 +3,9 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\TiposAtendimentoRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: TiposAtendimentoRepository::class)]
 #[ORM\Table(name: 'tipos_atendimento')]
 class TiposAtendimento
 {

@@ -12,6 +12,16 @@ test.describe('Emails, Telefones, Agências e Contas Bancárias', () => {
       await expect(page.locator('h1')).toContainText('Emails');
     });
 
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/email/');
+      await expect(page.locator('#searchPanel')).toBeVisible();
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/email/');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible();
+    });
+
     test('Index page displays table', async ({ page }) => {
       await page.goto('/email/');
 
@@ -95,6 +105,112 @@ test.describe('Emails, Telefones, Agências e Contas Bancárias', () => {
       const tableResponsive = page.locator('.table-responsive');
       await expect(tableResponsive).toBeVisible();
     });
+
+    // ========== NOVOS TESTES CRUD EMAILS ==========
+    test('Create email - fill form and submit', async ({ page }) => {
+      const response = await page.goto('/email/new');
+
+      if (response?.status() === 200) {
+        const form = page.locator('form');
+        await expect(form).toBeVisible();
+
+        // Fill email field
+        const emailInput = page.locator('input[type="email"]');
+        await emailInput.fill(`test-${Date.now()}@example.com`);
+
+        // Optionally select tipo (if exists)
+        const tipoSelect = page.locator('select').first();
+        const tipoCount = await tipoSelect.count();
+        if (tipoCount > 0) {
+          const options = await tipoSelect.locator('option').count();
+          if (options > 1) {
+            await tipoSelect.selectOption({ index: 1 });
+          }
+        }
+
+        // Submit form
+        const submitButton = form.locator('button[type="submit"]');
+        await submitButton.click();
+
+        // Verify success message and redirect
+        await page.waitForURL('/email/');
+        await expect(page.locator('text=/criado|sucesso/i')).toBeVisible({ timeout: 5000 });
+      }
+    });
+
+    test('Edit email - change address', async ({ page }) => {
+      const response = await page.goto('/email/1/edit');
+
+      if (response?.status() === 200) {
+        const form = page.locator('form');
+        await expect(form).toBeVisible();
+
+        const emailInput = page.locator('input[type="email"]');
+        await emailInput.clear();
+        await emailInput.fill(`edited-${Date.now()}@example.com`);
+
+        const submitButton = form.locator('button[type="submit"]');
+        await submitButton.click();
+
+        await page.waitForURL('/email/');
+        await expect(page.locator('text=/atualizado|sucesso/i')).toBeVisible({ timeout: 5000 });
+      }
+    });
+
+    test('Search emails by address', async ({ page }) => {
+      await page.goto('/email/');
+
+      const searchValue = page.locator('#searchValue');
+      const searchValueCount = await searchValue.count();
+
+      if (searchValueCount > 0) {
+        await searchValue.fill('example');
+
+        await page.locator('#searchForm button[type="submit"]').click();
+        await page.waitForLoadState('networkidle');
+
+        const table = page.locator('table');
+        const tableVisible = await table.count() > 0;
+        expect(tableVisible).toBeTruthy();
+      }
+    });
+
+    test('Sort emails by email address', async ({ page }) => {
+      await page.goto('/email/');
+
+      const sortLinks = page.locator('a[href*="sort="]');
+      const sortLinksCount = await sortLinks.count();
+
+      if (sortLinksCount > 0) {
+        await sortLinks.first().click();
+        await page.waitForLoadState('networkidle');
+
+        const url1 = page.url();
+
+        await sortLinks.first().click();
+        await page.waitForLoadState('networkidle');
+
+        const url2 = page.url();
+        // URLs should differ indicating sort order changed
+        expect(url1).not.toBe(url2);
+      }
+    });
+
+    test('Pagination - change items per page (Emails)', async ({ page }) => {
+      await page.goto('/email/');
+
+      const perPageSelect = page.locator('select[name="perPage"]');
+      const perPageExists = await perPageSelect.count() > 0;
+
+      if (perPageExists) {
+        await perPageSelect.selectOption('30');
+        await page.waitForLoadState('networkidle');
+
+        const newRowCount = await page.locator('table tbody tr').count();
+        // Row count may change, or pagination may show different data
+        expect(newRowCount).toBeGreaterThanOrEqual(0);
+      }
+    });
   });
 
   test.describe('Telefones Module', () => {
@@ -107,6 +223,16 @@ test.describe('Emails, Telefones, Agências e Contas Bancárias', () => {
 
       // Page heading should be visible
       await expect(page.locator('h1')).toContainText('Telefone', { timeout: 10000 });
+    });
+
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/telefone/');
+      await expect(page.locator('#searchPanel')).toBeVisible();
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/telefone/');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible();
     });
 
     test('Index page displays table', async ({ page }) => {
@@ -172,6 +298,112 @@ test.describe('Emails, Telefones, Agências e Contas Bancárias', () => {
         await expect(tableResponsive).toBeVisible();
       }
     });
+
+    // ========== NOVOS TESTES CRUD TELEFONES ==========
+    test('Create telefone - fill form and submit', async ({ page }) => {
+      const response = await page.goto('/telefone/new');
+
+      if (response?.status() === 200) {
+        const form = page.locator('form');
+        await expect(form).toBeVisible();
+
+        // Select tipo
+        const tipoSelect = page.locator('select').first();
+        const tipoCount = await tipoSelect.count();
+        if (tipoCount > 0) {
+          const options = await tipoSelect.locator('option').count();
+          if (options > 1) {
+            await tipoSelect.selectOption({ index: 1 });
+          }
+        }
+
+        // Fill numero
+        const numeroInput = page.locator('input').filter({ hasText: /99999|Número/ }).first();
+        await numeroInput.fill('(11) 98765-4321');
+
+        // Submit form
+        const submitButton = form.locator('button[type="submit"]');
+        await submitButton.click();
+
+        // Verify success message and redirect
+        await page.waitForURL('/telefone/');
+        await expect(page.locator('text=/criado|sucesso/i')).toBeVisible({ timeout: 5000 });
+      }
+    });
+
+    test('Edit telefone - change number', async ({ page }) => {
+      const response = await page.goto('/telefone/1/edit');
+
+      if (response?.status() === 200) {
+        const form = page.locator('form');
+        await expect(form).toBeVisible();
+
+        const numeroInput = page.locator('input').filter({ hasText: /\d{2}/ }).first();
+        await numeroInput.clear();
+        await numeroInput.fill('(21) 99999-8888');
+
+        const submitButton = form.locator('button[type="submit"]');
+        await submitButton.click();
+
+        await page.waitForURL('/telefone/');
+        await expect(page.locator('text=/atualizado|sucesso/i')).toBeVisible({ timeout: 5000 });
+      }
+    });
+
+    test('Search telefones by number', async ({ page }) => {
+      await page.goto('/telefone/');
+
+      const searchValue = page.locator('#searchValue');
+      const searchValueCount = await searchValue.count();
+
+      if (searchValueCount > 0) {
+        await searchValue.fill('11');
+
+        await page.locator('#searchForm button[type="submit"]').click();
+        await page.waitForLoadState('networkidle');
+
+        const table = page.locator('table');
+        const tableVisible = await table.count() > 0;
+        expect(tableVisible).toBeTruthy();
+      }
+    });
+
+    test('Sort telefones by number', async ({ page }) => {
+      await page.goto('/telefone/');
+
+      const sortLinks = page.locator('a[href*="sort="]');
+      const sortLinksCount = await sortLinks.count();
+
+      if (sortLinksCount > 0) {
+        await sortLinks.first().click();
+        await page.waitForLoadState('networkidle');
+
+        const url1 = page.url();
+
+        await sortLinks.first().click();
+        await page.waitForLoadState('networkidle');
+
+        const url2 = page.url();
+        // URLs should differ indicating sort order changed
+        expect(url1).not.toBe(url2);
+      }
+    });
+
+    test('Pagination - change items per page (Telefones)', async ({ page }) => {
+      await page.goto('/telefone/');
+
+      const perPageSelect = page.locator('select[name="perPage"]');
+      const perPageExists = await perPageSelect.count() > 0;
+
+      if (perPageExists) {
+        await perPageSelect.selectOption('30');
+        await page.waitForLoadState('networkidle');
+
+        const newRowCount = await page.locator('table tbody tr').count();
+        // Row count may change, or pagination may show different data
+        expect(newRowCount).toBeGreaterThanOrEqual(0);
+      }
+    });
   });
 
   test.describe('Agências Module', () => {
@@ -185,6 +417,16 @@ test.describe('Emails, Telefones, Agências e Contas Bancárias', () => {
       const bodyText = page.locator('body');
       const text = await bodyText.textContent();
       expect(text).toContain('Agência');
+    });
+
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/agencia/');
+      await expect(page.locator('#searchPanel')).toBeVisible();
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/agencia/');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible();
     });
 
     test('Index page displays table', async ({ page }) => {
@@ -262,6 +504,16 @@ test.describe('Emails, Telefones, Agências e Contas Bancárias', () => {
       const container = page.locator('[class*="container"]');
       const count = await container.count();
       expect(count).toBeGreaterThan(0);
+    });
+
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/conta-bancaria/');
+      await expect(page.locator('#searchPanel')).toBeVisible();
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/conta-bancaria/');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible();
     });
 
     test('Index page displays table', async ({ page }) => {

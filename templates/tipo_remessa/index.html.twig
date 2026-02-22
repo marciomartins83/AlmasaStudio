@@ -68,7 +68,7 @@
                                             <form method="post" 
                                                   action="{{ path('app_tipo_remessa_delete', {'id': tipo_remessa.id}) }}" 
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir este tipo de remessa?')">
+                                                  data-confirm-delete="Tem certeza que deseja excluir este tipo de remessa?">
                                                 <input type="hidden" name="_token" 
                                                        value="{{ csrf_token('delete' ~ tipo_remessa.id) }}">
                                                 <button class="btn btn-danger btn-sm">

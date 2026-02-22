@@ -23,11 +23,11 @@ class TiposImoveis
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $descricao = null;
 
-    #[ORM\Column(name: 'created_at', type: 'string', length: 255)]
-    private ?string $createdAt = null;
+    #[ORM\Column(name: 'created_at', type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(name: 'updated_at', type: 'string', length: 255)]
-    private ?string $updatedAt = null;
+    #[ORM\Column(name: 'updated_at', type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $updatedAt = null;
 
     /**
      * @var Collection<int, Imoveis>
@@ -62,23 +62,23 @@ class TiposImoveis
         return $this;
     }
 
-    public function getCreatedAt(): ?string
+    public function getCreatedAt(): ?\DateTimeInterface
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): self
+    public function setCreatedAt(?\DateTimeInterface $createdAt): self
     {
         $this->createdAt = $createdAt;
         return $this;
     }
 
-    public function getUpdatedAt(): ?string
+    public function getUpdatedAt(): ?\DateTimeInterface
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): self
+    public function setUpdatedAt(?\DateTimeInterface $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
         return $this;
@@ -92,7 +92,7 @@ class TiposImoveis
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
-        $now = date('Y-m-d H:i:s');
+        $now = new \DateTime();
         $this->createdAt = $now;
         $this->updatedAt = $now;
     }
@@ -100,7 +100,7 @@ class TiposImoveis
     #[ORM\PreUpdate]
     public function setUpdatedAtValue(): void
     {
-        $this->updatedAt = date('Y-m-d H:i:s');
+        $this->updatedAt = new \DateTime();
     }
 
     /**

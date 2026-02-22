@@ -434,7 +434,7 @@ class LancamentosRepository extends ServiceEntityRepository
             ->select([
                 'pc.codigo',
                 'pc.descricao',
-                "SUM(CASE WHEN l.tipo = 'receber' THEN CAST(l.valor AS float) ELSE -CAST(l.valor AS float) END) as total"
+                "SUM(CASE WHEN l.tipo = 'receber' THEN l.valor ELSE -l.valor END) as total"
             ])
             ->join('l.planoConta', 'pc')
             ->where('l.dataMovimento >= :dataInicio')

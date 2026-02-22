@@ -76,7 +76,7 @@
                                             <form method="post" 
                                                   action="{{ path('app_tipo_email_delete', {'id': tipo_email.id}) }}" 
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir este tipo de email?')">
+                                                  data-confirm-delete="Tem certeza que deseja excluir este tipo de email?">
                                                 <input type="hidden" name="_token" 
                                                        value="{{ csrf_token('delete' ~ tipo_email.id) }}">
                                                 <button class="btn btn-danger btn-sm">

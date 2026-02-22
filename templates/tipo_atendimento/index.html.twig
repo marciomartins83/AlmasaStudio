@@ -78,7 +78,7 @@
                                             <form method="post" 
                                                   action="{{ path('app_tipo_atendimento_delete', {'id': tipo_atendimento.id}) }}" 
                                                   style="display:inline-block"
-                                                  onsubmit="return confirm('Tem certeza que deseja excluir este tipo de atendimento?')">
+                                                  data-confirm-delete="Tem certeza que deseja excluir este tipo de atendimento?">
                                                 <input type="hidden" name="_token" 
                                                        value="{{ csrf_token('delete' ~ tipo_atendimento.id) }}">
                                                 <button class="btn btn-danger btn-sm">

@@ -12,8 +12,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class PessoaRepositoryTest extends KernelTestCase
 {
-    private EntityManagerInterface $entityManager;
-    private PessoaRepository $repository;
+    private ?EntityManagerInterface $entityManager = null;
+    private ?PessoaRepository $repository = null;
 
     protected function setUp(): void
     {
@@ -44,8 +44,8 @@ class PessoaRepositoryTest extends KernelTestCase
         if ($tipoDocumentoEntity) {
             // Criar documento
             $pessoaDocumento = new PessoasDocumentos();
-            $pessoaDocumento->setIdPessoa($pessoa->getIdpessoa());
-            $pessoaDocumento->setIdTipoDocumento($tipoDocumentoEntity->getId());
+            $pessoaDocumento->setPessoa($pessoa);
+            $pessoaDocumento->setTipoDocumento($tipoDocumentoEntity);
             $pessoaDocumento->setNumeroDocumento($numeroDocumento);
             $pessoaDocumento->setAtivo(true);
 
@@ -60,7 +60,7 @@ class PessoaRepositoryTest extends KernelTestCase
     {
         // Limpar documentos
         $documentos = $this->entityManager->getRepository(PessoasDocumentos::class)
-            ->findBy(['idPessoa' => $pessoa->getIdpessoa()]);
+            ->findBy(['pessoa' => $pessoa]);
         foreach ($documentos as $documento) {
             $this->entityManager->remove($documento);
         }
@@ -77,37 +77,37 @@ class PessoaRepositoryTest extends KernelTestCase
 
     public function testFindByCpf(): void
     {
+        // Gerar CPF único
+        $cpf = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+
         // Criar pessoa com CPF através de documentos
-        $pessoa = $this->createPessoaWithDocument('Teste CPF', 'CPF', '12345678901', 'fisica');
+        $pessoa = $this->createPessoaWithDocument('Teste CPF', 'CPF', $cpf, 'fisica');
 
         // Testar busca
-        $result = $this->repository->findByCpf('12345678901');
+        $result = $this->repository->findByCpfDocumento($cpf);
         
         $this->assertNotNull($result);
         $this->assertEquals('Teste CPF', $result->getNome());
         $this->assertEquals($pessoa->getIdpessoa(), $result->getIdpessoa());
 
         // Testar busca inexistente
-        $resultNotFound = $this->repository->findByCpf('99999999999');
+        $resultNotFound = $this->repository->findByCpfDocumento('99999999999');
         $this->assertNull($resultNotFound);
 
         // Limpar documentos e pessoa
-        $documentos = $this->entityManager->getRepository(PessoasDocumentos::class)
-            ->findBy(['idPessoa' => $pessoa->getIdpessoa()]);
-        foreach ($documentos as $documento) {
-            $this->entityManager->remove($documento);
-        }
-        $this->entityManager->remove($pessoa);
-        $this->entityManager->flush();
+        $this->cleanupPessoa($pessoa);
     }
 
     public function testFindByCnpj(): void
     {
+        // Gerar CNPJ único
+        $cnpj = str_pad((string)(int)(microtime(true) * 1000 % 100000000000000), 14, '0', STR_PAD_LEFT);
+
         // Criar pessoa jurídica com CNPJ através de documentos
-        $pessoa = $this->createPessoaWithDocument('Empresa Teste LTDA', 'CNPJ', '12345678000190', 'juridica');
+        $pessoa = $this->createPessoaWithDocument('Empresa Teste LTDA', 'CNPJ', $cnpj, 'juridica');
 
         // Testar busca
-        $result = $this->repository->findByCnpj('12345678000190');
+        $result = $this->repository->findByCnpj($cnpj);
         
         $this->assertNotNull($result);
         $this->assertEquals('Empresa Teste LTDA', $result->getNome());
@@ -118,20 +118,18 @@ class PessoaRepositoryTest extends KernelTestCase
         $this->assertNull($resultNotFound);
 
         // Limpar documentos e pessoa
-        $documentos = $this->entityManager->getRepository(PessoasDocumentos::class)
-            ->findBy(['idPessoa' => $pessoa->getIdpessoa()]);
-        foreach ($documentos as $documento) {
-            $this->entityManager->remove($documento);
-        }
-        $this->entityManager->remove($pessoa);
-        $this->entityManager->flush();
+        $this->cleanupPessoa($pessoa);
     }
 
     public function testFindByNome(): void
     {
+        // Gerar CPFs únicos
+        $cpf1 = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+        $cpf2 = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+
         // Criar pessoas de teste sem documentos (busca por nome não depende de documentos)
-        $pessoa1 = $this->createPessoaWithDocument('João Silva', 'CPF', '11111111111', 'fisica');
-        $pessoa2 = $this->createPessoaWithDocument('João Santos', 'CPF', '22222222222', 'fisica');
+        $pessoa1 = $this->createPessoaWithDocument('João Silva', 'CPF', $cpf1, 'fisica');
+        $pessoa2 = $this->createPessoaWithDocument('João Santos', 'CPF', $cpf2, 'fisica');
 
         // Testar busca parcial
         $results = $this->repository->findByNome('João');
@@ -152,8 +150,11 @@ class PessoaRepositoryTest extends KernelTestCase
 
     public function testSearchPessoaByCpf(): void
     {
-        $pessoa = $this->createPessoaWithDocument('Teste Busca CPF', 'CPF', '33333333333', 'fisica');
-        $results = $this->repository->searchPessoa('33333333333');
+        // Gerar CPF único
+        $cpf = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+
+        $pessoa = $this->createPessoaWithDocument('Teste Busca CPF', 'CPF', $cpf, 'fisica');
+        $results = $this->repository->searchPessoa($cpf);
         
         $this->assertGreaterThanOrEqual(1, count($results));
         $this->cleanupPessoa($pessoa);
@@ -161,8 +162,11 @@ class PessoaRepositoryTest extends KernelTestCase
 
     public function testSearchPessoaByCnpj(): void
     {
-        $pessoa = $this->createPessoaWithDocument('Empresa Busca LTDA', 'CNPJ', '44444444000144', 'juridica');
-        $results = $this->repository->searchPessoa('44444444000144');
+        // Gerar CNPJ único
+        $cnpj = str_pad((string)(int)(microtime(true) * 1000 % 100000000000000), 14, '0', STR_PAD_LEFT);
+
+        $pessoa = $this->createPessoaWithDocument('Empresa Busca LTDA', 'CNPJ', $cnpj, 'juridica');
+        $results = $this->repository->searchPessoa($cnpj);
         
         $this->assertGreaterThanOrEqual(1, count($results));
         $this->cleanupPessoa($pessoa);
@@ -170,7 +174,10 @@ class PessoaRepositoryTest extends KernelTestCase
 
     public function testSearchPessoaById(): void
     {
-        $pessoa = $this->createPessoaWithDocument('Teste Busca ID', 'CPF', '55555555555', 'fisica');
+        // Gerar CPF único
+        $cpf = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+
+        $pessoa = $this->createPessoaWithDocument('Teste Busca ID', 'CPF', $cpf, 'fisica');
         $id = $pessoa->getIdpessoa();
 
         $results = $this->repository->searchPessoa((string)$id);
@@ -181,8 +188,12 @@ class PessoaRepositoryTest extends KernelTestCase
 
     public function testSearchPessoaByNome(): void
     {
-        $pessoa1 = $this->createPessoaWithDocument('Maria Silva Test', 'CPF', '66666666666', 'fisica');
-        $pessoa2 = $this->createPessoaWithDocument('Maria Santos Test', 'CPF', '77777777777', 'fisica');
+        // Gerar CPFs únicos
+        $cpf1 = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+        $cpf2 = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+
+        $pessoa1 = $this->createPessoaWithDocument('Maria Silva Test', 'CPF', $cpf1, 'fisica');
+        $pessoa2 = $this->createPessoaWithDocument('Maria Santos Test', 'CPF', $cpf2, 'fisica');
 
         $results = $this->repository->searchPessoa('Maria Silva Test');
         
@@ -194,15 +205,19 @@ class PessoaRepositoryTest extends KernelTestCase
 
     public function testExistsByCpfOrCnpj(): void
     {
-        $pessoaFisica = $this->createPessoaWithDocument('Pessoa Física', 'CPF', '88888888888', 'fisica');
-        $pessoaJuridica = $this->createPessoaWithDocument('Pessoa Jurídica', 'CNPJ', '88888888000188', 'juridica');
+        // Gerar CPF e CNPJ únicos
+        $cpf = str_pad((string)(int)(microtime(true) * 1000 % 100000000000), 11, '0', STR_PAD_LEFT);
+        $cnpj = str_pad((string)(int)(microtime(true) * 1000 % 100000000000000), 14, '0', STR_PAD_LEFT);
+
+        $pessoaFisica = $this->createPessoaWithDocument('Pessoa Física', 'CPF', $cpf, 'fisica');
+        $pessoaJuridica = $this->createPessoaWithDocument('Pessoa Jurídica', 'CNPJ', $cnpj, 'juridica');
 
         // Testar busca por CPF existente
-        $resultCpf = $this->repository->existsByCpfOrCnpj('88888888888', null);
+        $resultCpf = $this->repository->existsByCpfOrCnpj($cpf, null);
         $this->assertNotNull($resultCpf);
 
         // Testar busca por CNPJ existente
-        $resultCnpj = $this->repository->existsByCpfOrCnpj(null, '88888888000188');
+        $resultCnpj = $this->repository->existsByCpfOrCnpj(null, $cnpj);
         $this->assertNotNull($resultCnpj);
 
         // Testar busca por CPF inexistente

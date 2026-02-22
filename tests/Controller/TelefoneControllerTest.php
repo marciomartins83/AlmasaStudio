@@ -18,7 +18,7 @@ class TelefoneControllerTest extends WebTestCase
 
     public function testFormTypeExists(): void
     {
-        $this->assertTrue(class_exists('App\\Form\\TelefoneType'));
+        $this->assertTrue(class_exists('App\\Form\\TelefoneFormType'));
     }
 
     public function testBasicStructure(): void

@@ -1011,8 +1011,8 @@ class BoletoSantanderService
             "SUM(CASE WHEN b.status = 'VENCIDO' THEN 1 ELSE 0 END) as vencidos",
             "SUM(CASE WHEN b.status = 'BAIXADO' THEN 1 ELSE 0 END) as baixados",
             "SUM(CASE WHEN b.status = 'ERRO' THEN 1 ELSE 0 END) as erros",
-            "SUM(CASE WHEN b.status IN ('PENDENTE', 'REGISTRADO', 'VENCIDO') THEN CAST(b.valorNominal AS float) ELSE 0 END) as valor_total_aberto",
-            "SUM(CASE WHEN b.status = 'PAGO' THEN CAST(b.valorPago AS float) ELSE 0 END) as valor_total_pago"
+            "SUM(CASE WHEN b.status IN ('PENDENTE', 'REGISTRADO', 'VENCIDO') THEN b.valorNominal ELSE 0 END) as valor_total_aberto",
+            "SUM(CASE WHEN b.status = 'PAGO' THEN b.valorPago ELSE 0 END) as valor_total_pago"
         )
         ->from(Boletos::class, 'b');
 

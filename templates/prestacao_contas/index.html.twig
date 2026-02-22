@@ -246,9 +246,9 @@
 {{ encore_entry_script_tags('crud_filters') }}
 <script>
     window.ROUTES = {
-        aprovar: '{{ path("app_prestacao_contas_aprovar", {id: "__ID__"}) }}',
-        cancelar: '{{ path("app_prestacao_contas_cancelar", {id: "__ID__"}) }}',
-        excluir: '{{ path("app_prestacao_contas_delete", {id: "__ID__"}) }}'
+        aprovar: '{{ path("app_prestacao_contas_aprovar", {id: 0}) }}'.replace('/0/', '/__ID__/').replace('/0', '/__ID__'),
+        cancelar: '{{ path("app_prestacao_contas_cancelar", {id: 0}) }}'.replace('/0/', '/__ID__/').replace('/0', '/__ID__'),
+        excluir: '{{ path("app_prestacao_contas_delete", {id: 0}) }}'.replace('/0/', '/__ID__/').replace('/0', '/__ID__')
     };
 </script>
 {{ encore_entry_script_tags('prestacao_contas') }}

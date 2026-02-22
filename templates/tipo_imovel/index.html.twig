@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
-        'items': [],
+        'items': [{'label': 'Tipos', 'url': path('app_dashboard_tipos_index')}],
         'current': 'Lista de Tipos de Imóvel'
     } %}
     <div class="row">

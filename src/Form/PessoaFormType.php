@@ -14,6 +14,8 @@ use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class PessoaFormType extends AbstractType
@@ -127,6 +129,17 @@ class PessoaFormType extends AbstractType
 
         // ❌ REMOVIDO: tipoPessoa e listeners
         // Agora usamos o sistema de múltiplos tipos via JavaScript
+
+        // Listener para setar dtCadastro em novas pessoas
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) {
+            $form = $event->getForm();
+            $pessoa = $form->getData();
+
+            if ($pessoa instanceof Pessoas && !$pessoa->getIdpessoa()) {
+                // É uma nova pessoa (sem ID), seta a data de cadastro
+                $pessoa->setDtCadastro(new \DateTime());
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

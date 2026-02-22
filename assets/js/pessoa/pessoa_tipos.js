@@ -47,6 +47,11 @@ document.addEventListener('DOMContentLoaded', function() {
             label: 'Advogado',
             icon: 'fas fa-gavel',
             temCampos: true
+        },
+        'inquilino': {
+            label: 'Inquilino',
+            icon: 'fas fa-home',
+            temCampos: false
         }
     };
 

@@ -3,28 +3,27 @@
 namespace App\Tests\Form;
 
 use App\Entity\PessoasLocadores;
-use App\Form\PessoaLocadorCombinedType;
+use App\Form\PessoaLocadorType;
 use PHPUnit\Framework\TestCase;
 
 class PessoaLocadorCombinedTypeTest extends TestCase
 {
     public function testFormExists(): void
     {
-        $form = new PessoaLocadorCombinedType();
-        $this->assertInstanceOf(PessoaLocadorCombinedType::class, $form);
+        $form = new PessoaLocadorType();
+        $this->assertInstanceOf(PessoaLocadorType::class, $form);
     }
 
     public function testFormConfigurationClass(): void
     {
-        $form = new PessoaLocadorCombinedType();
+        $form = new PessoaLocadorType();
         $this->assertTrue(method_exists($form, 'buildForm'));
         $this->assertTrue(method_exists($form, 'configureOptions'));
     }
 
     public function testFormTargetsCorrectEntity(): void
     {
-        // Test that the form is designed for PessoasLocadores entity
         $this->assertTrue(class_exists(PessoasLocadores::class));
-        $this->assertTrue(class_exists(PessoaLocadorCombinedType::class));
+        $this->assertTrue(class_exists(PessoaLocadorType::class));
     }
 }

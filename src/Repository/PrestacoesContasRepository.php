@@ -172,7 +172,7 @@ class PrestacoesContasRepository extends ServiceEntityRepository
                 "SUM(CASE WHEN p.status = 'aprovado' THEN 1 ELSE 0 END) as aguardando_repasse",
                 "SUM(CASE WHEN p.status = 'pago' THEN 1 ELSE 0 END) as pagas",
                 "SUM(CASE WHEN p.status = 'cancelado' THEN 1 ELSE 0 END) as canceladas",
-                'SUM(CAST(p.valorRepasse AS float)) as valor_total_repasse',
+                'SUM(p.valorRepasse) as valor_total_repasse',
             ]);
 
         if ($ano) {
@@ -204,7 +204,7 @@ class PrestacoesContasRepository extends ServiceEntityRepository
             ->select([
                 'COUNT(p.id) as total',
                 "SUM(CASE WHEN p.status = 'pago' THEN 1 ELSE 0 END) as pagas",
-                "SUM(CASE WHEN p.status = 'pago' THEN CAST(p.valorRepasse AS float) ELSE 0 END) as valor_pago",
+                "SUM(CASE WHEN p.status = 'pago' THEN p.valorRepasse ELSE 0 END) as valor_pago",
             ])
             ->where('p.createdAt >= :inicio')
             ->andWhere('p.createdAt <= :fim')

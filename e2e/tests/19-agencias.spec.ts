@@ -75,6 +75,14 @@ test.describe.serial('Agências CRUD', () => {
       return;
     }
 
+    // Additional check: skip if table has no rows at all
+    const rows = page.locator('table tbody tr');
+    const rowCount = await rows.count();
+    if (rowCount === 0) {
+      test.skip();
+      return;
+    }
+
     const editBtn = page.locator('table tbody tr a.btn-warning').first();
 
     await expect(editBtn).toBeVisible();

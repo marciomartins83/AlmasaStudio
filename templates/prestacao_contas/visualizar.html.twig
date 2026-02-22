@@ -317,8 +317,8 @@
 {{ parent() }}
 <script>
     window.ROUTES = {
-        aprovar: '{{ path("app_prestacao_contas_aprovar", {id: "__ID__"}) }}',
-        cancelar: '{{ path("app_prestacao_contas_cancelar", {id: "__ID__"}) }}'
+        aprovar: '{{ path("app_prestacao_contas_aprovar", {id: 0}) }}'.replace('/0/', '/__ID__/').replace('/0', '/__ID__'),
+        cancelar: '{{ path("app_prestacao_contas_cancelar", {id: 0}) }}'.replace('/0/', '/__ID__/').replace('/0', '/__ID__')
     };
     window.PRESTACAO_ID = {{ prestacao.id }};
 </script>

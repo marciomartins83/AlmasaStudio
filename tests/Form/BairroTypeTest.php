@@ -4,10 +4,24 @@ namespace App\Tests\Form;
 
 use App\Entity\Bairros;
 use App\Form\BairroType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class BairroTypeTest extends TypeTestCase
+class BairroTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
         $formData = [
@@ -16,31 +30,19 @@ class BairroTypeTest extends TypeTestCase
 
         $objectToCompare = new Bairros();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(BairroType::class, $objectToCompare);
-
-        $object = new Bairros();
-
-        // submit the data to the form directly
+        $form = $this->formFactory->create(BairroType::class, $objectToCompare);
         $form->submit($formData);
 
         $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
+        $this->assertEquals('Test Value', $form->get('nome')->getData());
     }
 
     public function testCustomFormView(): void
     {
         $object = new Bairros();
 
-        $form = $this->factory->create(BairroType::class, $object);
-        $view = $form->createView();
+        $form = $this->formFactory->create(BairroType::class, $object);
 
-        $this->assertArrayHasKey('nome', $view->children);
+        $this->assertTrue($form->has('nome'));
     }
 }

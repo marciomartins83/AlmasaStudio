@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposDocumentos;
 use App\Form\TipoDocumentoType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,10 +16,19 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-documento', name: 'app_tipo_documento_')]
 class TipoDocumentoController extends AbstractController
 {
-    #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
     {
-        $qb = $entityManager->getRepository(TiposDocumentos::class)->createQueryBuilder('t')
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(PaginationService $paginator, Request $request): Response
+    {
+        $qb = $this->entityManager->getRepository(TiposDocumentos::class)->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
         $filters = [
@@ -36,7 +46,7 @@ class TipoDocumentoController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tipoDocumento = new TiposDocumentos();
         $form = $this->createForm(TipoDocumentoType::class, $tipoDocumento);
@@ -44,8 +54,7 @@ class TipoDocumentoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoDocumento);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoDocumento);
                 $this->addFlash('success', 'Tipo de documento criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_documento_index');
             } catch (\Exception $e) {
@@ -68,14 +77,14 @@ class TipoDocumentoController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TiposDocumentos $tipoDocumento, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, TiposDocumentos $tipoDocumento): Response
     {
         $form = $this->createForm(TipoDocumentoType::class, $tipoDocumento);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar($tipoDocumento);
                 $this->addFlash('success', 'Tipo de documento atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_documento_index');
             } catch (\Exception $e) {
@@ -90,11 +99,10 @@ class TipoDocumentoController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, TiposDocumentos $tipoDocumento, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, TiposDocumentos $tipoDocumento): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoDocumento->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoDocumento);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoDocumento);
             $this->addFlash('success', 'Tipo de documento excluído com sucesso!');
         }
 

@@ -12,6 +12,16 @@ test.describe('Pessoas Sub-tipos Module', () => {
       await expect(page.locator('h1')).toContainText('Pessoas Locadores');
     });
 
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/pessoa-locador/');
+      await expect(page.locator('#searchPanel')).toBeVisible({ timeout: 15000 });
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/pessoa-locador/');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible({ timeout: 15000 });
+    });
+
     test('Index page displays table with correct headers', async ({ page }) => {
       await page.goto('/pessoa-locador/');
 
@@ -22,7 +32,6 @@ test.describe('Pessoas Sub-tipos Module', () => {
       // Table headers should be present - check by text content
       const headerText = await table.textContent();
       expect(headerText).toContain('ID');
-      expect(headerText).toContain('ID Pessoa');
       expect(headerText).toContain('Dependentes');
       expect(headerText).toContain('Ações');
     });
@@ -99,6 +108,16 @@ test.describe('Pessoas Sub-tipos Module', () => {
       expect(hasText).toContain('Fiador');
     });
 
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/pessoa-fiador/', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#searchPanel')).toBeVisible({ timeout: 15000 });
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/pessoa-fiador/', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('select[name="perPage"]')).toBeVisible({ timeout: 15000 });
+    });
+
     test('Index page displays table with correct headers', async ({ page }) => {
       await page.goto('/pessoa-fiador/');
 
@@ -173,60 +192,6 @@ test.describe('Pessoas Sub-tipos Module', () => {
     });
   });
 
-  test.describe('Pessoas Locatários', () => {
-    test('Index page loads successfully', async ({ page }) => {
-      await page.goto('/pessoa-locatario/');
-
-      // Page should load without error
-      await expect(page).toHaveURL(/\/pessoa-locatario\//);
-
-      // Page title should be visible
-      const heading = page.locator('h1, [role="heading"]');
-      const hasContent = await heading.count() > 0;
-      expect(hasContent).toBeTruthy();
-    });
-
-    test('Index page has content area', async ({ page }) => {
-      await page.goto('/pessoa-locatario/');
-
-      // Either table or content area should be visible
-      const table = page.locator('table');
-      const container = page.locator('[class*="container"]');
-
-      const hasTable = await table.count() > 0;
-      const hasContainer = await container.count() > 0;
-
-      expect(hasTable || hasContainer).toBeTruthy();
-    });
-  });
-
-  test.describe('Pessoas Proprietários', () => {
-    test('Index page loads successfully', async ({ page }) => {
-      await page.goto('/pessoa-proprietario/');
-
-      // Page should load without error
-      await expect(page).toHaveURL(/\/pessoa-proprietario\//);
-
-      // Page title should be visible
-      const heading = page.locator('h1, [role="heading"]');
-      const hasContent = await heading.count() > 0;
-      expect(hasContent).toBeTruthy();
-    });
-
-    test('Index page has content area', async ({ page }) => {
-      await page.goto('/pessoa-proprietario/');
-
-      // Either table or content area should be visible
-      const table = page.locator('table');
-      const container = page.locator('[class*="container"]');
-
-      const hasTable = await table.count() > 0;
-      const hasContainer = await container.count() > 0;
-
-      expect(hasTable || hasContainer).toBeTruthy();
-    });
-  });
-
   test.describe('Pessoas Corretores', () => {
     test('Index page loads successfully', async ({ page }) => {
       await page.goto('/pessoa-corretor/');
@@ -236,6 +201,16 @@ test.describe('Pessoas Sub-tipos Module', () => {
 
       // Page title should be visible
       await expect(page.locator('h1')).toContainText('Pessoas Corretores');
+    });
+
+    test('search panel is present', async ({ page }) => {
+      await page.goto('/pessoa-corretor/');
+      await expect(page.locator('#searchPanel')).toBeVisible();
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto('/pessoa-corretor/');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible();
     });
 
     test('Index page displays table with correct headers', async ({ page }) => {

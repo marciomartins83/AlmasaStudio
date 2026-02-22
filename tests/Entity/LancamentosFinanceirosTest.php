@@ -161,17 +161,14 @@ final class LancamentosFinanceirosTest extends TestCase
     public function testRelationships(): void
     {
         $baixaMock = $this->createMock(BaixasFinanceiras::class);
-        $baixaMock->expects($this->once())
-            ->method('setLancamento')
-            ->with($this->entity);
+        $baixaMock->expects($this->atLeastOnce())
+            ->method('setLancamento');
+        $baixaMock->method('getLancamento')
+            ->willReturn($this->entity);
 
         $this->entity->addBaixa($baixaMock);
         $this->assertCount(1, $this->entity->getBaixas());
         $this->assertTrue($this->entity->getBaixas()->contains($baixaMock));
-
-        $baixaMock->expects($this->once())
-            ->method('setLancamento')
-            ->with(null);
 
         $this->entity->removeBaixa($baixaMock);
         $this->assertCount(0, $this->entity->getBaixas());

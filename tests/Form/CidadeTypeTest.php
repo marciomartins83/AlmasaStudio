@@ -4,10 +4,24 @@ namespace App\Tests\Form;
 
 use App\Entity\Cidades;
 use App\Form\CidadeType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class CidadeTypeTest extends TypeTestCase
+class CidadeTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
         $formData = [
@@ -16,31 +30,19 @@ class CidadeTypeTest extends TypeTestCase
 
         $objectToCompare = new Cidades();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(CidadeType::class, $objectToCompare);
-
-        $object = new Cidades();
-
-        // submit the data to the form directly
+        $form = $this->formFactory->create(CidadeType::class, $objectToCompare);
         $form->submit($formData);
 
         $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
+        $this->assertEquals('Test Value', $form->get('nome')->getData());
     }
 
     public function testCustomFormView(): void
     {
         $object = new Cidades();
 
-        $form = $this->factory->create(CidadeType::class, $object);
-        $view = $form->createView();
+        $form = $this->formFactory->create(CidadeType::class, $object);
 
-        $this->assertArrayHasKey('nome', $view->children);
+        $this->assertTrue($form->has('nome'));
     }
 }

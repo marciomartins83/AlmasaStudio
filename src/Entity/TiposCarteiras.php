@@ -3,8 +3,9 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\TiposCarteirasRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: TiposCarteirasRepository::class)]
 #[ORM\Table(name: 'tipos_carteiras')]
 class TiposCarteiras
 {

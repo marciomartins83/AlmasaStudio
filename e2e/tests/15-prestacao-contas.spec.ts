@@ -82,4 +82,26 @@ test.describe('Prestacao Contas Module', () => {
     const json = await response.json();
     expect(json).toHaveProperty('success');
   });
+
+  // ---------- NOVOS TESTES ADICIONADOS ----------
+  test('search panel is visible on index page', async ({ page }) => {
+    await page.goto('/prestacao-contas/', { waitUntil: 'domcontentloaded' });
+
+    const searchPanel = page.locator('#searchPanel');
+    await expect(searchPanel).toBeVisible();
+  });
+
+  test('sort buttons with href containing "sort=" exist', async ({ page }) => {
+    await page.goto('/prestacao-contas/', { waitUntil: 'domcontentloaded' });
+
+    const sortButtons = page.locator('a[href*="sort="]');
+    expect(await sortButtons.count()).toBeGreaterThan(0);
+  });
+
+  test('perPage select element is present', async ({ page }) => {
+    await page.goto('/prestacao-contas/', { waitUntil: 'domcontentloaded' });
+
+    const perPageSelect = page.locator('select[name="perPage"]');
+    await expect(perPageSelect).toBeVisible();
+  });
 });

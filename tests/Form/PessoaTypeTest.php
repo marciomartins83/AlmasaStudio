@@ -3,44 +3,44 @@
 namespace App\Tests\Form;
 
 use App\Entity\Pessoas;
-use App\Form\PessoaType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use App\Form\PessoaFormType;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class PessoaTypeTest extends TypeTestCase
+class PessoaTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
         $formData = [
-            'nome' => 'João Silva Santos',
+            'nome' => 'Joao Silva Santos',
         ];
 
         $objectToCompare = new Pessoas();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(PessoaType::class, $objectToCompare);
+        $form = $this->formFactory->create(PessoaFormType::class, $objectToCompare);
 
-        $object = new Pessoas();
-
-        // submit the data to the form directly
         $form->submit($formData);
 
         $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
     }
 
     public function testCustomFormView(): void
     {
-        $object = new Pessoas();
+        $form = $this->formFactory->create(PessoaFormType::class, new Pessoas());
 
-        $form = $this->factory->create(PessoaType::class, $object);
-        $view = $form->createView();
-
-        $this->assertArrayHasKey('nome', $view->children);
+        $this->assertTrue($form->has('nome'));
     }
 }

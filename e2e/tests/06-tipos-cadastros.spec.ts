@@ -136,6 +136,18 @@ for (const mod of tipoModules) {
       await expect(page.locator('thead th').first()).toBeVisible();
     });
 
+    test('search panel is present', async ({ page }) => {
+      await page.goto(mod.path + '/', { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle');
+      await expect(page.locator('#searchPanel')).toBeVisible();
+    });
+
+    test('pagination controls exist', async ({ page }) => {
+      await page.goto(mod.path + '/', { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle');
+      await expect(page.locator('select[name="perPage"]')).toBeVisible();
+    });
+
     test('new form page loads', async ({ page }) => {
       await page.goto(mod.path + '/new');
       await waitForPageLoad(page);

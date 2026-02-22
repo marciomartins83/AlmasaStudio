@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.0 |
-| **Data Ultima Atualizacao** | 2026-02-21 |
-| **Status Geral** | Em producao — padronizacao completa de 33 CRUDs com busca avancada, ordenacao e paginacao |
+| **Versao Atual** | 6.20.1 |
+| **Data Ultima Atualizacao** | 2026-02-22 |
+| **Status Geral** | Em producao — code review completo de 16 modulos + correcao de bugs sistêmicos |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Deploy v6.20.0 na VPS + validar todas as telas em producao |
-| **Issue Aberta** | Nenhuma |
+| **Proxima Tarefa** | Deploy v6.20.1 na VPS + validar telas corrigidas em producao |
+| **Issue Aberta** | 14 Controllers violam Thin Controller (persist/flush direto) — refactor pendente |
 | **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
@@ -78,6 +78,7 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
+| 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
 
 ### Migracoes Criticas (Referencia Historica)
 
@@ -156,7 +157,7 @@ Para historico completo das versoes V6.0–V6.4, consulte:
 | Controllers | 43 |
 | Entities | 82 |
 | Services | 15 |
-| Repositories | 51 |
+| Repositories | 55 |
 | Templates | 151 |
 | Commands | 2 |
 | Rotas | ~200 |
@@ -918,7 +919,12 @@ fetch(`/pessoa/telefone/${id}`, {
 - `_partials/sort_panel.html.twig` — Barra de botoes de ordenacao ASC/DESC
 - `_partials/pagination.html.twig` — Total registros, seletor por pagina, navegacao (preserva GET params)
 
-**JavaScript:** `assets/js/crud/crud_filters.js` — Toggle collapse, Enter submete form, webpack entry `crud_filters`
+**JavaScript:** `assets/js/crud/crud_filters.js` — Toggle collapse, Enter submete form, confirmacao de delete via `data-confirm-delete`, webpack entry `crud_filters`
+
+**Padrao de Delete (v6.20.1):**
+- PROIBIDO: `onsubmit="return confirm(...)"` ou `onclick="return confirm(...)"`
+- OBRIGATORIO: atributo `data-confirm-delete` no `<form>` — handler em `crud_filters.js`
+- Exemplo: `<form method="post" action="..." data-confirm-delete="Tem certeza?">`
 
 **Layout padrao de todo CRUD index:**
 ```
@@ -1118,6 +1124,31 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.20.1] - 2026-02-22
+
+#### Adicionado
+- **4 novos Repositories** — TiposAtendimentoRepository, TiposCarteirasRepository, TipoPessoaRepository, TipoRemessaRepository
+- **Validacao em 13 FormTypes** — NotBlank + Length(min=2, max=255) adicionados em: TipoAtendimentoType, TipoCarteiraType, TipoChavePixType, TipoContaBancariaType, TipoDocumentoType, TipoEmailType, TipoEnderecoType, TipoTelefoneType, EstadoCivilType, NaturalidadeType, TipoPessoaType, TipoRemessaType, TipoImovelType
+- **Handler JS `data-confirm-delete`** — `assets/js/crud_filters.js` agora intercepta forms com atributo `data-confirm-delete` e exibe confirmacao antes de submeter
+- **Templates show.html.twig faltantes** — Criados para tipo_carteira e pessoa_locador (antes davam Error 500)
+
+#### Alterado
+- **12 templates index.html.twig** — Removido `onsubmit="return confirm(...)"` e `onclick="return confirm(...)"` inline, substituido por `data-confirm-delete` (Regra 8)
+- **4 Entities com repositoryClass** — TiposAtendimento, TiposCarteiras, TiposPessoas, TiposRemessa agora referenciam seus repositorios
+- **2 Entities com repositoryClass** — TiposDocumentos, TiposEmails agora referenciam seus repositorios
+- **TipoEnderecoType.php** — Adicionado `'attr' => ['class' => 'form-control']` no campo tipo
+
+#### Corrigido
+- **CobrancaController: Warning Array to string conversion** — `$request->query->all()` passava array `status[]` pro Twig `path()`. Fix: `array_filter(..., fn($v) => !is_array($v))`
+- **Templates _delete_form.html.twig corrompidos** — `pessoa_locador/_delete_form.html.twig` e `tipo_telefone/_delete_form.html.twig` continham codigo PHP do Controller em vez de Twig. Substituidos por Twig valido
+- **TiposImoveis: createdAt/updatedAt como string** — Entity declarava `type: 'string'` em vez de `type: 'datetime'`. Corrigido + migration executada (ALTER TYPE VARCHAR→TIMESTAMP)
+- **TipoEmailFixtures.php** — Referenciava `App\Entity\TipoEmail` (nao existe). Corrigido para `TiposEmails`
+- **TipoImovelFixtures.php** — Referenciava `App\Entity\TipoImovel` (nao existe). Corrigido para `TiposImoveis`
+- **EstadoCivilControllerTest.php** — Testava classe errada `RegimesCasamento`. Corrigido para `EstadoCivil`
+- **Templates tipo_imovel** — Usavam `{% block body %}` em vez de `{% block content %}`. Breadcrumb vazio corrigido
 
 ---
 
@@ -1596,6 +1627,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-02-19
+**Ultima atualizacao:** 2026-02-22
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code)

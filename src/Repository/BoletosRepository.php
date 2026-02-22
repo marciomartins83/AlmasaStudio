@@ -205,8 +205,8 @@ class BoletosRepository extends ServiceEntityRepository
                 "SUM(CASE WHEN b.status = 'VENCIDO' THEN 1 ELSE 0 END) as vencidos",
                 "SUM(CASE WHEN b.status = 'BAIXADO' THEN 1 ELSE 0 END) as baixados",
                 "SUM(CASE WHEN b.status = 'ERRO' THEN 1 ELSE 0 END) as erros",
-                'SUM(CAST(b.valorNominal AS DECIMAL)) as valor_total',
-                "SUM(CASE WHEN b.status = 'PAGO' THEN CAST(b.valorPago AS DECIMAL) ELSE 0 END) as valor_recebido"
+                'SUM(b.valorNominal) as valor_total',
+                "SUM(CASE WHEN b.status = 'PAGO' THEN b.valorPago ELSE 0 END) as valor_recebido"
             );
 
         if ($configId !== null) {

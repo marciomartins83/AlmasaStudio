@@ -43,6 +43,28 @@ test.describe('Boletos Module', () => {
     // Should return any of these status codes
     expect([200, 302, 500]).toContain(response.status());
   });
+
+  // NEW TESTS
+  test('boleto search panel visibility', async ({ page }) => {
+    await page.goto('/boleto/', { waitUntil: 'domcontentloaded' });
+
+    const searchPanel = page.locator('#searchPanel');
+    await expect(searchPanel).toBeVisible();
+  });
+
+  test('boleto sort buttons exist', async ({ page }) => {
+    await page.goto('/boleto/', { waitUntil: 'domcontentloaded' });
+
+    const sortButtons = page.locator('a[href*="sort="]');
+    expect(await sortButtons.count()).toBeGreaterThan(0);
+  });
+
+  test('boleto pagination perPage select present', async ({ page }) => {
+    await page.goto('/boleto/', { waitUntil: 'domcontentloaded' });
+
+    const perPageSelect = page.locator('select[name="perPage"]');
+    await expect(perPageSelect).toBeVisible();
+  });
 });
 
 test.describe('Cobranca Module', () => {

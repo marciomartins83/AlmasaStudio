@@ -3,8 +3,9 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\TiposRemessaRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: TiposRemessaRepository::class)]
 #[ORM\Table(name: 'tipos_remessa')]
 class TiposRemessa
 {

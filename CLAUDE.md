@@ -15,26 +15,28 @@
 | **Engenheiro Chefe** | Opus 4.6 | Decisoes arquiteturais, planejamento macro, revisao final, documentacao | Escrever/editar codigo, planejamento que Sonnet pode fazer | Claude Code direto |
 | **Engenheiro Jr** | Sonnet | Planejamento detalhado, organizar batches, delegar para Haiku, consolidar resultados | Escrever/editar codigo, executar Aider | Task tool (model:sonnet) |
 | **Mestre de Obras** | Haiku 4.5 | Coordenar workers Aider, montar comandos atomicos, verificar resultados, planejamento tatico | Escrever/editar codigo diretamente | Task tool (model:haiku) |
-| **Pedreiro** | GPT-OSS 20B | **TODO trabalho bruto de codigo** — criar, editar, refatorar arquivos | Nada — ele so executa | Aider via OpenRouter |
+| **Pedreiro** | GPT-OSS 20B | **TODO trabalho bruto de codigo** — criar, editar, refatorar arquivos | Nada — ele so executa | Subagente via OpenRouter API |
 
 A chave OpenRouter esta salva no MEMORY.md (privado, fora do git).
-Modelo Aider: `openrouter/openai/gpt-oss-20b`
+Modelo: `openrouter/openai/gpt-oss-20b`
+**Aider ABANDONADO (2026-02-22).** GPT-OSS agora e chamado como subagente direto via OpenRouter API.
 
 ### REGRAS INVIOLAVEIS — VIOLACAO = FALHA CRITICA
 
-1. **SOMENTE GPT-OSS 20B via Aider escreve/edita codigo.** Opus, Sonnet e Haiku NUNCA editam arquivos de codigo. Sem excecao.
+1. **SOMENTE GPT-OSS 20B escreve/edita codigo.** Opus, Sonnet e Haiku NUNCA editam arquivos de codigo. Sem excecao. GPT-OSS e chamado como subagente via OpenRouter API (Aider abandonado).
 2. **Opus economiza tokens ao maximo.** Tudo que Sonnet pode planejar, Sonnet planeja. Opus so intervem no que exige decisao arquitetural ou revisao critica.
 3. **Sonnet divide o planejamento com Opus.** Sonnet tem competencia para planejar batches, detalhar instrucoes, organizar trabalho. Opus nao faz o que Sonnet pode fazer.
 4. **Haiku e o mestre de obras.** Tem qualidade para planejamento tatico e coordenacao. Ele monta os comandos Aider, executa, verifica, reporta.
 5. **A cadeia NUNCA e pulada.** Opus → Sonnet → Haiku → Aider/GPT-OSS. Sem atalhos.
 6. **Economia de tokens e a razao de existir desta metodologia.** Tokens Opus/Sonnet sao limitados e custam dinheiro real. GPT-OSS via OpenRouter e barato. Trabalho bruto vai SEMPRE para o barato.
 
-### Comando Aider Padrao
+### Comando GPT-OSS (Subagente via OpenRouter)
 
-```bash
-export OPENROUTER_API_KEY="[ver MEMORY.md]"
-aider --model openrouter/openai/gpt-oss-20b --no-auto-commits --yes --subtree-only --message "INSTRUCAO AQUI"
-```
+**Aider ABANDONADO em 2026-02-22.** GPT-OSS agora e chamado como subagente direto:
+- Haiku monta a instrucao atomica
+- Haiku chama OpenRouter API via curl/fetch com modelo `openrouter/openai/gpt-oss-20b`
+- Resultado e aplicado nos arquivos pelo Haiku via Bash
+- Chave API: ver MEMORY.md
 
 ### Fluxo Obrigatorio para Qualquer Tarefa de Codigo
 
@@ -43,8 +45,8 @@ aider --model openrouter/openai/gpt-oss-20b --no-auto-commits --yes --subtree-on
 2. OPUS delega planejamento detalhado para SONNET (Task model:sonnet)
 3. SONNET planeja batches, detalha instrucoes atomicas por arquivo
 4. SONNET delega cada batch para HAIKU (Task model:haiku)
-5. HAIKU monta comandos Aider atomicos (1 arquivo por comando quando possivel)
-6. HAIKU executa via Bash: aider --message "..."
+5. HAIKU monta instrucoes atomicas (1 arquivo por comando quando possivel)
+6. HAIKU chama GPT-OSS via OpenRouter API, aplica resultado nos arquivos
 7. HAIKU verifica resultado (cache:clear, schema:validate, php -l)
 8. HAIKU reporta para SONNET
 9. SONNET consolida e reporta para OPUS
@@ -276,5 +278,5 @@ AlmasaStudio/
 
 ---
 
-**Ultima atualizacao:** 2026-02-21
+**Ultima atualizacao:** 2026-02-22
 **Mantenedor:** Marcio Martins

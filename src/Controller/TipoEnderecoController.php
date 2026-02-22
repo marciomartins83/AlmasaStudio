@@ -6,8 +6,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposEnderecos;
 use App\Form\TipoEnderecoType;
-use App\Repository\TiposEnderecosRepository;
-use App\Service\PaginationService;
+use App\Service\GenericTipoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,18 +16,18 @@ use Symfony\Component\Routing\Annotation\Route;
 class TipoEnderecoController extends AbstractController
 {
     private EntityManagerInterface $entityManager;
-    private TiposEnderecosRepository $tipoEnderecoRepository;
+    private GenericTipoService $tipoService;
 
-    public function __construct(EntityManagerInterface $entityManager, TiposEnderecosRepository $tipoEnderecoRepository)
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
     {
         $this->entityManager = $entityManager;
-        $this->tipoEnderecoRepository = $tipoEnderecoRepository;
+        $this->tipoService = $tipoService;
     }
 
     #[Route('/tipo/endereco', name: 'app_tipo_endereco_index', methods: ['GET'])]
     public function index(Request $request, PaginationService $paginator): Response
     {
-        $qb = $this->tipoEnderecoRepository->createQueryBuilder('t')
+        $qb = $this->entityManager->getRepository(TiposEnderecos::class)->createQueryBuilder('t')
             ->orderBy('t.id', 'DESC');
 
         $filters = [
@@ -53,10 +52,7 @@ class TipoEnderecoController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->entityManager->persist($tipoEndereco);
-            $this->entityManager->flush();
-
-            // Redirect to the index page or a show page after successful creation
+            $this->tipoService->criar($tipoEndereco);
             return $this->redirectToRoute('app_tipo_endereco_index');
         }
 
@@ -81,8 +77,7 @@ class TipoEnderecoController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->entityManager->flush();
-
+            $this->tipoService->atualizar($tipoEndereco);
             return $this->redirectToRoute('app_tipo_endereco_index');
         }
 
@@ -95,10 +90,8 @@ class TipoEnderecoController extends AbstractController
     #[Route('/tipo/endereco/{id}', name: 'app_tipo_endereco_delete', methods: ['POST'])]
     public function delete(Request $request, TiposEnderecos $tipoEndereco): Response
     {
-        // Consider adding CSRF protection here if not already handled by Symfony forms
         if ($this->isCsrfTokenValid('delete' . $tipoEndereco->getId(), $request->request->get('_token'))) {
-            $this->entityManager->remove($tipoEndereco);
-            $this->entityManager->flush();
+            $this->tipoService->deletar($tipoEndereco);
         }
 
         return $this->redirectToRoute('app_tipo_endereco_index');

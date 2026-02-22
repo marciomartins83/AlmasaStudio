@@ -2,7 +2,7 @@
 
 namespace App\DataFixtures;
 
-use App\Entity\Estado;
+use App\Entity\Estados;
 use App\Entity\Cidade;
 use App\Entity\Bairro;
 use App\Entity\Logradouro;
@@ -49,8 +49,8 @@ class Etapa2Fixtures extends Fixture
         ];
 
         foreach ($estados as $sigla => $estadoData) {
-            $estado = new Estado();
-            $estado->setSigla($sigla);
+            $estado = new Estados();
+            $estado->setUf($sigla);
             $estado->setNome($estadoData['nome']);
             $estado->setCodigoIbge(str_pad(mt_rand(10, 50), 2, '0', STR_PAD_LEFT));
             $manager->persist($estado);
@@ -95,7 +95,7 @@ class Etapa2Fixtures extends Fixture
         foreach ($tiposDocumentos as $tipoData) {
             $tipo = new TipoDocumento();
             $tipo->setTipo($tipoData['tipo']);
-            $tipo->setSigla($tipoData['sigla']);
+            $tipo->setUf($tipoData['sigla']);
             $tipo->setDescricao($tipoData['descricao']);
             $manager->persist($tipo);
         }

@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Pessoa Locador', 'url': path('app_pessoa_locador_index')}
+        ],
+        'current': 'Detalhes do Locador'
+    } %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5><i class="fas fa-building"></i> Locador #{{ pessoa_locador.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>ID</th>
+                            <td>{{ pessoa_locador.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Pessoa</th>
+                            <td>{{ pessoa_locador.pessoa.nome }}</td>
+                        </tr>
+                        <tr>
+                            <th>Dependentes</th>
+                            <td>{{ pessoa_locador.dependentes }}</td>
+                        </tr>
+                        <tr>
+                            <th>Situação</th>
+                            <td>{{ pessoa_locador.situacao == 0 ? 'Ativo' : 'Inativo' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ path('app_pessoa_locador_edit', {'id': pessoa_locador.id}) }}" class="btn btn-warning"><i class="fas fa-edit"></i> Editar</a>
+                    <a href="{{ path('app_pessoa_locador_index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Voltar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

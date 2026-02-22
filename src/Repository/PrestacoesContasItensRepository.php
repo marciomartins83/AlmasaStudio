@@ -49,10 +49,10 @@ class PrestacoesContasItensRepository extends ServiceEntityRepository
         $result = $this->createQueryBuilder('i')
             ->select([
                 'i.tipo',
-                'SUM(CAST(i.valorBruto AS float)) as total_bruto',
-                'SUM(CAST(i.valorTaxaAdmin AS float)) as total_taxa',
-                'SUM(CAST(i.valorRetencaoIr AS float)) as total_ir',
-                'SUM(CAST(i.valorLiquido AS float)) as total_liquido',
+                'SUM(i.valorBruto) as total_bruto',
+                'SUM(i.valorTaxaAdmin) as total_taxa',
+                'SUM(i.valorRetencaoIr) as total_ir',
+                'SUM(i.valorLiquido) as total_liquido',
                 'COUNT(i.id) as quantidade',
             ])
             ->where('i.prestacaoConta = :prestacao')
@@ -101,8 +101,8 @@ class PrestacoesContasItensRepository extends ServiceEntityRepository
             ->select([
                 'IDENTITY(i.imovel) as id_imovel',
                 'i.tipo',
-                'SUM(CAST(i.valorBruto AS float)) as total_bruto',
-                'SUM(CAST(i.valorLiquido AS float)) as total_liquido',
+                'SUM(i.valorBruto) as total_bruto',
+                'SUM(i.valorLiquido) as total_liquido',
                 'COUNT(i.id) as quantidade',
             ])
             ->where('i.prestacaoConta = :prestacao')

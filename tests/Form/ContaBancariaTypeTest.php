@@ -4,45 +4,48 @@ namespace App\Tests\Form;
 
 use App\Entity\ContasBancarias;
 use App\Form\ContaBancariaType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class ContaBancariaTypeTest extends TypeTestCase
+class ContaBancariaTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
         $formData = [
-            'codigo' => 'Test Value 1',
+            'codigo'      => 'Test Value 1',
             'digitoConta' => 'Test Value 2',
         ];
 
         $objectToCompare = new ContasBancarias();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(ContaBancariaType::class, $objectToCompare);
-
-        $object = new ContasBancarias();
-
-        // submit the data to the form directly
+        $form = $this->formFactory->create(ContaBancariaType::class, $objectToCompare);
         $form->submit($formData);
 
         $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
+        $this->assertEquals('Test Value 1', $form->get('codigo')->getData());
+        $this->assertEquals('Test Value 2', $form->get('digitoConta')->getData());
     }
 
     public function testCustomFormView(): void
     {
         $object = new ContasBancarias();
 
-        $form = $this->factory->create(ContaBancariaType::class, $object);
-        $view = $form->createView();
+        $form = $this->formFactory->create(ContaBancariaType::class, $object);
 
-        $this->assertArrayHasKey('codigo', $view->children);
-        $this->assertArrayHasKey('digitoConta', $view->children);
+        $this->assertTrue($form->has('codigo'));
+        $this->assertTrue($form->has('digitoConta'));
     }
 }

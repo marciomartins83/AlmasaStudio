@@ -3,11 +3,25 @@
 namespace App\Tests\Form;
 
 use App\Entity\Emails;
-use App\Form\EmailType;
-use Symfony\Component\Form\Test\TypeTestCase;
+use App\Form\EmailFormType;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class EmailTypeTest extends TypeTestCase
+class EmailTypeTest extends KernelTestCase
 {
+    private $formFactory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->formFactory = self::getContainer()->get('form.factory');
+    }
+
+    protected function tearDown(): void
+    {
+        self::ensureKernelShutdown();
+        parent::tearDown();
+    }
+
     public function testSubmitValidData(): void
     {
         $formData = [
@@ -16,31 +30,17 @@ class EmailTypeTest extends TypeTestCase
 
         $objectToCompare = new Emails();
 
-        // $objectToCompare will retrieve data from the form submission; pass it as the second argument
-        $form = $this->factory->create(EmailType::class, $objectToCompare);
+        $form = $this->formFactory->create(EmailFormType::class, $objectToCompare);
 
-        $object = new Emails();
-
-        // submit the data to the form directly
         $form->submit($formData);
 
         $this->assertTrue($form->isSynchronized());
-
-        $view = $form->createView();
-        $children = $view->children;
-
-        foreach (array_keys($formData) as $key) {
-            $this->assertArrayHasKey($key, $children);
-        }
     }
 
     public function testCustomFormView(): void
     {
-        $object = new Emails();
+        $form = $this->formFactory->create(EmailFormType::class, new Emails());
 
-        $form = $this->factory->create(EmailType::class, $object);
-        $view = $form->createView();
-
-        $this->assertArrayHasKey('email', $view->children);
+        $this->assertTrue($form->has('email'));
     }
 }

@@ -107,7 +107,7 @@ class CobrancaController extends AbstractController
             'filtros' => $filtros,
             'mostrarAutomaticos' => $mostrarAutomaticos,
             'dataVencimento' => $filtros['data_vencimento'] ?? new \DateTime(),
-            'queryParams' => $request->query->all(),
+            'queryParams' => array_filter($request->query->all(), fn($v) => !is_array($v)),
         ]);
     }
 
