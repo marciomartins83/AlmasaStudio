@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposContasBancarias;
 use App\Form\TipoContaBancariaType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-conta-bancaria', name: 'app_tipo_conta_bancaria_')]
 class TipoContaBancariaController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
+    {
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -44,8 +54,7 @@ class TipoContaBancariaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoContaBancaria);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoContaBancaria);
                 $this->addFlash('success', 'Tipo de conta bancária criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_conta_bancaria_index');
             } catch (\Exception $e) {
@@ -75,7 +84,7 @@ class TipoContaBancariaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar();
                 $this->addFlash('success', 'Tipo de conta bancária atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_conta_bancaria_index');
             } catch (\Exception $e) {
@@ -93,8 +102,7 @@ class TipoContaBancariaController extends AbstractController
     public function delete(Request $request, TiposContasBancarias $tipoContaBancaria, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoContaBancaria->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoContaBancaria);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoContaBancaria);
             $this->addFlash('success', 'Tipo de conta bancária excluído com sucesso!');
         }
 

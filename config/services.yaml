@@ -32,8 +32,10 @@ services:
     # please note that last definitions always *replace* previous ones
 
     App\Repository\TiposEnderecosRepository: ~
+    # Usa o CsrfTokenManager classico (sessão) em vez do SameOriginCsrfTokenManager (Symfony 7.2)
+    # O SameOrigin requer headers Origin/Referer que navegadores headless podem não enviar
     Symfony\Component\Security\Csrf\CsrfTokenManagerInterface:
-        alias: security.csrf.token_manager
+        alias: security.csrf.same_origin_token_manager.inner
         public: true
 
     App\Service\ConfiguracaoApiBancoService:
@@ -52,3 +54,7 @@ services:
     App\Service\CobrancaContratoService:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    # Fixtures autodiscover
+    App\DataFixtures\:
+        resource: '../src/DataFixtures/'
+        tags: ['doctrine.fixture.orm']

@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposChavesPix;
 use App\Form\TipoChavePixType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,15 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-chave-pix', name: 'app_tipo_chave_pix_')]
 class TipoChavePixController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+    private GenericTipoService $tipoService;
+
+    public function __construct(EntityManagerInterface $entityManager, GenericTipoService $tipoService)
+    {
+        $this->entityManager = $entityManager;
+        $this->tipoService = $tipoService;
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -44,8 +54,7 @@ class TipoChavePixController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoChavePix);
-                $entityManager->flush();
+                $this->tipoService->criar($tipoChavePix);
                 $this->addFlash('success', 'Tipo de chave PIX criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_chave_pix_index');
             } catch (\Exception $e) {
@@ -75,7 +84,7 @@ class TipoChavePixController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->tipoService->atualizar();
                 $this->addFlash('success', 'Tipo de chave PIX atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_chave_pix_index');
             } catch (\Exception $e) {
@@ -93,8 +102,7 @@ class TipoChavePixController extends AbstractController
     public function delete(Request $request, TiposChavesPix $tipoChavePix, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoChavePix->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoChavePix);
-            $entityManager->flush();
+            $this->tipoService->deletar($tipoChavePix);
             $this->addFlash('success', 'Tipo de chave PIX excluído com sucesso!');
         }
 
