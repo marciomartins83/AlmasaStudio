@@ -101,7 +101,6 @@
 
 {% block javascripts %}
 {{ parent() }}
-{{ encore_entry_script_tags('relatorios') }}
 <script>
     window.ROUTES = {
         preview: '{{ path('app_relatorios_plano_contas_preview') }}',
@@ -110,8 +109,11 @@
     window.RELATORIO_TIPO = 'plano_contas';
 
     // Mostrar/ocultar periodo quando marcar totais
-    document.getElementById('mostrar_totais').addEventListener('change', function() {
-        document.getElementById('periodoTotais').style.display = this.checked ? 'block' : 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('mostrar_totais').addEventListener('change', function() {
+            document.getElementById('periodoTotais').style.display = this.checked ? 'block' : 'none';
+        });
     });
 </script>
+{{ encore_entry_script_tags('relatorios') }}
 {% endblock %}

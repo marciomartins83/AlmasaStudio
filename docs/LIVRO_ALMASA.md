@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.3 |
-| **Data Ultima Atualizacao** | 2026-02-22 |
-| **Status Geral** | Em producao — Thin Controller (12/14), CRUD orfao PessoaFiador removido, banco migrado para PostgreSQL local VPS |
+| **Versao Atual** | 6.20.4 |
+| **Data Ultima Atualizacao** | 2026-02-23 |
+| **Status Geral** | Em producao — Thin Controller (12/14), RelatorioService migrado de Lancamentos para LancamentosFinanceiros (tabela real com 506k+ registros) |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
@@ -603,7 +603,7 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 
 ### 9.1 Relatorios PDF
 
-**Status:** Completo (v6.16.0)
+**Status:** Completo e corrigido (v6.20.4)
 
 6 relatorios com preview AJAX e geracao PDF via DomPDF:
 
@@ -611,14 +611,57 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 2. **Despesas** — Contas a pagar com agrupamento e totalizadores
 3. **Receitas** — Contas a receber com agrupamento e totalizadores
 4. **Despesas x Receitas** — Comparativo com saldo do periodo
-5. **Contas Bancarias** — Extrato com saldos e movimentacoes
+5. **Contas Bancarias** — Extrato com saldos e movimentacoes por conta
 6. **Plano de Contas** — Cadastro de contas contabeis
 
 **Controller:** `RelatorioController.php` (~490 linhas) — 19 rotas (dashboard + 3 por relatorio)
 
-**Service:** `RelatorioService.php` (~800 linhas) — Fat Service com toda logica
+**Service:** `RelatorioService.php` (~1150 linhas) — Fat Service com toda logica
 
 **Templates:** 6 filtros + 6 previews + 8 PDFs + dashboard
+
+#### Licao Critica (v6.20.4) — Tabela correta para cada relatorio
+
+O sistema possui DUAS tabelas financeiras distintas. Confundir as duas causa retorno vazio:
+
+| Tabela | Registros | Uso correto |
+|--------|-----------|-------------|
+| `lancamentos` | 0 (vazia — legado) | NAO usar |
+| `lancamentos_financeiros` | 506k+ registros | SEMPRE usar |
+
+**Todos os metodos do RelatorioService DEVEM usar `LancamentosFinanceiros::class`.**
+
+#### Mapeamento de campos LancamentosFinanceiros
+
+| Conceito | Campo/Metodo |
+|----------|-------------|
+| Tipo de movimento | `getTipoLancamento()` → 'receita' / 'aluguel' / 'despesa' |
+| Entrada (receber) | `tipoLancamento IN ('receita', 'aluguel')` |
+| Saida (pagar) | `tipoLancamento = 'despesa'` |
+| Data | `getDataVencimento()` (nao existe dataPagamento) |
+| Pago/em aberto | `getSituacao()` → 'pago' / 'aberto' / 'cancelado' |
+| Vinculo conta bancaria | `getContaBancaria()` — coluna `id_conta_bancaria` |
+| Valor | `getValorTotal()` |
+| Historico | `getHistorico() ?? getDescricao()` |
+| Documento | `getNumeroBoleto() ?? getNumeroRecibo()` |
+
+#### Metodos do Service (resumo)
+
+| Metodo | Fonte | Retorno |
+|--------|-------|---------|
+| `getInadimplentes()` | LancamentosFinanceiros | array entidades (eager load, max 500) |
+| `getDespesas()` | LancamentosFinanceiros tipo=despesa | array normalizado (max 500) |
+| `getTotalDespesas()` | SQL nativo LF | array totais sem limite |
+| `getReceitas()` | LancamentosFinanceiros tipo IN(receita,aluguel) | array normalizado (max 500) |
+| `getTotalReceitas()` | SQL nativo LF | array totais sem limite |
+| `getMovimentosContaBancaria()` | LancamentosFinanceiros conta IS NOT NULL | array normalizado |
+| `getSaldoInicialConta()` | SQL nativo LF | float |
+| `getResumoContas()` | Usa getMovimentosContaBancaria() | array agrupado por conta |
+
+#### Preview AJAX — limite de 500 registros
+
+`getDespesas()`, `getReceitas()` e `getInadimplentes()` usam `setMaxResults(500)`.
+Totais (`getTotalDespesas()`, `getTotalReceitas()`) usam SQL nativo sem limite para garantir exatidao.
 
 ### 9.2 Prestacao de Contas aos Proprietarios
 
@@ -1137,6 +1180,19 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 - **10 Controllers Thin Controller refatorados** — Movido persist/flush/remove para Services (8 Tipo* + ContratoController + GenericTipoService base)
 - **64 registros de teste removidos do banco** — Estados, cidades, bairros, pessoas, documentos (limpeza completa de E2E test data)
 
+### [6.20.4] - 2026-02-23
+
+#### Corrigido
+- **RelatorioService — Inadimplentes:** `getInadimplentes()` consultava LancamentosFinanceiros sem eager loading, causando N+1 queries e resposta de 2.3MB (2462 entidades). Adicionado eager loading (`addSelect` para inquilino/imovel/prop/contrato) e `setMaxResults(500)`. Banner de aviso no template quando 500+ registros.
+- **RelatorioService — Despesas:** `getDespesas()` e `getTotalDespesas()` consultavam tabela `lancamentos` (vazia). Migrados para `lancamentos_financeiros` com filtro `tipoLancamento = 'despesa'`. `getDespesas()` retorna arrays normalizados. `getTotalDespesas()` usa SQL nativo com COUNT/SUM/CASE WHEN por situacao.
+- **RelatorioService — Receitas:** `getReceitas()` e `getTotalReceitas()` consultavam tabela `lancamentos` (vazia). Migrados para `lancamentos_financeiros` com filtro `tipoLancamento IN ('receita', 'aluguel')`. Mesmo padrao de arrays normalizados e SQL nativo.
+- **RelatorioService — Contas Bancarias:** `getMovimentosContaBancaria()` consultava `Lancamentos` (vazia) e usava `isReceber()` e `dataPagamento` inexistentes em LancamentosFinanceiros. Migrado para `LancamentosFinanceiros` com `contaBancaria IS NOT NULL` e `situacao = 'pago'`. Retorna arrays normalizados com `dataPagamento` (alias de dataVencimento), `receber` (bool), `historico`, `numeroDocumento`, `valorFloat`. `getSaldoInicialConta()` reescrito com SQL nativo (CASE WHEN por tipoLancamento). `getResumoContas()` adaptado para consumir arrays normalizados.
+- **VPS — APP_ENV:** Estava em `dev` em producao, causando log de todas as queries e overhead massivo. Corrigido para `APP_ENV=prod / APP_DEBUG=false`.
+
+#### Adicionado
+- **Metodo `agruparDespesas()`** — Agrupa arrays normalizados de despesas por plano_conta/fornecedor/imovel/mes.
+- **Metodo `getSituacaoBadge()`** — Mapeia situacao (pago/cancelado/aberto) para classe Bootstrap badge.
+
 ### [6.20.3] - 2026-02-22
 
 #### Removido
@@ -1654,6 +1710,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-02-22
+**Ultima atualizacao:** 2026-02-23
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code)

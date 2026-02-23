@@ -391,19 +391,12 @@ class ContratoService
      */
     public function listarLocatarios(): array
     {
-        // Buscar todas as pessoas ativas
-        $pessoas = $this->pessoaRepository->findBy(['ativo' => true]);
-        $locatarios = [];
-
-        foreach ($pessoas as $pessoa) {
-            $locatarios[] = [
-                'id' => $pessoa->getIdpessoa(),
-                'nome' => $pessoa->getNome(),
-                'tipo' => $pessoa->getTipoPessoa(),
-            ];
-        }
-
-        return $locatarios;
+        return $this->entityManager->createQuery(
+            'SELECT p.idpessoa AS id, p.nome, p.tipoPessoa AS tipo
+             FROM App\Entity\Pessoas p
+             WHERE p.status = true
+             ORDER BY p.nome ASC'
+        )->getArrayResult();
     }
 
     /**
@@ -413,19 +406,12 @@ class ContratoService
      */
     public function listarFiadores(): array
     {
-        // Buscar todas as pessoas ativas
-        $pessoas = $this->pessoaRepository->findBy(['ativo' => true]);
-        $fiadores = [];
-
-        foreach ($pessoas as $pessoa) {
-            $fiadores[] = [
-                'id' => $pessoa->getIdpessoa(),
-                'nome' => $pessoa->getNome(),
-                'tipo' => $pessoa->getTipoPessoa(),
-            ];
-        }
-
-        return $fiadores;
+        return $this->entityManager->createQuery(
+            'SELECT p.idpessoa AS id, p.nome, p.tipoPessoa AS tipo
+             FROM App\Entity\Pessoas p
+             WHERE p.status = true
+             ORDER BY p.nome ASC'
+        )->getArrayResult();
     }
 
     /**
@@ -550,6 +536,7 @@ class ContratoService
         $imovel = $contrato->getImovel();
         $locatario = $contrato->getPessoaLocatario();
         $fiador = $contrato->getPessoaFiador();
+        $proprietario = $imovel->getPessoaProprietario();
 
         return [
             'id' => $contrato->getId(),
@@ -559,8 +546,13 @@ class ContratoService
             'imovel_tipo' => $imovel->getTipoImovel()?->getTipo(),
             'locatario_id' => $locatario?->getIdpessoa(),
             'locatario_nome' => $locatario?->getNome(),
+            'locatario_dados' => $this->extrairDadosPessoa($locatario),
             'fiador_id' => $fiador?->getIdpessoa(),
             'fiador_nome' => $fiador?->getNome(),
+            'fiador_dados' => $this->extrairDadosPessoa($fiador),
+            'proprietario_id' => $proprietario?->getIdpessoa(),
+            'proprietario_nome' => $proprietario?->getNome(),
+            'proprietario_dados' => $this->extrairDadosPessoa($proprietario),
             'tipo_contrato' => $contrato->getTipoContrato(),
             'tipo_contrato_label' => $this->getLabelTipoContrato($contrato->getTipoContrato()),
             'data_inicio' => $contrato->getDataInicio(),
@@ -596,6 +588,45 @@ class ContratoService
      * @param Imoveis $imovel
      * @return string
      */
+    private function extrairDadosPessoa(?Pessoas $pessoa): ?array
+    {
+        if (!$pessoa) {
+            return null;
+        }
+
+        try {
+            $estadoCivil = $pessoa->getEstadoCivil()?->getNome();
+        } catch (\Throwable) {
+            $estadoCivil = null;
+        }
+        try {
+            $nacionalidade = $pessoa->getNacionalidade()?->getNome();
+        } catch (\Throwable) {
+            $nacionalidade = null;
+        }
+        try {
+            $naturalidade = $pessoa->getNaturalidade()?->getNome();
+        } catch (\Throwable) {
+            $naturalidade = null;
+        }
+
+        return [
+            'idpessoa' => $pessoa->getIdpessoa(),
+            'nome' => $pessoa->getNome(),
+            'fisicaJuridica' => $pessoa->getFisicaJuridica(),
+            'dataNascimento' => $pessoa->getDataNascimento(),
+            'estadoCivil' => $estadoCivil,
+            'status' => $pessoa->getStatus(),
+            'nacionalidade' => $nacionalidade,
+            'naturalidade' => $naturalidade,
+            'nomePai' => $pessoa->getNomePai(),
+            'nomeMae' => $pessoa->getNomeMae(),
+            'renda' => $pessoa->getRenda(),
+            'dtCadastro' => $pessoa->getDtCadastro(),
+            'observacoes' => $pessoa->getObservacoes(),
+        ];
+    }
+
     private function formatarEnderecoImovel(Imoveis $imovel): string
     {
         $endereco = $imovel->getEndereco();

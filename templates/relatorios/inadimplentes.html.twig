@@ -118,7 +118,6 @@
 
 {% block javascripts %}
 {{ parent() }}
-{{ encore_entry_script_tags('relatorios') }}
 <script>
     window.ROUTES = {
         preview: '{{ path('app_relatorios_inadimplentes_preview') }}',
@@ -126,4 +125,5 @@
     };
     window.RELATORIO_TIPO = 'inadimplentes';
 </script>
+{{ encore_entry_script_tags('relatorios') }}
 {% endblock %}

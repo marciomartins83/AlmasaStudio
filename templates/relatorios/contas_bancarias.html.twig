@@ -91,7 +91,6 @@
 
 {% block javascripts %}
 {{ parent() }}
-{{ encore_entry_script_tags('relatorios') }}
 <script>
     window.ROUTES = {
         preview: '{{ path('app_relatorios_contas_bancarias_preview') }}',
@@ -99,4 +98,5 @@
     };
     window.RELATORIO_TIPO = 'contas_bancarias';
 </script>
+{{ encore_entry_script_tags('relatorios') }}
 {% endblock %}

@@ -1,55 +1,153 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Detalhes da Pessoa Corretor{% endblock %}
+{% block title %}Detalhes da Pessoa{% endblock %}
 
-{% block body %}
+{% block content %}
 <div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Pessoas', 'url': path('app_pessoa_index')}
+        ],
+        'current': pessoa.nome
+    } %}
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Detalhes da Pessoa Corretor</h1>
+        <h1><i class="fas fa-user"></i> {{ pessoa.nome }}</h1>
         <div>
-            <a href="{{ path('app_pessoa_corretor_edit', {'id': pessoa_corretor.id}) }}" class="btn btn-warning">Editar</a>
-            <a href="{{ path('app_pessoa_corretor_index') }}" class="btn btn-secondary">Voltar</a>
+            <a href="{{ path('app_financeiro_index', {'inquilino': pessoa.nome}) }}" class="btn btn-success" target="_blank">
+                <i class="fas fa-dollar-sign"></i> Financeiro
+            </a>
+            <a href="{{ path('app_contrato_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-info" target="_blank">
+                <i class="fas fa-file-contract"></i> Contratos
+            </a>
+            <a href="{{ path('app_boleto_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-primary" target="_blank">
+                <i class="fas fa-barcode"></i> Boletos
+            </a>
+            <a href="{{ path('app_imovel_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-secondary" target="_blank">
+                <i class="fas fa-building"></i> Imóveis
+            </a>
+            <a href="{{ path('app_pessoa_edit', {'id': pessoa.idpessoa}) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a href="{{ path('app_pessoa_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
         </div>
     </div>
 
-    <div class="card">
+    {# Dados Pessoais #}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-id-card"></i> Dados Pessoais</h3>
+        </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <h5 class="card-title">Informações da Pessoa Corretor</h5>
                     <table class="table table-borderless">
                         <tr>
-                            <th>ID:</th>
-                            <td>{{ pessoa_corretor.id }}</td>
+                            <th style="width:40%">ID:</th>
+                            <td>{{ pessoa.idpessoa }}</td>
                         </tr>
                         <tr>
-                            <th>ID Pessoa:</th>
-                            <td>{{ pessoa_corretor.idPessoa }}</td>
+                            <th>Nome:</th>
+                            <td>{{ pessoa.nome }}</td>
                         </tr>
                         <tr>
-                            <th>CRECI:</th>
-                            <td>{{ pessoa_corretor.creci ?? '-' }}</td>
+                            <th>Tipo Pessoa:</th>
+                            <td>{{ pessoa.fisicaJuridica == 'F' ? 'Pessoa Fisica' : 'Pessoa Juridica' }}</td>
                         </tr>
                         <tr>
-                            <th>Usuário:</th>
-                            <td>{{ pessoa_corretor.usuario ?? '-' }}</td>
+                            <th>Data Nascimento:</th>
+                            <td>{{ pessoa.dataNascimento ? pessoa.dataNascimento|date('d/m/Y') : '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Estado Civil:</th>
+                            <td>{{ pessoa.estadoCivil ? pessoa.estadoCivil.nome : '-' }}</td>
                         </tr>
                         <tr>
                             <th>Status:</th>
-                            <td>{{ pessoa_corretor.status ?? '-' }}</td>
+                            <td>
+                                {% if pessoa.status %}
+                                    <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inativo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width:40%">Nacionalidade:</th>
+                            <td>{{ pessoa.nacionalidade ? pessoa.nacionalidade.nome : '-' }}</td>
                         </tr>
                         <tr>
-                            <th>Data de Cadastro:</th>
-                            <td>{{ pessoa_corretor.dataCadastro ? pessoa_corretor.dataCadastro|date('d/m/Y') : '-' }}</td>
+                            <th>Naturalidade:</th>
+                            <td>{{ pessoa.naturalidade ? pessoa.naturalidade.nome : '-' }}</td>
                         </tr>
                         <tr>
-                            <th>Ativo:</th>
-                            <td>{{ pessoa_corretor.ativo ? 'Sim' : 'Não' }}</td>
+                            <th>Nome do Pai:</th>
+                            <td>{{ pessoa.nomePai ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Nome da Mae:</th>
+                            <td>{{ pessoa.nomeMae ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Renda:</th>
+                            <td>{{ pessoa.renda ? ('R$ ' ~ pessoa.renda|number_format(2, ',', '.')) : '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Cadastro:</th>
+                            <td>{{ pessoa.dtCadastro ? pessoa.dtCadastro|date('d/m/Y H:i') : '-' }}</td>
                         </tr>
                     </table>
                 </div>
             </div>
+            {% if pessoa.observacoes %}
+            <div class="row">
+                <div class="col-12">
+                    <strong>Observacoes:</strong>
+                    <p class="mt-1">{{ pessoa.observacoes }}</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
+
+    {# Documentos #}
+    {% if pessoa.pessoasDocumentos|length > 0 %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-file-alt"></i> Documentos</h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Numero</th>
+                        <th>Orgao Emissor</th>
+                        <th>Data Emissao</th>
+                        <th>Data Vencimento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in pessoa.pessoasDocumentos %}
+                    <tr>
+                        <td>{{ doc.tipoDocumento ? doc.tipoDocumento.tipo : '-' }}</td>
+                        <td>{{ doc.numeroDocumento }}</td>
+                        <td>{{ doc.orgaoEmissor ?? '-' }}</td>
+                        <td>{{ doc.dataEmissao ? doc.dataEmissao|date('d/m/Y') : '-' }}</td>
+                        <td>{{ doc.dataVencimento ? doc.dataVencimento|date('d/m/Y') : '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
-{% endblock %} 
+{% endblock %}

@@ -25,6 +25,11 @@
         </div>
     {% endfor %}
 
+    {# Cabeçalho com dados da pessoa filtrada #}
+    {% if pessoaFiltrada is defined and pessoaFiltrada is not null %}
+        {% include '_partials/pessoa_panel.html.twig' with {'pessoa': pessoaFiltrada, 'papel': 'Inquilino', 'cor': 'primary'} %}
+    {% endif %}
+
     {# Cards de estatísticas #}
     <div class="row mb-4">
         <div class="col-md-3">

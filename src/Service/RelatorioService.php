@@ -56,15 +56,19 @@ class RelatorioService
         $diasAtrasoMinimo = $filtros['dias_atraso_minimo'] ?? 1;
 
         $qb = $this->em->createQueryBuilder();
-        $qb->select('lf')
+        $limite = (int) ($filtros['limite'] ?? 500);
+
+        $qb->select('lf', 'inq', 'im', 'prop', 'cont')
             ->from(LancamentosFinanceiros::class, 'lf')
             ->leftJoin('lf.inquilino', 'inq')
             ->leftJoin('lf.imovel', 'im')
             ->leftJoin('lf.proprietario', 'prop')
+            ->leftJoin('lf.contrato', 'cont')
             ->where('lf.situacao = :situacao')
             ->andWhere('lf.dataVencimento < :dataRef')
             ->setParameter('situacao', 'aberto')
-            ->setParameter('dataRef', $dataReferencia);
+            ->setParameter('dataRef', $dataReferencia)
+            ->setMaxResults($limite);
 
         // Filtros opcionais
         if (!empty($filtros['id_proprietario'])) {
@@ -251,74 +255,146 @@ class RelatorioService
     // =========================================================================
 
     /**
-     * Busca despesas (contas a pagar)
+     * Busca despesas em lancamentos_financeiros (tipo_lancamento = 'despesa')
      */
     public function getDespesas(array $filtros): array
     {
         $qb = $this->em->createQueryBuilder();
-        $qb->select('l')
-            ->from(Lancamentos::class, 'l')
-            ->leftJoin('l.planoConta', 'pc')
-            ->leftJoin('l.pessoaCredor', 'cred')
-            ->leftJoin('l.imovel', 'im')
-            ->where('l.tipo = :tipo')
-            ->setParameter('tipo', Lancamentos::TIPO_PAGAR);
+        $qb->select('lf', 'pc', 'inq', 'prop', 'im')
+            ->from(LancamentosFinanceiros::class, 'lf')
+            ->leftJoin('lf.conta', 'pc')
+            ->leftJoin('lf.inquilino', 'inq')
+            ->leftJoin('lf.proprietario', 'prop')
+            ->leftJoin('lf.imovel', 'im')
+            ->where('lf.tipoLancamento = :tipo')
+            ->setParameter('tipo', 'despesa')
+            ->setMaxResults(500);
 
-        $this->aplicarFiltrosData($qb, $filtros, 'l');
-        $this->aplicarFiltrosLancamentos($qb, $filtros);
+        $this->aplicarFiltrosDataFinanceiro($qb, $filtros, 'lf');
 
-        // Status
         if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
-            $qb->andWhere('l.status = :status')
-                ->setParameter('status', $filtros['status']);
+            $qb->andWhere('lf.situacao = :situacao')
+                ->setParameter('situacao', $filtros['status']);
         }
 
-        $qb->orderBy('l.dataVencimento', 'ASC');
+        if (!empty($filtros['id_imovel'])) {
+            $qb->andWhere('lf.imovel = :idImovel')
+                ->setParameter('idImovel', $filtros['id_imovel']);
+        }
 
-        $despesas = $qb->getQuery()->getResult();
+        $qb->orderBy('lf.dataVencimento', 'ASC');
+        $lancamentos = $qb->getQuery()->getResult();
 
-        // Agrupar se solicitado
+        $dados = [];
+        foreach ($lancamentos as $lf) {
+            $dados[] = [
+                'entidade' => $lf,
+                'dataVencimento' => $lf->getDataVencimento(),
+                'numeroDocumento' => $lf->getNumeroBoleto() ?? $lf->getNumeroRecibo(),
+                'pessoaCredor' => ['nome' => $lf->getInquilino()?->getNome() ?? $lf->getProprietario()?->getNome()],
+                'historico' => $lf->getHistorico() ?? $lf->getDescricao(),
+                'planoConta' => ['descricao' => $lf->getConta()?->getDescricao() ?? 'Despesa'],
+                'valorFloat' => (float) $lf->getValorTotal(),
+                'statusBadgeClass' => $this->getSituacaoBadge($lf->getSituacao() ?? 'aberto'),
+                'statusLabel' => $lf->getSituacaoLabel(),
+                '_planoContaId' => (string) ($lf->getConta()?->getId() ?? '0'),
+                '_planoContaDescricao' => $lf->getConta()?->getDescricao() ?? 'Despesa',
+                '_credorNome' => $lf->getInquilino()?->getNome() ?? $lf->getProprietario()?->getNome() ?? 'Sem Fornecedor',
+                '_imovelId' => (string) ($lf->getImovel()?->getId() ?? '0'),
+                '_mes' => $lf->getDataVencimento()->format('Y-m'),
+            ];
+        }
+
         if (!empty($filtros['agrupar_por']) && $filtros['agrupar_por'] !== 'nenhum') {
-            return $this->agruparLancamentos($despesas, $filtros['agrupar_por']);
+            return $this->agruparDespesas($dados, $filtros['agrupar_por']);
         }
 
-        return $despesas;
+        return $dados;
     }
 
     /**
-     * Calcula totais das despesas
+     * Calcula totais das despesas via SQL nativo (sem limite de 500)
      */
     public function getTotalDespesas(array $filtros): array
     {
-        $despesas = $this->getDespesas($filtros);
+        $conn = $this->em->getConnection();
 
-        $totalAberto = 0;
-        $totalPago = 0;
-        $totalGeral = 0;
-        $quantidade = 0;
+        $where = ["tipo_lancamento = 'despesa'"];
+        $params = [];
 
-        // Verificar se está agrupado
-        $primeiroItem = reset($despesas);
-        if (is_array($primeiroItem) && isset($primeiroItem['itens'])) {
-            foreach ($despesas as $grupo) {
-                foreach ($grupo['itens'] as $lancamento) {
-                    $this->somarLancamento($lancamento, $totalAberto, $totalPago, $totalGeral);
-                    $quantidade++;
-                }
-            }
-        } else {
-            foreach ($despesas as $lancamento) {
-                $this->somarLancamento($lancamento, $totalAberto, $totalPago, $totalGeral);
-                $quantidade++;
-            }
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = 'data_vencimento >= :data_inicio';
+            $params['data_inicio'] = $filtros['data_inicio'] instanceof \DateTimeInterface
+                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where[] = 'data_vencimento <= :data_fim';
+            $params['data_fim'] = $filtros['data_fim'] instanceof \DateTimeInterface
+                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where[] = 'situacao = :situacao';
+            $params['situacao'] = $filtros['status'];
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where[] = 'id_imovel = :id_imovel';
+            $params['id_imovel'] = (int) $filtros['id_imovel'];
         }
 
+        $whereClause = implode(' AND ', $where);
+        $sql = "SELECT COUNT(*) as quantidade,
+                       COALESCE(SUM(valor_total::numeric), 0) as total_geral,
+                       COALESCE(SUM(CASE WHEN situacao = 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_pago,
+                       COALESCE(SUM(CASE WHEN situacao != 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_aberto
+                FROM lancamentos_financeiros WHERE {$whereClause}";
+
+        $result = $conn->executeQuery($sql, $params)->fetchAssociative();
+
         return [
-            'quantidade' => $quantidade,
-            'total_aberto' => round($totalAberto, 2),
-            'total_pago' => round($totalPago, 2),
-            'total_geral' => round($totalGeral, 2),
+            'quantidade' => (int) ($result['quantidade'] ?? 0),
+            'total_aberto' => round((float) ($result['total_aberto'] ?? 0), 2),
+            'total_pago' => round((float) ($result['total_pago'] ?? 0), 2),
+            'total_geral' => round((float) ($result['total_geral'] ?? 0), 2),
         ];
+    }
+
+    /**
+     * Agrupa despesas (arrays normalizados) por critério
+     */
+    private function agruparDespesas(array $dados, string $criterio): array
+    {
+        $grupos = [];
+
+        foreach ($dados as $item) {
+            [$chave, $nome] = match ($criterio) {
+                'plano_conta' => [$item['_planoContaId'], $item['_planoContaDescricao']],
+                'fornecedor' => [$item['_credorNome'], $item['_credorNome']],
+                'imovel' => [$item['_imovelId'], 'Imóvel ' . ($item['_imovelId'] !== '0' ? $item['_imovelId'] : 'Sem Imóvel')],
+                'mes' => [$item['_mes'], \DateTime::createFromFormat('Y-m', $item['_mes'])->format('m/Y')],
+                default => ['0', 'Todos'],
+            };
+
+            if (!isset($grupos[$chave])) {
+                $grupos[$chave] = ['nome' => $nome, 'itens' => [], 'total' => 0];
+            }
+
+            $grupos[$chave]['itens'][] = $item;
+            $grupos[$chave]['total'] += $item['valorFloat'];
+        }
+
+        return $grupos;
+    }
+
+    /**
+     * Retorna classe CSS para badge de situação
+     */
+    private function getSituacaoBadge(string $situacao): string
+    {
+        return match ($situacao) {
+            'pago' => 'success',
+            'cancelado', 'estornado' => 'secondary',
+            default => 'warning',
+        };
     }
 
     // =========================================================================
@@ -326,96 +402,52 @@ class RelatorioService
     // =========================================================================
 
     /**
-     * Busca receitas (contas a receber)
+     * Busca receitas em lancamentos_financeiros (tipo receita + aluguel)
      */
     public function getReceitas(array $filtros): array
     {
-        $origem = $filtros['origem'] ?? 'todos';
+        $qb = $this->em->createQueryBuilder();
+        $qb->select('lf', 'pc', 'inq', 'im')
+            ->from(LancamentosFinanceiros::class, 'lf')
+            ->leftJoin('lf.conta', 'pc')
+            ->leftJoin('lf.inquilino', 'inq')
+            ->leftJoin('lf.imovel', 'im')
+            ->where('lf.tipoLancamento IN (:tipos)')
+            ->setParameter('tipos', ['receita', 'aluguel'])
+            ->setMaxResults(500);
+
+        $this->aplicarFiltrosDataFinanceiro($qb, $filtros, 'lf');
+
+        if (!empty($filtros['id_imovel'])) {
+            $qb->andWhere('lf.imovel = :idImovel')
+                ->setParameter('idImovel', $filtros['id_imovel']);
+        }
+
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $situacao = $filtros['status'] === 'efetivado' ? 'pago' : ($filtros['status'] === 'pago' ? 'pago' : 'aberto');
+            $qb->andWhere('lf.situacao = :situacao')
+                ->setParameter('situacao', $situacao);
+        }
+
+        $qb->orderBy('lf.dataVencimento', 'ASC');
+        $lancamentos = $qb->getQuery()->getResult();
+
         $resultado = [];
-
-        // Buscar de lancamentos (tipo receber)
-        if ($origem === 'todos' || $origem === 'lancamentos') {
-            $qb = $this->em->createQueryBuilder();
-            $qb->select('l')
-                ->from(Lancamentos::class, 'l')
-                ->leftJoin('l.planoConta', 'pc')
-                ->leftJoin('l.pessoaPagador', 'pag')
-                ->leftJoin('l.imovel', 'im')
-                ->where('l.tipo = :tipo')
-                ->setParameter('tipo', Lancamentos::TIPO_RECEBER);
-
-            $this->aplicarFiltrosData($qb, $filtros, 'l');
-            $this->aplicarFiltrosLancamentos($qb, $filtros);
-
-            if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
-                $qb->andWhere('l.status = :status')
-                    ->setParameter('status', $filtros['status']);
-            }
-
-            $qb->orderBy('l.dataVencimento', 'ASC');
-            $lancamentos = $qb->getQuery()->getResult();
-
-            foreach ($lancamentos as $l) {
-                $resultado[] = [
-                    'tipo' => 'lancamento',
-                    'entidade' => $l,
-                    'data' => $this->getDataPorTipo($l, $filtros['tipo_data'] ?? 'vencimento'),
-                    'documento' => $l->getNumeroDocumento(),
-                    'pagador' => $l->getPessoaPagador()?->getNome() ?? '-',
-                    'historico' => $l->getHistorico(),
-                    'plano_conta' => $l->getPlanoConta()->getDescricao(),
-                    'imovel' => $l->getImovel()?->getId(),
-                    'valor' => (float) $l->getValor(),
-                    'status' => $l->getStatus(),
-                ];
-            }
+        foreach ($lancamentos as $lf) {
+            $resultado[] = [
+                'tipo' => 'ficha_financeira',
+                'entidade' => $lf,
+                'data' => $lf->getDataVencimento(),
+                'documento' => $lf->getNumeroBoleto() ?? $lf->getNumeroRecibo(),
+                'pagador' => $lf->getInquilino()?->getNome() ?? '-',
+                'historico' => $lf->getHistorico() ?? $lf->getDescricao(),
+                'plano_conta' => $lf->getConta()?->getDescricao() ?? ($lf->getTipoLancamento() === 'aluguel' ? 'Aluguel' : 'Receita'),
+                'imovel' => $lf->getImovel()?->getId(),
+                'valor' => (float) $lf->getValorTotal(),
+                'status' => $lf->getSituacao(),
+            ];
         }
 
-        // Buscar de lancamentos_financeiros (ficha financeira)
-        if ($origem === 'todos' || $origem === 'ficha_financeira') {
-            $qb = $this->em->createQueryBuilder();
-            $qb->select('lf')
-                ->from(LancamentosFinanceiros::class, 'lf')
-                ->leftJoin('lf.conta', 'pc')
-                ->leftJoin('lf.inquilino', 'inq')
-                ->leftJoin('lf.imovel', 'im');
-
-            $this->aplicarFiltrosDataFinanceiro($qb, $filtros, 'lf');
-
-            if (!empty($filtros['id_imovel'])) {
-                $qb->andWhere('lf.imovel = :idImovel')
-                    ->setParameter('idImovel', $filtros['id_imovel']);
-            }
-
-            if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
-                $situacao = $filtros['status'] === 'pago' ? 'pago' : 'aberto';
-                $qb->andWhere('lf.situacao = :situacao')
-                    ->setParameter('situacao', $situacao);
-            }
-
-            $qb->orderBy('lf.dataVencimento', 'ASC');
-            $financeiros = $qb->getQuery()->getResult();
-
-            foreach ($financeiros as $lf) {
-                $resultado[] = [
-                    'tipo' => 'ficha_financeira',
-                    'entidade' => $lf,
-                    'data' => $lf->getDataVencimento(),
-                    'documento' => $lf->getNumeroBoleto() ?? $lf->getNumeroRecibo(),
-                    'pagador' => $lf->getInquilino()?->getNome() ?? '-',
-                    'historico' => $lf->getHistorico() ?? $lf->getDescricao(),
-                    'plano_conta' => $lf->getConta()?->getDescricao() ?? 'Aluguel',
-                    'imovel' => $lf->getImovel()?->getId(),
-                    'valor' => (float) $lf->getValorTotal(),
-                    'status' => $lf->getSituacao(),
-                ];
-            }
-        }
-
-        // Ordenar por data
-        usort($resultado, fn($a, $b) => $a['data'] <=> $b['data']);
-
-        // Agrupar se solicitado
         if (!empty($filtros['agrupar_por']) && $filtros['agrupar_por'] !== 'nenhum') {
             return $this->agruparReceitas($resultado, $filtros['agrupar_por']);
         }
@@ -424,38 +456,49 @@ class RelatorioService
     }
 
     /**
-     * Calcula totais das receitas
+     * Calcula totais das receitas via SQL nativo (sem limite de 500)
      */
     public function getTotalReceitas(array $filtros): array
     {
-        $receitas = $this->getReceitas($filtros);
+        $conn = $this->em->getConnection();
 
-        $totalAberto = 0;
-        $totalRecebido = 0;
-        $totalGeral = 0;
-        $quantidade = 0;
+        $where = ["tipo_lancamento IN ('receita', 'aluguel')"];
+        $params = [];
 
-        // Verificar se está agrupado
-        $primeiroItem = reset($receitas);
-        if (is_array($primeiroItem) && isset($primeiroItem['itens'])) {
-            foreach ($receitas as $grupo) {
-                foreach ($grupo['itens'] as $item) {
-                    $this->somarReceita($item, $totalAberto, $totalRecebido, $totalGeral);
-                    $quantidade++;
-                }
-            }
-        } else {
-            foreach ($receitas as $item) {
-                $this->somarReceita($item, $totalAberto, $totalRecebido, $totalGeral);
-                $quantidade++;
-            }
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = 'data_vencimento >= :data_inicio';
+            $params['data_inicio'] = $filtros['data_inicio'] instanceof \DateTimeInterface
+                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where[] = 'data_vencimento <= :data_fim';
+            $params['data_fim'] = $filtros['data_fim'] instanceof \DateTimeInterface
+                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $situacao = in_array($filtros['status'], ['efetivado', 'pago']) ? 'pago' : 'aberto';
+            $where[] = 'situacao = :situacao';
+            $params['situacao'] = $situacao;
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where[] = 'id_imovel = :id_imovel';
+            $params['id_imovel'] = (int) $filtros['id_imovel'];
         }
 
+        $whereClause = implode(' AND ', $where);
+        $sql = "SELECT COUNT(*) as quantidade,
+                       COALESCE(SUM(valor_total::numeric), 0) as total_geral,
+                       COALESCE(SUM(CASE WHEN situacao = 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_recebido,
+                       COALESCE(SUM(CASE WHEN situacao != 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_aberto
+                FROM lancamentos_financeiros WHERE {$whereClause}";
+
+        $result = $conn->executeQuery($sql, $params)->fetchAssociative();
+
         return [
-            'quantidade' => $quantidade,
-            'total_aberto' => round($totalAberto, 2),
-            'total_recebido' => round($totalRecebido, 2),
-            'total_geral' => round($totalGeral, 2),
+            'quantidade' => (int) ($result['quantidade'] ?? 0),
+            'total_aberto' => round((float) ($result['total_aberto'] ?? 0), 2),
+            'total_recebido' => round((float) ($result['total_recebido'] ?? 0), 2),
+            'total_geral' => round((float) ($result['total_geral'] ?? 0), 2),
         ];
     }
 
@@ -604,61 +647,76 @@ class RelatorioService
     // =========================================================================
 
     /**
-     * Busca movimentos de conta bancária
+     * Busca movimentos de conta bancária em lancamentos_financeiros
+     * Retorna arrays normalizados com as chaves esperadas pelo template
      */
     public function getMovimentosContaBancaria(array $filtros): array
     {
         $qb = $this->em->createQueryBuilder();
-        $qb->select('l')
-            ->from(Lancamentos::class, 'l')
-            ->leftJoin('l.contaBancaria', 'cb')
-            ->where('l.contaBancaria IS NOT NULL')
-            ->andWhere('l.status = :status')
-            ->setParameter('status', 'pago');
+        $qb->select('lf', 'cb')
+            ->from(LancamentosFinanceiros::class, 'lf')
+            ->leftJoin('lf.contaBancaria', 'cb')
+            ->where('lf.contaBancaria IS NOT NULL')
+            ->andWhere('lf.situacao = :situacao')
+            ->setParameter('situacao', 'pago');
 
         if (!empty($filtros['id_conta_bancaria'])) {
-            $qb->andWhere('l.contaBancaria = :idConta')
+            $qb->andWhere('lf.contaBancaria = :idConta')
                 ->setParameter('idConta', $filtros['id_conta_bancaria']);
         }
 
         if (!empty($filtros['data_inicio'])) {
-            $qb->andWhere('l.dataPagamento >= :dataInicio')
+            $qb->andWhere('lf.dataVencimento >= :dataInicio')
                 ->setParameter('dataInicio', $filtros['data_inicio']);
         }
 
         if (!empty($filtros['data_fim'])) {
-            $qb->andWhere('l.dataPagamento <= :dataFim')
+            $qb->andWhere('lf.dataVencimento <= :dataFim')
                 ->setParameter('dataFim', $filtros['data_fim']);
         }
 
-        $qb->orderBy('l.dataPagamento', 'ASC');
+        $qb->orderBy('lf.dataVencimento', 'ASC');
+        $lancamentos = $qb->getQuery()->getResult();
 
-        return $qb->getQuery()->getResult();
+        return array_map(fn(LancamentosFinanceiros $lf) => [
+            'dataPagamento'   => $lf->getDataVencimento(),
+            'receber'         => in_array($lf->getTipoLancamento(), ['receita', 'aluguel']),
+            'historico'       => $lf->getHistorico() ?? $lf->getDescricao(),
+            'numeroDocumento' => $lf->getNumeroBoleto() ?? $lf->getNumeroRecibo(),
+            'valorFloat'      => (float) $lf->getValorTotal(),
+            '_contaBancaria'  => $lf->getContaBancaria(),
+            '_valor'          => (float) $lf->getValorTotal(),
+            '_isReceber'      => in_array($lf->getTipoLancamento(), ['receita', 'aluguel']),
+        ], $lancamentos);
     }
 
     /**
-     * Calcula saldo inicial de uma conta em determinada data
+     * Calcula saldo inicial de uma conta via SQL nativo em lancamentos_financeiros
      */
-    public function getSaldoInicialConta(int $contaId, \DateTime $data): float
+    public function getSaldoInicialConta(int $contaId, \DateTimeInterface $data): float
     {
-        $qb = $this->em->createQueryBuilder();
-        $qb->select('SUM(CASE WHEN l.tipo = :tipoReceber THEN l.valor ELSE -l.valor END) as saldo')
-            ->from(Lancamentos::class, 'l')
-            ->where('l.contaBancaria = :contaId')
-            ->andWhere('l.status = :status')
-            ->andWhere('l.dataPagamento < :data')
-            ->setParameter('contaId', $contaId)
-            ->setParameter('status', 'pago')
-            ->setParameter('tipoReceber', Lancamentos::TIPO_RECEBER)
-            ->setParameter('data', $data);
+        $conn = $this->em->getConnection();
+        $sql = "SELECT COALESCE(SUM(
+                    CASE WHEN tipo_lancamento IN ('receita', 'aluguel')
+                         THEN valor_total::numeric
+                         ELSE -valor_total::numeric
+                    END
+                ), 0)
+                FROM lancamentos_financeiros
+                WHERE id_conta_bancaria = :contaId
+                  AND situacao = 'pago'
+                  AND data_vencimento < :data";
 
-        $result = $qb->getQuery()->getSingleScalarResult();
+        $result = $conn->executeQuery($sql, [
+            'contaId' => $contaId,
+            'data'    => $data->format('Y-m-d'),
+        ])->fetchOne();
 
-        return (float) ($result ?? 0);
+        return (float) $result;
     }
 
     /**
-     * Retorna resumo por conta bancária
+     * Retorna resumo por conta bancária agrupando movimentos normalizados
      */
     public function getResumoContas(array $filtros): array
     {
@@ -666,36 +724,36 @@ class RelatorioService
 
         $contas = [];
 
-        foreach ($movimentos as $lancamento) {
-            $conta = $lancamento->getContaBancaria();
+        foreach ($movimentos as $movimento) {
+            $conta   = $movimento['_contaBancaria'];
             $contaId = $conta->getId();
 
             if (!isset($contas[$contaId])) {
-                $saldoInicial = $this->getSaldoInicialConta($contaId, $filtros['data_inicio'] ?? new \DateTime('first day of this month'));
+                $dataInicio = $filtros['data_inicio'] ?? new \DateTime('first day of this month');
+                if (!$dataInicio instanceof \DateTimeInterface) {
+                    $dataInicio = new \DateTime($dataInicio);
+                }
 
                 $contas[$contaId] = [
-                    'conta' => $conta,
-                    'saldo_inicial' => $saldoInicial,
-                    'entradas' => 0,
-                    'saidas' => 0,
-                    'movimentos' => [],
+                    'conta'         => $conta,
+                    'saldo_inicial' => $this->getSaldoInicialConta($contaId, $dataInicio),
+                    'entradas'      => 0,
+                    'saidas'        => 0,
+                    'movimentos'    => [],
                 ];
             }
 
-            $valor = (float) $lancamento->getValor();
-
-            if ($lancamento->isReceber()) {
-                $contas[$contaId]['entradas'] += $valor;
+            if ($movimento['_isReceber']) {
+                $contas[$contaId]['entradas'] += $movimento['_valor'];
             } else {
-                $contas[$contaId]['saidas'] += $valor;
+                $contas[$contaId]['saidas'] += $movimento['_valor'];
             }
 
             if (!empty($filtros['mostrar_movimentos'])) {
-                $contas[$contaId]['movimentos'][] = $lancamento;
+                $contas[$contaId]['movimentos'][] = $movimento;
             }
         }
 
-        // Calcular saldo final
         foreach ($contas as &$conta) {
             $conta['saldo_final'] = $conta['saldo_inicial'] + $conta['entradas'] - $conta['saidas'];
         }

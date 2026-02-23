@@ -39,6 +39,14 @@ class ImovelController extends AbstractController
         $qb = $imoveisRepository->createQueryBuilder('i')
             ->orderBy('i.id', 'DESC');
 
+        $pessoaId = $request->query->getInt('pessoa');
+        if ($pessoaId > 0) {
+            $qb->leftJoin('App\Entity\ImoveisContratos', 'ic', 'WITH', 'ic.imovel = i.id')
+                ->andWhere('i.pessoaProprietario = :pessoaId OR i.pessoaFiador = :pessoaId OR i.pessoaCorretor = :pessoaId OR ic.pessoaLocatario = :pessoaId')
+                ->setParameter('pessoaId', $pessoaId)
+                ->distinct();
+        }
+
         $filters = [
             new SearchFilterDTO('codigo', 'Código', 'text', 'i.codigoInterno', 'LIKE', [], 'Código...', 2),
             new SearchFilterDTO('descricao', 'Descrição', 'text', 'i.descricao', 'LIKE', [], 'Descrição...', 3),

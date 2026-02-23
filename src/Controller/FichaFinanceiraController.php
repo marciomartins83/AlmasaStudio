@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Repository\LancamentosFinanceirosRepository;
+use App\Repository\PessoaRepository;
 use App\Service\FichaFinanceiraService;
 use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,7 +36,7 @@ class FichaFinanceiraController extends AbstractController
      * Lista de lançamentos financeiros
      */
     #[Route('/', name: 'app_financeiro_index', methods: ['GET'])]
-    public function index(Request $request): Response
+    public function index(Request $request, PessoaRepository $pessoaRepository): Response
     {
         $qb = $this->fichaRepository->createBaseQueryBuilder();
 
@@ -63,6 +64,30 @@ class FichaFinanceiraController extends AbstractController
         $estatisticas = $this->fichaService->obterEstatisticas();
         $inadimplentes = $this->fichaService->listarInquilinosComDebitos();
 
+        // Buscar pessoa pelo filtro de inquilino (para exibir cabeçalho)
+        $pessoaFiltrada = null;
+        $inquilinoFiltro = trim($request->query->get('inquilino', ''));
+        if ($inquilinoFiltro !== '') {
+            $pessoa = $pessoaRepository->findOneBy(['nome' => $inquilinoFiltro]);
+            if ($pessoa) {
+                $pessoaFiltrada = [
+                    'idpessoa' => $pessoa->getIdpessoa(),
+                    'nome' => $pessoa->getNome(),
+                    'fisicaJuridica' => $pessoa->getFisicaJuridica(),
+                    'dataNascimento' => $pessoa->getDataNascimento(),
+                    'estadoCivil' => $pessoa->getEstadoCivil()?->getNome(),
+                    'status' => $pessoa->getStatus(),
+                    'nacionalidade' => $pessoa->getNacionalidade()?->getNome(),
+                    'naturalidade' => $pessoa->getNaturalidade()?->getNome(),
+                    'nomePai' => $pessoa->getNomePai(),
+                    'nomeMae' => $pessoa->getNomeMae(),
+                    'renda' => $pessoa->getRenda(),
+                    'dtCadastro' => $pessoa->getDtCadastro(),
+                    'observacoes' => $pessoa->getObservacoes(),
+                ];
+            }
+        }
+
         return $this->render('financeiro/index.html.twig', [
             'lancamentos'  => $pagination['items'],
             'estatisticas' => $estatisticas,
@@ -76,6 +101,7 @@ class FichaFinanceiraController extends AbstractController
             'sortField'    => $pagination['sortField'],
             'sortDir'      => $pagination['sortDir'],
             'sortOptions'  => $pagination['sortOptions'],
+            'pessoaFiltrada' => $pessoaFiltrada,
         ]);
     }
 

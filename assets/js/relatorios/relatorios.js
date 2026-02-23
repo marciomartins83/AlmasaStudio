@@ -15,11 +15,11 @@
  */
 class RelatorioManager {
     constructor() {
-        this.form = document.getElementById('filtros-form');
-        this.previewContainer = document.getElementById('preview-container');
+        this.form = document.getElementById('formFiltros');
+        this.previewContainer = document.getElementById('previewContent');
         this.loadingIndicator = document.getElementById('loading-indicator');
-        this.btnPreview = document.getElementById('btn-preview');
-        this.btnPdf = document.getElementById('btn-pdf');
+        this.btnPreview = document.getElementById('btnPreview');
+        this.btnPdf = document.getElementById('btnPdf');
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
         this.init();

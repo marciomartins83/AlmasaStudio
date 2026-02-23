@@ -40,10 +40,23 @@ class PessoaController extends AbstractController
     public function index(PessoaRepository $pessoaRepository, PaginationService $paginator, Request $request): Response
     {
         $qb = $pessoaRepository->createQueryBuilder('p')
+            ->select('DISTINCT p')
+            ->leftJoin('App\Entity\PessoasTipos', 'pt', 'WITH', 'pt.idPessoa = p.idpessoa')
             ->orderBy('p.idpessoa', 'DESC');
 
         $filters = [
             new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Buscar por nome...', 3),
+            new SearchFilterDTO('tipoPessoa', 'Tipo Pessoa', 'select', 'pt.idTipoPessoa', 'EXACT', [
+                '1' => 'Fiador',
+                '2' => 'Corretor',
+                '3' => 'Corretora',
+                '4' => 'Locador',
+                '5' => 'Pretendente',
+                '6' => 'Contratante',
+                '7' => 'Sócio',
+                '8' => 'Advogado',
+                '12' => 'Inquilino',
+            ]),
             new SearchFilterDTO('fisicaJuridica', 'Física/Jurídica', 'select', 'p.fisicaJuridica', 'EXACT', [
                 'fisica' => 'Física',
                 'juridica' => 'Jurídica',
@@ -445,6 +458,45 @@ class PessoaController extends AbstractController
         } catch (\Exception $e) {
             return new JsonResponse(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Busca rápida de pessoas para seleção em formulários
+     * GET /pessoa/buscar-rapido?q=TEXTO&tipo=ID_TIPO
+     */
+    #[Route('/buscar-rapido', name: 'buscar_rapido', methods: ['GET'])]
+    public function buscarRapido(Request $request, PessoaRepository $pessoaRepository): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        $tipo = $request->query->getInt('tipo');
+
+        if (strlen($q) < 2) {
+            return $this->json([]);
+        }
+
+        $qb = $pessoaRepository->createQueryBuilder('p')
+            ->select('p.idpessoa, p.nome, p.fisicaJuridica, p.status')
+            ->orderBy('p.nome', 'ASC')
+            ->setMaxResults(25);
+
+        if (is_numeric($q)) {
+            $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->like('p.nome', ':q'),
+                $qb->expr()->eq('p.idpessoa', ':pessoaId')
+            ))
+            ->setParameter('q', '%' . $q . '%')
+            ->setParameter('pessoaId', (int) $q);
+        } else {
+            $qb->andWhere('p.nome LIKE :q')
+               ->setParameter('q', '%' . $q . '%');
+        }
+
+        if ($tipo > 0) {
+            $qb->join('App\Entity\PessoasTipos', 'pt', 'WITH', 'pt.idPessoa = p.idpessoa AND pt.idTipoPessoa = :tipo')
+               ->setParameter('tipo', $tipo);
+        }
+
+        return $this->json($qb->getQuery()->getArrayResult());
     }
 
     #[Route('/buscar-cep', name: 'buscar_cep', methods: ['POST'])]

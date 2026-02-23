@@ -277,12 +277,119 @@ function initDescricaoAutomatica() {
     atualizarDescricao();
 }
 
+/**
+ * Busca e seleção de pessoa vinculada ao lançamento
+ */
+function initBuscaPessoa() {
+    const btnBuscar = document.getElementById('btn-buscar-pessoa');
+    const inputTexto = document.getElementById('busca-pessoa-texto');
+    const selectTipo = document.getElementById('busca-pessoa-tipo');
+    const resultadosDiv = document.getElementById('busca-resultados');
+    const listaResultados = document.getElementById('lista-resultados');
+    const pessoaSelecionada = document.getElementById('pessoa-selecionada');
+    const buscaInterface = document.getElementById('busca-pessoa-interface');
+    const pessoaNomeDisplay = document.getElementById('pessoa-nome-display');
+    const pessoaIdBadge = document.getElementById('pessoa-id-badge');
+    const inquilinoId = document.getElementById('inquilino-id');
+    const btnRemover = document.getElementById('btn-remover-pessoa');
+
+    if (!btnBuscar) return;
+
+    async function buscarPessoas() {
+        const q = inputTexto.value.trim();
+        if (q.length < 2) {
+            exibirToast('Digite pelo menos 2 caracteres para buscar', 'warning');
+            return;
+        }
+
+        const tipo = selectTipo.value;
+        const params = new URLSearchParams({ q });
+        if (tipo) params.append('tipo', tipo);
+
+        btnBuscar.disabled = true;
+        btnBuscar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+
+        try {
+            const url = (window.LANCAMENTO_ROUTES && window.LANCAMENTO_ROUTES.buscarPessoa)
+                ? window.LANCAMENTO_ROUTES.buscarPessoa + '?' + params
+                : '/pessoa/buscar-rapido?' + params;
+
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const pessoas = await response.json();
+
+            listaResultados.innerHTML = '';
+
+            if (pessoas.length === 0) {
+                listaResultados.innerHTML = '<div class="list-group-item text-muted py-2"><i class="fas fa-search me-1"></i>Nenhuma pessoa encontrada</div>';
+            } else {
+                pessoas.forEach(p => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2';
+                    item.innerHTML = `
+                        <div>
+                            <strong>${p.nome}</strong>
+                            <small class="text-muted ms-2">${p.fisicaJuridica === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'}</small>
+                        </div>
+                        <span class="badge bg-secondary">#${p.idpessoa}</span>
+                    `;
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        selecionarPessoa(p);
+                    });
+                    listaResultados.appendChild(item);
+                });
+            }
+
+            resultadosDiv.style.display = '';
+        } catch (error) {
+            exibirToast('Erro ao buscar pessoas', 'danger');
+        } finally {
+            btnBuscar.disabled = false;
+            btnBuscar.innerHTML = '<i class="fas fa-search"></i> Buscar';
+        }
+    }
+
+    function selecionarPessoa(pessoa) {
+        inquilinoId.value = pessoa.idpessoa;
+        if (pessoaNomeDisplay) pessoaNomeDisplay.textContent = pessoa.nome;
+        if (pessoaIdBadge) pessoaIdBadge.textContent = '#' + pessoa.idpessoa;
+
+        pessoaSelecionada.style.display = '';
+        buscaInterface.style.display = 'none';
+        resultadosDiv.style.display = 'none';
+    }
+
+    if (btnRemover) {
+        btnRemover.addEventListener('click', () => {
+            inquilinoId.value = '';
+            pessoaSelecionada.style.display = 'none';
+            buscaInterface.style.display = '';
+            inputTexto.value = '';
+            listaResultados.innerHTML = '';
+            resultadosDiv.style.display = 'none';
+        });
+    }
+
+    btnBuscar.addEventListener('click', buscarPessoas);
+
+    inputTexto.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarPessoas();
+        }
+    });
+}
+
 // Inicialização quando DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Inicializando módulo Formulário Financeiro');
 
     initFormulario();
     initDescricaoAutomatica();
+    initBuscaPessoa();
 
     console.log('Módulo Formulário Financeiro inicializado');
 });

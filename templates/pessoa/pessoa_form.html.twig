@@ -14,7 +14,25 @@
     
     <div class="row">
         <div class="col-12">
-            <h1><i class="fas fa-users"></i> Gestão de Pessoa</h1>
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-users"></i> Gestão de Pessoa</h1>
+                {% if isEditMode and pessoa is defined %}
+                <div>
+                    <a href="{{ path('app_financeiro_index', {'inquilino': pessoa.nome}) }}" class="btn btn-success" target="_blank">
+                        <i class="fas fa-dollar-sign"></i> Financeiro
+                    </a>
+                    <a href="{{ path('app_contrato_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-info" target="_blank">
+                        <i class="fas fa-file-contract"></i> Contratos
+                    </a>
+                    <a href="{{ path('app_boleto_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-barcode"></i> Boletos
+                    </a>
+                    <a href="{{ path('app_imovel_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-secondary" target="_blank">
+                        <i class="fas fa-building"></i> Imóveis
+                    </a>
+                </div>
+                {% endif %}
+            </div>
 
             <!-- Interface de Busca Inteligente -->
             <div class="card mb-4" id="search-interface" {% if isEditMode %}style="display: none;"{% endif %}>

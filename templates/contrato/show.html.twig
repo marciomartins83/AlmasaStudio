@@ -66,17 +66,17 @@
                     </div>
                 </div>
 
-                {# Dados das Partes #}
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0"><i class="fas fa-users"></i> Partes Envolvidas</h5>
-                        </div>
-                        <div class="card-body">
-                            <p><strong>Locatário:</strong><br>{{ contrato.locatario_nome|default('Não informado') }}</p>
-                            <p class="mb-0"><strong>Fiador:</strong><br>{{ contrato.fiador_nome|default('Sem fiador') }}</p>
-                        </div>
-                    </div>
+                {# Dados das Partes - Painéis individuais #}
+                <div class="col-12 mb-4">
+                    {% if contrato.proprietario_dados %}
+                        {% include '_partials/pessoa_panel.html.twig' with {'pessoa': contrato.proprietario_dados, 'papel': 'Proprietario', 'cor': 'dark'} %}
+                    {% endif %}
+                    {% if contrato.locatario_dados %}
+                        {% include '_partials/pessoa_panel.html.twig' with {'pessoa': contrato.locatario_dados, 'papel': 'Inquilino / Locatario', 'cor': 'success'} %}
+                    {% endif %}
+                    {% if contrato.fiador_dados %}
+                        {% include '_partials/pessoa_panel.html.twig' with {'pessoa': contrato.fiador_dados, 'papel': 'Fiador', 'cor': 'warning'} %}
+                    {% endif %}
                 </div>
 
                 {# Valores #}
