@@ -9,15 +9,16 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.2 |
+| **Versao Atual** | 6.20.3 |
 | **Data Ultima Atualizacao** | 2026-02-22 |
-| **Status Geral** | Em producao — Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo |
+| **Status Geral** | Em producao — Thin Controller (12/14), CRUD orfao PessoaFiador removido, banco migrado para PostgreSQL local VPS |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
+| **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Deploy v6.20.2 na VPS + refatorar 4 Pessoa*Controllers (próxima fase) |
-| **Issue Aberta** | #1 RESOLVIDA - Conjugue na busca. #2 NOVO: 4 Pessoa*Controllers Thin Controller pendente |
+| **Proxima Tarefa** | Refatorar 2 Pessoa*Controllers restantes (PessoaController, PessoaCorretorController) |
+| **Issue Aberta** | #2: 2 Pessoa*Controllers Thin Controller pendente (PessoaController, PessoaLocadorController ja OK) |
 | **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
@@ -78,6 +79,7 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
+| 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
 | 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
 | 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
 
@@ -776,7 +778,7 @@ php bin/console doctrine:schema:update --dump-sql
 **Pré-requisitos obrigatórios:**
 1. Tabelas de parâmetros populadas (tipos_pessoas, tipos_documentos, tipos_telefones, etc.)
 2. Dump MySQL em `bkpBancoFormatoAntigo/bkpjpw_20260220_121003.sql`
-3. PostgreSQL acessível (Neon Cloud)
+3. PostgreSQL acessível (local na VPS)
 
 **Cadeia de dependência respeitada:**
 ```
@@ -1133,11 +1135,22 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 #### Corrigido
 - **Issue #1: Conjugue não carregava na busca avançada** — Implementado `buscarConjugePessoa()` completo, retorna dados via `relacionamentos_familiares`
 - **10 Controllers Thin Controller refatorados** — Movido persist/flush/remove para Services (8 Tipo* + ContratoController + GenericTipoService base)
-- **64 registros de teste removidos do Neon** — Estados, cidades, bairros, pessoas, documentos (limpeza completa de E2E test data)
+- **64 registros de teste removidos do banco** — Estados, cidades, bairros, pessoas, documentos (limpeza completa de E2E test data)
+
+### [6.20.3] - 2026-02-22
+
+#### Removido
+- **CRUD orfao PessoaFiador eliminado** — Controller, Service, Form, Repository, templates, JS e testes deletados. Nunca tinha entrada no dashboard. Entity PessoasFiadores preservada (288 registros).
+- **6 arquivos .md de planejamento** — Violavam Regra 4
+
+#### Alterado
+- **Banco de dados migrado de Neon Cloud para PostgreSQL local na VPS** — pg_dump do Neon (14 MB), pg_restore na VPS, DATABASE_URL atualizado para localhost
+- **PessoaCorretorController e PessoaLocadorController refatorados** — Thin Controller via PessoaCorretorService e PessoaLocadorService
+- **GenericTipoService expandido** — 7 novos metodos de criacao de tipos
+- **Permissoes VPS corrigidas** — chown www-data, chmod 644/755 em todo o projeto
 
 #### Pendente (Próxima Fase)
-- 4 Pessoa*Controllers ainda violam Thin Controller (PessoaController, PessoaCorretorController, PessoaFiadorController, PessoaLocadorController)
-- Maior complexidade — requer planejamento especializado de Services
+- 2 Pessoa*Controllers ainda violam Thin Controller (PessoaController, PessoaCorretorController)
 
 ---
 
@@ -1452,7 +1465,7 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 #### Adicionado
 - Deploy em produção: https://www.liviago.com.br/almasa
 - Config Nginx subfolder /almasa (deploy/nginx-almasa.conf)
-- Banco PostgreSQL Neon Cloud funcional em produção
+- Banco PostgreSQL local na VPS (migrado do Neon Cloud em 2026-02-22)
 - MetodologiaAPI v1.1.0 criada e deployada em /apiCode
 - API coercitiva que injeta regras no CLAUDE.md dos projetos
 
