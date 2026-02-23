@@ -8,6 +8,7 @@ use App\Entity\PessoasCorretores;
 use App\Form\PessoaCorretorType;
 use App\Repository\PessoaCorretorRepository;
 use App\Service\PaginationService;
+use App\Service\PessoaCorretorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,13 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/pessoa-corretor', name: 'app_pessoa_corretor_')]
 class PessoaCorretorController extends AbstractController
 {
+    private PessoaCorretorService $pessoaCorretorService;
+
+    public function __construct(PessoaCorretorService $pessoaCorretorService)
+    {
+        $this->pessoaCorretorService = $pessoaCorretorService;
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(PessoaCorretorRepository $pessoaCorretorRepository, PaginationService $paginator, Request $request): Response
     {
@@ -51,8 +59,7 @@ class PessoaCorretorController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($pessoaCorretor);
-            $entityManager->flush();
+            $this->pessoaCorretorService->criar($pessoaCorretor);
 
             $this->addFlash('success', 'Pessoa Corretor criada com sucesso!');
             return $this->redirectToRoute('app_pessoa_corretor_index');
@@ -79,7 +86,7 @@ class PessoaCorretorController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+            $this->pessoaCorretorService->atualizar();
             $this->addFlash('success', 'Pessoa Corretor atualizada com sucesso!');
             return $this->redirectToRoute('app_pessoa_corretor_index');
         }
@@ -91,11 +98,10 @@ class PessoaCorretorController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, PessoasCorretores $pessoaCorretor, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, PessoasCorretores $pessoaCorretor): Response
     {
         if ($this->isCsrfTokenValid('delete' . $pessoaCorretor->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($pessoaCorretor);
-            $entityManager->flush();
+            $this->pessoaCorretorService->deletar($pessoaCorretor);
             $this->addFlash('success', 'Pessoa Corretor excluída com sucesso!');
         }
 

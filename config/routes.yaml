@@ -185,24 +185,6 @@ app_email_index:
     controller: App\Controller\EmailController::index
     methods: [GET]
 
-# Rotas para Fiadores
-app_pessoa_fiador_index:
-    path: /pessoa-fiador/
-    controller: App\Controller\PessoaFiadorController::index
-    methods: [GET]
-
-app_pessoa_fiador_search_conjuge:
-    path: /pessoa-fiador/search-conjuge
-    controller: App\Controller\PessoaFiadorController::searchConjuge
-    methods: [POST]
-    options:
-        expose: true
-
-app_pessoa_fiador_buscar_cep:
-    path: /pessoa-fiador/buscar-cep
-    controller: App\Controller\PessoaFiadorController::buscarCep
-    methods: [POST]
-
 # Rotas para Locadores
 app_pessoa_locador_index:
     path: /pessoa-locador/

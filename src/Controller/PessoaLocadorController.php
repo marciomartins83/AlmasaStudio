@@ -8,6 +8,7 @@ use App\Entity\PessoasLocadores;
 use App\Form\PessoaLocadorType;
 use App\Repository\PessoaLocadorRepository;
 use App\Service\PaginationService;
+use App\Service\PessoaLocadorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,13 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/pessoa-locador', name: 'app_pessoa_locador_')]
 class PessoaLocadorController extends AbstractController
 {
+    private PessoaLocadorService $pessoaLocadorService;
+
+    public function __construct(PessoaLocadorService $pessoaLocadorService)
+    {
+        $this->pessoaLocadorService = $pessoaLocadorService;
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(PessoaLocadorRepository $pessoaLocadorRepository, PaginationService $paginator, Request $request): Response
     {
@@ -51,8 +59,7 @@ class PessoaLocadorController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($pessoaLocador);
-            $entityManager->flush();
+            $this->pessoaLocadorService->criar($pessoaLocador);
 
             $this->addFlash('success', 'Pessoa Locador criada com sucesso!');
             return $this->redirectToRoute('app_pessoa_locador_index');
@@ -79,7 +86,7 @@ class PessoaLocadorController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+            $this->pessoaLocadorService->atualizar();
             $this->addFlash('success', 'Pessoa Locador atualizada com sucesso!');
             return $this->redirectToRoute('app_pessoa_locador_index');
         }
@@ -91,11 +98,10 @@ class PessoaLocadorController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, PessoasLocadores $pessoaLocador, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, PessoasLocadores $pessoaLocador): Response
     {
         if ($this->isCsrfTokenValid('delete' . $pessoaLocador->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($pessoaLocador);
-            $entityManager->flush();
+            $this->pessoaLocadorService->deletar($pessoaLocador);
             $this->addFlash('success', 'Pessoa Locador excluída com sucesso!');
         }
 
