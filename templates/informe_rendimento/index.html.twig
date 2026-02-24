@@ -514,5 +514,5 @@
         dimobGerar: '{{ path("app_informe_rendimento_dimob_gerar") }}'
     };
 </script>
-<script src="{{ asset('build/js/informe_rendimento/informe_rendimento.js') }}" type="module"></script>
+{{ encore_entry_script_tags('js/informe_rendimento/informe_rendimento') }}
 {% endblock %}
