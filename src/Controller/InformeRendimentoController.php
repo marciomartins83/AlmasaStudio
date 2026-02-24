@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Service\InformeRendimentoService;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -173,16 +175,32 @@ class InformeRendimentoController extends AbstractController
                 $dados = $this->informeService->gerarDadosPdfModelo1($ano, $idProprietario, $abaterTaxa);
             }
 
-            // Renderizar template de impressão
-            return $this->render('informe_rendimento/impressao.html.twig', [
+            $html = $this->renderView('informe_rendimento/impressao.html.twig', [
                 'ano' => $ano,
                 'modelo' => $modelo,
                 'dados' => $dados,
-                'abaterTaxa' => $abaterTaxa
+                'abaterTaxa' => $abaterTaxa,
+            ]);
+
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', false);
+            $options->set('defaultFont', 'DejaVu Sans');
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = sprintf('informe-rendimento-%d-modelo%d.pdf', $ano, $modelo);
+
+            return new Response($dompdf->output(), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
             ]);
 
         } catch (\Exception $e) {
-            $this->addFlash('error', 'Erro ao gerar impressão: ' . $e->getMessage());
+            $this->addFlash('error', 'Erro ao gerar PDF: ' . $e->getMessage());
             return $this->redirectToRoute('app_informe_rendimento_index');
         }
     }

@@ -317,35 +317,37 @@ class LancamentosRepository extends ServiceEntityRepository
     ): array {
         $conn = $this->getEntityManager()->getConnection();
 
+        // Usa COALESCE para que registros sem id_conta (maioria) usem a conta 'Aluguel' (entra_informe=true)
         $sql = "SELECT
-                    l.id_proprietario,
-                    l.id_imovel,
-                    l.id_inquilino,
-                    l.id_plano_conta,
-                    SUBSTRING(l.competencia, 6, 2)::integer as mes,
-                    SUM(CASE WHEN l.tipo = 'receber' THEN l.valor ELSE -l.valor END) as total
-                FROM lancamentos l
-                INNER JOIN plano_contas pc ON pc.id = l.id_plano_conta
-                WHERE SUBSTRING(l.competencia, 1, 4) = :ano
-                  AND pc.entra_informe = true
-                  AND l.id_proprietario IS NOT NULL
-                  AND l.id_imovel IS NOT NULL
-                  AND l.id_inquilino IS NOT NULL";
+                    lf.id_proprietario,
+                    lf.id_imovel,
+                    lf.id_inquilino,
+                    COALESCE(lf.id_conta, (SELECT id FROM plano_contas WHERE entra_informe = true AND descricao = 'Aluguel' LIMIT 1)) as id_plano_conta,
+                    EXTRACT(MONTH FROM lf.competencia)::integer as mes,
+                    SUM(lf.valor_total::numeric) as total
+                FROM lancamentos_financeiros lf
+                WHERE EXTRACT(YEAR FROM lf.competencia) = :ano
+                  AND lf.tipo_lancamento = 'aluguel'
+                  AND lf.id_proprietario IS NOT NULL
+                  AND lf.id_imovel IS NOT NULL
+                  AND lf.id_inquilino IS NOT NULL";
 
-        $params = ['ano' => (string) $ano];
+        $params = ['ano' => $ano];
 
         if ($proprietarioInicial !== null) {
-            $sql .= " AND l.id_proprietario >= :propInicial";
+            $sql .= " AND lf.id_proprietario >= :propInicial";
             $params['propInicial'] = $proprietarioInicial;
         }
 
         if ($proprietarioFinal !== null) {
-            $sql .= " AND l.id_proprietario <= :propFinal";
+            $sql .= " AND lf.id_proprietario <= :propFinal";
             $params['propFinal'] = $proprietarioFinal;
         }
 
-        $sql .= " GROUP BY l.id_proprietario, l.id_imovel, l.id_inquilino, l.id_plano_conta, SUBSTRING(l.competencia, 6, 2)
-                  ORDER BY l.id_proprietario ASC, l.id_imovel ASC, l.id_inquilino ASC";
+        $sql .= " GROUP BY lf.id_proprietario, lf.id_imovel, lf.id_inquilino,
+                            COALESCE(lf.id_conta, (SELECT id FROM plano_contas WHERE entra_informe = true AND descricao = 'Aluguel' LIMIT 1)),
+                            EXTRACT(MONTH FROM lf.competencia)
+                  ORDER BY lf.id_proprietario ASC, lf.id_imovel ASC, lf.id_inquilino ASC";
 
         return $conn->executeQuery($sql, $params)->fetchAllAssociative();
     }
@@ -413,9 +415,12 @@ class LancamentosRepository extends ServiceEntityRepository
     public function findAnosComLancamentos(): array
     {
         $conn = $this->getEntityManager()->getConnection();
-        $sql = "SELECT DISTINCT SUBSTRING(competencia, 1, 4)::integer as ano
-                FROM lancamentos
+        $sql = "SELECT DISTINCT EXTRACT(YEAR FROM competencia)::integer as ano
+                FROM lancamentos_financeiros
                 WHERE competencia IS NOT NULL
+                  AND id_proprietario IS NOT NULL
+                  AND id_imovel IS NOT NULL
+                  AND id_inquilino IS NOT NULL
                 ORDER BY ano DESC";
 
         $result = $conn->executeQuery($sql)->fetchAllAssociative();
