@@ -55,17 +55,25 @@ class ContactController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Tipo de telefone não encontrado.'], 404);
         }
 
-        $telefone = new Telefones();
-        $telefone->setNumero($data['numero']);
-        $telefone->setTipo($tipoTelefone);
-        $em->persist($telefone);
-        $em->flush();
+        $em->beginTransaction();
+        try {
+            $telefone = new Telefones();
+            $telefone->setNumero($data['numero']);
+            $telefone->setTipo($tipoTelefone);
+            $em->persist($telefone);
+            $em->flush();
 
-        $vinculo = new PessoasTelefones();
-        $vinculo->setIdPessoa($pessoaId);
-        $vinculo->setIdTelefone($telefone->getId());
-        $em->persist($vinculo);
-        $em->flush();
+            $vinculo = new PessoasTelefones();
+            $vinculo->setIdPessoa($pessoaId);
+            $vinculo->setIdTelefone($telefone->getId());
+            $em->persist($vinculo);
+            $em->flush();
+
+            $em->commit();
+        } catch (\Exception $e) {
+            $em->rollback();
+            return new JsonResponse(['success' => false, 'message' => 'Erro ao salvar telefone.'], 500);
+        }
 
         return new JsonResponse(['success' => true, 'id' => $telefone->getId()]);
     }
@@ -91,17 +99,25 @@ class ContactController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Tipo de email não encontrado.'], 404);
         }
 
-        $email = new Emails();
-        $email->setEmail($data['email']);
-        $email->setTipo($tipoEmail);
-        $em->persist($email);
-        $em->flush();
+        $em->beginTransaction();
+        try {
+            $email = new Emails();
+            $email->setEmail($data['email']);
+            $email->setTipo($tipoEmail);
+            $em->persist($email);
+            $em->flush();
 
-        $vinculo = new PessoasEmails();
-        $vinculo->setIdPessoa($pessoaId);
-        $vinculo->setIdEmail($email->getId());
-        $em->persist($vinculo);
-        $em->flush();
+            $vinculo = new PessoasEmails();
+            $vinculo->setIdPessoa($pessoaId);
+            $vinculo->setIdEmail($email->getId());
+            $em->persist($vinculo);
+            $em->flush();
+
+            $em->commit();
+        } catch (\Exception $e) {
+            $em->rollback();
+            return new JsonResponse(['success' => false, 'message' => 'Erro ao salvar email.'], 500);
+        }
 
         return new JsonResponse(['success' => true, 'id' => $email->getId()]);
     }
@@ -133,6 +149,9 @@ class ContactController extends AbstractController
         }
         if (!$tipoEndereco) {
             $tipoEndereco = $em->getRepository(TiposEnderecos::class)->find(1);
+        }
+        if (!$tipoEndereco) {
+            return new JsonResponse(['success' => false, 'message' => 'Tipo de endereço não encontrado.'], 422);
         }
 
         $endereco = new Enderecos();
