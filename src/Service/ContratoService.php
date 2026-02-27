@@ -99,7 +99,7 @@ class ContratoService
             );
 
             if ($contratoVigente) {
-                throw new \Exception('Já existe um contrato vigente para este imóvel.');
+                throw new \RuntimeException('Já existe um contrato vigente para este imóvel.');
             }
 
             // Preencher dados do contrato
@@ -107,7 +107,7 @@ class ContratoService
 
             // Validar datas
             if ($contrato->getDataFim() && $contrato->getDataFim() <= $contrato->getDataInicio()) {
-                throw new \Exception('A data de fim deve ser posterior à data de início.');
+                throw new \RuntimeException('A data de fim deve ser posterior à data de início.');
             }
 
             // Calcular data do próximo reajuste se não informada
@@ -160,7 +160,7 @@ class ContratoService
 
             // Validar datas
             if ($contrato->getDataFim() && $contrato->getDataFim() <= $contrato->getDataInicio()) {
-                throw new \Exception('A data de fim deve ser posterior à data de início.');
+                throw new \RuntimeException('A data de fim deve ser posterior à data de início.');
             }
 
             $this->entityManager->flush();
@@ -196,11 +196,11 @@ class ContratoService
             $contrato = $this->contratosRepository->find($contratoId);
 
             if (!$contrato) {
-                throw new \Exception('Contrato não encontrado.');
+                throw new \RuntimeException('Contrato não encontrado.');
             }
 
             if ($contrato->getStatus() !== 'ativo') {
-                throw new \Exception('Apenas contratos ativos podem ser encerrados.');
+                throw new \RuntimeException('Apenas contratos ativos podem ser encerrados.');
             }
 
             $contrato->setStatus('encerrado');
@@ -246,7 +246,7 @@ class ContratoService
             $contratoAntigo = $this->contratosRepository->find($contratoAntigoId);
 
             if (!$contratoAntigo) {
-                throw new \Exception('Contrato original não encontrado.');
+                throw new \RuntimeException('Contrato original não encontrado.');
             }
 
             // Encerrar contrato antigo
@@ -447,16 +447,24 @@ class ContratoService
         }
 
         if (isset($dados['data_inicio'])) {
-            $dataInicio = $dados['data_inicio'] instanceof \DateTimeInterface
-                ? $dados['data_inicio']
-                : new \DateTime($dados['data_inicio']);
+            try {
+                $dataInicio = $dados['data_inicio'] instanceof \DateTimeInterface
+                    ? $dados['data_inicio']
+                    : new \DateTime($dados['data_inicio']);
+            } catch (\Exception $e) {
+                throw new \RuntimeException('Data de inicio invalida.');
+            }
             $contrato->setDataInicio($dataInicio);
         }
 
         if (isset($dados['data_fim'])) {
-            $dataFim = $dados['data_fim'] instanceof \DateTimeInterface
-                ? $dados['data_fim']
-                : new \DateTime($dados['data_fim']);
+            try {
+                $dataFim = $dados['data_fim'] instanceof \DateTimeInterface
+                    ? $dados['data_fim']
+                    : new \DateTime($dados['data_fim']);
+            } catch (\Exception $e) {
+                throw new \RuntimeException('Data de fim invalida.');
+            }
             $contrato->setDataFim($dataFim);
         }
 
@@ -498,9 +506,13 @@ class ContratoService
         }
 
         if (isset($dados['data_proximo_reajuste'])) {
-            $dataReajuste = $dados['data_proximo_reajuste'] instanceof \DateTimeInterface
-                ? $dados['data_proximo_reajuste']
-                : new \DateTime($dados['data_proximo_reajuste']);
+            try {
+                $dataReajuste = $dados['data_proximo_reajuste'] instanceof \DateTimeInterface
+                    ? $dados['data_proximo_reajuste']
+                    : new \DateTime($dados['data_proximo_reajuste']);
+            } catch (\Exception $e) {
+                throw new \RuntimeException('Data de proximo reajuste invalida.');
+            }
             $contrato->setDataProximoReajuste($dataReajuste);
         }
 
@@ -512,17 +524,11 @@ class ContratoService
             $contrato->setCarenciaDias((int) $dados['carencia_dias']);
         }
 
-        if (isset($dados['gera_boleto'])) {
-            $contrato->setGeraBoleto((bool) $dados['gera_boleto']);
-        }
+        $contrato->setGeraBoleto(!empty($dados['gera_boleto']));
 
-        if (isset($dados['envia_email'])) {
-            $contrato->setEnviaEmail((bool) $dados['envia_email']);
-        }
+        $contrato->setEnviaEmail(!empty($dados['envia_email']));
 
-        if (isset($dados['ativo'])) {
-            $contrato->setAtivo((bool) $dados['ativo']);
-        }
+        $contrato->setAtivo(!empty($dados['ativo']));
     }
 
     /**
