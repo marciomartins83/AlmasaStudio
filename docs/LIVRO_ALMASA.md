@@ -1235,6 +1235,14 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 - **ContactController — transacoes atomicas:** `addTelefone` e `addEmail` agora usam `beginTransaction/commit/rollback` para evitar registros orfaos em caso de falha no segundo `flush()`.
 - **ContactController — guard tipoEndereco:** Fallback para id=1 agora tem validacao final; retorna 422 se tipo nao encontrado em vez de estourar `flush()` com null em coluna obrigatoria.
 
+#### Validado (Rodada 4 — Consistencia de Dados)
+- **Report baseado no dump Neon antigo — banco de producao atual OK:**
+  - 389 contratos fiador sem id_pessoa_fiador → **0 no banco atual** (corrigido pela migracao v5.0)
+  - 3236/3236 imoveis com proprietario OK
+  - id_contrato NULL em lancamentos → **esperado** (legado JPW vincula por id_imovel, nao contrato)
+  - boletos/contratos_cobrancas vazias → **esperado** (funcionalidade futura Santander)
+  - 11 inquilinos orfaos → dados reais do sistema legado, nao bug de migracao
+
 ### [6.20.8] - 2026-02-27
 
 #### Corrigido
