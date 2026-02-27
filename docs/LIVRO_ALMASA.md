@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.6 |
+| **Versao Atual** | 6.20.9 |
 | **Data Ultima Atualizacao** | 2026-02-27 |
-| **Status Geral** | Em producao — Migracao v5.0 validada (0 duplicatas, 0 locatarios sem endereco), Thin Controller (12/14) |
+| **Status Geral** | Em producao — Migracao v5.0 validada, 3 rodadas code review Symfony corrigidas, Thin Controller (12/14) |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
@@ -1228,6 +1228,26 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
 
 ---
+
+### [6.20.9] - 2026-02-27
+
+#### Corrigido
+- **ContactController — transacoes atomicas:** `addTelefone` e `addEmail` agora usam `beginTransaction/commit/rollback` para evitar registros orfaos em caso de falha no segundo `flush()`.
+- **ContactController — guard tipoEndereco:** Fallback para id=1 agora tem validacao final; retorna 422 se tipo nao encontrado em vez de estourar `flush()` com null em coluna obrigatoria.
+
+### [6.20.8] - 2026-02-27
+
+#### Corrigido
+- **ContactController reescrito (API entidades incompativeis):** Todos os 5 endpoints POST (`/telefone`, `/email`, `/endereco`, `/conta`, `/pix`) chamavam metodos inexistentes. Telefone/Email agora criam registro base + junction. Endereco usa objetos Doctrine (`setPessoa`, `setLogradouro`, `setTipo`, `setEndNumero`). ContaBancaria recebe entidades (nao ints). ChavesPix usa nomes corretos (`setIdTipoChave`, `setChavePix`).
+- **ContratoService checkboxes:** `gera_boleto`, `envia_email`, `ativo` agora gravam `false` quando desmarcados (trocado `isset()` por `!empty()`).
+
+### [6.20.7] - 2026-02-27
+
+#### Corrigido
+- **Templates pessoa_corretor/edit e _delete_form:** Continham codigo PHP de controller em vez de Twig. Reescritos com templates validos.
+- **Templates email/show e pessoa_corretor/show:** Usavam `block body` (correto: `block content`). Conteudo nao aparecia na pagina.
+- **email.idTipo e pessoa_corretor.idPessoa:** Campos inexistentes nas entidades. Corrigidos para `email.tipo.tipo` e `pessoa_corretor.pessoa.nome`.
+- **PessoaCorretorType e PessoaLocadorType:** Campo obrigatorio `pessoa` (EntityType) adicionado aos formularios. Sem ele, `flush()` falhava com constraint violation.
 
 ### [6.20.6] - 2026-02-27
 
