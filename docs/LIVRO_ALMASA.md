@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.4 |
-| **Data Ultima Atualizacao** | 2026-02-23 |
-| **Status Geral** | Em producao — Thin Controller (12/14), RelatorioService migrado de Lancamentos para LancamentosFinanceiros (tabela real com 506k+ registros) |
+| **Versao Atual** | 6.20.6 |
+| **Data Ultima Atualizacao** | 2026-02-27 |
+| **Status Geral** | Em producao — Migracao v5.0 validada (0 duplicatas, 0 locatarios sem endereco), Thin Controller (12/14) |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
@@ -19,7 +19,7 @@
 | **Mantenedor** | Marcio Martins |
 | **Proxima Tarefa** | Refatorar 2 Pessoa*Controllers restantes (PessoaController, PessoaCorretorController) |
 | **Issue Aberta** | #2: 2 Pessoa*Controllers Thin Controller pendente (PessoaController, PessoaLocadorController ja OK) |
-| **Migracao MySQL->PostgreSQL** | 702.174 registros, 19 fases, 100% sucesso, 0 erros |
+| **Migracao MySQL->PostgreSQL** | v5.0 — 19 fases, 10 correcoes P0/P1, dedup por CPF/CNPJ, fallback 3-tier endereco, PhaseStats, validacao 100% limpa |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
 
@@ -816,12 +816,12 @@ php bin/console doctrine:schema:update --dump-sql
 
 **NÃO está dentro do AlmasaStudio.** Foi movido para repo próprio em 2026-02-21.
 
-**Versão atual:** v3.2 (2026-02-21) — 19 fases, conjuges, cadeia financeira completa, valores 100%
+**Versao atual:** v4.0 (2026-02-27) — 19 fases + hotfix conjuges, campos completos, re-importacao limpa
 
 **Pré-requisitos obrigatórios:**
 1. Tabelas de parâmetros populadas (tipos_pessoas, tipos_documentos, tipos_telefones, etc.)
-2. Dump MySQL em `bkpBancoFormatoAntigo/bkpjpw_20260220_121003.sql`
-3. PostgreSQL acessível (local na VPS)
+2. Dump MySQL compacto em `bkpBancoFormatoAntigo/bkpjpw_compacto_2025.sql` (36 MB)
+3. PostgreSQL acessível (local na VPS, porta 5432)
 
 **Cadeia de dependência respeitada:**
 ```
@@ -850,10 +850,50 @@ Grupo 9: boletos, prestacoes_contas
 | tipos_documentos | CNPJ | 4 |
 | tipos_telefones | Residencial | 2 |
 | tipos_telefones | Comercial | 3 |
+| tipos_telefones | Fax | 4 |
+| tipos_telefones | Outros | 5 |
 | tipos_telefones | Celular | 6 |
 | tipos_enderecos | Residencial | 1 |
 | tipos_emails | Pessoal | 1 |
 | tipos_imoveis | Casa | 1 |
+
+**Contagem pos-migracao v4.0 (2026-02-27):**
+
+| Tabela | Registros | Observacao |
+|--------|-----------|------------|
+| pessoas | 5.098 | 2498 locadores + 288 fiadores + 3 contratantes + 2132 inquilinos + 176 conjuges + 1 admin |
+| imoveis | 3.236 | |
+| imoveis_contratos | 2.130 | |
+| lancamentos_financeiros | 49.998 | 7573 recibos + 7572 verbas + 42425 CC + extras |
+| telefones | 7.291 | Inclui fax/outros/telcom (v4 novo) |
+| emails | 1.961 | |
+| enderecos | 6.102 | |
+| pessoas_documentos | 5.906 | CPF + RG + CNPJ |
+| pessoas_profissoes | 2.320 | Inclui profissao de locadores (v4 novo) |
+| contas_bancarias | 390 | So locadores tinham no legado |
+| chaves_pix | 22 | |
+| acordos_financeiros | 4 | |
+| prestacoes_contas | 4.038 | |
+
+**Campos adicionados na v4.0 (2026-02-27) — fixes na migracao:**
+
+| Fase | Campo MySQL | Destino PostgreSQL | Status |
+|------|-------------|-------------------|--------|
+| 08 locadores | `naturalidade` | pessoas.naturalidade_id | Adicionado |
+| 08 locadores | `fax`, `outros` | telefones (tipos 4, 5) | Adicionado |
+| 09 fiadores | `nacion` | pessoas.nacionalidade_id | Adicionado |
+| 10 contratantes | `nacion` | pessoas.nacionalidade_id | Adicionado |
+| 13 inquilinos | `telcom`, `fax`, `outros` | telefones (tipos 3, 4, 5) | Adicionado |
+| todas | `nascto` NULL | fallback 1900-01-01 | Adicionado |
+
+**Campos que NAO existem no dump MySQL (limitacao do sistema legado JPW):**
+
+| Campo | loclocadores | locfiadores | loccontratantes | locinquilino |
+|-------|:-----------:|:-----------:|:---------------:|:------------:|
+| Nacionalidade | NAO TEM | nacion | nacion | nacionalidade |
+| Naturalidade | naturalidade | NAO TEM | NAO TEM | NAO TEM |
+| Conta Bancaria | banco/agencia/conta | NAO TEM | NAO TEM | NAO TEM |
+| Conjuge | NAO TEM | COMPLETO (51 cols) | NAO TEM | SO NOME (nomecjg) |
 
 **Bugs corrigidos na v2/v3:**
 - tipos_pessoas estavam INVERTIDOS (locador=1 era fiador, fiador=4 era locador)
@@ -866,13 +906,29 @@ Grupo 9: boletos, prestacoes_contas
 - `pessoas_tipos` vazia — 4.921 registros inseridos
 - Inquilinos sem endereco proprio (2.088) recebem endereco do imovel locado
 
+**Bugs corrigidos na v4.0:**
+- naturalidade_id nunca era preenchido para locadores — corrigido (427 registros)
+- nacionalidade_id nunca era preenchido para fiadores/contratantes/inquilinos — corrigido (2.260 registros)
+- Telefones fax/outros/telcom eram ignorados — agora extraidos como tipos 4/5/3
+- Data nascimento NULL causava erros em validacoes — fallback 1900-01-01
+- Tabelas naturalidades/nacionalidades nao tem coluna `ativo` — INSERT corrigido
+
+**Procedimento de limpeza + reimportacao (cleanup_db.sql):**
+
+O script `cleanup_db.sql` foi criado para limpar o banco preservando o usuario master:
+1. Salva dados do admin (user + pessoa + sub-registros) em tabelas temporarias
+2. TRUNCATE em todas as tabelas de dados num unico statement (evita problemas de FK ordering)
+3. Restaura admin + reseta sequences
+4. NAO toca em tabelas de referencia (tipos_*, estados, cidades, bairros, bancos, agencias, profissoes, etc.)
+
 **Uso:**
 ```bash
-cd scripts/migration
+cd /opt/almasa-migration   # Na VPS
 python3 migrate.py --phase all      # Executa tudo (inclui validacao)
 python3 migrate.py --phase 08       # So locadores
 python3 migrate.py --list           # Ver status das fases
 python3 migrate.py --reset-phase 08 # Desmarca fase para re-executar
+python3 hotfix_conjuges.py          # Conjuges de fiadores/inquilinos
 ```
 
 ---
@@ -1172,6 +1228,42 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
 
 ---
+
+### [6.20.6] - 2026-02-27
+
+#### Alterado
+- **Migracao v5.0 — 10 correcoes obrigatorias aplicadas (correcoesMigrate.md):**
+  - P0.1: Resolver canonico de pessoa (`resolve_or_create_pessoa`) com dedup por CPF/CNPJ/RG+nome+nascimento
+  - P0.2: Vinculo fiador-inquilino corrigido via `locfiador_inq` (nao mais `row.get("fiador")`)
+  - P0.3: Multiplos proprietarios preservados (maior percentual, co-owners em observacoes)
+  - P0.4: Fallback 3-tier para endereco de inquilino (proprio → imovel mapeado → dump MySQL)
+  - P0.5: PhaseStats com contadores e bloqueio de fase com erros criticos
+  - P1.6: Validacao de distribuicao de estado civil (heuristica conjuge vs mapping)
+  - P1.7: Conjuge de fiador com nacionalidade e admissao persistidas
+  - P1.8: Junction de telefones com chave composta (numero, tipo_id)
+  - P1.9: Normalizacao de agencia (remove pontuacao, zero-padding)
+  - Fix extra: `_insert_endereco` defensivo contra int vs string (bug TypeError em re.sub)
+- **Banco re-importado do zero:** Limpeza total + re-execucao no VPS (nao mais via tunnel SSH)
+- **Validacao pos-migracao 100% limpa:** 0 duplicatas CPF/CNPJ, 0 locatarios sem endereco, 0 fiadores sem pessoa, 0 imoveis sem proprietario
+
+#### Corrigido
+- **Bug critico: fallback endereco imovel→inquilino com TypeError** — `end_numero` (INT do PostgreSQL) passado para `re.sub()` que espera string. Causava 2.088 inquilinos sem endereco. Corrigido com cast defensivo.
+- **Tabela nacionalidades sem registro id=1** — Causava FK violation em fases 09 e 13. Inserido "Brasileira" id=1.
+- **Tabela tipos_telefones sem Fax(4) e Outros(5)** — Causava FK violation em fase 13. Inseridos registros faltantes.
+- **id_map com entradas stale apos rollback** — set_mapping gravava no id_map antes do commit, rollback deixava IDs fantasma. Corrigido limpando entries de fases falhadas.
+
+### [6.20.5] - 2026-02-27
+
+#### Alterado
+- **Banco de dados re-importado com dados completos** — Limpeza total (cleanup_db.sql preservando admin) + re-execucao da migracao v4.0 com dump compacto (bkpjpw_compacto_2025.sql)
+- **Migracao v4.0 — 7 fixes em migrate.py:** naturalidade_id para locadores (fase 08), nacionalidade_id para fiadores/contratantes/inquilinos (fases 09/10/13), telefones fax/outros/telcom (fases 08/13), fallback data nascimento 1900-01-01
+
+#### Corrigido
+- **Campos faltantes na migracao:** naturalidade (427 pessoas), nacionalidade (2.260 pessoas), telefones extras (fax/outros/telcom agora extraidos)
+- **INSERT em naturalidades/nacionalidades sem coluna `ativo`** — Tabelas so tem (id, nome), corrigido o INSERT
+- **User duplicado pos-migracao** — Admin id=13 criado pela migracao removido, mantido original id=1
+- **Password PostgreSQL com `!`** — Caracter especial causava falha no psycopg2 DSN, senha resetada sem `!`
+- **phases_done.json como dict `{}`** — Inicializado como lista `[]` para compatibilidade com `.append()`
 
 ### [6.20.2] - 2026-02-22
 
