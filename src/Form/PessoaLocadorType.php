@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\FormasRetirada;
 use App\Entity\PessoasLocadores;
+use App\Entity\Pessoas;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -17,6 +18,14 @@ class PessoaLocadorType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('pessoa', EntityType::class, [
+                'class' => Pessoas::class,
+                'choice_label' => 'nome',
+                'label' => 'Pessoa',
+                'required' => true,
+                'placeholder' => 'Selecione a pessoa...',
+                'attr' => ['class' => 'form-select']
+            ])
             ->add('formaRetirada', EntityType::class, [
                 'class' => FormasRetirada::class,
                 'choice_label' => 'forma',
