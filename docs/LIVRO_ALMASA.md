@@ -9,17 +9,17 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.20.9 |
-| **Data Ultima Atualizacao** | 2026-02-27 |
-| **Status Geral** | Em producao — Migracao v5.0 validada, 3 rodadas code review Symfony corrigidas, Thin Controller (12/14) |
+| **Versao Atual** | 6.23.4 |
+| **Data Ultima Atualizacao** | 2026-03-03 (Fix CSRF login + permissões controllers VPS) |
+| **Status Geral** | Em producao — Login corrigido (CSRF Symfony 7.2), permissões de arquivo corrigidas, todas as páginas operacionais. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
-| **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) |
+| **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via GPT-OSS 20B |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Refatorar 2 Pessoa*Controllers restantes (PessoaController, PessoaCorretorController) |
+| **Proxima Tarefa** | 2 Pessoa*Controllers Thin Controller pendente (PessoaController, PessoaCorretorController) |
 | **Issue Aberta** | #2: 2 Pessoa*Controllers Thin Controller pendente (PessoaController, PessoaLocadorController ja OK) |
-| **Migracao MySQL->PostgreSQL** | v5.0 — 19 fases, 10 correcoes P0/P1, dedup por CPF/CNPJ, fallback 3-tier endereco, PhaseStats, validacao 100% limpa |
+| **Migracao MySQL->PostgreSQL** | v5.2 — 21 fases, Fase 21 = auditoria e autocorreção automática pós-importação, idempotente, falha explicita em inconsistencias criticas |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
 
@@ -115,6 +115,44 @@ Para historico completo das versoes V6.0–V6.4, consulte:
 | **Auth** | Symfony Security Bundle |
 | **PDF** | DomPDF |
 | **Email** | Symfony Mailer |
+
+### Fluxo Operacional do Assistente de IA
+
+**Papel do Assistente (Opus/Sonnet):**
+- **Arquiteto/Planejador:** Define arquitetura, planeja tarefas, coordena implementação
+- **Revisor de Código:** Valida qualidade, identifica problemas, solicita correções
+- **Coordenador:** Delega implementação ao subagente `@agent/kimi`
+
+**Restrições Obrigatórias:**
+| Restrição | Descrição |
+|-----------|-----------|
+| **SEM deploy** | O assistente NÃO realiza deploy em nenhum ambiente (local ou VPS) |
+| **SEM código de produção** | O assistente NÃO escreve código diretamente nos arquivos do projeto |
+| **Planejamento em .md** | Tarefas são planejadas e documentadas em arquivos markdown específicos |
+
+**Ciclo de Trabalho:**
+1. Assistente analisa necessidade e planeja tarefa em arquivo `.md`
+2. Subagente `@agent/kimi` implementa o código conforme instruções do `.md`
+3. Assistente realiza **code review** da implementação
+4. **Se houver problemas:** assistente envia prompt corretivo ao `@agent/kimi` com descrição clara dos ajustes necessários
+5. **Se estiver válido:** assistente cria próxima tarefa ou finaliza o ciclo
+
+**Arquitetura de Responsabilidades:**
+```
+┌─────────────────────────────────────────────┐
+│  ASSISTENTE (Opus/Sonnet)                   │
+│  ├── Planejamento arquitetural              │
+│  ├── Criação de arquivos .md com tarefas    │
+│  ├── Code review (validação de qualidade)   │
+│  ├── Prompts corretivos (quando necessário) │
+│  └── Coordenação do fluxo                   │
+├─────────────────────────────────────────────┤
+│  SUBAGENTE (@agent/kimi)                    │
+│  └── Implementação de código (PHP/JS/Twig)  │
+└─────────────────────────────────────────────┘
+```
+
+> **Nota:** Este fluxo garante separação de responsabilidades — o assistente atua como "cérebro" (planejamento e revisão) enquanto o subagente executa o trabalho bruto de codificação.
 
 ### Padrao Arquitetural: Thin Controller / Fat Service
 
@@ -323,6 +361,21 @@ Uma pessoa pode ter multiplos tipos/papeis simultaneamente:
 **Tabela `pessoas_tipos`:** Registra QUAIS papeis cada pessoa tem (id_pessoa, id_tipo_pessoa, data_inicio, ativo). A UI le dessa tabela para exibir a secao "Tipos de Pessoa". Cada papel tambem tem uma tabela de dados especificos (ex: `pessoas_locadores` com 19 campos financeiros).
 
 **Fluxo:** `PessoaRepository::findTiposComDados()` busca diretamente das tabelas de dados (PessoasLocadores, PessoasFiadores, etc.) e retorna booleanos + objetos. A tabela `pessoas_tipos` e usada como registro auxiliar.
+
+#### Codigo Legado (campo `cod`)
+
+Todas as entidades de pessoas mantem o campo `cod` que preserva o identificador legado do sistema MySQL original:
+
+| Entidade | Campo `cod` | Origem (MySQL) |
+|----------|-------------|----------------|
+| `Pessoas` | `cod` | `locpessoas.codigo` |
+| `PessoasLocadores` | `cod` | `loclocadores.codigo` |
+| `PessoasLocadores` | `flg_proprietario` | Verificacao em `locimovelprop.proprietario` |
+| `PessoasFiadores` | `cod` | `locfiadores.codigo` |
+| `PessoasContratantes` | `cod` | `loccontratantes.codigo` |
+| `PessoasTipos` | `cod` | Mesmo valor da tabela de origem |
+
+O campo `flg_proprietario` (booleano, default `false`) indica se o locador e proprietario de algum imovel cadastrado. Na migracao, este campo e determinado verificando se o codigo do locador existe na tabela `locimovelprop.proprietario`.
 
 ### Entities (14)
 
@@ -913,6 +966,66 @@ Grupo 9: boletos, prestacoes_contas
 - Data nascimento NULL causava erros em validacoes — fallback 1900-01-01
 - Tabelas naturalidades/nacionalidades nao tem coluna `ativo` — INSERT corrigido
 
+**Fase 20: Sincronização de Estado Civil, Nacionalidade e Profissão (v6.23.1):**
+
+A Fase 20 é uma fase de correção pós-importação que garante consistência dos campos `estado_civil_id`, `nacionalidade_id` e profissões para pessoas já migradas:
+
+| Aspecto | Implementação |
+|---------|---------------|
+| **Fontes** | `loclocadores`, `locfiadores`, `loccontratantes`, `locinquilino` |
+| **Resolução pessoa** | StateManager (namespaces existentes) → fallback `pessoas.cod` |
+| **Estado Civil** | Mapeia via `cfg.ESTADO_CIVIL_MAP`, atualiza apenas se NULL, loga conflitos |
+| **Nacionalidade** | Busca `UPPER(nome) = UPPER(%s)` → fallback `ILIKE` → `get_or_create` em `nacionalidades` → atualiza se NULL |
+| **Profissão** | Busca `UPPER(nome) = UPPER(%s)` → fallback `ILIKE` → `get_or_create` em `profissoes` → vincula em `pessoas_profissoes` |
+| **Vínculo existente** | Atualiza `empresa`/`renda` quando NULL e há valor de origem (não duplica) |
+| **Idempotência** | Pode rodar múltiplas vezes sem duplicar dados nem erro |
+| **Relatório** | Contadores separados: pessoas, estado civil, nacionalidades, profissões, conflitos, não encontradas |
+
+Campos processados por fonte:
+- `locfiadores`: `nacion`, `atividade`, `estadocivil`, `renda`, `empresaf`
+- `loccontratantes`: `nacion`, `atividade`, `estadocivil`, `renda`
+- `loclocadores`: `profissao`, `estadocivil`
+- `locinquilino`: `profissao`, `estcivil`, `nacionalidade`
+
+**Correções SQL v6.23.1:**
+- `nacionalidades`: INSERT apenas com `nome` (tabela não possui `ativo`)
+- `pessoas_profissoes`: INSERT sem `created_at` (coluna não existe)
+
+**Fase 21: Auditoria e Autocorreção de Qualidade de Dados Cadastrais (v6.23.2):**
+
+A Fase 21 é uma fase de auditoria e correção automática pós-importação que elimina a necessidade de queries SQL manuais para validação de dados. Executa em pipeline sequencial idempotente:
+
+| Etapa | Descrição | Critério de Sucesso |
+|-------|-----------|---------------------|
+| **A) Higienização** | Trim em `nacionalidades.nome` e `profissoes.nome`; remove registros vazios (NULL/blank) | 0 registros inválidos |
+| **B) Deduplicação Nacionalidades** | Case-insensitive: mantém menor `id`, remapeia FK em `pessoas.nacionalidade_id`, remove duplicatas | 0 duplicatas |
+| **C) Deduplicação Profissões** | Case-insensitive: mantém menor `id`, remapeia FK em `pessoas_profissoes.id_profissao`, remove duplicatas | 0 duplicatas |
+| **D) Deduplicação Vínculos** | Remove duplicatas em `pessoas_profissoes` por `(id_pessoa, id_profissao)` mantendo menor `id` | 0 duplicatas |
+| **E) Backfill por Observações** | Para pessoas sem profissão vinculada, extrai `Profissao: ...` de `pessoas.observacoes`, cria profissão se não existir, vincula sem duplicar | % cobertura logado |
+| **F) Auditoria Final** | Detecta duplicidade, inválidos, órfãos; loga métricas de cobertura por tipo de pessoa | Todos os critérios críticos = 0 |
+
+**Critérios de Falha da Fase 21 (lança exceção, não marca concluída):**
+
+```python
+if duplicados_pessoas_profissoes > 0:        # CRÍTICO → FALHA
+if nacionalidades_invalidas > 0:              # CRÍTICO → FALHA
+if profissoes_invalidas > 0:                  # CRÍTICO → FALHA
+if vinculos_orfaos > 0:                       # CRÍTICO → FALHA
+```
+
+Métricas de cobertura por tipo (1,2,3,4,5,6,7,8,12) são logadas informativamente sem causar falha.
+
+**Integração com execução:**
+- `--phase all`: Inclui Fase 21 automaticamente no final
+- `--phase 21`: Execução individual para reparos pontuais
+- `--reset-phase 21`: Re-executa auditoria após correções manuais
+
+**Robustez:**
+- Idempotente: múltiplas execuções não duplicam dados nem quebram FK
+- Usa transação existente do `writer` (PostgreSQL)
+- Sem SQLs destrutivos sem remapeamento prévio
+- Back compatível com Fases 1-20 já executadas
+
 **Procedimento de limpeza + reimportacao (cleanup_db.sql):**
 
 O script `cleanup_db.sql` foi criado para limpar o banco preservando o usuario master:
@@ -945,6 +1058,33 @@ python3 hotfix_conjuges.py          # Conjuges de fiadores/inquilinos
 **OBRIGATORIO:**
 - Todo JavaScript em arquivos `.js` dedicados em `assets/js/`
 - Organizacao modular por funcionalidade
+
+### Tarefa Ativa — Menu Horizontal no Topo (Planejamento)
+
+**Objetivo:**
+- Manter os cards do dashboard e adicionar um menu horizontal global no topo da tela.
+- Organizar navegacao por categorias, menus e submenus com estrutura intuitiva.
+
+**Escopo da implementacao:**
+- Criar partial Twig para menu superior global reutilizavel.
+- Integrar partial no layout base (`templates/base.html.twig`) sem quebrar dropdown de usuario e toggle de tema.
+- Adicionar suporte visual e responsivo no CSS existente (`public/css/app.css`).
+- Criar JS modular dedicado para submenus no mobile/desktop (`assets/js/`), sem JS inline novo.
+- Preservar funcionamento atual do dashboard por cards (nao remover cards).
+
+**Categorias sugeridas do menu:**
+- Dashboard
+- Pessoas
+- Cadastros
+- Imobiliario
+- Financeiro
+- Relatorios
+
+**Criterios de aceitacao:**
+- Menu visivel e funcional em desktop e mobile.
+- Submenus navegaveis por clique no mobile e hover/click no desktop.
+- Links principais apontando para rotas ja existentes no projeto.
+- Sem regressao no layout base, no login e nas paginas CRUD.
 
 **UNICA EXCECAO — Passar dados do backend para frontend:**
 ```twig
@@ -1013,7 +1153,7 @@ fetch(`/pessoa/telefone/${id}`, {
 - `src/DTO/SortOptionDTO.php` — Define opcoes de ordenacao (campo, label, direcao padrao)
 - `src/Service/PaginationService.php` — Centraliza paginacao, filtragem e ordenacao. Retrocompativel.
 
-**Tipos de filtro suportados:** text, select, date, month, boolean
+**Tipos de filtro suportados:** text, number, select, date, month, boolean
 **Operadores:** LIKE, EXACT, GTE, LTE, IN, BOOL, MONTH_GTE, MONTH_LTE
 
 **Partials Twig:**
@@ -1042,6 +1182,68 @@ Paginacao (total, por pagina, navegacao)
 **CRUDs padronizados (33):** Pessoas, Imoveis, Contratos, Boletos, Lancamentos, FichaFinanceira, PrestacaoContas, ConfiguracaoApiBanco, 11x Tipo*, Estado, Cidade, Bairro, Logradouro, Banco, Agencia, ContaBancaria, EstadoCivil, Nacionalidade, Naturalidade, Email, Telefone, PessoaLocador, PessoaFiador, PessoaCorretor
 
 **CRUDs nao aplicaveis (3):** InformeRendimento (SPA multi-tab), Cobranca (filtros custom), Profissao (controller inexistente)
+
+### Menu de Navegacao Superior (v6.21.1)
+
+**Arquivo:** `templates/_partials/top_navigation.html.twig`
+
+Menu horizontal global exibido abaixo da navbar principal, com acesso rapido a todos os modulos do sistema organizados por categorias.
+
+**Categorias e estrutura:**
+1. **Dashboard** — Painel Principal
+   - Submenu **Endereços**: Gerenciar, Estados, Cidades, Bairros, Logradouros
+   - Submenu **Tipos**: Documento, Conta Bancária, Telefone, Email, Chave PIX, Atendimento, Carteira, Endereço, Imóvel, Pessoa, Remessa, Estado Civil, Nacionalidade, Naturalidade
+2. **Cadastros** — Emails, Telefones
+3. **Pessoas** — Todas as Pessoas (único item, sem CRUDs legados)
+4. **Imobiliario** — Imoveis, Contratos
+5. **Financeiro** — Ficha Financeira, Bancos, Agencias, Contas Bancarias, Boletos, API Bancaria, Informe de Rendimentos
+6. **Relatorios** — Central de Relatorios, Inadimplentes, Despesas, Receitas, Despesas x Receitas, Contas Bancarias, Plano de Contas
+
+**Caracteristicas tecnicas:**
+- Bootstrap 5 Navbar com dropdowns
+- Icones FontAwesome (`fas fa-*`)
+- Dropdown headers para separar secoes (`dropdown-header`)
+- Dividers entre grupos logicos (`dropdown-divider`)
+- Classes customizadas prefixadas com `almasa-*` para estilizacao
+- Responsivo: colapso mobile com toggle hamburger
+- Apenas exibido quando usuario logado (`{% if app.user %}`)
+- Suporte a temas claro/escuro via atributo `data-bs-theme`
+
+**Classes CSS customizadas (app.css):**
+- `.almasa-top-nav` — Container do menu (gradiente Almasa)
+- `.almasa-nav-toggler` — Botao mobile
+- `.almasa-nav-main` — Lista de itens
+- `.almasa-nav-item` — Item individual
+- `.almasa-nav-link` — Link de navegacao
+- `.almasa-dropdown-menu` — Menu dropdown estilizado
+- `.almasa-dropdown-header` — Titulo de secao
+- `.almasa-dropdown-item` — Item do dropdown
+- `.almasa-divider` — Divisor estilizado
+
+### Máscaras de Documentos (v6.22.0)
+
+**Funções utilitárias em `public/js/pessoa/pessoa.js`:**
+
+| Função | Descrição | Exemplo |
+|--------|-----------|---------|
+| `window.formatarCPF(cpf)` | Formata CPF no padrão 000.000.000-00 | `"12345678901"` → `"123.456.789-01"` |
+| `window.formatarRG(rg)` | Formata RG no padrão XX.XXX.XXX-X | `"123456789"` → `"12.345.678-9"` |
+| `window.formatarCNPJ(cnpj)` | Formata CNPJ no padrão 00.000.000/0000-00 | `"12345678000190"` → `"12.345.678/0001-90"` |
+| `window.aplicarMascaraDocumento(input, tipo)` | Aplica máscara baseada no tipo ('cpf'/'rg') | - |
+| `window.detectarTipoDocumentoPorTexto(texto)` | Detecta tipo a partir de texto do select | `"CPF do titular"` → `"cpf"` |
+| `window.aplicarMascaraInputDocumento(input)` | Aplica máscara baseada em data-tipo-documento | - |
+
+**Arquivos com máscaras implementadas:**
+- `pessoa_form.js` — Campos de busca (#searchValue, #additionalDocumentValue)
+- `pessoa_documentos.js` — Documentos dinâmicos da pessoa principal
+- `conjuge_documentos.js` — Documentos dinâmicos do cônjuge
+- `pessoa_conjuge.js` — Busca de cônjuge e exibição formatada
+
+**Comportamento:**
+- Máscara aplicada em tempo real durante digitação
+- Documentos carregados da API são exibidos já formatados
+- Apenas CPF e RG recebem máscara; outros documentos não são alterados
+- Detecção por ID (CPF=1, RG=2) ou por texto do option do select
 
 ---
 
@@ -1075,6 +1277,15 @@ Qualquer divergencia estrutural entre entities e banco deve ser corrigida imedia
 
 ### 7. Banco de Dados e a Fonte da Verdade
 Em caso de divergencia entre entity e tabela PostgreSQL, o banco prevalece.
+
+### 8. CSRF no Symfony 7.2 — SameOriginCsrfTokenManager
+Symfony 7.2 introduziu o `SameOriginCsrfTokenManager` como manager padrão no security listener. Ele valida CSRF por **Origin header** (browsers enviam automaticamente em POST) ou **double-submit cookie** — NÃO por sessão. O `CsrfTokenManagerInterface` do container ainda resolve para o antigo `CsrfTokenManager` (session-based). **NUNCA injetar `CsrfTokenManagerInterface` no SecurityController.** Usar `{{ csrf_token('authenticate') }}` no Twig, que resolve para o manager correto.
+
+### 9. Permissões de Arquivo no Deploy
+Sempre verificar permissões após deploy. PHP-FPM roda como `www-data` e precisa de `644` (leitura) em todos os arquivos PHP. Arquivos com `600` causam 500 silencioso. Comando de verificação: `find /var/www/AlmasaStudio/src -perm 600 | wc -l`.
+
+### 10. Monolog em Produção
+Em `when@prod`, monolog usa `fingers_crossed` → `php://stderr`. Logs vão para o log do PHP-FPM (`/var/log/php8.4-fpm.log`), não para `var/log/`. Para debug temporário, trocar `APP_ENV=dev` e verificar `var/log/dev.log`. **Sempre restaurar `APP_ENV=prod` e `APP_DEBUG=false` após debug.**
 
 ---
 
@@ -1229,6 +1440,129 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
+### [6.23.3] - 2026-03-03
+
+#### Alterado
+- **Campo `cod` visível em edição e visualização de Pessoas**
+  - `PessoaFormType.php`: adicionado campo `cod` (IntegerType, opcional, label 'COD')
+  - `pessoa_form.html.twig`: campo COD renderizado no card "Dados da Pessoa Principal"
+  - `show.html.twig`: linha COD exibida na tabela de dados pessoais (após ID, antes de Nome)
+
+---
+
+### [6.23.2] - 2026-03-03
+
+#### Adicionado
+- **Fase 21 de Migração: Auditoria e Autocorreção Automática de Qualidade**
+  - Classe `Phase21AuditAndRepairCadastroQualidade` em `migrate.py`
+  - Pipeline sequencial idempotente: higienização → deduplicação → backfill → auditoria
+  - **A) Higienização:** trim em nomes, remove registros vazios (NULL/blank)
+  - **B) Deduplicação:** case-insensitive em `nacionalidades` e `profissoes`, mantém menor id, remapeia FKs
+  - **C) Deduplicação vínculos:** remove duplicatas em `pessoas_profissoes` por `(id_pessoa, id_profissao)`
+  - **D) Backfill:** extrai `Profissao: ...` de `pessoas.observacoes` e vincula automaticamente
+  - **E) Auditoria final:** detecta duplicidade, inválidos, órfãos; loga métricas de cobertura por tipo
+  - **Critérios de falha explícita:** falha se duplicados > 0 OR inválidos > 0 OR órfãos > 0
+  - Integração automática: `--phase all` inclui Fase 21; compatível com `--phase 21` individual
+
+#### Alterado
+- `config.py`: adicionada fase 21 na lista `PHASES`
+- `migrate.py`: registrada fase 21 no `PHASE_REGISTRY`
+
+---
+
+### [6.23.1] - 2026-03-03
+
+#### Corrigido
+- **Fase 20 de Migração: Correções críticas de SQL e cobertura**
+  - `nacionalidades`: removida coluna `ativo` do INSERT (tabela só possui `id, nome`)
+  - `pessoas_profissoes`: removida coluna `created_at` do INSERT (não existe na tabela)
+  - Atualização de vínculo existente: preenche `empresa`/`renda` quando NULL e há valor de origem
+  - Cobertura completa: adicionado `nacionalidade` para `locinquilino` e `estado_civil` para `loclocadores`
+  - Busca normalizada: usa `UPPER(nome) = UPPER(%s)` com fallback `ILIKE` (sem cadeia de REPLACE)
+  - Idempotência garantida: não duplica vínculos nem gera erro em re-execuções
+
+---
+
+### [6.23.0] - 2026-03-03
+
+#### Adicionado
+- **Fase 20 de Migração: Sincronização de Estado Civil, Nacionalidade e Profissão**
+  - Classe `Phase20SyncCadastroCivilProfissaoNacionalidade` em `migrate.py`
+  - Processa fontes do legado: `loclocadores`, `locfiadores`, `loccontratantes`, `locinquilino`
+  - Resolve `id_pessoa` via `StateManager` (namespaces existentes) ou fallback por `pessoas.cod`
+  - **Estado Civil:** mapeia código antigo usando `cfg.ESTADO_CIVIL_MAP`, atualiza apenas quando NULL, loga conflitos
+  - **Nacionalidade:** `get_or_create` em `nacionalidades`, atualiza apenas quando NULL
+  - **Profissão:** `get_or_create` em `profissoes`, vincula em `pessoas_profissoes` sem duplicar
+  - Relatório completo: pessoas processadas, estado civil atualizados, nacionalidades atualizadas, profissões vinculadas, conflitos, não encontradas
+
+#### Alterado
+- `config.py`: adicionada fase 20 na lista `PHASES`
+- `migrate.py`: registrada fase 20 no `PHASE_REGISTRY`
+
+---
+
+### [6.22.0] - 2026-03-03
+
+#### Adicionado
+- **Máscaras de CPF e RG em todos os formulários de pessoa**
+  - Funções utilitárias em `pessoa.js`: `formatarCPF()`, `formatarRG()`, `formatarCNPJ()`, `aplicarMascaraDocumento()`, `detectarTipoDocumentoPorTexto()`
+  - `pessoa_form.js`: máscara em tempo real nos campos de busca (#searchValue para CPF/CNPJ, #additionalDocumentValue)
+  - `pessoa_documentos.js`: máscara dinâmica baseada no tipo de documento selecionado (CPF=1, RG=2 ou detecção por texto)
+  - `conjuge_documentos.js`: máscara para documentos do cônjuge seguindo mesma lógica
+  - `pessoa_conjuge.js`: máscara no campo de busca de cônjuge e exibição formatada nos resultados
+  - Documentos carregados da API são exibidos já formatados
+  - Sincronização entre `public/js/pessoa/` e `assets/js/pessoa/` mantida
+
+#### Alterado
+- Capítulo 12 (Frontend): adicionada seção "Máscaras de Documentos (v6.22.0)" documentando as funções utilitárias.
+
+### [6.21.4] - 2026-03-03
+
+#### Adicionado
+- Suporte a filtros `type='number'` no componente reutilizável `search_panel.html.twig`.
+- Filtro `cod` na tela de pessoas agora usa input type="number" para melhor UX em dispositivos móveis.
+
+#### Alterado
+- `PessoaController`: filtro 'cod' alterado de 'text' para 'number'.
+- Capítulo 12 (Frontend): documentação atualizada com novo tipo de filtro suportado.
+
+### [6.21.3] - 2026-03-03
+
+#### Adicionado
+- **Campo `cod` legado em TODOS os tipos de pessoa** — Completada a cobertura do código legado para todos os 9 tipos de pessoa
+  - Entidades atualizadas: `PessoasCorretores`, `PessoasCorretoras`, `PessoasPretendentes`, `PessoasSocios`, `PessoasAdvogados`
+  - Migration Doctrine: `Version20260303_AddCodToPessoasTipos` com colunas `cod` e SQL de backfill
+  - Fase 19 de migração (`Phase19SyncCodPessoasTipos`) sincroniza `cod` em todas as tabelas de tipos via UPDATE
+  - Tipos cobertos: fiador(1), corretor(2), corretora(3), locador(4), pretendente(5), contratante(6), sócio(7), advogado(8), inquilino(12)
+
+### [6.21.1] - 2026-03-03
+
+#### Corrigido
+- **Menu Superior pos-deploy** — Ajustado `templates/_partials/top_navigation.html.twig` para refletir fielmente os cards navegaveis do sistema
+  - Removidos links de CRUDs legados: Locadores (`app_pessoa_locador_index`) e Corretores (`app_pessoa_corretor_index`)
+  - Nova estrutura de categorias: Dashboard, Cadastros, Pessoas, Imobiliario, Financeiro, Relatorios
+  - Dashboard expandido com submenus completos: Enderecos (5 itens) e Tipos (14 itens)
+  - Cadastros: Emails e Telefones (movidos de Pessoas)
+  - Pessoas: apenas link unico para Todas as Pessoas
+  - Imobiliario: Imoveis e Contratos
+  - Financeiro: Ficha Financeira, Bancos, Agencias, Contas Bancarias, Boletos, API Bancaria, Informe de Rendimentos
+  - Relatorios: Central + 6 relatorios especificos (Inadimplentes, Despesas, Receitas, Despesas x Receitas, Contas Bancarias, Plano de Contas)
+- Documentacao atualizada no Cap 12 (estrutura completa do menu)
+
+### [6.21.0] - 2026-03-03
+
+#### Adicionado
+- **Menu de Navegacao Superior horizontal** — Novo partial `templates/_partials/top_navigation.html.twig` com acesso organizado por categorias (Dashboard, Pessoas, Imobiliario, Financeiro, Relatorios)
+- Dropdowns com icones FontAwesome, headers de secao e divisores logicos
+- Estilos responsivos em `public/css/app.css` com suporte mobile (colapso) e temas claro/escuro
+- Integracao no `templates/base.html.twig` abaixo da navbar principal
+- Documentacao completa no Cap 12 do livro
+
+### [6.20.10] - 2026-03-03
+
+#### Adicionado
+- **Fluxo Operacional do Assistente de IA formalizado** — Documentação explícita no Cap 2 da metodologia de trabalho: assistente atua como arquiteto/planejador/revisor (sem escrever código de produção, sem deploy), subagente `@agent/kimi` executa implementação, ciclo de code review com prompts corretivos quando necessário.
+
 ### [6.20.9] - 2026-02-27
 
 #### Corrigido
@@ -1358,7 +1692,7 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 ### [6.20.0] - 2026-02-21
 
 #### Adicionado
-- **Busca Avancada padronizada em 33 CRUDs** — card colapsavel no topo com filtros dinamicos por tipo (text, select, date, month, boolean)
+- **Busca Avancada padronizada em 33 CRUDs** — card colapsavel no topo com filtros dinamicos por tipo (text, number, select, date, month, boolean)
 - **Ordenacao padronizada em 33 CRUDs** — barra de botoes abaixo da busca, clique alterna ASC/DESC, botao ativo destacado
 - **Paginacao unificada** — preserva todos os GET params (filtros + sort) nos links de navegacao
 - `src/DTO/SearchFilterDTO.php` — DTO para definicao de filtros de busca
@@ -1616,7 +1950,9 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 | 16 | loclanctocc | lancamentos CC | 426.695 |
 | 17 | locacordo | acordos_financeiros | 4 |
 | 18 | locrepasse | prestacoes_contas | 42.844 |
-| **TOTAL** | | | **702.174** |
+| 19 | — | sync_cod_pessoas | — |
+| 20 | loclocadores/locfiadores/loccontratantes/locinquilino | sync estado_civil/nacionalidade/profissao | variável |
+| **TOTAL** | | | **702.174+** |
 
 ---
 
@@ -1736,6 +2072,34 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 #### Adicionado
 - **Contratos de Locacao** — 11 campos novos, ContratoService (615 linhas), renovacao/encerramento
 
+### [6.23.4] - 2026-03-03
+
+#### Corrigido
+- **CSRF Login quebrado (Symfony 7.2)** — SecurityController injetava `CsrfTokenManagerInterface` (session-based) mas o `CsrfProtectionListener` validava via `SameOriginCsrfTokenManager` (double-submit/origin). Token gerado por um manager, validado por outro = sempre inválido. Fix: removida injeção manual, template usa `{{ csrf_token('authenticate') }}` do Twig.
+- **Permissões de arquivo 600 nos controllers** — BoletoController, CobrancaController, ConfiguracaoApiBancoController, ContratoController tinham permissão `600` (só owner lê). PHP-FPM (www-data) não conseguia ler → 500 Internal Server Error. Fix: `chmod 644` em todos os arquivos do projeto.
+- **Password hash corrompido no banco** — Hash do admin estava com apenas 33 chars (sem prefixo `$2y$`), impedindo login. Fix: regenerado hash bcrypt válido (60 chars).
+- **APP_DEBUG=true deixado em produção** — Restaurado para `false`.
+- **Logs não eram gravados** — Em modo `prod`, monolog envia para `php://stderr` (PHP-FPM log), não para arquivo. Identificado e documentado.
+
+#### Lição Aprendida
+- Symfony 7.2 introduziu `SameOriginCsrfTokenManager` como padrão para o security listener. Ele valida CSRF por Origin header (browsers enviam automaticamente) ou double-submit cookie. Não usar `CsrfTokenManagerInterface` diretamente no controller de login — usar `{{ csrf_token('id') }}` no Twig.
+
+### [6.21.2] - 2026-03-03
+
+#### Adicionado
+- Campo `cod` em `pessoas` para manter código legado da migração MySQL
+- Campo `cod` em `pessoas_tipos` para herança de código por tipo (locador, fiador, contratante, inquilino)
+- Campo `cod` em `pessoas_locadores`, `pessoas_fiadores`, `pessoas_contratantes`
+- Campo `flg_proprietario` em `pessoas_locadores` para identificar locadores que são proprietários de imóveis
+- Filtro no index de pessoas para filtrar locadores por perfil: todos, proprietários, não-proprietários
+- Coluna COD exibida no grid de pessoas
+
+#### Alterado
+- Migration Python atualizada para persistir `cod` em todas as tabelas de tipo
+- Migration Python Fase 08 agora identifica proprietários via `locimovelprop.proprietario`
+- PessoaController::index() com lógica de filtro customizado para locadores
+- Template pessoa/index.html.twig com coluna COD e filtro de locador
+
 ### [6.7.1] - 2025-12-04
 
 #### Adicionado
@@ -1830,6 +2194,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-02-23
+**Ultima atualizacao:** 2026-03-03 (v6.21.2 — Código legado + Flag proprietario)
 **Mantenedor:** Marcio Martins
-**Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code)
+**Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via @agent/kimi
