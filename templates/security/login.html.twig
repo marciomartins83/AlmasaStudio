@@ -10,7 +10,7 @@
 				</div>
 			{% endif %}
 			<form method="post">
-				<input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+				<input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 				<div class="almasa-form-group">
 					<label class="almasa-form-label">E-mail</label>
 					<input type="email" name="email" class="almasa-form-control" required autofocus value="{{ last_username }}">
