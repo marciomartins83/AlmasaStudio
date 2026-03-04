@@ -9,16 +9,16 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.23.4 |
-| **Data Ultima Atualizacao** | 2026-03-03 (Fix CSRF login + permissões controllers VPS) |
-| **Status Geral** | Em producao — Login corrigido (CSRF Symfony 7.2), permissões de arquivo corrigidas, todas as páginas operacionais. |
+| **Versao Atual** | 6.24.1 |
+| **Data Ultima Atualizacao** | 2026-03-04 (Remove CPF/CNPJ do form edicao) |
+| **Status Geral** | Em producao — Campo CPF/CNPJ removido do card Dados da Pessoa Principal no modo edicao. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
-| **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via GPT-OSS 20B |
+| **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via KIMI |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | 2 Pessoa*Controllers Thin Controller pendente (PessoaController, PessoaCorretorController) |
-| **Issue Aberta** | #2: 2 Pessoa*Controllers Thin Controller pendente (PessoaController, PessoaLocadorController ja OK) |
+| **Proxima Tarefa** | — |
+| **Issue Aberta** | — |
 | **Migracao MySQL->PostgreSQL** | v5.2 — 21 fases, Fase 21 = auditoria e autocorreção automática pós-importação, idempotente, falha explicita em inconsistencias criticas |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
@@ -79,6 +79,8 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
+| 6.24.1 | 2026-03-04 | Remove CPF/CNPJ do card Dados da Pessoa Principal no modo edicao |
+| 6.24.0 | 2026-03-04 | Mascara CPF/RG/CNPJ em todas as telas — filtro Twig mask_documento |
 | 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
 | 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
 | 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
@@ -1678,12 +1680,12 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 #### Alterado
 - **Banco de dados migrado de Neon Cloud para PostgreSQL local na VPS** — pg_dump do Neon (14 MB), pg_restore na VPS, DATABASE_URL atualizado para localhost
-- **PessoaCorretorController e PessoaLocadorController refatorados** — Thin Controller via PessoaCorretorService e PessoaLocadorService
+- **PessoaCorretorController e PessoaLocadorController abandonados** — Código existente mas não utilizado (não fazem parte do fluxo ativo)
 - **GenericTipoService expandido** — 7 novos metodos de criacao de tipos
 - **Permissoes VPS corrigidas** — chown www-data, chmod 644/755 em todo o projeto
 
 #### Pendente (Próxima Fase)
-- 2 Pessoa*Controllers ainda violam Thin Controller (PessoaController, PessoaCorretorController)
+- 1 PessoaController ainda viola Thin Controller (PessoaCorretorController e PessoaLocadorController abandonados, código existente mas não utilizado)
 
 ---
 
@@ -2103,9 +2105,37 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 - **Password hash corrompido no banco** — Hash do admin estava com apenas 33 chars (sem prefixo `$2y$`), impedindo login. Fix: regenerado hash bcrypt válido (60 chars).
 - **APP_DEBUG=true deixado em produção** — Restaurado para `false`.
 - **Logs não eram gravados** — Em modo `prod`, monolog envia para `php://stderr` (PHP-FPM log), não para arquivo. Identificado e documentado.
+- **Schema TiposImoveis desincronizado** — Entity tinha `created_at`/`updated_at` como `nullable: true` mas banco tinha `NOT NULL`. Fix: entity alinhada com banco (NOT NULL). Schema agora 100% sincronizado local + VPS.
 
 #### Lição Aprendida
 - Symfony 7.2 introduziu `SameOriginCsrfTokenManager` como padrão para o security listener. Ele valida CSRF por Origin header (browsers enviam automaticamente) ou double-submit cookie. Não usar `CsrfTokenManagerInterface` diretamente no controller de login — usar `{{ csrf_token('id') }}` no Twig.
+
+### [6.24.1] - 2026-03-04
+
+#### Alterado
+- Campo CPF/CNPJ (searchTerm) removido do card "Dados da Pessoa Principal" no modo edição
+- Template: `templates/pessoa/pessoa_form.html.twig` - adicionado condição `{% if not isEditMode %}`
+- CPF/CNPJ agora aparece apenas na seção Documentos
+
+### [6.24.0] - 2026-03-04
+
+#### Adicionado
+- Filtro Twig `mask_documento` para mascarar CPF, RG e CNPJ
+- Mascara CPF: `***.123.456-**`
+- Mascara CNPJ: `**.123.456/0001-**`
+- Mascara RG: `*.123.456-*` (detecção automática por qtd dígitos)
+- Arquivo: `src/Twig/DocumentoMaskExtension.php`
+
+#### Alterado
+- Templates atualizados com filtro `mask_documento`:
+  - `templates/pessoa/show.html.twig`
+  - `templates/relatorios/pdf/contas_bancarias.html.twig`
+  - `templates/relatorios/pdf/despesas_receitas.html.twig`
+  - `templates/relatorios/pdf/receitas.html.twig`
+  - `templates/relatorios/pdf/despesas.html.twig`
+  - `templates/relatorios/preview/contas_bancarias.html.twig`
+  - `templates/relatorios/preview/despesas.html.twig`
+  - `templates/financeiro/lancamento_show.html.twig`
 
 ### [6.21.2] - 2026-03-03
 
