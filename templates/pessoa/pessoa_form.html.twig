@@ -584,8 +584,10 @@
                         </div>
                     </div>
                 </div>
-                
-                {{ form_end(form) }}
+
+                {# Render remaining hidden fields without display #}
+                <div style="display:none">{{ form_rest(form) }}</div>
+                {{ form_end(form, {'render_rest': false}) }}
             </div>
         </div>
     </div>

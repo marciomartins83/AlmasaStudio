@@ -52,10 +52,9 @@ class ImovelController extends AbstractController
             new SearchFilterDTO('descricao', 'Descrição', 'text', 'i.descricao', 'LIKE', [], 'Descrição...', 3),
             new SearchFilterDTO('situacao', 'Situação', 'select', 'i.situacao', 'EXACT', [
                 'disponivel' => 'Disponível',
-                'alugado' => 'Alugado',
+                'locado' => 'Locado',
                 'vendido' => 'Vendido',
-                'reservado' => 'Reservado',
-                'em_reforma' => 'Em Reforma',
+                'suspenso' => 'Suspenso',
             ]),
         ];
 

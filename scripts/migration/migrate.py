@@ -4251,6 +4251,133 @@ class Phase18Repasses(BasePhase):
         return count
 
 
+# ---------------------------------------------------------------------------
+# Fase 19: Validação e correção de endereços faltantes
+# ---------------------------------------------------------------------------
+class Phase19ValidacaoEnderecos(BasePhase):
+    """
+    REGRA INVIOLÁVEL: toda pessoa DEVE ter pelo menos 1 endereço.
+    Esta fase verifica e corrige endereços faltantes após todas as fases.
+    Fontes: locinquilino.endac (tier1) → locimoveis via imovel (tier2) → fallback genérico (tier3).
+    """
+    def run(self) -> int:
+        log.info("=== FASE 19: Validação de endereços (TODAS as pessoas) ===")
+
+        # 1. Encontrar pessoas sem endereço
+        rows = self.writer.fetch_all(
+            """SELECT p.idpessoa, p.cod
+               FROM pessoas p
+               WHERE NOT EXISTS (SELECT 1 FROM enderecos e WHERE e.id_pessoa = p.idpessoa)
+               AND p.cod IS NOT NULL"""
+        )
+        if not rows:
+            log.info("Fase 19: todas as pessoas já possuem endereço. OK!")
+            return 0
+
+        sem_endereco = {int(r[1]): int(r[0]) for r in rows}
+        log.info(f"Fase 19: {len(sem_endereco)} pessoas sem endereço. Corrigindo...")
+
+        # 2. Carregar dados do MySQL dump
+        inq_map = {}  # codigo -> dict
+        for row in self.parser.iter_table("locinquilino"):
+            cod = safe_int(row.get("codigo"))
+            if cod and cod in sem_endereco:
+                inq_map[cod] = row
+
+        im_needed = set()
+        for cod, row in inq_map.items():
+            endac = safe_str(row.get("endac")) or ""
+            if not endac:
+                imovel_old = safe_int(row.get("imovel"))
+                if imovel_old:
+                    im_needed.add(imovel_old)
+
+        im_map = {}  # codigo -> dict
+        if im_needed:
+            for row in self.parser.iter_table("locimoveis"):
+                cod = safe_int(row.get("codigo"))
+                if cod in im_needed:
+                    im_map[cod] = row
+                    if len(im_map) == len(im_needed):
+                        break
+
+        # 3. Inserir endereços
+        inserted = 0
+        tier1 = 0
+        tier2 = 0
+        tier3_fallback = 0
+
+        for cod, pessoa_id in sem_endereco.items():
+            inq = inq_map.get(cod)
+            endereco_str = ""
+            complemento = ""
+            bairro_str = ""
+            cidade_str = ""
+            estado_str = "SP"
+            cep_str = ""
+            numero = ""
+
+            if inq:
+                endac = safe_str(inq.get("endac")) or ""
+                if endac:
+                    # Tier 1: endereço próprio
+                    endereco_str = endac
+                    complemento = safe_str(inq.get("complac")) or ""
+                    bairro_str = safe_str(inq.get("bairroac")) or ""
+                    cidade_str = safe_str(inq.get("cidadeac")) or ""
+                    estado_str = safe_str(inq.get("estac")) or "SP"
+                    cep_str = safe_str(inq.get("cepac")) or ""
+                    tier1 += 1
+                else:
+                    # Tier 2: endereço do imóvel
+                    imovel_old = safe_int(inq.get("imovel"))
+                    im = im_map.get(imovel_old) if imovel_old else None
+                    if im:
+                        endereco_str = safe_str(im.get("endereco")) or ""
+                        numero = safe_str(im.get("numero")) or ""
+                        complemento = safe_str(im.get("complemento")) or ""
+                        bairro_str = safe_str(im.get("bairro")) or ""
+                        cidade_str = safe_str(im.get("cidade")) or ""
+                        estado_str = safe_str(im.get("estado")) or "SP"
+                        cep_str = safe_str(im.get("cep")) or ""
+                        tier2 += 1
+
+            if not endereco_str:
+                # Tier 3: fallback genérico
+                endereco_str = "SEM ENDERECO"
+                bairro_str = "SEM BAIRRO"
+                cidade_str = "SEM CIDADE"
+                estado_str = "SP"
+                cep_str = ""
+                tier3_fallback += 1
+
+            try:
+                logr_id = self._get_or_create_logradouro(
+                    endereco_str, numero, bairro_str, cidade_str, estado_str, cep_str
+                )
+                if logr_id:
+                    self._insert_endereco(pessoa_id, logr_id, numero or "0", complemento or None)
+                    inserted += 1
+            except Exception as e:
+                log.warning(f"Fase 19: endereco pessoa {pessoa_id} (cod={cod}): {e}")
+
+        self.writer.commit()
+        self.state.save()
+
+        # 4. Verificação final
+        remaining = self.writer.fetch_one(
+            "SELECT COUNT(*) FROM pessoas p WHERE NOT EXISTS (SELECT 1 FROM enderecos e WHERE e.id_pessoa = p.idpessoa)"
+        )
+        remaining_count = remaining[0] if remaining else -1
+
+        log.info(f"Fase 19 concluida: {inserted} enderecos inseridos "
+                 f"(tier1/endac={tier1}, tier2/imovel={tier2}, tier3/fallback={tier3_fallback})")
+        log.info(f"Fase 19: pessoas sem endereco restantes: {remaining_count}")
+        if remaining_count > 0:
+            log.error(f"REGRA VIOLADA: {remaining_count} pessoas ainda sem endereco!")
+        return inserted
+
+
 # ===========================================================================
 # REGISTRO DE TODAS AS FASES
 # ===========================================================================
@@ -4275,6 +4402,7 @@ PHASE_REGISTRY: Dict[str, type] = {
     "16": Phase16LancamentoCC,
     "17": Phase17Acordos,
     "18": Phase18Repasses,
+    "19": Phase19ValidacaoEnderecos,
 }
 
 

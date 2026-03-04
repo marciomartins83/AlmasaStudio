@@ -602,10 +602,76 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Pessoas $pessoa): Response
+    public function show(Pessoas $pessoa, \Doctrine\DBAL\Connection $connection): Response
     {
+        $pessoaId = $pessoa->getIdpessoa();
+
+        // Load related data via raw SQL (entities use integer IDs, not ORM relations)
+        $tipos = $connection->fetchAllAssociative(
+            'SELECT pt.*, tp.tipo_pessoa as tipo_nome FROM pessoas_tipos pt
+             LEFT JOIN tipos_pessoas tp ON tp.id = pt.id_tipo_pessoa
+             WHERE pt.id_pessoa = ? ORDER BY pt.data_inicio DESC',
+            [$pessoaId]
+        );
+
+        $profissoes = $connection->fetchAllAssociative(
+            'SELECT pp.*, p.nome as profissao_nome FROM pessoas_profissoes pp
+             LEFT JOIN profissoes p ON p.id = pp.id_profissao
+             WHERE pp.id_pessoa = ? ORDER BY pp.data_admissao DESC',
+            [$pessoaId]
+        );
+
+        $telefones = $connection->fetchAllAssociative(
+            'SELECT pt.*, t.numero, tt.nome as tipo_telefone FROM pessoas_telefones pt
+             LEFT JOIN telefones t ON t.id = pt.id_telefone
+             LEFT JOIN tipos_telefones tt ON tt.id = t.id_tipo
+             WHERE pt.id_pessoa = ? ORDER BY pt.id DESC',
+            [$pessoaId]
+        );
+
+        $enderecos = $connection->fetchAllAssociative(
+            'SELECT e.*, l.logradouro, l.cep, b.nome as bairro, c.nome as cidade, est.uf,
+             te.nome as tipo_endereco FROM enderecos e
+             LEFT JOIN logradouros l ON l.id = e.id_logradouro
+             LEFT JOIN bairros b ON b.id = l.id_bairro
+             LEFT JOIN cidades c ON c.id = b.id_cidade
+             LEFT JOIN estados est ON est.id = c.id_estado
+             LEFT JOIN tipos_enderecos te ON te.id = e.id_tipo
+             WHERE e.id_pessoa = ? ORDER BY e.id DESC',
+            [$pessoaId]
+        );
+
+        $emails = $connection->fetchAllAssociative(
+            'SELECT pe.*, em.email, et.nome as tipo_email FROM pessoas_emails pe
+             LEFT JOIN emails em ON em.id = pe.id_email
+             LEFT JOIN tipos_emails et ON et.id = em.id_tipo
+             WHERE pe.id_pessoa = ? ORDER BY pe.id DESC',
+            [$pessoaId]
+        );
+
+        $chavesPix = $connection->fetchAllAssociative(
+            'SELECT cp.*, tcp.nome as tipo_chave_nome FROM chaves_pix cp
+             LEFT JOIN tipos_chaves_pix tcp ON tcp.id = cp.id_tipo_chave
+             WHERE cp.id_pessoa = ? ORDER BY cp.principal DESC, cp.id DESC',
+            [$pessoaId]
+        );
+
+        $contasBancarias = $connection->fetchAllAssociative(
+            'SELECT cb.*, b.nome as banco_nome FROM contas_bancarias cb
+             LEFT JOIN bancos b ON b.id = cb.id_banco
+             WHERE cb.id_pessoa = ? ORDER BY cb.principal DESC, cb.id DESC',
+            [$pessoaId]
+        );
+
         return $this->render('pessoa/show.html.twig', [
             'pessoa' => $pessoa,
+            'tipos' => $tipos,
+            'profissoes' => $profissoes,
+            'telefones' => $telefones,
+            'enderecos' => $enderecos,
+            'emails' => $emails,
+            'chavesPix' => $chavesPix,
+            'contasBancarias' => $contasBancarias,
         ]);
     }
 
