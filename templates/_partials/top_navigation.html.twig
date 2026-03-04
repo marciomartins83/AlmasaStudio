@@ -1,0 +1,274 @@
+{% if app.user %}
+<nav class="navbar navbar-expand-lg almasa-top-nav">
+    <div class="container-fluid">
+        <button class="navbar-toggler almasa-nav-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNavigation" aria-controls="topNavigation" aria-expanded="false" aria-label="Alternar navegação">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="collapse navbar-collapse" id="topNavigation">
+            <ul class="navbar-nav almasa-nav-main me-auto mb-2 mb-lg-0">
+
+                {# Dashboard #}
+                <li class="nav-item dropdown almasa-nav-item">
+                    <a class="nav-link dropdown-toggle almasa-nav-link" href="#" id="dropdownDashboard" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                    </a>
+                    <ul class="dropdown-menu almasa-dropdown-menu" aria-labelledby="dropdownDashboard">
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_dashboard') }}">
+                                <i class="fas fa-home me-2"></i>Painel Principal
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Endereços</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_dashboard_enderecos_index') }}">
+                                <i class="fas fa-map-marker-alt me-2"></i>Gerenciar Endereços
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_estado_index') }}">
+                                <i class="fas fa-flag me-2"></i>Estados
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_cidade_index') }}">
+                                <i class="fas fa-city me-2"></i>Cidades
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_bairro_index') }}">
+                                <i class="fas fa-map-pin me-2"></i>Bairros
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_logradouro_index') }}">
+                                <i class="fas fa-road me-2"></i>Logradouros
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Tipos</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_documento_index') }}">
+                                <i class="fas fa-id-card me-2"></i>Tipos de Documento
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_conta_bancaria_index') }}">
+                                <i class="fas fa-university me-2"></i>Tipos de Conta Bancária
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_telefone_index') }}">
+                                <i class="fas fa-phone me-2"></i>Tipos de Telefone
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_email_index') }}">
+                                <i class="fas fa-envelope me-2"></i>Tipos de Email
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_chave_pix_index') }}">
+                                <i class="fas fa-qrcode me-2"></i>Tipos de Chave PIX
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_atendimento_index') }}">
+                                <i class="fas fa-headset me-2"></i>Tipos de Atendimento
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_carteira_index') }}">
+                                <i class="fas fa-wallet me-2"></i>Tipos de Carteira
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_endereco_index') }}">
+                                <i class="fas fa-map-marker-alt me-2"></i>Tipos de Endereço
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_imovel_index') }}">
+                                <i class="fas fa-building me-2"></i>Tipos de Imóvel
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_pessoa_index') }}">
+                                <i class="fas fa-users me-2"></i>Tipos de Pessoa
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_tipo_remessa_index') }}">
+                                <i class="fas fa-paper-plane me-2"></i>Tipos de Remessa
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_estado_civil_index') }}">
+                                <i class="fas fa-ring me-2"></i>Estados Civis
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_nacionalidade_index') }}">
+                                <i class="fas fa-globe me-2"></i>Nacionalidades
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_naturalidade_index') }}">
+                                <i class="fas fa-map me-2"></i>Naturalidades
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                {# Cadastros #}
+                <li class="nav-item dropdown almasa-nav-item">
+                    <a class="nav-link dropdown-toggle almasa-nav-link" href="#" id="dropdownCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-clipboard-list me-1"></i>Cadastros
+                    </a>
+                    <ul class="dropdown-menu almasa-dropdown-menu" aria-labelledby="dropdownCadastros">
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_email_index') }}">
+                                <i class="fas fa-envelope me-2"></i>Emails
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_telefone_index') }}">
+                                <i class="fas fa-phone me-2"></i>Telefones
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                {# Pessoas #}
+                <li class="nav-item almasa-nav-item">
+                    <a class="nav-link almasa-nav-link" href="{{ path('app_pessoa_index') }}">
+                        <i class="fas fa-users me-1"></i>Pessoas
+                    </a>
+                </li>
+
+                {# Imobiliário #}
+                <li class="nav-item dropdown almasa-nav-item">
+                    <a class="nav-link dropdown-toggle almasa-nav-link" href="#" id="dropdownImobiliario" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-building me-1"></i>Imobiliário
+                    </a>
+                    <ul class="dropdown-menu almasa-dropdown-menu" aria-labelledby="dropdownImobiliario">
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_imovel_index') }}">
+                                <i class="fas fa-home me-2"></i>Imóveis
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_contrato_index') }}">
+                                <i class="fas fa-file-contract me-2"></i>Contratos
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                {# Financeiro #}
+                <li class="nav-item dropdown almasa-nav-item">
+                    <a class="nav-link dropdown-toggle almasa-nav-link" href="#" id="dropdownFinanceiro" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-dollar-sign me-1"></i>Financeiro
+                    </a>
+                    <ul class="dropdown-menu almasa-dropdown-menu" aria-labelledby="dropdownFinanceiro">
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_financeiro_index') }}">
+                                <i class="fas fa-chart-pie me-2"></i>Ficha Financeira
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_lancamentos_index') }}">
+                                <i class="fas fa-wallet me-2"></i>Lançamentos
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Bancário</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_banco_index') }}">
+                                <i class="fas fa-university me-2"></i>Bancos
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_agencia_index') }}">
+                                <i class="fas fa-code-branch me-2"></i>Agências
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_conta_bancaria_index') }}">
+                                <i class="fas fa-credit-card me-2"></i>Contas Bancárias
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Operações</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_boleto_index') }}">
+                                <i class="fas fa-barcode me-2"></i>Boletos
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_configuracao_api_banco_index') }}">
+                                <i class="fas fa-cog me-2"></i>API Bancária
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_informe_rendimento_index') }}">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>Informe de Rendimentos
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                {# Relatórios #}
+                <li class="nav-item dropdown almasa-nav-item">
+                    <a class="nav-link dropdown-toggle almasa-nav-link" href="#" id="dropdownRelatorios" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-chart-bar me-1"></i>Relatórios
+                    </a>
+                    <ul class="dropdown-menu almasa-dropdown-menu" aria-labelledby="dropdownRelatorios">
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_index') }}">
+                                <i class="fas fa-chart-line me-2"></i>Central de Relatórios
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Financeiros</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_inadimplentes') }}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Inadimplentes
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_despesas') }}">
+                                <i class="fas fa-arrow-down me-2"></i>Despesas
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_receitas') }}">
+                                <i class="fas fa-arrow-up me-2"></i>Receitas
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_despesas_receitas') }}">
+                                <i class="fas fa-balance-scale me-2"></i>Despesas x Receitas
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Cadastrais</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_contas_bancarias') }}">
+                                <i class="fas fa-university me-2"></i>Contas Bancárias
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_relatorios_plano_contas') }}">
+                                <i class="fas fa-list-alt me-2"></i>Plano de Contas
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</nav>
+{% endif %}

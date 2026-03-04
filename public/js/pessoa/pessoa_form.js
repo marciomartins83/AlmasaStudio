@@ -88,23 +88,37 @@ document.addEventListener('DOMContentLoaded', () => {
         searchValueInput.addEventListener('input', () => {
             const criteria = searchCriteriaSelect.value;
             let minLength = 0;
+            let rawValue = searchValueInput.value.replace(/[^\d]/g, '');
+            let currentLength = 0;
             
             switch(criteria) {
                 case 'cpf': 
-                    minLength = 11; 
+                    minLength = 11;
+                    currentLength = rawValue.length;
+                    // Aplicar máscara de CPF em tempo real
+                    if (rawValue.length <= 11) {
+                        searchValueInput.value = window.formatarCPF ? window.formatarCPF(rawValue) : rawValue;
+                    }
                     break;
                 case 'cnpj': 
-                    minLength = 14; 
+                    minLength = 14;
+                    currentLength = rawValue.length;
+                    // Aplicar máscara de CNPJ em tempo real
+                    if (rawValue.length <= 14) {
+                        searchValueInput.value = window.formatarCNPJ ? window.formatarCNPJ(rawValue) : rawValue;
+                    }
                     break;
                 case 'nome': 
-                    minLength = 3; 
+                    minLength = 3;
+                    currentLength = searchValueInput.value.trim().length;
                     break;
                 case 'id': 
-                    minLength = 1; 
+                    minLength = 1;
+                    currentLength = rawValue.length;
                     break;
             }
             
-            searchButton.disabled = searchValueInput.value.trim().length < minLength;
+            searchButton.disabled = currentLength < minLength;
         });
 
         searchButton.addEventListener('click', async () => {
@@ -241,6 +255,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // --- MÁSCARA PARA DOCUMENTO ADICIONAL ---
+    const additionalDocumentType = document.getElementById('additionalDocumentType');
+    if (additionalDocumentValue && additionalDocumentType) {
+        additionalDocumentValue.addEventListener('input', () => {
+            const docType = additionalDocumentType.value;
+            let rawValue = additionalDocumentValue.value.replace(/[^\d]/g, '');
+            
+            if (docType === 'cpf' && rawValue.length <= 11) {
+                additionalDocumentValue.value = window.formatarCPF ? window.formatarCPF(rawValue) : rawValue;
+            } else if (docType === 'cnpj' && rawValue.length <= 14) {
+                additionalDocumentValue.value = window.formatarCNPJ ? window.formatarCNPJ(rawValue) : rawValue;
+            }
+        });
+    }
+    
     // --- CONTROLE DO CÔNJUGE ---
     if (temConjuge && camposConjuge) {
         temConjuge.addEventListener('change', function() {
@@ -265,12 +294,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         switch(criteria) {
             case 'cpf':
-                window.setFormValue(window.FORM_IDS.searchTerm, value);
+                // Aplicar máscara ao exibir CPF
+                const cpfFormatado = window.formatarCPF ? window.formatarCPF(value.replace(/[^\d]/g, '')) : value;
+                window.setFormValue(window.FORM_IDS.searchTerm, cpfFormatado);
                 configurarTipoPessoa('fisica');
                 break;
                 
             case 'cnpj':
-                window.setFormValue(window.FORM_IDS.searchTerm, value);
+                // Aplicar máscara ao exibir CNPJ
+                const cnpjFormatado = window.formatarCNPJ ? window.formatarCNPJ(value.replace(/[^\d]/g, '')) : value;
+                window.setFormValue(window.FORM_IDS.searchTerm, cnpjFormatado);
                 configurarTipoPessoa('juridica');
                 break;
                 
@@ -278,7 +311,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.setFormValue(window.FORM_IDS.nome, value);
                 
                 if (additionalDoc) {
-                    window.setFormValue(window.FORM_IDS.searchTerm, additionalDoc);
+                    let docFormatado = additionalDoc;
+                    if (additionalDocType === 'cpf' && window.formatarCPF) {
+                        docFormatado = window.formatarCPF(additionalDoc.replace(/[^\d]/g, ''));
+                    } else if (additionalDocType === 'cnpj' && window.formatarCNPJ) {
+                        docFormatado = window.formatarCNPJ(additionalDoc.replace(/[^\d]/g, ''));
+                    }
+                    window.setFormValue(window.FORM_IDS.searchTerm, docFormatado);
                     const tipoDocumento = additionalDocType === 'cpf' ? 'fisica' : 'juridica';
                     configurarTipoPessoa(tipoDocumento);
                 }

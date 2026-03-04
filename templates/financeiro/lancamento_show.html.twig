@@ -191,7 +191,7 @@
                                     <td>{{ baixa.dataPagamentoFormatada }}</td>
                                     <td>{{ baixa.valorTotalPagoFormatado }}</td>
                                     <td>{{ baixa.formaPagamentoLabel }}</td>
-                                    <td>{{ baixa.numeroDocumento|default('-') }}</td>
+                                    <td>{{ baixa.numeroDocumento|default('-')|mask_documento }}</td>
                                     <td>
                                         {% if baixa.estornada %}
                                             <span class="badge bg-danger">Estornada</span>

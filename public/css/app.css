@@ -524,7 +524,359 @@
     margin-bottom: 1rem;
   }
   
-  /* PRINT STYLES */
+  /* ===================================
+     TOP NAVIGATION MENU
+     =================================== */
+  
+  .almasa-top-nav {
+    background: var(--almasa-gradient);
+    border-bottom: none;
+    box-shadow: var(--almasa-shadow);
+    padding: 0;
+    min-height: 48px;
+  }
+  
+  .almasa-top-nav .container-fluid {
+    padding: 0 1rem;
+  }
+  
+  .almasa-nav-toggler {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: var(--almasa-white);
+    padding: 0.375rem 0.75rem;
+    margin: 0.5rem 0;
+    border-radius: var(--almasa-border-radius);
+    transition: var(--almasa-transition);
+  }
+  
+  .almasa-nav-toggler:hover,
+  .almasa-nav-toggler:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--almasa-white);
+    outline: none;
+    box-shadow: none;
+  }
+  
+  .almasa-nav-main {
+    gap: 0.25rem;
+  }
+  
+  .almasa-nav-item {
+    position: relative;
+  }
+  
+  .almasa-nav-link {
+    color: var(--almasa-white) !important;
+    font-weight: 500;
+    padding: 0.875rem 1rem !important;
+    border-radius: var(--almasa-border-radius);
+    transition: var(--almasa-transition);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  
+  .almasa-nav-link:hover,
+  .almasa-nav-link:focus,
+  .almasa-nav-link.show {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--almasa-white) !important;
+  }
+  
+  .almasa-dropdown-menu {
+    border: none;
+    border-radius: var(--almasa-border-radius-lg);
+    box-shadow: var(--almasa-shadow-lg);
+    margin-top: 0.5rem;
+    min-width: 240px;
+    padding: 0.5rem 0;
+    background: var(--almasa-white);
+    border-top: 3px solid var(--almasa-primary);
+  }
+  
+  .almasa-dropdown-header {
+    color: var(--almasa-gray);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 1.25rem;
+    margin-top: 0.25rem;
+  }
+  
+  .almasa-dropdown-item {
+    color: var(--almasa-dark-gray);
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    transition: var(--almasa-transition);
+    display: flex;
+    align-items: center;
+  }
+  
+  .almasa-dropdown-item:hover,
+  .almasa-dropdown-item:focus {
+    background: rgba(255, 215, 0, 0.1);
+    color: var(--almasa-secondary);
+  }
+  
+  .almasa-dropdown-item i {
+    color: var(--almasa-secondary);
+    width: 1.25rem;
+    text-align: center;
+  }
+  
+  .almasa-divider {
+    border-color: rgba(255, 215, 0, 0.2);
+    margin: 0.5rem 0;
+  }
+  
+  /* Mobile Responsive */
+  @media (max-width: 991px) {
+    .almasa-top-nav {
+      padding: 0;
+    }
+    
+    .almasa-nav-main {
+      padding: 0.5rem 0;
+      gap: 0;
+    }
+    
+    .almasa-nav-item {
+      width: 100%;
+    }
+    
+    .almasa-nav-link {
+      padding: 0.75rem 1rem !important;
+      border-radius: 0;
+    }
+    
+    .almasa-dropdown-menu {
+      border: none;
+      box-shadow: none;
+      margin-top: 0;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 0;
+      border-top: none;
+      border-left: 3px solid var(--almasa-primary);
+    }
+    
+    .almasa-dropdown-header {
+      color: rgba(255, 255, 255, 0.8);
+      padding-left: 1.5rem;
+    }
+    
+    .almasa-dropdown-item {
+      color: var(--almasa-white);
+      padding-left: 1.5rem;
+    }
+    
+    .almasa-dropdown-item:hover,
+    .almasa-dropdown-item:focus {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--almasa-white);
+    }
+    
+    .almasa-dropdown-item i {
+      color: var(--almasa-white);
+    }
+    
+    .almasa-divider {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  /* ===================================
+     DARK MODE — TEMA ESCURO COMPLETO
+     Bootstrap 5.3 data-bs-theme="dark"
+     =================================== */
+
+  /* Override CSS Variables for Dark Mode */
+  [data-bs-theme="dark"] {
+    --almasa-white: #1a1d21;
+    --almasa-light-gray: #121416;
+    --almasa-dark-gray: #e0e0e0;
+    --almasa-black: #f8f9fa;
+    --almasa-gray: #9ca3af;
+    --almasa-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+    --almasa-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    --almasa-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.4);
+  }
+
+  /* Body */
+  [data-bs-theme="dark"] body {
+    background-color: var(--almasa-light-gray);
+    color: var(--almasa-dark-gray);
+  }
+
+  /* Navbar */
+  [data-bs-theme="dark"] .almasa-navbar {
+    background: #1a1d21;
+    border-bottom-color: var(--almasa-primary);
+  }
+
+  [data-bs-theme="dark"] .almasa-navbar .nav-link {
+    color: var(--almasa-dark-gray);
+  }
+
+  /* Cards */
+  [data-bs-theme="dark"] .almasa-card {
+    background: #1a1d21;
+    border-color: rgba(255, 215, 0, 0.15);
+  }
+
+  [data-bs-theme="dark"] .almasa-card:hover {
+    border-color: var(--almasa-primary);
+  }
+
+  [data-bs-theme="dark"] .almasa-card-footer {
+    background: #121416;
+    border-top-color: rgba(255, 215, 0, 0.15);
+  }
+
+  /* Forms */
+  [data-bs-theme="dark"] .almasa-form-control {
+    background: #1a1d21;
+    border-color: #333840;
+    color: #e0e0e0;
+  }
+
+  [data-bs-theme="dark"] .almasa-form-control:focus {
+    background: #1a1d21;
+    color: #e0e0e0;
+  }
+
+  [data-bs-theme="dark"] .almasa-form-label {
+    color: #e0e0e0;
+  }
+
+  /* Tables */
+  [data-bs-theme="dark"] .almasa-table {
+    background: #1a1d21;
+  }
+
+  [data-bs-theme="dark"] .almasa-table tbody tr:hover {
+    background: rgba(255, 215, 0, 0.08);
+  }
+
+  [data-bs-theme="dark"] .almasa-table tbody td {
+    border-color: rgba(255, 215, 0, 0.08);
+    color: #e0e0e0;
+  }
+
+  /* Sidebar */
+  [data-bs-theme="dark"] .almasa-sidebar {
+    background: #1a1d21;
+    border-right-color: var(--almasa-primary);
+  }
+
+  [data-bs-theme="dark"] .almasa-sidebar .nav-link {
+    color: #e0e0e0;
+  }
+
+  [data-bs-theme="dark"] .almasa-sidebar .nav-link:hover,
+  [data-bs-theme="dark"] .almasa-sidebar .nav-link.active {
+    background: rgba(255, 215, 0, 0.1);
+    color: var(--almasa-secondary);
+  }
+
+  /* Stats Cards (Dashboard) */
+  [data-bs-theme="dark"] .almasa-stats-card {
+    background: #1a1d21;
+  }
+
+  [data-bs-theme="dark"] .almasa-stats-label {
+    color: #9ca3af;
+  }
+
+  /* Property Cards */
+  [data-bs-theme="dark"] .almasa-property-card {
+    background: #1a1d21;
+  }
+
+  /* Alerts — darker backgrounds */
+  [data-bs-theme="dark"] .almasa-alert-success {
+    background: rgba(40, 167, 69, 0.15);
+    color: #5dd97d;
+  }
+
+  [data-bs-theme="dark"] .almasa-alert-info {
+    background: rgba(23, 162, 184, 0.15);
+    color: #5bc0d3;
+  }
+
+  [data-bs-theme="dark"] .almasa-alert-warning {
+    background: rgba(255, 193, 7, 0.15);
+    color: #e0c356;
+  }
+
+  [data-bs-theme="dark"] .almasa-alert-danger {
+    background: rgba(220, 53, 69, 0.15);
+    color: #e8747f;
+  }
+
+  /* Modal */
+  [data-bs-theme="dark"] .almasa-modal .modal-content {
+    background: #1a1d21;
+    border: 1px solid rgba(255, 215, 0, 0.15);
+  }
+
+  /* Border gradient */
+  [data-bs-theme="dark"] .almasa-border-gradient {
+    background: linear-gradient(#1a1d21, #1a1d21) padding-box,
+                var(--almasa-gradient) border-box;
+  }
+
+  /* Stimulus components */
+  [data-bs-theme="dark"] [data-controller="almasa-search"] .search-results {
+    background: #1a1d21;
+  }
+
+  [data-bs-theme="dark"] [data-controller="almasa-filters"] .filter-group {
+    background: #1a1d21;
+  }
+
+  /* Secondary button */
+  [data-bs-theme="dark"] .btn-almasa-secondary {
+    background: #1a1d21;
+    border-color: var(--almasa-primary);
+    color: var(--almasa-primary);
+  }
+
+  /* Dropdown menu (desktop) */
+  [data-bs-theme="dark"] .almasa-dropdown-menu {
+    background: #1e2126;
+    border-color: var(--almasa-primary);
+  }
+
+  [data-bs-theme="dark"] .almasa-dropdown-item {
+    color: #e0e0e0;
+  }
+
+  [data-bs-theme="dark"] .almasa-dropdown-item:hover,
+  [data-bs-theme="dark"] .almasa-dropdown-item:focus {
+    background: rgba(255, 215, 0, 0.15);
+    color: #ffffff;
+  }
+
+  [data-bs-theme="dark"] .almasa-dropdown-header {
+    color: #9ca3af;
+  }
+
+  /* Footer — already dark, ensure consistency */
+  [data-bs-theme="dark"] .almasa-footer {
+    background: #0d0f11;
+  }
+  
+  /* Print styles - hide navigation */
+  @media print {
+    .almasa-top-nav {
+      display: none !important;
+    }
+  }
+
+  /* ===================================
+     PRINT STYLES
+     =================================== */
   @media print {
     .almasa-header,
     .almasa-sidebar,

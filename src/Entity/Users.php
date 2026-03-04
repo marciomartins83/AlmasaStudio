@@ -36,6 +36,9 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTimeInterface $twoFactorConfirmedAt = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $roles = null;
+
     #[ORM\OneToOne(targetEntity: Pessoas::class, mappedBy: 'user')]
     private ?Pessoas $pessoa = null;
 
@@ -186,14 +189,15 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getRoles(): array
     {
-        // Garantir que todo usuário tenha pelo menos ROLE_USER
-        $roles = ['ROLE_USER'];
-        
-        // Se houver campo roles na entity, usar ele:
-        // $roles = json_decode($this->roles ?? '[]', true);
-        // $roles[] = 'ROLE_USER';
-        
+        $roles = $this->roles ?? [];
+        $roles[] = 'ROLE_USER';
         return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+        return $this;
     }
 
     /**

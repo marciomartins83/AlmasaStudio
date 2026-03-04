@@ -34,6 +34,9 @@ class PessoasCorretores
     #[ORM\Column]
     private ?bool $ativo = true;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     public function __construct()
     {
         $this->dataCadastro = new \DateTime();
@@ -108,6 +111,17 @@ class PessoasCorretores
     public function setAtivo(bool $ativo): static
     {
         $this->ativo = $ativo;
+        return $this;
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): static
+    {
+        $this->cod = $cod;
         return $this;
     }
 }

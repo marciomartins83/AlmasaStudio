@@ -67,7 +67,7 @@
                             {% for item in grupo.itens %}
                                 <tr>
                                     <td>{{ item.dataVencimento|date('d/m/Y') }}</td>
-                                    <td>{{ item.numeroDocumento|default('-') }}</td>
+                                    <td>{{ item.numeroDocumento|default('-')|mask_documento }}</td>
                                     <td>{{ item.pessoa.nome|default('-')|length > 20 ? item.pessoa.nome|default('-')|slice(0, 20) ~ '...' : item.pessoa.nome|default('-') }}</td>
                                     <td>{{ item.historico|default('-')|length > 25 ? item.historico|default('-')|slice(0, 25) ~ '...' : item.historico|default('-') }}</td>
                                     <td>{{ item.planoConta.descricao|default('-')|length > 15 ? item.planoConta.descricao|default('-')|slice(0, 15) ~ '...' : item.planoConta.descricao|default('-') }}</td>
@@ -95,7 +95,7 @@
                         {% for item in dados %}
                             <tr>
                                 <td>{{ item.dataVencimento|date('d/m/Y') }}</td>
-                                <td>{{ item.numeroDocumento|default('-') }}</td>
+                                <td>{{ item.numeroDocumento|default('-')|mask_documento }}</td>
                                 <td>{{ item.pessoa.nome|default('-')|length > 20 ? item.pessoa.nome|default('-')|slice(0, 20) ~ '...' : item.pessoa.nome|default('-') }}</td>
                                 <td>{{ item.historico|default('-')|length > 25 ? item.historico|default('-')|slice(0, 25) ~ '...' : item.historico|default('-') }}</td>
                                 <td>{{ item.planoConta.descricao|default('-')|length > 15 ? item.planoConta.descricao|default('-')|slice(0, 15) ~ '...' : item.planoConta.descricao|default('-') }}</td>

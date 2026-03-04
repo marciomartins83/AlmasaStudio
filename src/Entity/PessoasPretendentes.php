@@ -56,6 +56,9 @@ class PessoasPretendentes
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $observacoes = null;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -190,6 +193,17 @@ class PessoasPretendentes
     public function setObservacoes(?string $observacoes): self
     {
         $this->observacoes = $observacoes;
+        return $this;
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): self
+    {
+        $this->cod = $cod;
         return $this;
     }
 }

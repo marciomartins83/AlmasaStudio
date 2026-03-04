@@ -4,14 +4,14 @@
 
 {% block content %}
 <div class="container my-4">
-    <h2 class="fs-3 fw-bold mb-4 text-dark">Painel Administrativo</h2>
+    <h2 class="fs-3 fw-bold mb-4">Painel Administrativo</h2>
     <p class="text-secondary mb-4">
         Bem-vindo ao painel,
-        <strong class="text-dark">{{ app.user.email }}</strong>
+        <strong>{{ app.user.email }}</strong>
     </p>
 
     {# Seção Principal - Cadastros Gerais e Configurações #}
-    <h3 class="mb-3 text-dark">Cadastros e Configurações</h3>
+    <h3 class="mb-3">Cadastros e Configurações</h3>
     <div class="row g-4">
         {% set cards_gerais = [
             {'title': 'Endereços', 'description': 'Gerencie os dados de endereços.', 'link': path('app_enderecos'), 'icon': 'geo-alt', 'details': 'Aqui você pode gerenciar estados, cidades, bairros e logradouros.'},
@@ -42,15 +42,16 @@
     </div>
 
     {# Seção Financeiro e Documentos #}
-    <h3 class="mt-5 mb-3 text-dark">Financeiro e Documentos</h3>
+    <h3 class="mt-5 mb-3">Financeiro e Documentos</h3>
     <div class="row g-4">
         {% set cards_financeiro = [
             {'title': 'Bancos', 'description': 'Lista de bancos cadastrados.', 'link': path('app_banco_index'), 'icon': 'bank2', 'details': 'Gerencie os bancos disponíveis para transações financeiras.'},
-            {'title': 'Imóveis', 'description': 'Gerencie o cadastro completo de imóveis.', 'link': path('app_imovel_index'), 'icon': 'building', 'details': 'Cadastro completo com 63 campos: proprietário, endereço, valores, características, propriedades, fotos, medidores e documentação.'},
-            {'title': 'Contratos', 'description': 'Gerencie contratos de locação.', 'link': path('app_contrato_index'), 'icon': 'file-earmark-text', 'details': 'Sistema completo de gestão de contratos de locação: cadastro, renovação, encerramento, reajustes automáticos e estatísticas.'},
+            {'title': 'Lançamentos', 'description': 'Contas a pagar e receber.', 'link': path('app_lancamentos_index'), 'icon': 'wallet2', 'details': 'Sistema de contas a pagar e receber: cadastro de despesas (água, luz, etc.), receitas, baixas, estornos, relatórios e estatísticas.'},
             {'title': 'Ficha Financeira', 'description': 'Gerencie lançamentos e contas a receber.', 'link': path('app_financeiro_index'), 'icon': 'cash-stack', 'details': 'Sistema completo de contas a receber: lançamentos automáticos, baixas, estornos, ficha do inquilino, inadimplentes e estatísticas.'},
-            {'title': 'Informe de Rendimentos', 'description': 'Gerencie informes de rendimentos e DIMOB.', 'link': path('app_informe_rendimento_index'), 'icon': 'file-earmark-bar-graph', 'details': 'Processamento, manutenção e impressão de informes de rendimentos. Geração de arquivo DIMOB para Receita Federal.'},
+            {'title': 'Contratos', 'description': 'Gerencie contratos de locação.', 'link': path('app_contrato_index'), 'icon': 'file-earmark-text', 'details': 'Sistema completo de gestão de contratos de locação: cadastro, renovação, encerramento, reajustes automáticos e estatísticas.'},
+            {'title': 'Imóveis', 'description': 'Gerencie o cadastro completo de imóveis.', 'link': path('app_imovel_index'), 'icon': 'building', 'details': 'Cadastro completo com 63 campos: proprietário, endereço, valores, características, propriedades, fotos, medidores e documentação.'},
             {'title': 'Boletos', 'description': 'Emissão e gestão de boletos bancários.', 'link': path('app_boleto_index'), 'icon': 'receipt', 'details': 'Sistema completo de boletos: emissão, registro via API Santander, consulta de status, baixa, impressão e operações em lote.'},
+            {'title': 'Informe de Rendimentos', 'description': 'Gerencie informes de rendimentos e DIMOB.', 'link': path('app_informe_rendimento_index'), 'icon': 'file-earmark-bar-graph', 'details': 'Processamento, manutenção e impressão de informes de rendimentos. Geração de arquivo DIMOB para Receita Federal.'},
             {'title': 'API Bancária', 'description': 'Configure credenciais para integração com APIs de cobrança.', 'link': path('app_configuracao_api_banco_index'), 'icon': 'gear', 'details': 'Configure Client ID, Client Secret e certificados digitais para integração com APIs bancárias (Santander, etc.).'},
             {'title': 'Relatórios', 'description': 'Gerencie relatórios do sistema.', 'link': path('app_relatorios_index'), 'icon': 'graph-up', 'details': 'Acesse diversos relatórios de gestão do sistema.'}
         ] %}
@@ -75,7 +76,7 @@
     </div>
 
     {# Seção Pessoas - Centralizada #}
-<h3 class="mt-5 mb-3 text-dark">Gestão de Pessoas</h3>
+<h3 class="mt-5 mb-3">Gestão de Pessoas</h3>
 <div class="row g-4">
     <div class="col-md-4">
         <div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ path('app_pessoa_index') }}'">

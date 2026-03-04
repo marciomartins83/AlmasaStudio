@@ -112,6 +112,10 @@ class ContratoController extends AbstractController
     public function new(Request $request): Response
     {
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('contrato_form', $request->request->get('_token'))) {
+                $this->addFlash('error', 'Token de seguranca invalido. Recarregue a pagina.');
+                return $this->redirectToRoute('app_contrato_new');
+            }
             try {
                 $dados = $request->request->all();
                 $contrato = new ImoveisContratos();
@@ -147,6 +151,10 @@ class ContratoController extends AbstractController
     public function edit(Request $request, ImoveisContratos $contrato): Response
     {
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('contrato_form', $request->request->get('_token'))) {
+                $this->addFlash('error', 'Token de seguranca invalido. Recarregue a pagina.');
+                return $this->redirectToRoute('app_contrato_edit', ['id' => $contrato->getId()]);
+            }
             try {
                 $dados = $request->request->all();
 
@@ -182,8 +190,16 @@ class ContratoController extends AbstractController
     public function encerrar(Request $request, int $id): JsonResponse
     {
         try {
+            if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+                return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido.'], 403);
+            }
             $dados = json_decode($request->getContent(), true);
-            $dataEncerramento = new \DateTime($dados['data_encerramento'] ?? 'now');
+            $dataStr = $dados['data_encerramento'] ?? 'now';
+            try {
+                $dataEncerramento = new \DateTime($dataStr);
+            } catch (\Exception $e) {
+                return new JsonResponse(['success' => false, 'message' => 'Data de encerramento invalida.'], 400);
+            }
             $motivo = $dados['motivo'] ?? null;
 
             // Delega para Service
@@ -193,12 +209,18 @@ class ContratoController extends AbstractController
                 'success' => true,
                 'message' => 'Contrato encerrado com sucesso.',
             ]);
-        } catch (\Exception $e) {
-            $this->logger->error('Erro ao encerrar contrato: ' . $e->getMessage());
+        } catch (\InvalidArgumentException|\DomainException|\RuntimeException $e) {
+            $this->logger->warning('Erro ao encerrar contrato: ' . $e->getMessage());
             return new JsonResponse([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao encerrar contrato: ' . $e->getMessage(), ['exception' => $e]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro interno ao processar a requisicao.',
+            ], 500);
         }
     }
 
@@ -209,6 +231,9 @@ class ContratoController extends AbstractController
     public function renovar(Request $request, int $id): JsonResponse
     {
         try {
+            if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+                return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido.'], 403);
+            }
             $dados = json_decode($request->getContent(), true);
 
             // Delega para Service
@@ -219,12 +244,18 @@ class ContratoController extends AbstractController
                 'message' => 'Contrato renovado com sucesso.',
                 'novo_contrato_id' => $novoContrato->getId(),
             ]);
-        } catch (\Exception $e) {
-            $this->logger->error('Erro ao renovar contrato: ' . $e->getMessage());
+        } catch (\InvalidArgumentException|\DomainException|\RuntimeException $e) {
+            $this->logger->warning('Erro ao renovar contrato: ' . $e->getMessage());
             return new JsonResponse([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao renovar contrato: ' . $e->getMessage(), ['exception' => $e]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro interno ao processar a requisicao.',
+            ], 500);
         }
     }
 
@@ -245,10 +276,10 @@ class ContratoController extends AbstractController
                 'contratos' => $contratos,
             ]);
         } catch (\Exception $e) {
-            $this->logger->error('Erro ao buscar contratos: ' . $e->getMessage());
+            $this->logger->error('Erro ao buscar contratos: ' . $e->getMessage(), ['exception' => $e]);
             return new JsonResponse([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Erro interno ao processar a requisicao.',
             ], 500);
         }
     }
@@ -268,10 +299,10 @@ class ContratoController extends AbstractController
                 'contratos' => $contratos,
             ]);
         } catch (\Exception $e) {
-            $this->logger->error('Erro ao buscar contratos: ' . $e->getMessage());
+            $this->logger->error('Erro ao buscar contratos para reajuste: ' . $e->getMessage(), ['exception' => $e]);
             return new JsonResponse([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Erro interno ao processar a requisicao.',
             ], 500);
         }
     }
@@ -291,10 +322,10 @@ class ContratoController extends AbstractController
                 'estatisticas' => $estatisticas,
             ]);
         } catch (\Exception $e) {
-            $this->logger->error('Erro ao obter estatísticas: ' . $e->getMessage());
+            $this->logger->error('Erro ao obter estatísticas: ' . $e->getMessage(), ['exception' => $e]);
             return new JsonResponse([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Erro interno ao processar a requisicao.',
             ], 500);
         }
     }
@@ -314,10 +345,10 @@ class ContratoController extends AbstractController
                 'imoveis' => $imoveis,
             ]);
         } catch (\Exception $e) {
-            $this->logger->error('Erro ao listar imóveis: ' . $e->getMessage());
+            $this->logger->error('Erro ao listar imóveis: ' . $e->getMessage(), ['exception' => $e]);
             return new JsonResponse([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Erro interno ao processar a requisicao.',
             ], 500);
         }
     }

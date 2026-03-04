@@ -15,6 +15,9 @@ class Pessoas
     #[ORM\Column(name: 'idpessoa', type: 'integer')]
     private ?int $idpessoa = null;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     #[ORM\Column]
     private string $nome;
 
@@ -308,5 +311,16 @@ class Pessoas
     public function isPessoaJuridica(): bool
     {
         return $this->fisicaJuridica === 'juridica';
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): self
+    {
+        $this->cod = $cod;
+        return $this;
     }
 }

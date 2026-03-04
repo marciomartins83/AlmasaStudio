@@ -48,6 +48,9 @@ class PessoasSocios
     #[ORM\Column(name: 'updated_at', type: 'datetime')]
     private \DateTimeInterface $updatedAt;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -151,5 +154,16 @@ class PessoasSocios
     public function preUpdate(): void
     {
         $this->updatedAt = new \DateTime();
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): self
+    {
+        $this->cod = $cod;
+        return $this;
     }
 }

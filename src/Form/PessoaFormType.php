@@ -10,6 +10,7 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -116,6 +117,15 @@ class PessoaFormType extends AbstractType
                     'class' => 'form-control',
                     'rows' => 3,
                     'placeholder' => 'Digite observações'
+                ],
+                'required' => false
+            ])
+
+            ->add('cod', IntegerType::class, [
+                'label' => 'COD',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Digite o COD'
                 ],
                 'required' => false
             ])

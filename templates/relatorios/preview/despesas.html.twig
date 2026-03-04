@@ -24,7 +24,7 @@
                         {% for lancamento in grupo.itens %}
                             <tr>
                                 <td>{{ lancamento.dataVencimento|date('d/m/Y') }}</td>
-                                <td>{{ lancamento.numeroDocumento|default('-') }}</td>
+                                <td>{{ lancamento.numeroDocumento|default('-')|mask_documento }}</td>
                                 <td>{{ lancamento.pessoaCredor.nome|default('-') }}</td>
                                 <td>{{ lancamento.historico|default('-')|length > 40 ? lancamento.historico|default('-')|slice(0, 40) ~ '...' : lancamento.historico|default('-') }}</td>
                                 <td>{{ lancamento.planoConta.descricao }}</td>
@@ -45,7 +45,7 @@
                     {% for lancamento in dados %}
                         <tr>
                             <td>{{ lancamento.dataVencimento|date('d/m/Y') }}</td>
-                            <td>{{ lancamento.numeroDocumento|default('-') }}</td>
+                            <td>{{ lancamento.numeroDocumento|default('-')|mask_documento }}</td>
                             <td>{{ lancamento.pessoaCredor.nome|default('-') }}</td>
                             <td>{{ lancamento.historico|default('-')|length > 40 ? lancamento.historico|default('-')|slice(0, 40) ~ '...' : lancamento.historico|default('-') }}</td>
                             <td>{{ lancamento.planoConta.descricao }}</td>

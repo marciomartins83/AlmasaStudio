@@ -74,6 +74,12 @@ class PessoasLocadores
     #[ORM\Column(name: 'ext_email')]
     private ?bool $extEmail = false;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
+    #[ORM\Column(name: 'flg_proprietario', type: 'boolean', options: ['default' => false])]
+    private bool $flgProprietario = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -285,6 +291,28 @@ class PessoasLocadores
     public function setExtEmail(bool $extEmail): static
     {
         $this->extEmail = $extEmail;
+        return $this;
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): static
+    {
+        $this->cod = $cod;
+        return $this;
+    }
+
+    public function isFlgProprietario(): bool
+    {
+        return $this->flgProprietario;
+    }
+
+    public function setFlgProprietario(bool $flgProprietario): static
+    {
+        $this->flgProprietario = $flgProprietario;
         return $this;
     }
 }

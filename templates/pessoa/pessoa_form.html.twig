@@ -107,9 +107,11 @@
                             <div class="col-md-8">
                                 {{ form_row(form.nome) }}
                             </div>
+                            {% if not isEditMode %}
                             <div class="col-md-4">
                                 {{ form_row(form.searchTerm) }}
                             </div>
+                            {% endif %}
                         </div>
                         
                         <div id="campos-pessoa-fisica">
@@ -162,6 +164,12 @@
                         <div class="row">
                             <div class="col-12">
                                 {{ form_row(form.observacoes) }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ form_row(form.cod) }}
                             </div>
                         </div>
                     </div>
@@ -611,6 +619,7 @@
         nomeMae: '{{ form.nomeMae.vars.id }}',
         renda: '{{ form.renda.vars.id }}',
         observacoes: '{{ form.observacoes.vars.id }}',
+        cod: '{{ form.cod.vars.id }}',
         conjuge: '{{ form.conjuge.vars.id }}'
     };
 

@@ -46,6 +46,7 @@ class PessoaController extends AbstractController
 
         $filters = [
             new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Buscar por nome...', 3),
+            new SearchFilterDTO('cod', 'COD', 'number', 'p.cod', 'EXACT', [], 'Buscar por código...', 1),
             new SearchFilterDTO('tipoPessoa', 'Tipo Pessoa', 'select', 'pt.idTipoPessoa', 'EXACT', [
                 '1' => 'Fiador',
                 '2' => 'Corretor',
@@ -57,6 +58,12 @@ class PessoaController extends AbstractController
                 '8' => 'Advogado',
                 '12' => 'Inquilino',
             ]),
+            new SearchFilterDTO('locadorFilter', 'Perfil Locador', 'select', '', 'CUSTOM', [
+                '' => 'Todos',
+                'locador_todos' => 'Locador (todos)',
+                'locador_proprietario' => 'Locador Proprietário',
+                'locador_sem_proprietario' => 'Locador Não-Proprietário',
+            ]),
             new SearchFilterDTO('fisicaJuridica', 'Física/Jurídica', 'select', 'p.fisicaJuridica', 'EXACT', [
                 'fisica' => 'Física',
                 'juridica' => 'Jurídica',
@@ -67,8 +74,28 @@ class PessoaController extends AbstractController
             ]),
         ];
 
+        // Aplica filtro de locador (customizado - não passa pelo paginator)
+        $locadorFilter = $request->query->get('locadorFilter', '');
+        if ($locadorFilter) {
+            $qb->andWhere('pt.idTipoPessoa = :locadorTipo')
+               ->setParameter('locadorTipo', 4);
+
+            if ($locadorFilter !== 'locador_todos') {
+                $qb->leftJoin('App\Entity\PessoasLocadores', 'pl', 'WITH', 'pl.pessoa = p');
+
+                if ($locadorFilter === 'locador_proprietario') {
+                    $qb->andWhere('pl.flgProprietario = :isProprietario')
+                       ->setParameter('isProprietario', true);
+                } elseif ($locadorFilter === 'locador_sem_proprietario') {
+                    $qb->andWhere('pl.flgProprietario = :isProprietario')
+                       ->setParameter('isProprietario', false);
+                }
+            }
+        }
+
         $sortOptions = [
             new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('cod', 'COD', 'ASC'),
             new SortOptionDTO('idpessoa', 'ID', 'DESC'),
             new SortOptionDTO('dtCadastro', 'Dt Cadastro', 'DESC'),
         ];

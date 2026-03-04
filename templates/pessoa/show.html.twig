@@ -49,6 +49,10 @@
                             <td>{{ pessoa.idpessoa }}</td>
                         </tr>
                         <tr>
+                            <th>COD:</th>
+                            <td>{{ pessoa.cod ?? '-' }}</td>
+                        </tr>
+                        <tr>
                             <th>Nome:</th>
                             <td>{{ pessoa.nome }}</td>
                         </tr>
@@ -137,7 +141,7 @@
                     {% for doc in pessoa.pessoasDocumentos %}
                     <tr>
                         <td>{{ doc.tipoDocumento ? doc.tipoDocumento.tipo : '-' }}</td>
-                        <td>{{ doc.numeroDocumento }}</td>
+                        <td>{{ doc.numeroDocumento|format_documento }}</td>
                         <td>{{ doc.orgaoEmissor ?? '-' }}</td>
                         <td>{{ doc.dataEmissao ? doc.dataEmissao|date('d/m/Y') : '-' }}</td>
                         <td>{{ doc.dataVencimento ? doc.dataVencimento|date('d/m/Y') : '-' }}</td>

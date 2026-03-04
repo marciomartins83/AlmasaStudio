@@ -50,20 +50,29 @@ document.addEventListener('DOMContentLoaded', function() {
         conjugeElements.searchValue.addEventListener('input', () => {
             const criteria = conjugeElements.searchCriteria.value;
             let minLength = 0;
+            let rawValue = conjugeElements.searchValue.value.replace(/[^\d]/g, '');
+            let currentLength = 0;
 
             switch(criteria) {
                 case 'cpf':
                     minLength = 11;
+                    currentLength = rawValue.length;
+                    // Aplicar máscara de CPF em tempo real
+                    if (rawValue.length <= 11) {
+                        conjugeElements.searchValue.value = window.formatarCPF ? window.formatarCPF(rawValue) : rawValue;
+                    }
                     break;
                 case 'nome':
                     minLength = 3;
+                    currentLength = conjugeElements.searchValue.value.trim().length;
                     break;
                 case 'id':
                     minLength = 1;
+                    currentLength = rawValue.length;
                     break;
             }
 
-            conjugeElements.btnSearch.disabled = conjugeElements.searchValue.value.trim().length < minLength;
+            conjugeElements.btnSearch.disabled = currentLength < minLength;
         });
     }
 
@@ -117,14 +126,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 Encontradas ${data.pessoas.length} pessoa(s). Selecione uma das opções:
                             </div>
                             <div class="row">
-                                ${data.pessoas.map(pessoa => `
+                                ${data.pessoas.map(pessoa => {
+                                    const cpfFormatado = pessoa.cpf && window.formatarCPF ? window.formatarCPF(pessoa.cpf.replace(/[^\d]/g, '')) : (pessoa.cpf || 'Não informado');
+                                    return `
                                     <div class="col-md-6 mb-2">
                                         <div class="card">
                                             <div class="card-body">
                                                 <h6 class="card-title">${pessoa.nome}</h6>
                                                 <p class="card-text">
                                                     <small class="text-muted">
-                                                        CPF: ${pessoa.cpf || 'Não informado'}<br>
+                                                        CPF: ${cpfFormatado}<br>
                                                         Nascimento: ${pessoa.data_nascimento || 'Não informado'}
                                                     </small>
                                                 </p>
@@ -140,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </div>
                                         </div>
                                     </div>
-                                `).join('')}
+                                `;}).join('')}
                             </div>
                         `;
                         conjugeElements.results.style.display = 'block';
@@ -225,8 +236,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (campos.cpf && conjuge.cpf) {
-            campos.cpf.value = conjuge.cpf;
-            console.log('CPF carregado:', conjuge.cpf);
+            // Aplicar máscara de CPF ao carregar
+            const cpfFormatado = window.formatarCPF ? window.formatarCPF(conjuge.cpf.replace(/[^\d]/g, '')) : conjuge.cpf;
+            campos.cpf.value = cpfFormatado;
+            console.log('CPF carregado:', cpfFormatado);
+        }
+        
+        // Vincular máscara de CPF ao campo de CPF do cônjuge para digitação
+        if (campos.cpf) {
+            campos.cpf.addEventListener('input', () => {
+                const rawValue = campos.cpf.value.replace(/[^\d]/g, '');
+                if (rawValue.length <= 11) {
+                    campos.cpf.value = window.formatarCPF ? window.formatarCPF(rawValue) : rawValue;
+                }
+            });
         }
 
         if (campos.dataNascimento && conjuge.data_nascimento) {

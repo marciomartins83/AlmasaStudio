@@ -32,9 +32,11 @@ security:
 
     access_control:
         - { path: ^/admin, roles: ROLE_SUPER_ADMIN }
-        - { path: ^/dashboard, roles: ROLE_USER }
-        - { path: ^/perfil, roles: ROLE_USER }
-        - { path: ^/, roles: PUBLIC_ACCESS }
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/logout, roles: PUBLIC_ACCESS }
+        - { path: ^/api/contact/cep, roles: PUBLIC_ACCESS }
+        - { path: ^/$, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:

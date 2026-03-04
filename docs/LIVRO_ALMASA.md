@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.24.1 |
-| **Data Ultima Atualizacao** | 2026-03-04 (Remove CPF/CNPJ do form edicao) |
-| **Status Geral** | Em producao — Campo CPF/CNPJ removido do card Dados da Pessoa Principal no modo edicao. |
+| **Versao Atual** | 6.25.0 |
+| **Data Ultima Atualizacao** | 2026-03-04 (Tema escuro completo — CSS dark mode em 40+ componentes) |
+| **Status Geral** | Em producao — Tema escuro completo, todos os componentes Almasa adaptados. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
@@ -79,8 +79,12 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
+| 6.25.0 | 2026-03-04 | Tema escuro completo — 40+ componentes CSS com dark mode, dashboard e base.html.twig adaptados |
+| 6.24.4 | 2026-03-04 | Card Lançamentos adicionado ao dashboard e menu Financeiro |
+| 6.24.3 | 2026-03-04 | Tema escuro global — ThemeService + ThemeExtension para todas as páginas |
+| 6.24.2 | 2026-03-04 | Filtro format_documento corrigido — RG brasileiro com dígito verificador (X ou número) |
 | 6.24.1 | 2026-03-04 | Remove CPF/CNPJ do card Dados da Pessoa Principal no modo edicao |
-| 6.24.0 | 2026-03-04 | Mascara CPF/RG/CNPJ em todas as telas — filtro Twig mask_documento |
+| 6.24.0 | 2026-03-04 | Mascara CPF/RG/CNPJ em todas as telas — filtro Twig mask_documento (revertido em show) |
 | 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
 | 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
 | 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
@@ -1211,6 +1215,20 @@ Menu horizontal global exibido abaixo da navbar principal, com acesso rapido a t
 - Apenas exibido quando usuario logado (`{% if app.user %}`)
 - Suporte a temas claro/escuro via atributo `data-bs-theme`
 
+### Tema Escuro Completo (v6.25.0)
+
+**Mecanismo:** Bootstrap 5.3 `data-bs-theme="dark"` no `<html>`, toggle persiste em localStorage + banco (Pessoas.themeLight).
+
+**Backend (já existia desde v6.24.3):** ThemeService, ThemeController, ThemeExtension — sem alteração.
+
+**CSS (`public/css/app.css`) — Override completo em `[data-bs-theme="dark"]`:**
+- **Variáveis CSS invertidas:** `--almasa-white: #1a1d21`, `--almasa-light-gray: #121416`, `--almasa-dark-gray: #e0e0e0`, `--almasa-black: #f8f9fa`, sombras mais fortes
+- **Componentes com override dark:** body, navbar, cards, card-footer, forms (form-control + form-label), tabelas, sidebar, stats-cards, property-cards, alertas (4 variantes com rgba escuros), modais, border-gradient, stimulus search/filter, btn-almasa-secondary, dropdown menu, footer
+
+**Templates corrigidos:**
+- `dashboard/index.html.twig` — removidas 5 classes `text-dark` hardcoded (Bootstrap 5.3 adapta automaticamente)
+- `base.html.twig` — toggle e dropdown do usuario: `btn-light` → `btn-outline-secondary` (funciona nos dois temas)
+
 **Classes CSS customizadas (app.css):**
 - `.almasa-top-nav` — Container do menu (gradiente Almasa)
 - `.almasa-nav-toggler` — Botao mobile
@@ -1462,6 +1480,16 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.25.0] - 2026-03-04
+
+#### Adicionado
+- **Tema escuro completo** — 40+ componentes Almasa com dark mode via `[data-bs-theme="dark"]`
+  - `public/css/app.css`: override de variáveis CSS + overrides para body, navbar, cards, forms, tabelas, sidebar, stats-cards, property-cards, alertas, modais, border-gradient, stimulus components, botões, dropdown, footer
+  - `dashboard/index.html.twig`: removidas 5 classes `text-dark` hardcoded que ficavam invisíveis no dark mode
+  - `base.html.twig`: botões toggle/dropdown alterados de `btn-light` para `btn-outline-secondary` (adaptam a ambos os temas)
 
 ---
 
@@ -2111,6 +2139,34 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 #### Lição Aprendida
 - Symfony 7.2 introduziu `SameOriginCsrfTokenManager` como padrão para o security listener. Ele valida CSRF por Origin header (browsers enviam automaticamente) ou double-submit cookie. Não usar `CsrfTokenManagerInterface` diretamente no controller de login — usar `{{ csrf_token('id') }}` no Twig.
 - **TODA pessoa DEVE ter pelo menos 1 tipo em pessoas_tipos.** O script de migração DEVE validar 100% no final e falhar explicitamente se qualquer pessoa ficar sem tipo. Não existe fallback — cada pessoa vem de uma tabela MySQL (loclocadores, locfiadores, loccontratantes, locinquilino) e o tipo é determinístico.
+
+### [6.24.4] - 2026-03-04
+
+#### Adicionado
+- Card "Lançamentos" no dashboard (Financeiro e Documentos)
+- Item "Lançamentos" no menu Financeiro
+- Template: `templates/dashboard/index.html.twig` - card adicionado após Bancos
+- Template: `templates/_partials/top_navigation.html.twig` - item adicionado após Ficha Financeira
+
+### [6.24.3] - 2026-03-04
+
+#### Adicionado
+- ThemeService para gerenciar tema global do usuário logado
+- ThemeExtension para expor variáveis de tema no Twig
+- Tema escuro agora funciona em todas as páginas (não só no form de pessoa)
+
+#### Alterado
+- `templates/base.html.twig` - usa variável global `{{ theme }}` ao invés de verificação condicional
+- `config/services.yaml` - registro do ThemeService
+
+### [6.24.2] - 2026-03-04
+
+#### Alterado
+- Filtro Twig `format_documento` corrigido para RG brasileiro
+- RG com dígito verificador (número ou X): `43.820.141-3`
+- Suporta 7, 8, 9 e 10+ dígitos
+- Arquivo: `src/Twig/DocumentoFormatExtension.php`
+- Função JavaScript `formatarRG` corrigida em `assets/js/pessoa/pessoa.js`
 
 ### [6.24.1] - 2026-03-04
 

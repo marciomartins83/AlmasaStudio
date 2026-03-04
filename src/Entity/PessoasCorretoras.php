@@ -25,6 +25,9 @@ class PessoasCorretoras
     #[ORM\Column(name: 'updated_at', type: 'datetime', nullable: false)]
     private ?\DateTimeInterface $updatedAt = null;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
@@ -62,5 +65,16 @@ class PessoasCorretoras
     public function getUpdatedAt(): ?\DateTimeInterface
     {
         return $this->updatedAt;
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): self
+    {
+        $this->cod = $cod;
+        return $this;
     }
 }

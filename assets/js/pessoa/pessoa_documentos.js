@@ -56,7 +56,52 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         container.insertAdjacentHTML('beforeend', documentoHtml);
+        
+        // Vincular máscara ao novo documento
+        vincularMascaraDocumento(contadorDocumento);
     });
+    
+    /**
+     * Vincula máscara de CPF/RG ao select e input de documento
+     */
+    function vincularMascaraDocumento(index) {
+        const tipoSelect = document.getElementById(`documento_tipo_${index}`);
+        const numeroInput = document.querySelector(`input[name="documentos[${index}][numero]"]`);
+        
+        if (!tipoSelect || !numeroInput) return;
+        
+        const aplicarMascara = () => {
+            const tipoId = parseInt(tipoSelect.value);
+            const tipoTexto = tipoSelect.options[tipoSelect.selectedIndex]?.text?.toUpperCase() || '';
+            
+            // Detectar tipo: CPF=1, RG=2 ou por texto
+            let tipoDoc = null;
+            if (tipoId === 1 || tipoTexto.includes('CPF')) {
+                tipoDoc = 'cpf';
+            } else if (tipoId === 2 || tipoTexto.includes('RG')) {
+                tipoDoc = 'rg';
+            }
+            
+            // Aplicar máscara no input
+            if (tipoDoc && window.aplicarMascaraDocumento) {
+                numeroInput.setAttribute('data-tipo-documento', tipoDoc);
+                window.aplicarMascaraDocumento(numeroInput, tipoDoc);
+            } else {
+                numeroInput.removeAttribute('data-tipo-documento');
+            }
+        };
+        
+        // Aplicar quando mudar o tipo
+        tipoSelect.addEventListener('change', aplicarMascara);
+        
+        // Aplicar máscara durante digitação
+        numeroInput.addEventListener('input', () => {
+            const tipo = numeroInput.getAttribute('data-tipo-documento');
+            if (tipo && window.aplicarMascaraDocumento) {
+                window.aplicarMascaraDocumento(numeroInput, tipo);
+            }
+        });
+    }
     
     window.adicionarDocumentoExistente = async function(documento) {
         const tipos = window.tiposDocumento || await window.carregarTipos('documento');
@@ -115,6 +160,23 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         container.insertAdjacentHTML('beforeend', documentoHtml);
+        
+        // Vincular máscara ao documento existente
+        vincularMascaraDocumento(contadorDocumento);
+        
+        // Aplicar máscara inicial baseada no tipo
+        const tipoSelect = document.getElementById(`documento_tipo_${contadorDocumento}`);
+        const numeroInput = document.querySelector(`input[name="documentos[${contadorDocumento}][numero]"]`);
+        if (tipoSelect && numeroInput && documento.numero) {
+            const tipoId = parseInt(tipoSelect.value);
+            const tipoTexto = tipoSelect.options[tipoSelect.selectedIndex]?.text?.toUpperCase() || '';
+            
+            if ((tipoId === 1 || tipoTexto.includes('CPF')) && window.formatarCPF) {
+                numeroInput.value = window.formatarCPF(documento.numero.replace(/[^\d]/g, ''));
+            } else if ((tipoId === 2 || tipoTexto.includes('RG')) && window.formatarRG) {
+                numeroInput.value = window.formatarRG(documento.numero);
+            }
+        }
     };
 
     window.removerDocumento = async function (index) {

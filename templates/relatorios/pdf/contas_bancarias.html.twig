@@ -108,7 +108,7 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ mov.historico|default('-')|length > 45 ? mov.historico|default('-')|slice(0, 45) ~ '...' : mov.historico|default('-') }}</td>
-                                <td>{{ mov.numeroDocumento|default('-') }}</td>
+                                <td>{{ mov.numeroDocumento|default('-')|mask_documento }}</td>
                                 <td class="text-right {% if mov.receber %}text-success{% else %}text-danger{% endif %}">
                                     {% if mov.receber %}+{% else %}-{% endif %} R$ {{ mov.valorFloat|number_format(2, ',', '.') }}
                                 </td>

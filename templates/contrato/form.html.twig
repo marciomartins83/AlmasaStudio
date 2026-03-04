@@ -42,6 +42,7 @@
             {% endif %}
 
             <form method="POST" id="contrato-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('contrato_form') }}">
                 <meta name="csrf-token" content="{{ csrf_token('ajax_global') }}">
 
                 <div class="card">

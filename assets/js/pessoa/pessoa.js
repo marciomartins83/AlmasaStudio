@@ -294,6 +294,81 @@ document.addEventListener('DOMContentLoaded', function() {
         input.value = value;
     };
     
+    /**
+     * Formata RG brasileiro
+     * O dígito verificador é sempre o último caractere (número ou X)
+     */
+    window.formatarRG = function(rg) {
+        if (!rg) return '';
+
+        // Remove tudo exceto dígitos e X maiúsculo/minúsculo
+        let limpo = rg.replace(/[^0-9X]/gi, '').toUpperCase();
+
+        if (!limpo) return '';
+
+        const tamanho = limpo.length;
+
+        // RG brasileiro: X.XXX.XXX-D onde D pode ser número ou X
+        // O dígito verificador é sempre o último caractere
+
+        if (tamanho === 8) {
+            // 7 dígitos + 1 DV: X.XXX.XXX-D
+            return limpo.replace(/^(\d)(\d{3})(\d{3})([\dX])$/, '$1.$2.$3-$4');
+        }
+
+        if (tamanho === 9) {
+            // 8 dígitos + 1 DV: XX.XXX.XXX-D
+            return limpo.replace(/^(\d{2})(\d{3})(\d{3})([\dX])$/, '$1.$2.$3-$4');
+        }
+
+        if (tamanho >= 10) {
+            // 9+ dígitos + 1 DV: XXX.XXX.XXX-D
+            return limpo.replace(/^(\d{3})(\d{3})(\d{3})([\dX])$/, '$1.$2.$3-$4');
+        }
+
+        // Menos de 8 dígitos: retorna sem formatação
+        return limpo;
+    };
+    
+    /**
+     * Aplica máscara de documento (CPF ou RG)
+     */
+    window.aplicarMascaraDocumento = function(input, tipo) {
+        if (!input) return;
+        let value = input.value || '';
+        if (tipo === 'cpf') {
+            input.value = window.formatarCPF(value);
+        } else if (tipo === 'rg') {
+            input.value = window.formatarRG(value);
+        } else {
+            input.value = value.replace(/[^\w]/g, '');
+        }
+    };
+    
+    /**
+     * Detecta tipo de documento a partir de texto
+     */
+    window.detectarTipoDocumentoPorTexto = function(texto) {
+        if (!texto) return null;
+        const t = texto.toUpperCase();
+        if (t.includes('CPF')) return 'cpf';
+        if (t.includes('RG')) return 'rg';
+        return null;
+    };
+    
+    /**
+     * Aplica máscara de documento baseada em atributo data-tipo-documento
+     */
+    window.aplicarMascaraInputDocumento = function(inputElement) {
+        if (!inputElement) return;
+        const tipo = inputElement.getAttribute('data-tipo-documento');
+        if (tipo === 'cpf') {
+            inputElement.value = window.formatarCPF(inputElement.value);
+        } else if (tipo === 'rg') {
+            inputElement.value = window.formatarRG(inputElement.value);
+        }
+    };
+    
     // =========================================================================
     // INICIALIZAÇÃO
     // =========================================================================

@@ -48,6 +48,13 @@
                                        value="{{ filters[filter.name]|default('') }}"
                                        class="form-control form-control-sm"
                                        placeholder="{{ filter.placeholder ?? filter.label }}">
+                            {% elseif filter.type == 'number' %}
+                                <input type="number"
+                                       name="{{ filter.name }}"
+                                       value="{{ filters[filter.name]|default('') }}"
+                                       class="form-control form-control-sm"
+                                       placeholder="{{ filter.placeholder ?? filter.label }}"
+                                       inputmode="numeric">
                             {% elseif filter.type == 'select' %}
                                 <select name="{{ filter.name }}"
                                         class="form-select form-select-sm"

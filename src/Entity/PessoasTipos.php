@@ -25,6 +25,9 @@ class PessoasTipos
     #[ORM\Column(type: 'boolean')]
     private bool $ativo;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -82,6 +85,17 @@ class PessoasTipos
     public function setAtivo(bool $ativo): self
     {
         $this->ativo = $ativo;
+        return $this;
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): self
+    {
+        $this->cod = $cod;
         return $this;
     }
 

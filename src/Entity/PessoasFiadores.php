@@ -29,6 +29,9 @@ class PessoasFiadores
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?int $idFormaRetirada = null;
 
+    #[ORM\Column(name: 'cod', type: 'integer', nullable: true)]
+    private ?int $cod = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -108,6 +111,17 @@ class PessoasFiadores
     public function setOutros(?string $outros): self
     {
         $this->outros = $outros;
+        return $this;
+    }
+
+    public function getCod(): ?int
+    {
+        return $this->cod;
+    }
+
+    public function setCod(?int $cod): self
+    {
+        $this->cod = $cod;
         return $this;
     }
 }
