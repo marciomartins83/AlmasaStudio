@@ -2106,9 +2106,11 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 - **APP_DEBUG=true deixado em produção** — Restaurado para `false`.
 - **Logs não eram gravados** — Em modo `prod`, monolog envia para `php://stderr` (PHP-FPM log), não para arquivo. Identificado e documentado.
 - **Schema TiposImoveis desincronizado** — Entity tinha `created_at`/`updated_at` como `nullable: true` mas banco tinha `NOT NULL`. Fix: entity alinhada com banco (NOT NULL). Schema agora 100% sincronizado local + VPS.
+- **2.132 inquilinos SEM tipo em pessoas_tipos** — Fase 18.5 do script de migração filtrava `tipo_pessoa IN (1..8)` mas inquilino é `tipo_pessoa=12`. TIPO_MAPPING também não incluía 12. Fix: adicionado inquilino no TIPO_MAPPING e no filtro SQL. SQL direto aplicado no banco local + VPS para corrigir dados existentes. Validação 100% adicionada ao final da fase (raise RuntimeError se qualquer pessoa ficar sem tipo).
 
 #### Lição Aprendida
 - Symfony 7.2 introduziu `SameOriginCsrfTokenManager` como padrão para o security listener. Ele valida CSRF por Origin header (browsers enviam automaticamente) ou double-submit cookie. Não usar `CsrfTokenManagerInterface` diretamente no controller de login — usar `{{ csrf_token('id') }}` no Twig.
+- **TODA pessoa DEVE ter pelo menos 1 tipo em pessoas_tipos.** O script de migração DEVE validar 100% no final e falhar explicitamente se qualquer pessoa ficar sem tipo. Não existe fallback — cada pessoa vem de uma tabela MySQL (loclocadores, locfiadores, loccontratantes, locinquilino) e o tipo é determinístico.
 
 ### [6.24.1] - 2026-03-04
 
