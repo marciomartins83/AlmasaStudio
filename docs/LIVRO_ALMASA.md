@@ -1287,6 +1287,29 @@ Sempre verificar permissões após deploy. PHP-FPM roda como `www-data` e precis
 ### 10. Monolog em Produção
 Em `when@prod`, monolog usa `fingers_crossed` → `php://stderr`. Logs vão para o log do PHP-FPM (`/var/log/php8.4-fpm.log`), não para `var/log/`. Para debug temporário, trocar `APP_ENV=dev` e verificar `var/log/dev.log`. **Sempre restaurar `APP_ENV=prod` e `APP_DEBUG=false` após debug.**
 
+### 11. Checkpoints Obrigatórios Antes de Deploy
+**ANTES de qualquer deploy ou correção na VPS, SEMPRE criar checkpoint:**
+```bash
+# 1. Tag no git
+git tag -a vX.Y.Z-stable -m "Checkpoint: descrição do estado"
+git push origin vX.Y.Z-stable
+
+# 2. Backup na VPS
+mkdir -p /var/www/AlmasaStudio/backups/checkpoint-vX.Y.Z
+cp .env.local backups/checkpoint-vX.Y.Z/
+cp /etc/nginx/sites-available/liviago.com.br backups/checkpoint-vX.Y.Z/nginx-liviago.conf
+PGPASSWORD=AlmasaProd2026 psql -h 127.0.0.1 -U almasa_prod -d almasa_prod -c "SELECT id,email,roles,password FROM users" -t > backups/checkpoint-vX.Y.Z/users_dump.txt
+find src/Controller -name "*.php" -exec stat -c "%a %n" {} \; > backups/checkpoint-vX.Y.Z/permissions.txt
+
+# 3. Restaurar se necessário
+git checkout vX.Y.Z-stable
+cp backups/checkpoint-vX.Y.Z/.env.local .
+cp backups/checkpoint-vX.Y.Z/nginx-liviago.conf /etc/nginx/sites-available/liviago.com.br
+find src -type f -perm 600 -exec chmod 644 {} \;
+php bin/console cache:clear && nginx -t && systemctl reload nginx
+```
+**Último checkpoint estável:** `v6.23.4-stable` (commit `e2ecb9c`, 2026-03-04)
+
 ---
 
 ## Cap 14 — Plano de Testes
