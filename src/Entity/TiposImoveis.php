@@ -9,7 +9,6 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TiposImoveisRepository::class)]
 #[ORM\Table(name: 'tipos_imoveis')]
-#[ORM\HasLifecycleCallbacks]
 class TiposImoveis
 {
     #[ORM\Id]
@@ -23,11 +22,11 @@ class TiposImoveis
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $descricao = null;
 
-    #[ORM\Column(name: 'created_at', type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $createdAt = null;
+    #[ORM\Column(name: 'created_at', length: 255)]
+    private string $createdAt = '';
 
-    #[ORM\Column(name: 'updated_at', type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $updatedAt = null;
+    #[ORM\Column(name: 'updated_at', length: 255)]
+    private string $updatedAt = '';
 
     /**
      * @var Collection<int, Imoveis>
@@ -62,23 +61,23 @@ class TiposImoveis
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    public function getCreatedAt(): string
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?\DateTimeInterface $createdAt): self
+    public function setCreatedAt(string $createdAt): self
     {
         $this->createdAt = $createdAt;
         return $this;
     }
 
-    public function getUpdatedAt(): ?\DateTimeInterface
+    public function getUpdatedAt(): string
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): self
+    public function setUpdatedAt(string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
         return $this;
@@ -87,20 +86,6 @@ class TiposImoveis
     public function __construct()
     {
         $this->imoveis = new ArrayCollection();
-    }
-
-    #[ORM\PrePersist]
-    public function setCreatedAtValue(): void
-    {
-        $now = new \DateTime();
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
-    }
-
-    #[ORM\PreUpdate]
-    public function setUpdatedAtValue(): void
-    {
-        $this->updatedAt = new \DateTime();
     }
 
     /**
