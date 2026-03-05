@@ -339,7 +339,8 @@ class PessoaController extends AbstractController
                 'tipoPessoaString' => $tipoString
             ];
 
-            $this->logger->info('🔵 DEBUG: Resposta final - tipos: ' . json_encode($tipos));
+            // DEBUG TEMPORARIO - escrever resposta em arquivo para diagnostico
+            file_put_contents('/tmp/almasa_search_debug.json', json_encode(['success' => true, 'pessoa' => $pessoaData], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
             return new JsonResponse(['success' => true, 'pessoa' => $pessoaData]);
             
