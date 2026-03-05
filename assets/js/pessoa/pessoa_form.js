@@ -561,13 +561,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        console.log('>>> DEBUG enderecos:', pessoa.enderecos);
+        console.log('>>> DEBUG enderecos isArray:', Array.isArray(pessoa.enderecos));
+        console.log('>>> DEBUG enderecos length:', pessoa.enderecos ? pessoa.enderecos.length : 'NULL');
+        console.log('>>> DEBUG enderecos-container exists:', !!document.getElementById('enderecos-container'));
+        console.log('>>> DEBUG adicionarEnderecoExistente type:', typeof window.adicionarEnderecoExistente);
         if (pessoa.enderecos && Array.isArray(pessoa.enderecos)) {
             const enderecosContainer = document.getElementById('enderecos-container');
             if (enderecosContainer && typeof window.adicionarEnderecoExistente === 'function') {
+                console.log('>>> CHAMANDO adicionarEnderecoExistente para', pessoa.enderecos.length, 'enderecos');
                 pessoa.enderecos.forEach(endereco => {
                     window.adicionarEnderecoExistente(endereco);
                 });
+            } else {
+                console.error('>>> BLOQUEADO: container=', !!enderecosContainer, 'funcao=', typeof window.adicionarEnderecoExistente);
             }
+        } else {
+            console.error('>>> SEM ENDERECOS na resposta! pessoa.enderecos=', pessoa.enderecos);
         }
         
         if (pessoa.emails && Array.isArray(pessoa.emails)) {

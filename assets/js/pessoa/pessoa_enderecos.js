@@ -114,13 +114,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     window.adicionarEnderecoExistente = async function(endereco) {
-        const tipos = window.tiposEndereco || await carregarTipos('endereco');
-        window.tiposEndereco = tipos;
-        contadorEndereco++;
+        console.log('>>> adicionarEnderecoExistente CHAMADO com:', JSON.stringify(endereco));
+        try {
+            const tipos = window.tiposEndereco || await carregarTipos('endereco');
+            window.tiposEndereco = tipos;
+            contadorEndereco++;
 
-        const isPrincipal = !!endereco.principal;
-        const html = gerarEnderecoHtml(contadorEndereco, endereco, isPrincipal);
-        posicionarEndereco(html, isPrincipal);
+            const isPrincipal = !!endereco.principal;
+            console.log('>>> isPrincipal:', isPrincipal, 'contador:', contadorEndereco);
+            const html = gerarEnderecoHtml(contadorEndereco, endereco, isPrincipal);
+            console.log('>>> HTML gerado OK, length:', html.length);
+            posicionarEndereco(html, isPrincipal);
+            console.log('>>> posicionarEndereco OK');
+        } catch (err) {
+            console.error('>>> ERRO em adicionarEnderecoExistente:', err);
+        }
     };
 
     window.definirPrincipal = async function(index) {
