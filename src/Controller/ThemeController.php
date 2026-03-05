@@ -2,41 +2,40 @@
 
 namespace App\Controller;
 
-use App\Entity\Pessoas;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\ThemeService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Bundle\SecurityBundle\Security;
 
+/**
+ * ThemeController - Thin Controller
+ * Apenas recebe Request, chama Service e retorna Response
+ */
 #[Route('/theme')]
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 class ThemeController extends AbstractController
 {
-    #[Route('/toggle_theme', name: 'toggle_theme', methods: ['POST'])]
-    public function toggleTheme(Security $security, EntityManagerInterface $entityManager): JsonResponse
+    private ThemeService $themeService;
+
+    public function __construct(ThemeService $themeService)
     {
-        $user = $security->getUser();
+        $this->themeService = $themeService;
+    }
 
-        if (!$user) {
-            return new JsonResponse(['error' => 'Usuário não autenticado'], 403);
+    #[Route('/toggle_theme', name: 'toggle_theme', methods: ['POST'])]
+    public function toggleTheme(): JsonResponse
+    {
+        $result = $this->themeService->toggleTheme();
+
+        if (!$result['success']) {
+            $statusCode = $result['error'] === 'Usuário não autenticado' ? 403 : 404;
+            return new JsonResponse(['error' => $result['error']], $statusCode);
         }
-
-        // Buscar a pessoa vinculada ao usuário
-        $pessoa = $entityManager->getRepository(Pessoas::class)->findOneBy(['user' => $user]);
-
-        if (!$pessoa) {
-            return new JsonResponse(['error' => 'Pessoa não encontrada'], 404);
-        }
-
-        // Alternar o tema e salvar no banco
-        $pessoa->setThemeLight(!$pessoa->isThemeLight());
-        $entityManager->flush();
 
         return new JsonResponse([
-            'success' => true, 
-            'theme' => $pessoa->isThemeLight() ? 'light' : 'dark'
+            'success' => true,
+            'theme' => $result['theme']
         ]);
     }
 }

@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.25.0 |
-| **Data Ultima Atualizacao** | 2026-03-04 (Tema escuro completo — CSS dark mode em 40+ componentes) |
-| **Status Geral** | Em producao — Tema escuro completo, todos os componentes Almasa adaptados. |
+| **Versao Atual** | 6.25.1 |
+| **Data Ultima Atualizacao** | 2026-03-04 (Code review completo — Thin Controllers + Inline JS) |
+| **Status Geral** | Em producao — Code review: 17 Thin Controllers refatorados, inline JS corrigido, schema validado. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
@@ -79,6 +79,7 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
+| 6.25.1 | 2026-03-04 | Code review completo — 17 Thin Controllers refatorados, inline JS corrigido, schema validado |
 | 6.25.0 | 2026-03-04 | Tema escuro completo — 40+ componentes CSS com dark mode, dashboard e base.html.twig adaptados |
 | 6.24.4 | 2026-03-04 | Card Lançamentos adicionado ao dashboard e menu Financeiro |
 | 6.24.3 | 2026-03-04 | Tema escuro global — ThemeService + ThemeExtension para todas as páginas |
@@ -1482,6 +1483,24 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
 
 ---
+
+### [6.25.1] - 2026-03-04
+
+#### Code Review Completo
+
+##### Thin Controllers (17 refatorados)
+- **Batch 1 (13 controllers):** Banco, Agencia, ContaBancaria, Telefone, Email, EstadoCivil, Estado, Bairro, Cidade, Nacionalidade, Naturalidade, TipoTelefone, TipoRemessa
+- **Batch 2 (4 controllers):** Theme, Logradouro, Contrato, Pessoa
+- **Services criados:** BancoService, AgenciaService, ContaBancariaService, TelefoneService, EstadoCivilService, EstadoService, BairroService, CidadeService, LogradouroService
+- **Services atualizados:** EmailService, NacionalidadeService, NaturalidadeService, GenericTipoService, ThemeService, PessoaService
+
+##### Inline JS
+- `base.html.twig`: JavaScript de toggle de tema movido para `assets/js/theme.js`
+- Demais templates críticos já estavam corretos (apenas variáveis globais)
+
+##### Schema Doctrine
+- Validado: `[OK] The mapping files are correct`
+- Validado: `[OK] The database schema is in sync with the mapping files`
 
 ### [6.25.0] - 2026-03-04
 

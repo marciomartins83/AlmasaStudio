@@ -25,7 +25,7 @@ class NaturalidadeService
     }
 
     /**
-     * Salva uma nova naturalidade
+     * Salva uma nova naturalidade (via AJAX)
      *
      * @param string $nome Nome da naturalidade
      * @return Naturalidade
@@ -55,6 +55,62 @@ class NaturalidadeService
         } catch (\Exception $e) {
             $this->logger->error('Erro ao salvar naturalidade', [
                 'nome' => $nome,
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Cria uma nova naturalidade (via formulário)
+     */
+    public function criar(Naturalidade $naturalidade): void
+    {
+        try {
+            $this->entityManager->persist($naturalidade);
+            $this->entityManager->flush();
+
+            $this->logger->info('Naturalidade criada com sucesso', [
+                'id' => $naturalidade->getId(),
+                'nome' => $naturalidade->getNome()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao criar naturalidade', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Atualiza uma naturalidade existente
+     */
+    public function atualizar(): void
+    {
+        try {
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao atualizar naturalidade', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Deleta uma naturalidade
+     */
+    public function deletar(Naturalidade $naturalidade): void
+    {
+        try {
+            $this->entityManager->remove($naturalidade);
+            $this->entityManager->flush();
+
+            $this->logger->info('Naturalidade deletada com sucesso', [
+                'id' => $naturalidade->getId()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao deletar naturalidade', [
                 'erro' => $e->getMessage()
             ]);
             throw $e;

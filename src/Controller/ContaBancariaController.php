@@ -7,6 +7,7 @@ use App\DTO\SortOptionDTO;
 use App\Entity\ContasBancarias;
 use App\Form\ContaBancariaType;
 use App\Repository\ContasBancariasRepository;
+use App\Service\ContaBancariaService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,6 +18,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/conta-bancaria', name: 'app_conta_bancaria_')]
 class ContaBancariaController extends AbstractController
 {
+    private ContaBancariaService $contaBancariaService;
+
+    public function __construct(ContaBancariaService $contaBancariaService)
+    {
+        $this->contaBancariaService = $contaBancariaService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -40,7 +47,7 @@ class ContaBancariaController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $contaBancaria = new ContasBancarias();
         $form = $this->createForm(ContaBancariaType::class, $contaBancaria);
@@ -48,8 +55,7 @@ class ContaBancariaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($contaBancaria);
-                $entityManager->flush();
+                $this->contaBancariaService->criar($contaBancaria);
                 $this->addFlash('success', 'Conta Bancária criada com sucesso!');
                 return $this->redirectToRoute('app_conta_bancaria_index');
             } catch (\Exception $e) {
@@ -72,18 +78,18 @@ class ContaBancariaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, ContasBancarias $contaBancaria, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, ContasBancarias $contaBancaria): Response
     {
         $form = $this->createForm(ContaBancariaType::class, $contaBancaria);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->contaBancariaService->atualizar();
                 $this->addFlash('success', 'Conta Bancária atualizada com sucesso!');
                 return $this->redirectToRoute('app_conta_bancaria_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar conta bancária: ' . $e->getMessage());
             }
         }
 
@@ -94,12 +100,15 @@ class ContaBancariaController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, ContasBancarias $contaBancaria, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, ContasBancarias $contaBancaria): Response
     {
         if ($this->isCsrfTokenValid('delete'.$contaBancaria->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($contaBancaria);
-            $entityManager->flush();
-            $this->addFlash('success', 'Conta Bancária excluída com sucesso!');
+            try {
+                $this->contaBancariaService->deletar($contaBancaria);
+                $this->addFlash('success', 'Conta Bancária excluída com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir conta bancária: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_conta_bancaria_index');

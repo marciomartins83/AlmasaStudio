@@ -6,8 +6,8 @@ use App\DTO\SortOptionDTO;
 use App\Entity\Estados;
 use App\Form\EstadoType;
 use App\Repository\EstadosRepository;
+use App\Service\EstadoService;
 use App\Service\PaginationService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,6 +16,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/estado', name: 'app_estado_')]
 class EstadoController extends AbstractController
 {
+    private EstadoService $estadoService;
+
+    public function __construct(EstadoService $estadoService)
+    {
+        $this->estadoService = $estadoService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EstadosRepository $estadosRepository, PaginationService $paginator, Request $request): Response
     {
@@ -39,7 +45,7 @@ class EstadoController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $estado = new Estados();
         $form = $this->createForm(EstadoType::class, $estado);
@@ -47,8 +53,7 @@ class EstadoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($estado);
-                $entityManager->flush();
+                $this->estadoService->criar($estado);
                 $this->addFlash('success', 'Estado criado com sucesso!');
                 return $this->redirectToRoute('app_estado_index');
             } catch (\Exception $e) {
@@ -71,27 +76,18 @@ class EstadoController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Estados $estado, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Estados $estado): Response
     {
         $form = $this->createForm(EstadoType::class, $estado);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            error_log("=== DEBUG ESTADO EDIT ===");
-            error_log("ID: " . $estado->getId());
-            error_log("Nome: " . $estado->getNome());
-            error_log("UF: " . $estado->getUf());
-            
             try {
-                // Flush simples - sem trigger deve funcionar
-                $entityManager->flush();
-                error_log("FLUSH EXECUTADO COM SUCESSO - SEM ROLLBACK");
+                $this->estadoService->atualizar();
                 $this->addFlash('success', 'Estado atualizado com sucesso!');
                 return $this->redirectToRoute('app_estado_index');
             } catch (\Exception $e) {
-                error_log("ERRO NO FLUSH: " . $e->getMessage());
-                error_log("CLASSE ERRO: " . get_class($e));
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar estado: ' . $e->getMessage());
             }
         }
 
@@ -102,12 +98,15 @@ class EstadoController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Estados $estado, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Estados $estado): Response
     {
         if ($this->isCsrfTokenValid('delete'.$estado->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($estado);
-            $entityManager->flush();
-            $this->addFlash('success', 'Estado excluído com sucesso!');
+            try {
+                $this->estadoService->deletar($estado);
+                $this->addFlash('success', 'Estado excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir estado: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_estado_index');

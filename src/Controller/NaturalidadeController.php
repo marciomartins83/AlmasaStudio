@@ -45,7 +45,7 @@ class NaturalidadeController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $naturalidade = new Naturalidade();
         $form = $this->createForm(NaturalidadeType::class, $naturalidade);
@@ -53,8 +53,7 @@ class NaturalidadeController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($naturalidade);
-                $entityManager->flush();
+                $this->naturalidadeService->criar($naturalidade);
                 $this->addFlash('success', 'Naturalidade criada com sucesso!');
                 return $this->redirectToRoute('app_naturalidade_index');
             } catch (\Exception $e) {
@@ -77,18 +76,18 @@ class NaturalidadeController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Naturalidade $naturalidade, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Naturalidade $naturalidade): Response
     {
         $form = $this->createForm(NaturalidadeType::class, $naturalidade);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->naturalidadeService->atualizar();
                 $this->addFlash('success', 'Naturalidade atualizada com sucesso!');
                 return $this->redirectToRoute('app_naturalidade_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar Naturalidade: ' . $e->getMessage());
             }
         }
 
@@ -99,12 +98,15 @@ class NaturalidadeController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Naturalidade $naturalidade, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Naturalidade $naturalidade): Response
     {
         if ($this->isCsrfTokenValid('delete'.$naturalidade->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($naturalidade);
-            $entityManager->flush();
-            $this->addFlash('success', 'Naturalidade excluída com sucesso!');
+            try {
+                $this->naturalidadeService->deletar($naturalidade);
+                $this->addFlash('success', 'Naturalidade excluída com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir Naturalidade: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_naturalidade_index');

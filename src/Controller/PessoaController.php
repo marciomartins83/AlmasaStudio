@@ -419,7 +419,7 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/salvar-tipo/{entidade}', name: 'salvar_tipo', methods: ['POST'])]
-    public function salvarTipo(string $entidade, Request $request, EntityManagerInterface $entityManager): JsonResponse
+    public function salvarTipo(string $entidade, Request $request): JsonResponse
     {
         try {
             $data = json_decode($request->getContent(), true);
@@ -433,7 +433,7 @@ class PessoaController extends AbstractController
                 return new JsonResponse(['success' => false, 'message' => 'Nome do tipo é obrigatório'], 400);
             }
 
-            // ✅ Thin Controller: Delega profissão para Service
+            // ✅ Thin Controller: Delega profissão para ProfissaoService
             if ($entidade === 'profissao') {
                 $profissao = $this->profissaoService->salvarProfissao($tipoNome);
                 return new JsonResponse([
@@ -445,33 +445,8 @@ class PessoaController extends AbstractController
                 ]);
             }
 
-            // Demais entidades (telefone, endereco, email, etc.) permanecem aqui
-            // TODO: Criar services específicos para cada tipo (refatoração futura)
-            $novoTipo = null;
-
-            switch ($entidade) {
-                case 'telefone':
-                    $novoTipo = new \App\Entity\TiposTelefones();
-                    break;
-                case 'endereco':
-                    $novoTipo = new \App\Entity\TiposEnderecos();
-                    break;
-                case 'email':
-                    $novoTipo = new \App\Entity\TiposEmails();
-                    break;
-                case 'chave-pix':
-                    $novoTipo = new \App\Entity\TiposChavesPix();
-                    break;
-                case 'documento':
-                    $novoTipo = new \App\Entity\TiposDocumentos();
-                    break;
-                default:
-                    return new JsonResponse(['success' => false, 'message' => 'Entidade não reconhecida'], 400);
-            }
-
-            $novoTipo->setTipo($tipoNome);
-            $entityManager->persist($novoTipo);
-            $entityManager->flush();
+            // ✅ Thin Controller: Delega demais tipos para PessoaService
+            $novoTipo = $this->pessoaService->salvarTipoGenerico($entidade, $tipoNome);
 
             return new JsonResponse([
                 'success' => true,
@@ -742,12 +717,15 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function delete(Request $request, Pessoas $pessoa, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Pessoas $pessoa): Response
     {
         if ($this->isCsrfTokenValid('delete' . $pessoa->getIdpessoa(), $request->request->get('_token'))) {
-            $entityManager->remove($pessoa);
-            $entityManager->flush();
-            $this->addFlash('success', 'Pessoa excluída com sucesso.');
+            try {
+                $this->pessoaService->excluirPessoa($pessoa);
+                $this->addFlash('success', 'Pessoa excluída com sucesso.');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir pessoa: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_pessoa_index');

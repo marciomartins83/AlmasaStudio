@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposRemessa;
 use App\Form\TipoRemessaType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-remessa', name: 'app_tipo_remessa_')]
 class TipoRemessaController extends AbstractController
 {
+    private GenericTipoService $genericTipoService;
+
+    public function __construct(GenericTipoService $genericTipoService)
+    {
+        $this->genericTipoService = $genericTipoService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -36,7 +43,7 @@ class TipoRemessaController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tipoRemessa = new TiposRemessa();
         $form = $this->createForm(TipoRemessaType::class, $tipoRemessa);
@@ -44,8 +51,7 @@ class TipoRemessaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoRemessa);
-                $entityManager->flush();
+                $this->genericTipoService->criar($tipoRemessa);
                 $this->addFlash('success', 'Tipo de remessa criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_remessa_index');
             } catch (\Exception $e) {
@@ -68,18 +74,18 @@ class TipoRemessaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TiposRemessa $tipoRemessa, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, TiposRemessa $tipoRemessa): Response
     {
         $form = $this->createForm(TipoRemessaType::class, $tipoRemessa);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->genericTipoService->atualizar();
                 $this->addFlash('success', 'Tipo de remessa atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_remessa_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar tipo de remessa: ' . $e->getMessage());
             }
         }
 
@@ -90,12 +96,15 @@ class TipoRemessaController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, TiposRemessa $tipoRemessa, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, TiposRemessa $tipoRemessa): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoRemessa->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoRemessa);
-            $entityManager->flush();
-            $this->addFlash('success', 'Tipo de remessa excluído com sucesso!');
+            try {
+                $this->genericTipoService->deletar($tipoRemessa);
+                $this->addFlash('success', 'Tipo de remessa excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir tipo de remessa: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_tipo_remessa_index');

@@ -25,7 +25,7 @@ class NacionalidadeService
     }
 
     /**
-     * Salva uma nova nacionalidade
+     * Salva uma nova nacionalidade (via AJAX)
      *
      * @param string $nome Nome da nacionalidade
      * @return Nacionalidade
@@ -55,6 +55,62 @@ class NacionalidadeService
         } catch (\Exception $e) {
             $this->logger->error('Erro ao salvar nacionalidade', [
                 'nome' => $nome,
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Cria uma nova nacionalidade (via formulário)
+     */
+    public function criar(Nacionalidade $nacionalidade): void
+    {
+        try {
+            $this->entityManager->persist($nacionalidade);
+            $this->entityManager->flush();
+
+            $this->logger->info('Nacionalidade criada com sucesso', [
+                'id' => $nacionalidade->getId(),
+                'nome' => $nacionalidade->getNome()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao criar nacionalidade', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Atualiza uma nacionalidade existente
+     */
+    public function atualizar(): void
+    {
+        try {
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao atualizar nacionalidade', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Deleta uma nacionalidade
+     */
+    public function deletar(Nacionalidade $nacionalidade): void
+    {
+        try {
+            $this->entityManager->remove($nacionalidade);
+            $this->entityManager->flush();
+
+            $this->logger->info('Nacionalidade deletada com sucesso', [
+                'id' => $nacionalidade->getId()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao deletar nacionalidade', [
                 'erro' => $e->getMessage()
             ]);
             throw $e;

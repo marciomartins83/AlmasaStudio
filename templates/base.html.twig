@@ -102,42 +102,14 @@
 			<script src="{{ asset('js/router.min.js') }}"></script>
 			<script src="{{ asset('js/fos_js_routes.js') }}"></script>
 
-
-			<!-- Script para alternar entre modo claro e escuro -->
+			<!-- Theme Toggle Script -->
+			<script src="{{ asset('js/theme.js') }}"></script>
+			{% if app.user %}
 			<script>
-				document.addEventListener("DOMContentLoaded", function () {
-const themeToggle = document.getElementById("toggle_theme");
-const themeIcon = document.getElementById("theme-icon");
-const htmlElement = document.documentElement;
-
-// Verifica se já há um tema salvo no localStorage
-let currentTheme = localStorage.getItem("theme") || "light";
-htmlElement.setAttribute("data-bs-theme", currentTheme);
-themeIcon.className = currentTheme === "dark" ? "bi bi-sun" : "bi bi-moon";
-
-if (themeToggle) {
-themeToggle.addEventListener("click", function () {
-let newTheme = htmlElement.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
-htmlElement.setAttribute("data-bs-theme", newTheme);
-themeIcon.className = newTheme === "dark" ? "bi bi-sun" : "bi bi-moon";
-localStorage.setItem("theme", newTheme);{% if app.user %}
-// Apenas salva no banco se o usuário estiver logado
-fetch("{{ path('toggle_theme') }}", {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-"X-Requested-With": "XMLHttpRequest"
-},
-body: JSON.stringify({})
-}).then(response => response.json()).then(data => {
-if (!data.success) {
-console.error("Erro ao alternar tema:", data.error);
-}
-}).catch(error => console.error("Erro na requisição:", error));{% endif %}
-});
-}
-});
+				window.ROUTES = window.ROUTES || {};
+				window.ROUTES.toggleTheme = '{{ path('toggle_theme') }}';
 			</script>
+			{% endif %}
 			{% block javascripts %}{% endblock %}
 		</body>
 	</html>

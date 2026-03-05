@@ -7,6 +7,7 @@ use App\Entity\Bairros;
 use App\Entity\Cidades;
 use App\Form\BairroType;
 use App\Repository\CidadeRepository;
+use App\Service\BairroService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,6 +18,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/bairro', name: 'app_bairro_')]
 class BairroController extends AbstractController
 {
+    private BairroService $bairroService;
+
+    public function __construct(BairroService $bairroService)
+    {
+        $this->bairroService = $bairroService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -42,20 +49,19 @@ class BairroController extends AbstractController
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $bairro = new Bairros();
-        
+
         // Buscar todas as cidades para preencher o campo de seleção
         $cidades = $entityManager->getRepository(Cidades::class)->findAll();
-        
+
         $form = $this->createForm(BairroType::class, $bairro, [
             'cidades' => $cidades
         ]);
-        
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($bairro);
-                $entityManager->flush();
+                $this->bairroService->criar($bairro);
                 $this->addFlash('success', 'Bairro criado com sucesso!');
                 return $this->redirectToRoute('app_bairro_index');
             } catch (\Exception $e) {
@@ -89,22 +95,12 @@ class BairroController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            error_log("=== DEBUG BAIRRO EDIT ===");
-            error_log("ID: " . $bairro->getId());
-            error_log("Nome: " . $bairro->getNome());
-            error_log("Cidade ID: " . $bairro->getIdCidade());
-            error_log("Código: " . $bairro->getCodigo());
-            
             try {
-                // Flush simples - sem trigger deve funcionar
-                $entityManager->flush();
-                error_log("FLUSH EXECUTADO COM SUCESSO - SEM ROLLBACK");
+                $this->bairroService->atualizar();
                 $this->addFlash('success', 'Bairro atualizado com sucesso!');
                 return $this->redirectToRoute('app_bairro_index');
             } catch (\Exception $e) {
-                error_log("ERRO NO FLUSH: " . $e->getMessage());
-                error_log("CLASSE ERRO: " . get_class($e));
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar bairro: ' . $e->getMessage());
             }
         }
 
@@ -115,12 +111,15 @@ class BairroController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Bairros $bairro, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Bairros $bairro): Response
     {
         if ($this->isCsrfTokenValid('delete'.$bairro->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($bairro);
-            $entityManager->flush();
-            $this->addFlash('success', 'Bairro excluído com sucesso!');
+            try {
+                $this->bairroService->deletar($bairro);
+                $this->addFlash('success', 'Bairro excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir bairro: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_bairro_index');

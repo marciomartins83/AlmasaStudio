@@ -1870,4 +1870,62 @@ class PessoaService
 
         return $pessoasEnriquecidas;
     }
+
+    /**
+     * Exclui uma pessoa do sistema
+     *
+     * @param Pessoas $pessoa
+     * @return void
+     * @throws \Exception
+     */
+    public function excluirPessoa(Pessoas $pessoa): void
+    {
+        try {
+            $this->entityManager->remove($pessoa);
+            $this->entityManager->flush();
+            $this->logger->info('Pessoa excluída com sucesso: ' . $pessoa->getIdpessoa());
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao excluir pessoa: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Salva um novo tipo genérico (telefone, endereco, email, chave-pix, documento)
+     *
+     * @param string $entidade Nome da entidade (telefone, endereco, email, chave-pix, documento)
+     * @param string $tipoNome Nome do tipo
+     * @return object A entidade criada
+     * @throws \RuntimeException
+     * @throws \Exception
+     */
+    public function salvarTipoGenerico(string $entidade, string $tipoNome): object
+    {
+        $tipoNome = trim($tipoNome);
+        if (empty($tipoNome)) {
+            throw new \RuntimeException('Nome do tipo é obrigatório');
+        }
+
+        $entityClass = match ($entidade) {
+            'telefone' => \App\Entity\TiposTelefones::class,
+            'endereco' => \App\Entity\TiposEnderecos::class,
+            'email' => \App\Entity\TiposEmails::class,
+            'chave-pix' => \App\Entity\TiposChavesPix::class,
+            'documento' => \App\Entity\TiposDocumentos::class,
+            default => throw new \RuntimeException('Entidade não reconhecida'),
+        };
+
+        try {
+            $novoTipo = new $entityClass();
+            $novoTipo->setTipo($tipoNome);
+            $this->entityManager->persist($novoTipo);
+            $this->entityManager->flush();
+
+            $this->logger->info("Tipo de {$entidade} criado: " . $tipoNome);
+            return $novoTipo;
+        } catch (\Exception $e) {
+            $this->logger->error("Erro ao salvar tipo de {$entidade}: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }

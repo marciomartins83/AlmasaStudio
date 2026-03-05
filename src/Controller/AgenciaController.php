@@ -7,8 +7,8 @@ use App\DTO\SortOptionDTO;
 use App\Entity\Agencias;
 use App\Form\AgenciaType;
 use App\Repository\AgenciaRepository;
+use App\Service\AgenciaService;
 use App\Service\PaginationService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +17,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/agencia')]
 class AgenciaController extends AbstractController
 {
+    private AgenciaService $agenciaService;
+
+    public function __construct(AgenciaService $agenciaService)
+    {
+        $this->agenciaService = $agenciaService;
+    }
     #[Route('/', name: 'app_agencia_index', methods: ['GET'])]
     public function index(AgenciaRepository $agenciaRepository, PaginationService $paginator, Request $request): Response
     {
@@ -42,18 +48,20 @@ class AgenciaController extends AbstractController
     }
 
     #[Route('/new', name: 'app_agencia_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $agencia = new Agencias();
         $form = $this->createForm(AgenciaType::class, $agencia);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($agencia);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Agência criada com sucesso!');
-            return $this->redirectToRoute('app_agencia_index');
+            try {
+                $this->agenciaService->criar($agencia);
+                $this->addFlash('success', 'Agência criada com sucesso!');
+                return $this->redirectToRoute('app_agencia_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao criar agência: ' . $e->getMessage());
+            }
         }
 
         return $this->render('agencia/new.html.twig', [
@@ -71,15 +79,19 @@ class AgenciaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_agencia_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Agencias $agencia, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Agencias $agencia): Response
     {
         $form = $this->createForm(AgenciaType::class, $agencia);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
-            $this->addFlash('success', 'Agência atualizada com sucesso!');
-            return $this->redirectToRoute('app_agencia_index');
+            try {
+                $this->agenciaService->atualizar();
+                $this->addFlash('success', 'Agência atualizada com sucesso!');
+                return $this->redirectToRoute('app_agencia_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao atualizar agência: ' . $e->getMessage());
+            }
         }
 
         return $this->render('agencia/edit.html.twig', [
@@ -89,12 +101,15 @@ class AgenciaController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_agencia_delete', methods: ['POST'])]
-    public function delete(Request $request, Agencias $agencia, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Agencias $agencia): Response
     {
         if ($this->isCsrfTokenValid('delete'.$agencia->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($agencia);
-            $entityManager->flush();
-            $this->addFlash('success', 'Agência excluída com sucesso!');
+            try {
+                $this->agenciaService->deletar($agencia);
+                $this->addFlash('success', 'Agência excluída com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir agência: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_agencia_index');

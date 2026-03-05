@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\ContratosCobrancas;
+use App\Entity\Emails;
 use App\Entity\EmailsEnviados;
 use App\Entity\Pessoas;
 use App\Repository\EmailsEnviadosRepository;
@@ -339,5 +340,60 @@ class EmailService
     public function getEstatisticas(?\DateTime $inicio = null, ?\DateTime $fim = null): array
     {
         return $this->emailsRepo->getEstatisticas($inicio, $fim);
+    }
+
+    /**
+     * Cria um novo email (entidade Emails)
+     */
+    public function criar(Emails $email): void
+    {
+        try {
+            $this->em->persist($email);
+            $this->em->flush();
+
+            $this->logger->info('Email criado com sucesso', [
+                'id' => $email->getId()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao criar email', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Atualiza um email existente
+     */
+    public function atualizar(): void
+    {
+        try {
+            $this->em->flush();
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao atualizar email', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Deleta um email
+     */
+    public function deletar(Emails $email): void
+    {
+        try {
+            $this->em->remove($email);
+            $this->em->flush();
+
+            $this->logger->info('Email deletado com sucesso', [
+                'id' => $email->getId()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao deletar email', [
+                'erro' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 }

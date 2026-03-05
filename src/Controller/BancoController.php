@@ -6,8 +6,8 @@ use App\DTO\SortOptionDTO;
 use App\Entity\Bancos;
 use App\Form\BancoType;
 use App\Repository\BancosRepository;
+use App\Service\BancoService;
 use App\Service\PaginationService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,6 +16,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/banco', name: 'app_banco_')]
 class BancoController extends AbstractController
 {
+    private BancoService $bancoService;
+
+    public function __construct(BancoService $bancoService)
+    {
+        $this->bancoService = $bancoService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(BancosRepository $bancosRepository, PaginationService $paginator, Request $request): Response
     {
@@ -39,7 +45,7 @@ class BancoController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $banco = new Bancos();
         $form = $this->createForm(BancoType::class, $banco);
@@ -47,8 +53,7 @@ class BancoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($banco);
-                $entityManager->flush();
+                $this->bancoService->criar($banco);
                 $this->addFlash('success', 'Banco criado com sucesso!');
                 return $this->redirectToRoute('app_banco_index');
             } catch (\Exception $e) {
@@ -71,14 +76,14 @@ class BancoController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Bancos $banco, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Bancos $banco): Response
     {
         $form = $this->createForm(BancoType::class, $banco);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->bancoService->atualizar();
                 $this->addFlash('success', 'Banco atualizado com sucesso!');
                 return $this->redirectToRoute('app_banco_index');
             } catch (\Exception $e) {
@@ -93,12 +98,15 @@ class BancoController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Bancos $banco, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Bancos $banco): Response
     {
         if ($this->isCsrfTokenValid('delete' . $banco->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($banco);
-            $entityManager->flush();
-            $this->addFlash('success', 'Banco excluído com sucesso!');
+            try {
+                $this->bancoService->deletar($banco);
+                $this->addFlash('success', 'Banco excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir banco: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_banco_index');

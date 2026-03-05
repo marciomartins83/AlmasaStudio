@@ -7,8 +7,8 @@ use App\DTO\SortOptionDTO;
 use App\Entity\Emails;
 use App\Form\EmailType;
 use App\Repository\EmailRepository;
+use App\Service\EmailService;
 use App\Service\PaginationService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +17,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/email')]
 class EmailController extends AbstractController
 {
+    private EmailService $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
     #[Route('/', name: 'app_email_index', methods: ['GET'])]
     public function index(EmailRepository $emailRepository, PaginationService $paginator, Request $request): Response
     {
@@ -38,18 +44,20 @@ class EmailController extends AbstractController
     }
 
     #[Route('/new', name: 'app_email_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $email = new Emails();
         $form = $this->createForm(EmailType::class, $email);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($email);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Email criado com sucesso!');
-            return $this->redirectToRoute('app_email_index');
+            try {
+                $this->emailService->criar($email);
+                $this->addFlash('success', 'Email criado com sucesso!');
+                return $this->redirectToRoute('app_email_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao criar email: ' . $e->getMessage());
+            }
         }
 
         return $this->render('email/new.html.twig', [
@@ -67,16 +75,19 @@ class EmailController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_email_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Emails $email, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Emails $email): Response
     {
         $form = $this->createForm(EmailType::class, $email);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Email atualizado com sucesso!');
-            return $this->redirectToRoute('app_email_index');
+            try {
+                $this->emailService->atualizar();
+                $this->addFlash('success', 'Email atualizado com sucesso!');
+                return $this->redirectToRoute('app_email_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao atualizar email: ' . $e->getMessage());
+            }
         }
 
         return $this->render('email/edit.html.twig', [
@@ -86,12 +97,15 @@ class EmailController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_email_delete', methods: ['POST'])]
-    public function delete(Request $request, Emails $email, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Emails $email): Response
     {
         if ($this->isCsrfTokenValid('delete'.$email->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($email);
-            $entityManager->flush();
-            $this->addFlash('success', 'Email excluído com sucesso!');
+            try {
+                $this->emailService->deletar($email);
+                $this->addFlash('success', 'Email excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir email: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_email_index');

@@ -59,4 +59,34 @@ class ThemeService
     {
         return $this->getCurrentTheme() === 'dark';
     }
+
+    /**
+     * Alterna o tema do usuário logado (light/dark).
+     *
+     * @return array ['success' => bool, 'theme' => string, 'error' => string|null]
+     */
+    public function toggleTheme(): array
+    {
+        $user = $this->security->getUser();
+
+        if (!$user) {
+            return ['success' => false, 'theme' => 'dark', 'error' => 'Usuário não autenticado'];
+        }
+
+        $pessoa = $this->entityManager->getRepository(Pessoas::class)->findOneBy(['user' => $user]);
+
+        if (!$pessoa) {
+            return ['success' => false, 'theme' => 'dark', 'error' => 'Pessoa não encontrada'];
+        }
+
+        // Alternar o tema e salvar no banco
+        $pessoa->setThemeLight(!$pessoa->isThemeLight());
+        $this->entityManager->flush();
+
+        return [
+            'success' => true,
+            'theme' => $pessoa->isThemeLight() ? 'light' : 'dark',
+            'error' => null
+        ];
+    }
 }

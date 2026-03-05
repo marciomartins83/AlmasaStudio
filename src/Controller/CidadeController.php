@@ -7,6 +7,7 @@ use App\Entity\Cidades;
 use App\Entity\Estados;
 use App\Form\CidadeType;
 use App\Repository\EstadosRepository;
+use App\Service\CidadeService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,6 +18,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/cidade', name: 'app_cidade_')]
 class CidadeController extends AbstractController
 {
+    private CidadeService $cidadeService;
+
+    public function __construct(CidadeService $cidadeService)
+    {
+        $this->cidadeService = $cidadeService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -38,7 +45,7 @@ class CidadeController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $cidade = new Cidades();
         $form = $this->createForm(CidadeType::class, $cidade);
@@ -46,8 +53,7 @@ class CidadeController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($cidade);
-                $entityManager->flush();
+                $this->cidadeService->criar($cidade);
                 $this->addFlash('success', 'Cidade criada com sucesso!');
                 return $this->redirectToRoute('app_cidade_index');
             } catch (\Exception $e) {
@@ -76,28 +82,18 @@ class CidadeController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Cidades $cidade, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Cidades $cidade): Response
     {
         $form = $this->createForm(CidadeType::class, $cidade);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            error_log("=== DEBUG CIDADE EDIT ===");
-            error_log("ID: " . $cidade->getId());
-            error_log("Nome: " . $cidade->getNome());
-            error_log("Estado ID: " . ($cidade->getEstado() ? $cidade->getEstado()->getId() : 'null'));
-            error_log("Código: " . $cidade->getCodigo());
-            
             try {
-                // Flush simples - sem trigger deve funcionar
-                $entityManager->flush();
-                error_log("FLUSH EXECUTADO COM SUCESSO - SEM ROLLBACK");
+                $this->cidadeService->atualizar();
                 $this->addFlash('success', 'Cidade atualizada com sucesso!');
                 return $this->redirectToRoute('app_cidade_index');
             } catch (\Exception $e) {
-                error_log("ERRO NO FLUSH: " . $e->getMessage());
-                error_log("CLASSE ERRO: " . get_class($e));
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar cidade: ' . $e->getMessage());
             }
         }
 
@@ -108,12 +104,15 @@ class CidadeController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Cidades $cidade, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Cidades $cidade): Response
     {
         if ($this->isCsrfTokenValid('delete'.$cidade->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($cidade);
-            $entityManager->flush();
-            $this->addFlash('success', 'Cidade excluída com sucesso!');
+            try {
+                $this->cidadeService->deletar($cidade);
+                $this->addFlash('success', 'Cidade excluída com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir cidade: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_cidade_index');

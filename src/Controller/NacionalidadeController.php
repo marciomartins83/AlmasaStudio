@@ -45,7 +45,7 @@ class NacionalidadeController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $nacionalidade = new Nacionalidade();
         $form = $this->createForm(NacionalidadeType::class, $nacionalidade);
@@ -53,8 +53,7 @@ class NacionalidadeController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($nacionalidade);
-                $entityManager->flush();
+                $this->nacionalidadeService->criar($nacionalidade);
                 $this->addFlash('success', 'Nacionalidade criada com sucesso!');
                 return $this->redirectToRoute('app_nacionalidade_index');
             } catch (\Exception $e) {
@@ -77,18 +76,18 @@ class NacionalidadeController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Nacionalidade $nacionalidade, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Nacionalidade $nacionalidade): Response
     {
         $form = $this->createForm(NacionalidadeType::class, $nacionalidade);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->nacionalidadeService->atualizar();
                 $this->addFlash('success', 'Nacionalidade atualizada com sucesso!');
                 return $this->redirectToRoute('app_nacionalidade_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar Nacionalidade: ' . $e->getMessage());
             }
         }
 
@@ -99,12 +98,15 @@ class NacionalidadeController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Nacionalidade $nacionalidade, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Nacionalidade $nacionalidade): Response
     {
         if ($this->isCsrfTokenValid('delete'.$nacionalidade->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($nacionalidade);
-            $entityManager->flush();
-            $this->addFlash('success', 'Nacionalidade excluída com sucesso!');
+            try {
+                $this->nacionalidadeService->deletar($nacionalidade);
+                $this->addFlash('success', 'Nacionalidade excluída com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir Nacionalidade: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_nacionalidade_index');

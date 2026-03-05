@@ -5,9 +5,7 @@ namespace App\Controller;
 use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\Logradouros;
-use App\Entity\Bairros;
-use App\Entity\Cidades;
-use App\Entity\Estados;
+use App\Service\LogradouroService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,10 +14,23 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use App\Form\LogradouroType;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
+/**
+ * LogradouroController - Thin Controller
+ * Apenas recebe Request, valida formulário, chama Service e retorna Response
+ *
+ * PROIBIDO:
+ * - Lógica de negócio
+ * - Operações de persistência (persist, flush, remove)
+ */
 class LogradouroController extends AbstractController
 {
+    private LogradouroService $logradouroService;
+
+    public function __construct(LogradouroService $logradouroService)
+    {
+        $this->logradouroService = $logradouroService;
+    }
     public function index(EntityManagerInterface $em, PaginationService $paginator, Request $request): Response
     {
         $qb = $em->getRepository(Logradouros::class)->createQueryBuilder('l');
@@ -41,7 +52,7 @@ class LogradouroController extends AbstractController
         ]);
     }
 
-    public function new(Request $request, EntityManagerInterface $em): Response
+    public function new(Request $request): Response
     {
         $logradouro = new Logradouros();
         $form = $this->createForm(LogradouroType::class, $logradouro);
@@ -50,8 +61,7 @@ class LogradouroController extends AbstractController
         if ($form->isSubmitted()) {
             if ($form->isValid()) {
                 try {
-                    $em->persist($logradouro);
-                    $em->flush();
+                    $this->logradouroService->criarLogradouro($logradouro);
                     $this->addFlash('success', 'Logradouro criado com sucesso!');
                     return $this->redirectToRoute('app_logradouro_index');
                 } catch (\Exception $e) {
@@ -74,16 +84,19 @@ class LogradouroController extends AbstractController
         ]);
     }
 
-    public function edit(Request $request, Logradouros $logradouro, EntityManagerInterface $em): Response
+    public function edit(Request $request, Logradouros $logradouro): Response
     {
         $form = $this->createForm(LogradouroType::class, $logradouro);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-
-            $this->addFlash('success', 'Logradouro atualizado com sucesso!');
-            return $this->redirectToRoute('app_logradouro_index');
+            try {
+                $this->logradouroService->atualizarLogradouro($logradouro);
+                $this->addFlash('success', 'Logradouro atualizado com sucesso!');
+                return $this->redirectToRoute('app_logradouro_index');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao atualizar logradouro: '.$e->getMessage());
+            }
         }
 
         return $this->render('logradouro/edit.html.twig', [
@@ -92,12 +105,15 @@ class LogradouroController extends AbstractController
         ]);
     }
 
-    public function delete(Request $request, Logradouros $logradouro, EntityManagerInterface $em): Response
+    public function delete(Request $request, Logradouros $logradouro): Response
     {
         if ($this->isCsrfTokenValid('delete' . $logradouro->getId(), $request->request->get('_token'))) {
-            $em->remove($logradouro);
-            $em->flush();
-            $this->addFlash('success', 'Logradouro excluído com sucesso!');
+            try {
+                $this->logradouroService->removerLogradouro($logradouro);
+                $this->addFlash('success', 'Logradouro excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir logradouro: '.$e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_logradouro_index');
@@ -141,49 +157,27 @@ class LogradouroController extends AbstractController
     }
 
     #[Route('/buscar-cep-local', name: 'app_buscar_cep_local')]
-    public function buscarCepLocal(Request $request, EntityManagerInterface $em): JsonResponse
+    public function buscarCepLocal(Request $request): JsonResponse
     {
         try {
             $cep = $request->query->get('cep');
             if (!$cep) {
                 return new JsonResponse(['encontrado' => false, 'erro' => 'CEP não fornecido']);
             }
-            
+
             $cep = preg_replace('/[^0-9]/', '', $cep);
             if (strlen($cep) !== 8) {
                 return new JsonResponse(['encontrado' => false, 'erro' => 'CEP inválido']);
             }
-            
-            // Busca no banco de dados
-            $logradouro = $em->getRepository(Logradouros::class)->findOneBy(['cep' => $cep]);
-            
-            if ($logradouro) {
-                // Verifica relações para evitar erros
-                $bairro = $logradouro->getBairro();
-                if (!$bairro) {
-                    return new JsonResponse(['encontrado' => false, 'erro' => 'Bairro não encontrado']);
-                }
-                
-                $cidade = $bairro->getCidade();
-                if (!$cidade) {
-                    return new JsonResponse(['encontrado' => false, 'erro' => 'Cidade não encontrada']);
-                }
-                
-                $estado = $cidade->getEstado();
-                if (!$estado) {
-                    return new JsonResponse(['encontrado' => false, 'erro' => 'Estado não encontrado']);
-                }
-                
-                return new JsonResponse([
-                    'encontrado' => true,
-                    'logradouro' => $logradouro->getNome(),
-                    'bairro' => $bairro->getNome(),
-                    'cidade' => $cidade->getNome(),
-                    'estado' => $estado->getUf()
-                ]);
+
+            // Delega para o Service
+            $resultado = $this->logradouroService->buscarPorCepLocal($cep);
+
+            if ($resultado === null) {
+                return new JsonResponse(['encontrado' => false]);
             }
-            
-            return new JsonResponse(['encontrado' => false]);
+
+            return new JsonResponse($resultado);
         } catch (\Exception $e) {
             // Log do erro para debug
             error_log('Erro em buscarCepLocal: ' . $e->getMessage());
@@ -198,23 +192,12 @@ class LogradouroController extends AbstractController
     public function buscarCepApi(Request $request): JsonResponse
     {
         $cep = $request->query->get('cep');
-        $cep = preg_replace('/[^0-9]/', '', $cep);
-        
+
         try {
-            // Simulação de chamada à API dos Correios
-            // Em produção, substituir por chamada real à API
-            $dadosApi = [
-                'cep' => $cep,
-                'logradouro' => 'Rua Exemplo',
-                'bairro' => 'Centro',
-                'cidade' => 'São Paulo',
-                'estado' => 'SP'
-            ];
-            
-            return new JsonResponse([
-                'encontrado' => true,
-                ...$dadosApi
-            ]);
+            // Delega para o Service
+            $resultado = $this->logradouroService->buscarCepApi($cep);
+
+            return new JsonResponse($resultado);
         } catch (\Exception $e) {
             return new JsonResponse([
                 'encontrado' => false,
@@ -224,53 +207,14 @@ class LogradouroController extends AbstractController
     }
 
     #[Route('/salvar-cep', name: 'app_salvar_cep')]
-    public function salvarCep(Request $request, EntityManagerInterface $em): JsonResponse
+    public function salvarCep(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        
+
         try {
-            // Verifica se o estado já existe
-            $estado = $em->getRepository(Estados::class)->findOneBy(['uf' => $data['estado']]);
-            if (!$estado) {
-                $estado = new Estados();
-                $estado->setNome($data['estado']); // Nome completo do estado
-                $estado->setUf($data['estado']);
-                $em->persist($estado);
-            }
-            
-            // Verifica se a cidade já existe
-            $cidade = $em->getRepository(Cidades::class)->findOneBy([
-                'nome' => $data['cidade'],
-                'estado' => $estado
-            ]);
-            if (!$cidade) {
-                $cidade = new Cidades();
-                $cidade->setNome($data['cidade']);
-                $cidade->setEstado($estado);
-                $em->persist($cidade);
-            }
-            
-            // Verifica se o bairro já existe
-            $bairro = $em->getRepository(Bairros::class)->findOneBy([
-                'nome' => $data['bairro'],
-                'cidade' => $cidade
-            ]);
-            if (!$bairro) {
-                $bairro = new Bairros();
-                $bairro->setNome($data['bairro']);
-                $bairro->setCidade($cidade);
-                $em->persist($bairro);
-            }
-            
-            // Cria o novo logradouro
-            $logradouro = new Logradouros();
-            $logradouro->setCep($data['cep']);
-            $logradouro->setLogradouro($data['logradouro']);
-            $logradouro->setBairro($bairro);
-            $em->persist($logradouro);
-            
-            $em->flush();
-            
+            // Delega para o Service
+            $this->logradouroService->salvarEnderecoCompleto($data);
+
             return new JsonResponse(['success' => true]);
         } catch (\Exception $e) {
             return new JsonResponse([

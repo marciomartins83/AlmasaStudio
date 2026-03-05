@@ -5,6 +5,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\TiposTelefones;
 use App\Form\TipoTelefoneType;
+use App\Service\GenericTipoService;
 use App\Service\PaginationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,12 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/tipo-telefone', name: 'app_tipo_telefone_')]
 class TipoTelefoneController extends AbstractController
 {
+    private GenericTipoService $genericTipoService;
+
+    public function __construct(GenericTipoService $genericTipoService)
+    {
+        $this->genericTipoService = $genericTipoService;
+    }
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
@@ -36,7 +43,7 @@ class TipoTelefoneController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tipoTelefone = new TiposTelefones();
         $form = $this->createForm(TipoTelefoneType::class, $tipoTelefone);
@@ -44,8 +51,7 @@ class TipoTelefoneController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->persist($tipoTelefone);
-                $entityManager->flush();
+                $this->genericTipoService->criar($tipoTelefone);
                 $this->addFlash('success', 'Tipo de telefone criado com sucesso!');
                 return $this->redirectToRoute('app_tipo_telefone_index');
             } catch (\Exception $e) {
@@ -68,18 +74,18 @@ class TipoTelefoneController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, TiposTelefones $tipoTelefone, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, TiposTelefones $tipoTelefone): Response
     {
         $form = $this->createForm(TipoTelefoneType::class, $tipoTelefone);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $entityManager->flush();
+                $this->genericTipoService->atualizar();
                 $this->addFlash('success', 'Tipo de telefone atualizado com sucesso!');
                 return $this->redirectToRoute('app_tipo_telefone_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar tipo de telefone: ' . $e->getMessage());
             }
         }
 
@@ -90,12 +96,15 @@ class TipoTelefoneController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, TiposTelefones $tipoTelefone, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, TiposTelefones $tipoTelefone): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tipoTelefone->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($tipoTelefone);
-            $entityManager->flush();
-            $this->addFlash('success', 'Tipo de telefone excluído com sucesso!');
+            try {
+                $this->genericTipoService->deletar($tipoTelefone);
+                $this->addFlash('success', 'Tipo de telefone excluído com sucesso!');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Erro ao excluir tipo de telefone: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_tipo_telefone_index');
