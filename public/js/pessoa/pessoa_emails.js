@@ -57,8 +57,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Email</label>
-                        <input type="email" class="form-control" name="emails[${contadorEmail}][email]" 
-                            value="${email.email || ''}" placeholder="email@exemplo.com" required>
+                        <input type="email" class="form-control" name="emails[${contadorEmail}][email]"
+                            value="${(email.email || '').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" placeholder="email@exemplo.com" required>
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-danger btn-sm w-100" onclick="removerEmail(${contadorEmail})">
