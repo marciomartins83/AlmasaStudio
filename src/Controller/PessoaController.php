@@ -709,11 +709,24 @@ class PessoaController extends AbstractController
             }
         }
 
+        // Pre-load all pessoa data as JSON so JS doesn't need a second AJAX call
+        $pessoaId = $pessoa->getIdpessoa();
+        $pessoaPreload = [
+            'enderecos' => $this->pessoaService->buscarEnderecosPessoa($pessoaId),
+            'telefones' => $this->pessoaService->buscarTelefonesPessoa($pessoaId),
+            'emails' => $this->pessoaService->buscarEmailsPessoa($pessoaId),
+            'documentos' => $this->pessoaService->buscarDocumentosPessoa($pessoaId),
+            'chavesPix' => $this->pessoaService->buscarChavesPixPessoa($pessoaId),
+            'profissoes' => $this->pessoaService->buscarProfissoesPessoa($pessoaId),
+            'contasBancarias' => $this->pessoaService->buscarContasBancariasPessoa($pessoaId),
+        ];
+
         return $this->render('pessoa/pessoa_form.html.twig', [
             'pessoa' => $pessoa,
             'form' => $form->createView(),
             'isEditMode' => true,
-            'pessoaId' => $pessoa->getIdpessoa()
+            'pessoaId' => $pessoaId,
+            'pessoaPreload' => $pessoaPreload,
         ]);
     }
 

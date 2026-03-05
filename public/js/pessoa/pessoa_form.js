@@ -619,6 +619,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Carrega dados multiplos usando dados pre-carregados do Twig (inline JSON).
+     * Fallback robusto que nao depende de AJAX.
+     */
+    async function carregarDadosMultiplosPreload(preload) {
+        console.log('carregarDadosMultiplosPreload: inicio');
+
+        if (preload.enderecos && Array.isArray(preload.enderecos) && preload.enderecos.length > 0) {
+            // Esperar que a funcao esteja disponivel (carregada por pessoa_enderecos.js)
+            if (typeof window.adicionarEnderecoExistente === 'function') {
+                for (const endereco of preload.enderecos) {
+                    await window.adicionarEnderecoExistente(endereco);
+                }
+                console.log('Preload enderecos OK:', preload.enderecos.length);
+            } else {
+                console.error('adicionarEnderecoExistente NAO disponivel!');
+            }
+        }
+
+        if (preload.telefones && Array.isArray(preload.telefones) && preload.telefones.length > 0) {
+            if (typeof window.adicionarTelefoneExistente === 'function') {
+                for (const tel of preload.telefones) {
+                    await window.adicionarTelefoneExistente(tel);
+                }
+            }
+        }
+
+        if (preload.emails && Array.isArray(preload.emails) && preload.emails.length > 0) {
+            if (typeof window.adicionarEmailExistente === 'function') {
+                for (const email of preload.emails) {
+                    await window.adicionarEmailExistente(email);
+                }
+            }
+        }
+
+        if (preload.documentos && Array.isArray(preload.documentos) && preload.documentos.length > 0) {
+            if (typeof window.adicionarDocumentoExistente === 'function') {
+                for (const doc of preload.documentos) {
+                    await window.adicionarDocumentoExistente(doc);
+                }
+            }
+        }
+
+        if (preload.chavesPix && Array.isArray(preload.chavesPix) && preload.chavesPix.length > 0) {
+            if (typeof window.adicionarChavePixExistente === 'function') {
+                for (const pix of preload.chavesPix) {
+                    await window.adicionarChavePixExistente(pix);
+                }
+            }
+        }
+
+        if (preload.profissoes && Array.isArray(preload.profissoes) && preload.profissoes.length > 0) {
+            if (typeof window.adicionarProfissaoExistente === 'function') {
+                for (const prof of preload.profissoes) {
+                    await window.adicionarProfissaoExistente(prof);
+                }
+            }
+        }
+
+        console.log('carregarDadosMultiplosPreload: concluido');
+    }
+
     function carregarDadosMultiplosConjuge(conjuge) {
         console.log('📦 Carregando dados múltiplos do cônjuge');
         console.log('🔍 DEBUG - Dados do cônjuge recebidos:', conjuge);
@@ -808,10 +870,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MODO DE EDIÇÃO: Carregamento automático de dados ---
     if (window.IS_EDIT_MODE && window.PESSOA_ID) {
-        console.log('🟢 Modo de edição detectado - Pessoa ID:', window.PESSOA_ID);
+        console.log('Modo de edicao detectado - Pessoa ID:', window.PESSOA_ID);
         buscarECarregarPessoa(window.PESSOA_ID);
+
+        // Carregar dados multiplos via preload inline (nao depende do AJAX)
+        if (window.PESSOA_PRELOAD) {
+            console.log('Preload disponivel, carregando dados multiplos inline');
+            carregarDadosMultiplosPreload(window.PESSOA_PRELOAD);
+        }
     } else {
-        console.log('🟢 Modo de criação - Formulário vazio');
+        console.log('Modo de criacao - Formulario vazio');
         setFormActionToNew();
     }
 
