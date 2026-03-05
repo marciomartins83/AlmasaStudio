@@ -638,23 +638,24 @@
     window.PESSOA_ID = {{ pessoaId ?? 'null' }};
 </script>
 
-<script src="{{ asset('js/pessoa/pessoa.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_tipos.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_telefones.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_enderecos.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_emails.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_documentos.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_chave_pix.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_contas_bancarias.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_modals.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_form.js') }}"></script>
-<script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_telefones.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_enderecos.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_emails.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_documentos.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_chave_pix.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_profissoes.js') }}"></script>
-<script src="{{ asset('js/pessoa/conjuge_contas_bancarias.js') }}"></script>
+{% set _v = '20260305b' %}
+<script src="{{ asset('js/pessoa/pessoa.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_tipos.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_telefones.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_enderecos.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_emails.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_documentos.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_chave_pix.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_profissoes.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_contas_bancarias.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_modals.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_form.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/pessoa_conjuge.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_telefones.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_enderecos.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_emails.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_documentos.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_chave_pix.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_profissoes.js') }}?v={{ _v }}"></script>
+<script src="{{ asset('js/pessoa/conjuge_contas_bancarias.js') }}?v={{ _v }}"></script>
 {% endblock %}
