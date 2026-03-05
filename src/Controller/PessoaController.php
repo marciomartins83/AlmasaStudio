@@ -583,7 +583,7 @@ class PessoaController extends AbstractController
 
         // Load related data via raw SQL (entities use integer IDs, not ORM relations)
         $tipos = $connection->fetchAllAssociative(
-            'SELECT pt.*, tp.tipo_pessoa as tipo_nome FROM pessoas_tipos pt
+            'SELECT pt.*, tp.tipo as tipo_nome FROM pessoas_tipos pt
              LEFT JOIN tipos_pessoas tp ON tp.id = pt.id_tipo_pessoa
              WHERE pt.id_pessoa = ? ORDER BY pt.data_inicio DESC',
             [$pessoaId]
@@ -597,7 +597,7 @@ class PessoaController extends AbstractController
         );
 
         $telefones = $connection->fetchAllAssociative(
-            'SELECT pt.*, t.numero, tt.nome as tipo_telefone FROM pessoas_telefones pt
+            'SELECT pt.*, t.numero, tt.tipo as tipo_telefone FROM pessoas_telefones pt
              LEFT JOIN telefones t ON t.id = pt.id_telefone
              LEFT JOIN tipos_telefones tt ON tt.id = t.id_tipo
              WHERE pt.id_pessoa = ? ORDER BY pt.id DESC',
@@ -606,18 +606,18 @@ class PessoaController extends AbstractController
 
         $enderecos = $connection->fetchAllAssociative(
             'SELECT e.*, l.logradouro, l.cep, b.nome as bairro, c.nome as cidade, est.uf,
-             te.nome as tipo_endereco FROM enderecos e
+             te.tipo as tipo_endereco FROM enderecos e
              LEFT JOIN logradouros l ON l.id = e.id_logradouro
              LEFT JOIN bairros b ON b.id = l.id_bairro
              LEFT JOIN cidades c ON c.id = b.id_cidade
              LEFT JOIN estados est ON est.id = c.id_estado
              LEFT JOIN tipos_enderecos te ON te.id = e.id_tipo
-             WHERE e.id_pessoa = ? ORDER BY e.id DESC',
+             WHERE e.id_pessoa = ? ORDER BY e.principal DESC, e.id DESC',
             [$pessoaId]
         );
 
         $emails = $connection->fetchAllAssociative(
-            'SELECT pe.*, em.email, et.nome as tipo_email FROM pessoas_emails pe
+            'SELECT pe.*, em.email, et.tipo as tipo_email FROM pessoas_emails pe
              LEFT JOIN emails em ON em.id = pe.id_email
              LEFT JOIN tipos_emails et ON et.id = em.id_tipo
              WHERE pe.id_pessoa = ? ORDER BY pe.id DESC',
@@ -625,7 +625,7 @@ class PessoaController extends AbstractController
         );
 
         $chavesPix = $connection->fetchAllAssociative(
-            'SELECT cp.*, tcp.nome as tipo_chave_nome FROM chaves_pix cp
+            'SELECT cp.*, tcp.tipo as tipo_chave_nome FROM chaves_pix cp
              LEFT JOIN tipos_chaves_pix tcp ON tcp.id = cp.id_tipo_chave
              WHERE cp.id_pessoa = ? ORDER BY cp.principal DESC, cp.id DESC',
             [$pessoaId]
