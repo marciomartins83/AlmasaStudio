@@ -248,15 +248,143 @@
                     </div>
                     <div class="card-body">
                         <div id="endereco-principal-container">
-                            <p class="text-muted">Nenhum endereço principal.</p>
+                            {% if enderecosPreload is defined and enderecosPreload|length > 0 %}
+                                {% for end in enderecosPreload %}
+                                    {% if end.principal %}
+                                    {% set idx = loop.index %}
+                                    <div class="border p-3 mb-3 endereco-item border-success" data-index="{{ idx }}" data-id="{{ end.id }}" data-principal="1">
+                                        <input type="hidden" class="estado-field" name="enderecos[{{ idx }}][estado]" value="{{ end.estado ?? '' }}">
+                                        <input type="hidden" name="enderecos[{{ idx }}][principal]" value="1" class="principal-field">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div><span class="badge bg-success ms-2">Principal</span></div>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="removerEndereco({{ idx }})">
+                                                <i class="fas fa-trash"></i> Remover
+                                            </button>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Tipo de Endereço</label>
+                                                <div class="input-group">
+                                                    <select class="form-select" name="enderecos[{{ idx }}][tipo]" id="endereco_tipo_{{ idx }}" required>
+                                                        <option value="">Selecione o tipo...</option>
+                                                        {% for tipo in tiposEnderecos %}
+                                                            <option value="{{ tipo.id }}" {{ tipo.id == end.tipo ? 'selected' : '' }}>{{ tipo.tipo }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">CEP</label>
+                                                <input type="text" class="form-control cep-input" name="enderecos[{{ idx }}][cep]" value="{{ end.cep ?? '' }}" placeholder="00000-000" maxlength="9" onblur="buscarEnderecoPorCEP(this)" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Logradouro</label>
+                                                <input type="text" class="form-control logradouro-field" name="enderecos[{{ idx }}][logradouro]" value="{{ end.logradouro ?? '' }}" placeholder="Rua, Avenida..." required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Número</label>
+                                                <input type="text" class="form-control" name="enderecos[{{ idx }}][numero]" value="{{ end.numero ?? '' }}" placeholder="123" required>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Complemento</label>
+                                                <input type="text" class="form-control" name="enderecos[{{ idx }}][complemento]" value="{{ end.complemento ?? '' }}" placeholder="Apto, Sala...">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Bairro</label>
+                                                <input type="text" class="form-control bairro-field" name="enderecos[{{ idx }}][bairro]" value="{{ end.bairro ?? '' }}" placeholder="Nome do bairro" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Cidade</label>
+                                                <input type="text" class="form-control cidade-field" name="enderecos[{{ idx }}][cidade]" value="{{ end.cidade ?? '' }}" placeholder="Nome da cidade" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">Nenhum endereço principal.</p>
+                            {% endif %}
                         </div>
 
-                        <div id="enderecos-extras-wrapper" class="mt-3" style="display:none;">
+                        {% set extrasCount = 0 %}
+                        {% if enderecosPreload is defined %}
+                            {% for end in enderecosPreload %}
+                                {% if not end.principal %}
+                                    {% set extrasCount = extrasCount + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+
+                        <div id="enderecos-extras-wrapper" class="mt-3" style="{{ extrasCount > 0 ? '' : 'display:none;' }}">
                             <button type="button" class="btn btn-outline-secondary btn-sm w-100" data-bs-toggle="collapse" data-bs-target="#enderecos-extras-collapse">
-                                <i class="fas fa-chevron-down"></i> <span id="enderecos-extras-label">Mais endereços</span>
+                                <i class="fas fa-chevron-down"></i> <span id="enderecos-extras-label">Mais endereços ({{ extrasCount }})</span>
                             </button>
                             <div class="collapse mt-2" id="enderecos-extras-collapse">
-                                <div id="enderecos-container"></div>
+                                <div id="enderecos-container">
+                                    {% if enderecosPreload is defined %}
+                                        {% set extraIdx = 100 %}
+                                        {% for end in enderecosPreload %}
+                                        {% if not end.principal %}
+                                            {% set extraIdx = extraIdx + 1 %}
+                                            <div class="border p-3 mb-3 endereco-item" data-index="{{ extraIdx }}" data-id="{{ end.id }}" data-principal="0">
+                                                <input type="hidden" class="estado-field" name="enderecos[{{ extraIdx }}][estado]" value="{{ end.estado ?? '' }}">
+                                                <input type="hidden" name="enderecos[{{ extraIdx }}][principal]" value="0" class="principal-field">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <div>
+                                                        <button type="button" class="btn btn-outline-success btn-sm ms-2" onclick="definirPrincipal({{ extraIdx }})">
+                                                            <i class="fas fa-star"></i> Tornar principal
+                                                        </button>
+                                                    </div>
+                                                    <button type="button" class="btn btn-danger btn-sm" onclick="removerEndereco({{ extraIdx }})">
+                                                        <i class="fas fa-trash"></i> Remover
+                                                    </button>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">Tipo de Endereço</label>
+                                                        <div class="input-group">
+                                                            <select class="form-select" name="enderecos[{{ extraIdx }}][tipo]" required>
+                                                                <option value="">Selecione o tipo...</option>
+                                                                {% for tipo in tiposEnderecos %}
+                                                                    <option value="{{ tipo.id }}" {{ tipo.id == end.tipo ? 'selected' : '' }}>{{ tipo.tipo }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">CEP</label>
+                                                        <input type="text" class="form-control cep-input" name="enderecos[{{ extraIdx }}][cep]" value="{{ end.cep ?? '' }}" placeholder="00000-000" maxlength="9" onblur="buscarEnderecoPorCEP(this)" required>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Logradouro</label>
+                                                        <input type="text" class="form-control logradouro-field" name="enderecos[{{ extraIdx }}][logradouro]" value="{{ end.logradouro ?? '' }}" required>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Número</label>
+                                                        <input type="text" class="form-control" name="enderecos[{{ extraIdx }}][numero]" value="{{ end.numero ?? '' }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="row mt-2">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Complemento</label>
+                                                        <input type="text" class="form-control" name="enderecos[{{ extraIdx }}][complemento]" value="{{ end.complemento ?? '' }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Bairro</label>
+                                                        <input type="text" class="form-control bairro-field" name="enderecos[{{ extraIdx }}][bairro]" value="{{ end.bairro ?? '' }}" required>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Cidade</label>
+                                                        <input type="text" class="form-control cidade-field" name="enderecos[{{ extraIdx }}][cidade]" value="{{ end.cidade ?? '' }}" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -636,9 +764,7 @@
     // Variáveis de modo de edição
     window.IS_EDIT_MODE = {{ isEditMode ? 'true' : 'false' }};
     window.PESSOA_ID = {{ pessoaId ?? 'null' }};
-    {% if pessoaPreload is defined and pessoaPreload %}
-    window.PESSOA_PRELOAD = {{ pessoaPreload|json_encode(constant('JSON_UNESCAPED_UNICODE'))|raw }};
-    {% endif %}
+    window.PESSOA_PRELOAD = null;
 </script>
 
 {% set _v = '20260305d' %}

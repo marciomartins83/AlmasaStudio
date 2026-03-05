@@ -339,9 +339,6 @@ class PessoaController extends AbstractController
                 'tipoPessoaString' => $tipoString
             ];
 
-            // DEBUG TEMPORARIO - escrever resposta em arquivo para diagnostico
-            file_put_contents('/tmp/almasa_search_debug.json', json_encode(['success' => true, 'pessoa' => $pessoaData], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
             return new JsonResponse(['success' => true, 'pessoa' => $pessoaData]);
             
         } catch (\Exception $e) {
@@ -652,7 +649,7 @@ class PessoaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
-    public function edit(Request $request, Pessoas $pessoa): Response
+    public function edit(Request $request, Pessoas $pessoa, \Doctrine\DBAL\Connection $connection): Response
     {
         $form = $this->createForm(PessoaFormType::class, $pessoa);
         $form->handleRequest($request);
@@ -709,24 +706,20 @@ class PessoaController extends AbstractController
             }
         }
 
-        // Pre-load all pessoa data as JSON so JS doesn't need a second AJAX call
         $pessoaId = $pessoa->getIdpessoa();
-        $pessoaPreload = [
-            'enderecos' => $this->pessoaService->buscarEnderecosPessoa($pessoaId),
-            'telefones' => $this->pessoaService->buscarTelefonesPessoa($pessoaId),
-            'emails' => $this->pessoaService->buscarEmailsPessoa($pessoaId),
-            'documentos' => $this->pessoaService->buscarDocumentosPessoa($pessoaId),
-            'chavesPix' => $this->pessoaService->buscarChavesPixPessoa($pessoaId),
-            'profissoes' => $this->pessoaService->buscarProfissoesPessoa($pessoaId),
-            'contasBancarias' => $this->pessoaService->buscarContasBancariasPessoa($pessoaId),
-        ];
+        $enderecos = $this->pessoaService->buscarEnderecosPessoa($pessoaId);
+
+        $tiposEnderecos = $connection->fetchAllAssociative(
+            'SELECT id, tipo FROM tipos_enderecos ORDER BY id'
+        );
 
         return $this->render('pessoa/pessoa_form.html.twig', [
             'pessoa' => $pessoa,
             'form' => $form->createView(),
             'isEditMode' => true,
             'pessoaId' => $pessoaId,
-            'pessoaPreload' => $pessoaPreload,
+            'enderecosPreload' => $enderecos,
+            'tiposEnderecos' => $tiposEnderecos,
         ]);
     }
 
