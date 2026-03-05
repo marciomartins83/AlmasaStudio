@@ -286,7 +286,7 @@
                     <tr>
                         <td>{{ end.tipo_endereco ?? '-' }}</td>
                         <td>{{ end.logradouro ?? '-' }}</td>
-                        <td>{{ end.end_numero }}</td>
+                        <td>{{ end.end_numero == 0 ? 'S/N' : end.end_numero }}</td>
                         <td>{{ end.complemento ?? '-' }}</td>
                         <td>{{ end.bairro ?? '-' }}</td>
                         <td>{{ end.cidade ?? '-' }}{% if end.uf %}/{{ end.uf }}{% endif %}</td>
