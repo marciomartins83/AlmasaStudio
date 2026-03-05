@@ -241,14 +241,23 @@
 
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3><i class="fas fa-map-marker-alt"></i> Endereços</h3>
+                        <h3><i class="fas fa-map-marker-alt"></i> Endereço Principal</h3>
                         <button type="button" class="btn btn-sm btn-primary" id="add-endereco">
                             <i class="fas fa-plus"></i> Adicionar
                         </button>
                     </div>
                     <div class="card-body">
-                        <div id="enderecos-container">
-                            <p class="text-muted">Nenhum endereço adicionado.</p>
+                        <div id="endereco-principal-container">
+                            <p class="text-muted">Nenhum endereço principal.</p>
+                        </div>
+
+                        <div id="enderecos-extras-wrapper" class="mt-3" style="display:none;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" data-bs-toggle="collapse" data-bs-target="#enderecos-extras-collapse">
+                                <i class="fas fa-chevron-down"></i> <span id="enderecos-extras-label">Mais endereços</span>
+                            </button>
+                            <div class="collapse mt-2" id="enderecos-extras-collapse">
+                                <div id="enderecos-container"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -604,7 +613,8 @@
         newPessoa: '{{ path("app_pessoa_new") }}',
         editPessoa: '{{ path("app_pessoa_edit", {"id": 999999})|replace({"999999":"__ID__"}) }}',
         salvarNacionalidade: '{{ path("app_nacionalidade_salvar") }}',
-        salvarNaturalidade: '{{ path("app_naturalidade_salvar") }}'
+        salvarNaturalidade: '{{ path("app_naturalidade_salvar") }}',
+        setEnderecoPrincipal: '/pessoa/endereco/__ID__/principal'
     };
 
     window.FORM_IDS = {

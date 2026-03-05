@@ -747,6 +747,22 @@ class PessoaController extends AbstractController
         }
     }
 
+    #[Route('/endereco/{id}/principal', name: 'set_endereco_principal', methods: ['POST'])]
+    public function setEnderecoPrincipal(int $id, Request $request): JsonResponse
+    {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return new JsonResponse(['success' => false, 'message' => 'Token inválido'], 403);
+        }
+
+        try {
+            $this->pessoaService->marcarEnderecoPrincipal($id);
+            return new JsonResponse(['success' => true]);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 404);
+        }
+    }
+
     #[Route('/telefone/{id}', name: 'delete_telefone', methods: ['DELETE'])]
     public function deleteTelefone(int $id, Request $request): JsonResponse
     {

@@ -241,10 +241,14 @@ class PessoaService
                     if (!empty($enderecoData['complemento'])) {
                         $endereco->setComplemento($enderecoData['complemento']);
                     }
+                    $endereco->setPrincipal(!empty($enderecoData['principal']));
 
                     $this->entityManager->persist($endereco);
                 }
             }
+
+            // Garantir que apenas 1 endereço seja principal por pessoa
+            $this->garantirEnderecoPrincipalUnico($pessoaId);
         }
 
         // Chaves PIX
@@ -1344,7 +1348,7 @@ class PessoaService
     {
         $enderecos = [];
         $enderecosEntidade = $this->entityManager->getRepository(Enderecos::class)
-            ->findBy(['pessoa' => $pessoaId]);
+            ->findBy(['pessoa' => $pessoaId], ['principal' => 'DESC', 'id' => 'ASC']);
 
         foreach ($enderecosEntidade as $endereco) {
             $logradouro = $endereco->getLogradouro();
@@ -1361,7 +1365,8 @@ class PessoaService
                 'complemento' => $endereco->getComplemento(),
                 'bairro' => $bairro ? $bairro->getNome() : '',
                 'cidade' => $cidade ? $cidade->getNome() : '',
-                'estado' => $estado ? $estado->getUf() : ''
+                'estado' => $estado ? $estado->getUf() : '',
+                'principal' => $endereco->isPrincipal()
             ];
         }
 
@@ -1523,8 +1528,68 @@ class PessoaService
             throw new \RuntimeException('Endereço não encontrado');
         }
 
+        $pessoaId = $endereco->getPessoa()->getIdpessoa();
+        $eraPrincipal = $endereco->isPrincipal();
+
         $this->entityManager->remove($endereco);
         $this->entityManager->flush();
+
+        // Se removeu o principal, promover outro
+        if ($eraPrincipal) {
+            $this->promoverEnderecoPrincipal($pessoaId);
+        }
+    }
+
+    public function marcarEnderecoPrincipal(int $enderecoId): void
+    {
+        $endereco = $this->entityManager->getRepository(Enderecos::class)->find($enderecoId);
+        if (!$endereco) {
+            throw new \RuntimeException('Endereço não encontrado');
+        }
+
+        $pessoaId = $endereco->getPessoa()->getIdpessoa();
+
+        // Desmarcar todos da pessoa
+        $this->entityManager->getConnection()->executeStatement(
+            'UPDATE enderecos SET principal = false WHERE id_pessoa = ?',
+            [$pessoaId]
+        );
+
+        // Marcar o selecionado
+        $endereco->setPrincipal(true);
+        $this->entityManager->flush();
+    }
+
+    private function garantirEnderecoPrincipalUnico(int $pessoaId): void
+    {
+        $enderecos = $this->entityManager->getRepository(Enderecos::class)
+            ->findBy(['pessoa' => $pessoaId], ['id' => 'ASC']);
+
+        $temPrincipal = false;
+        foreach ($enderecos as $end) {
+            if ($end->isPrincipal()) {
+                if ($temPrincipal) {
+                    $end->setPrincipal(false);
+                }
+                $temPrincipal = true;
+            }
+        }
+
+        // Se nenhum é principal, marcar o primeiro
+        if (!$temPrincipal && count($enderecos) > 0) {
+            $enderecos[0]->setPrincipal(true);
+        }
+    }
+
+    private function promoverEnderecoPrincipal(int $pessoaId): void
+    {
+        $proximo = $this->entityManager->getRepository(Enderecos::class)
+            ->findOneBy(['pessoa' => $pessoaId], ['id' => 'ASC']);
+
+        if ($proximo) {
+            $proximo->setPrincipal(true);
+            $this->entityManager->flush();
+        }
     }
 
     public function excluirTelefone(int $id): void

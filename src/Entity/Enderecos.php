@@ -31,6 +31,9 @@ class Enderecos
     #[ORM\Column(nullable: true)]
     private ?string $complemento = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $principal = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -88,6 +91,17 @@ class Enderecos
     public function setComplemento(?string $complemento): self
     {
         $this->complemento = $complemento;
+        return $this;
+    }
+
+    public function isPrincipal(): bool
+    {
+        return $this->principal;
+    }
+
+    public function setPrincipal(bool $principal): self
+    {
+        $this->principal = $principal;
         return $this;
     }
 }
