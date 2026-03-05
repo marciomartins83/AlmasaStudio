@@ -8,7 +8,6 @@
 controllers:
     resource: ../src/Controller/
     type: attribute
-    schemes: [https]
 
 # Rotas para Logradouro
 app_logradouro_index:
