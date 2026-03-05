@@ -1,7 +1,7 @@
 -- Migration Script: lancamentos_financeiros → lancamentos
--- Date: 2026-03-05 (corrigido)
--- Records to migrate: ~49,998 from lancamentos_financeiros
--- Fixes v2: valor_total direto, plano_conta por tipo, credor/pagador corretos
+-- Date: 2026-03-05 (v3 — final)
+-- Records to migrate: ~506,704 from lancamentos_financeiros
+-- Fixes v3: imovel_map IM0005 format, valor_total direto, plano_conta por tipo, credor/pagador corretos
 
 -- Step 0: Clear previous migration (safe — no external references)
 DELETE FROM lancamentos;

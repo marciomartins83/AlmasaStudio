@@ -11,30 +11,26 @@ use App\Entity\Pessoas;
 
 class DashboardController extends AbstractController
 {
-    private EntityManagerInterface $entityManager;
-
-    public function __construct(EntityManagerInterface $entityManager)
-    {
-        $this->entityManager = $entityManager;
-    }
+    public function __construct(
+        private EntityManagerInterface $entityManager
+    ) {}
 
     #[Route('/dashboard', name: 'app_dashboard')]
-    #[IsGranted('IS_AUTHENTICATED_FULLY')]  // EXIGE QUE O USUÁRIO ESTEJA LOGADO
-    public function index(EntityManagerInterface $entityManager): Response
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function index(): Response
     {
         $pessoa = $this->entityManager->getRepository(Pessoas::class)->findOneBy([
             'user' => $this->getUser()
         ]);
 
         return $this->render('dashboard/index.html.twig', [
-            'pessoa' => $pessoa, // Enviando para o Twig
+            'pessoa' => $pessoa,
         ]);
     }
 
     #[Route('/enderecos', name: 'app_dashboard_enderecos_index')]
     public function listAddresses(): Response
     {
-        // Implement logic to fetch and display addresses here
         return $this->render('dashboard/enderecos/index.html.twig');
     }
 }

@@ -9,17 +9,17 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.25.1 |
-| **Data Ultima Atualizacao** | 2026-03-04 (Code review completo — Thin Controllers + Inline JS) |
-| **Status Geral** | Em producao — Code review: 17 Thin Controllers refatorados, inline JS corrigido, schema validado. |
+| **Versao Atual** | 6.26.1 |
+| **Data Ultima Atualizacao** | 2026-03-05 (Migracao v6 completa — 506k lancamentos, imovel_map corrigido, FK 0 erros) |
+| **Status Geral** | Em producao — Migracao 100% completa, schema validado, FK integrity 0 erros. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via KIMI |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | — |
+| **Proxima Tarefa** | Deploy v6.26.1 na VPS |
 | **Issue Aberta** | — |
-| **Migracao MySQL->PostgreSQL** | v5.2 — 21 fases, Fase 21 = auditoria e autocorreção automática pós-importação, idempotente, falha explicita em inconsistencias criticas |
+| **Migracao MySQL->PostgreSQL** | v6.0 — 21 fases + hotfix completo. 506.704 lancamentos, 42.844 repasses, 4.933 pessoas, 3.236 imoveis. FK integrity 0 erros. |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
 | **Repo Principal** | https://github.com/marciomartins83/AlmasaStudio |
 
@@ -1481,6 +1481,42 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.26.1] - 2026-03-05
+
+#### Corrigido
+- **Migracao completa v6 — Importacao 100% dos dados financeiros do MySQL**
+  - **Causa raiz:** config.py apontava para dump compacto (36MB, ~10% dados) em vez do completo (272MB)
+  - **Correcao dump:** Alterado para `bkpjpw_20260220_121003.sql` (dump completo)
+  - **Correcao imovel_map:** Formato `IM0005` agora parseado com `REGEXP_REPLACE` (antes usava regex `^[0-9]+$` que nao casava)
+  - **Correcao Phase 12:** Removido INSERT em `imoveis_propriedades` (tabela de caracteristicas, nao proprietarios). Proprietario agora em `imoveis.id_pessoa_proprietario`
+  - **Correcao migrate_lancamentos.sql v3:** valor_total direto (nao soma), plano_conta por tipo, credor/pagador corretos
+  - **Correcao corretores:** `fisica_juridica` usa `'fisica'`/`'juridica'` (nao `'F'`/`'J'`), inclui `tipo_pessoa`
+
+#### Numeros finais da migracao
+| Tabela | Registros | Completude |
+|--------|-----------|------------|
+| lancamentos_financeiros | 506.704 | 100% do dump MySQL |
+| lancamentos | 506.704 | espelhado de lancamentos_financeiros |
+| prestacoes_contas | 42.844 | 100% de locrepasse |
+| pessoas | 4.933 | 100% (locadores+inquilinos+fiadores+contratantes+corretores) |
+| imoveis | 3.236 | 100% de locimoveis |
+| imoveis_contratos | 2.130 | 211 ativos, 1.919 encerrados |
+| fiadores_inquilinos | 92 | 92 de 265 (173 sem mapeamento no MySQL) |
+| FK integrity | 0 erros | todas as FKs validadas cross-table |
+
+---
+
+### [6.26.0] - 2026-03-04
+
+#### Corrigido (v6.26.0 — 7 problemas criticos)
+- Situacao imoveis: 211 `vendido` → `locado` (contratos ativos)
+- Show pessoa: cards completos (tipos, profissoes, telefones, enderecos, emails, PIX, contas bancarias)
+- Filtro imoveis: removido alugado/reservado/em_reforma, adicionado locado
+- Mascara CPF/CNPJ no show pessoa
+- Endereco numero 0 exibe S/N
 
 ---
 

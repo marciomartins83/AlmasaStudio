@@ -28,7 +28,11 @@ security:
                 secret: "%kernel.secret%"
                 lifetime: 604800 # 7 dias
                 path: /
-                always_remember_me: true
+                always_remember_me: false
+
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
 
     access_control:
         - { path: ^/admin, roles: ROLE_SUPER_ADMIN }

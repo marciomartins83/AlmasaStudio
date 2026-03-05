@@ -29,7 +29,8 @@ class CobrancaController extends AbstractController
 {
     public function __construct(
         private CobrancaContratoService $cobrancaService,
-        private ContratosCobrancasRepository $cobrancasRepo
+        private ContratosCobrancasRepository $cobrancasRepo,
+        private \App\Service\EmailService $emailService
     ) {}
 
     /**
@@ -123,11 +124,7 @@ class CobrancaController extends AbstractController
             throw $this->createNotFoundException('Cobrança não encontrada');
         }
 
-        // Buscar histórico de emails
-        $emailService = $this->container->get('App\Service\EmailService');
-        $historicoEmails = method_exists($emailService, 'getHistoricoByReferencia')
-            ? $emailService->getHistoricoByReferencia('COBRANCA', $id)
-            : [];
+        $historicoEmails = $this->emailService->getHistoricoByReferencia('COBRANCA', $id);
 
         return $this->render('cobranca/show.html.twig', [
             'cobranca' => $cobranca,

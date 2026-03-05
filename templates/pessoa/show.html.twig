@@ -14,7 +14,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-user"></i> {{ pessoa.nome }}</h1>
         <div>
-            <a href="{{ path('app_financeiro_index', {'inquilino': pessoa.nome}) }}" class="btn btn-success" target="_blank">
+            <a href="{{ path('app_financeiro_index', {'inquilino': pessoa.idpessoa}) }}" class="btn btn-success" target="_blank">
                 <i class="fas fa-dollar-sign"></i> Financeiro
             </a>
             <a href="{{ path('app_contrato_index') }}?pessoa={{ pessoa.idpessoa }}" class="btn btn-info" target="_blank">

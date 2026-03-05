@@ -42,19 +42,22 @@ function showToast(message, type = 'info') {
         'info': 'fas fa-info-circle'
     }[type] || 'fas fa-info-circle';
 
-    const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">
-                    <i class="${iconClass} me-2"></i>
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    const toastEl = document.createElement('div');
+    toastEl.id = toastId;
+    toastEl.className = `toast align-items-center text-white ${bgClass} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="${iconClass} me-2"></i>
+                <span class="toast-message"></span>
             </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
     `;
+    toastEl.querySelector('.toast-message').textContent = message;
 
-    container.insertAdjacentHTML('beforeend', toastHtml);
+    container.appendChild(toastEl);
 
     const toastElement = document.getElementById(toastId);
     const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
