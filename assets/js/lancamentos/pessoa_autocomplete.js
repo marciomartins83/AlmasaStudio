@@ -89,9 +89,10 @@ function initPessoaAutocomplete(cfg, url) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'list-group-item list-group-item-action';
-            btn.textContent = p.nome;
+            const label = p.cod ? `${p.nome}  —  cód. ${p.cod}` : p.nome;
+            btn.textContent = label;
             btn.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // evita blur antes do click
+                e.preventDefault();
                 selecionar(p);
             });
             resultsList.appendChild(btn);

@@ -415,8 +415,9 @@ class LancamentosController extends AbstractController
 
         $pessoas = $pessoaRepository->findByNome($q);
         $result = array_map(fn($p) => [
-            'id'   => $p->getIdpessoa(),
-            'nome' => $p->getNome(),
+            'id'    => $p->getIdpessoa(),
+            'nome'  => $p->getNome(),
+            'cod'   => $p->getCod(),
         ], array_slice($pessoas, 0, 15));
 
         return $this->json($result);
