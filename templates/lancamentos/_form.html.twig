@@ -84,12 +84,15 @@
                 <div class="mb-3">
                     <label class="form-label">Credor / Fornecedor</label>
                     <div class="pessoa-autocomplete-wrapper position-relative">
-                        <input type="text"
-                               id="credor_display"
-                               class="form-control"
-                               placeholder="Digite parte do nome..."
-                               autocomplete="off"
-                               value="{{ credorPreload ? credorPreload.nome : '' }}">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text"
+                                   id="credor_display"
+                                   class="form-control"
+                                   placeholder="Digite parte do nome..."
+                                   autocomplete="off"
+                                   value="{{ credorPreload ? credorPreload.nome : '' }}">
+                        </div>
                         <div id="credor_results" class="pessoa-autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%;"></div>
                     </div>
                     {{ form_widget(form.pessoaCredorId, {'attr': {'id': 'credor_id', 'value': credorPreload ? credorPreload.id : ''}}) }}
@@ -100,12 +103,15 @@
                 <div class="mb-3">
                     <label class="form-label">Pagador / Cliente</label>
                     <div class="pessoa-autocomplete-wrapper position-relative">
-                        <input type="text"
-                               id="pagador_display"
-                               class="form-control"
-                               placeholder="Digite parte do nome..."
-                               autocomplete="off"
-                               value="{{ pagadorPreload ? pagadorPreload.nome : '' }}">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text"
+                                   id="pagador_display"
+                                   class="form-control"
+                                   placeholder="Digite parte do nome..."
+                                   autocomplete="off"
+                                   value="{{ pagadorPreload ? pagadorPreload.nome : '' }}">
+                        </div>
                         <div id="pagador_results" class="pessoa-autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%;"></div>
                     </div>
                     {{ form_widget(form.pessoaPagadorId, {'attr': {'id': 'pagador_id', 'value': pagadorPreload ? pagadorPreload.id : ''}}) }}

@@ -74,7 +74,7 @@ class Lancamentos
 
     #[ORM\ManyToOne(targetEntity: PlanoContas::class, inversedBy: 'lancamentos')]
     #[ORM\JoinColumn(name: 'id_plano_conta', referencedColumnName: 'id', nullable: false)]
-    private PlanoContas $planoConta;
+    private ?PlanoContas $planoConta = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     private ?string $historico = null;
@@ -311,7 +311,7 @@ class Lancamentos
         return $this;
     }
 
-    public function getPlanoConta(): PlanoContas
+    public function getPlanoConta(): ?PlanoContas
     {
         return $this->planoConta;
     }
