@@ -70,9 +70,9 @@ class PessoaRepository extends ServiceEntityRepository
     public function findByNome(string $nome): array
     {
         return $this->createQueryBuilder('p')
-            ->andWhere('p.nome LIKE :nome') // CORRIGIDO: era :tipo
-            ->setParameter('nome', '%' . $nome . '%')
-            ->orderBy('p.nome', 'ASC') // CORRIGIDO: era p.tipo
+            ->andWhere('LOWER(p.nome) LIKE :nome')
+            ->setParameter('nome', '%' . strtolower($nome) . '%')
+            ->orderBy('p.nome', 'ASC')
             ->getQuery()
             ->getResult();
     }
