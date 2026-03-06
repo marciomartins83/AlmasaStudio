@@ -78,7 +78,7 @@ class LancamentosType extends AbstractType
                 'query_builder' => function ($repo) {
                     return $repo->createQueryBuilder('p')
                         ->where('p.ativo = true')
-                        ->orderBy('p.codigo', 'ASC');
+                        ->orderBy('p.descricao', 'ASC');
                 },
                 'placeholder' => 'Selecione...',
                 'attr' => ['class' => 'form-select'],
