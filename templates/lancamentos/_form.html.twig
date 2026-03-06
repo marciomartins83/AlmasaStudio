@@ -90,12 +90,11 @@
                                    id="credor_display"
                                    class="form-control"
                                    placeholder="Digite parte do nome..."
-                                   autocomplete="off"
-                                   value="{{ credorPreload ? credorPreload.nome : '' }}">
+                                   autocomplete="off">
                         </div>
                         <div id="credor_results" class="pessoa-autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%;"></div>
                     </div>
-                    {{ form_widget(form.pessoaCredorId, {'attr': {'id': 'credor_id', 'value': credorPreload ? credorPreload.id : ''}}) }}
+                    {{ form_widget(form.pessoaCredorId) }}
                     <small class="text-muted">Fornecedor, prestador de servico, etc.</small>
                 </div>
             </div>
@@ -109,12 +108,11 @@
                                    id="pagador_display"
                                    class="form-control"
                                    placeholder="Digite parte do nome..."
-                                   autocomplete="off"
-                                   value="{{ pagadorPreload ? pagadorPreload.nome : '' }}">
+                                   autocomplete="off">
                         </div>
                         <div id="pagador_results" class="pessoa-autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%;"></div>
                     </div>
-                    {{ form_widget(form.pessoaPagadorId, {'attr': {'id': 'pagador_id', 'value': pagadorPreload ? pagadorPreload.id : ''}}) }}
+                    {{ form_widget(form.pessoaPagadorId) }}
                     <small class="text-muted">Cliente, inquilino, etc.</small>
                 </div>
             </div>
@@ -225,6 +223,21 @@
 {{ form_end(form) }}
 
 <script>
-window.LANCAMENTOS_ROUTES = window.LANCAMENTOS_ROUTES || {};
-window.LANCAMENTOS_ROUTES.pessoaAutocomplete = "{{ path('app_lancamentos_pessoa_autocomplete') }}";
+window.LANCAMENTOS_AUTOCOMPLETE = {
+    url: "{{ path('app_lancamentos_pessoa_autocomplete') }}",
+    credor: {
+        displayId: 'credor_display',
+        hiddenId: '{{ form.pessoaCredorId.vars.id }}',
+        resultsId: 'credor_results',
+        preloadNome: "{{ credorPreload ? credorPreload.nome|e('js') : '' }}",
+        preloadId: "{{ credorPreload ? credorPreload.id : '' }}"
+    },
+    pagador: {
+        displayId: 'pagador_display',
+        hiddenId: '{{ form.pessoaPagadorId.vars.id }}',
+        resultsId: 'pagador_results',
+        preloadNome: "{{ pagadorPreload ? pagadorPreload.nome|e('js') : '' }}",
+        preloadId: "{{ pagadorPreload ? pagadorPreload.id : '' }}"
+    }
+};
 </script>

@@ -3,26 +3,30 @@
  * Campos: Credor/Fornecedor e Pagador/Cliente
  */
 
-function initPessoaAutocomplete(displayId, hiddenId, resultsId, url) {
-    const displayInput = document.getElementById(displayId);
-    const hiddenInput = document.getElementById(hiddenId);
-    const resultsList = document.getElementById(resultsId);
+function initPessoaAutocomplete(cfg, url) {
+    const displayInput = document.getElementById(cfg.displayId);
+    const hiddenInput  = document.getElementById(cfg.hiddenId);
+    const resultsList  = document.getElementById(cfg.resultsId);
 
-    if (!displayInput || !hiddenInput || !resultsList) return;
+    if (!displayInput || !hiddenInput || !resultsList) {
+        console.warn('[autocomplete] elemento nao encontrado', cfg);
+        return;
+    }
+
+    // Preenche preload (modo edição)
+    if (cfg.preloadNome) displayInput.value = cfg.preloadNome;
+    if (cfg.preloadId)   hiddenInput.value  = cfg.preloadId;
 
     let debounceTimer = null;
-    let activeIndex = -1;
+    let activeIndex   = -1;
 
     displayInput.addEventListener('input', () => {
         const q = displayInput.value.trim();
-
-        // Limpa seleção anterior ao digitar
         hiddenInput.value = '';
-
         clearTimeout(debounceTimer);
 
         if (q.length < 2) {
-            fecharResultados();
+            fechar();
             return;
         }
 
@@ -30,42 +34,44 @@ function initPessoaAutocomplete(displayId, hiddenId, resultsId, url) {
     });
 
     displayInput.addEventListener('keydown', (e) => {
-        const items = resultsList.querySelectorAll('.list-group-item');
+        const items = resultsList.querySelectorAll('.list-group-item-action');
         if (!items.length) return;
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             activeIndex = Math.min(activeIndex + 1, items.length - 1);
-            atualizarAtivo(items);
+            marcarAtivo(items);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             activeIndex = Math.max(activeIndex - 1, 0);
-            atualizarAtivo(items);
+            marcarAtivo(items);
         } else if (e.key === 'Enter') {
             e.preventDefault();
             if (activeIndex >= 0 && items[activeIndex]) {
                 items[activeIndex].click();
             }
         } else if (e.key === 'Escape') {
-            fecharResultados();
+            fechar();
         }
     });
 
-    // Fecha ao clicar fora
     document.addEventListener('click', (e) => {
-        if (!displayInput.contains(e.target) && !resultsList.contains(e.target)) {
-            fecharResultados();
+        if (!displayInput.closest('.pessoa-autocomplete-wrapper').contains(e.target)) {
+            fechar();
         }
     });
 
     async function buscar(q) {
         try {
             const resp = await fetch(`${url}?q=${encodeURIComponent(q)}`);
-            if (!resp.ok) return;
+            if (!resp.ok) {
+                console.warn('[autocomplete] resposta nao-ok:', resp.status);
+                return;
+            }
             const pessoas = await resp.json();
             renderizar(pessoas);
         } catch (err) {
-            console.error('Erro no autocomplete:', err);
+            console.error('[autocomplete] erro na busca:', err);
         }
     }
 
@@ -74,18 +80,21 @@ function initPessoaAutocomplete(displayId, hiddenId, resultsId, url) {
         activeIndex = -1;
 
         if (!pessoas.length) {
-            resultsList.innerHTML = '<div class="list-group-item text-muted">Nenhum resultado encontrado</div>';
+            resultsList.innerHTML = '<div class="list-group-item text-muted fst-italic">Nenhum resultado encontrado</div>';
             resultsList.style.display = 'block';
             return;
         }
 
         pessoas.forEach((p) => {
-            const item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'list-group-item list-group-item-action';
-            item.textContent = p.nome;
-            item.addEventListener('click', () => selecionar(p));
-            resultsList.appendChild(item);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action';
+            btn.textContent = p.nome;
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // evita blur antes do click
+                selecionar(p);
+            });
+            resultsList.appendChild(btn);
         });
 
         resultsList.style.display = 'block';
@@ -93,20 +102,18 @@ function initPessoaAutocomplete(displayId, hiddenId, resultsId, url) {
 
     function selecionar(p) {
         displayInput.value = p.nome;
-        hiddenInput.value = p.id;
-        fecharResultados();
+        hiddenInput.value  = p.id;
+        fechar();
     }
 
-    function fecharResultados() {
+    function fechar() {
         resultsList.style.display = 'none';
         resultsList.innerHTML = '';
         activeIndex = -1;
     }
 
-    function atualizarAtivo(items) {
-        items.forEach((item, i) => {
-            item.classList.toggle('active', i === activeIndex);
-        });
+    function marcarAtivo(items) {
+        items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
         if (items[activeIndex]) {
             items[activeIndex].scrollIntoView({ block: 'nearest' });
         }
@@ -114,9 +121,9 @@ function initPessoaAutocomplete(displayId, hiddenId, resultsId, url) {
 }
 
 export function initPessoasAutocomplete() {
-    const url = window.LANCAMENTOS_ROUTES?.pessoaAutocomplete;
-    if (!url) return;
+    const cfg = window.LANCAMENTOS_AUTOCOMPLETE;
+    if (!cfg) return;
 
-    initPessoaAutocomplete('credor_display', 'credor_id', 'credor_results', url);
-    initPessoaAutocomplete('pagador_display', 'pagador_id', 'pagador_results', url);
+    initPessoaAutocomplete(cfg.credor, cfg.url);
+    initPessoaAutocomplete(cfg.pagador, cfg.url);
 }
