@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCalculoRetencoes();
     initCompetenciaAutomatica();
     initPessoasAutocomplete();
+    initRecorrencia();
 });
 
 /**
@@ -219,6 +220,50 @@ function initCalculoRetencoes() {
     if (percIssInput) {
         percIssInput.addEventListener('change', calcularISS);
     }
+}
+
+/**
+ * Inicializa controle de lancamento recorrente
+ */
+function initRecorrencia() {
+    const tipoSelect   = document.getElementById('lancamentos_recorrenciaTipo');
+    const qtdWrapper   = document.getElementById('recorrencia_qtd_wrapper');
+    const qtdInput     = document.getElementById('lancamentos_recorrenciaQtd');
+    const infoDiv      = document.getElementById('recorrencia_info');
+    const previewSpan  = document.getElementById('recorrencia_preview');
+
+    if (!tipoSelect) return;
+
+    const labels = {
+        semanal:    'semana(s) — 7 dias cada',
+        quinzenal:  'quinzena(s) — 15 dias cada',
+        mensal:     'mês(es)',
+        bimestral:  'bimestre(s) — a cada 2 meses',
+        trimestral: 'trimestre(s) — a cada 3 meses',
+        semestral:  'semestre(s) — a cada 6 meses',
+        anual:      'ano(s)',
+        bienal:     'bienal — a cada 2 anos',
+    };
+
+    function atualizar() {
+        const tipo = tipoSelect.value;
+        if (!tipo || tipo === 'nenhuma') {
+            qtdWrapper.style.display = 'none';
+            infoDiv.style.display    = 'none';
+            return;
+        }
+        qtdWrapper.style.display = '';
+        infoDiv.style.display    = '';
+        const qtd = parseInt(qtdInput?.value) || 0;
+        if (qtd >= 2) {
+            previewSpan.textContent = `Serão criados ${qtd} lançamentos (${labels[tipo] || tipo})`;
+        } else {
+            previewSpan.textContent = 'Informe a quantidade de parcelas (mínimo 2)';
+        }
+    }
+
+    tipoSelect.addEventListener('change', atualizar);
+    if (qtdInput) qtdInput.addEventListener('input', atualizar);
 }
 
 /**

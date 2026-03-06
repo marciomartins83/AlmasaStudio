@@ -75,6 +75,37 @@
                 {{ form_row(form.historico) }}
             </div>
         </div>
+
+        {% if not lancamento.id %}
+        {# Recorrência — exibida apenas no formulário de criação #}
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="card border-secondary">
+                    <div class="card-header py-2 bg-transparent">
+                        <i class="fas fa-sync-alt text-secondary"></i>
+                        <strong>Recorrência</strong>
+                        <small class="text-muted ms-1">— opcional, cria lançamentos futuros automaticamente</small>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-4">
+                                {{ form_row(form.recorrenciaTipo) }}
+                            </div>
+                            <div class="col-md-2" id="recorrencia_qtd_wrapper" style="display:none">
+                                {{ form_row(form.recorrenciaQtd) }}
+                            </div>
+                            <div class="col" id="recorrencia_info" style="display:none">
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span id="recorrencia_preview"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     {# Tab Pessoas #}

@@ -466,6 +466,62 @@ class LancamentosService
         return $this->lancamentoRepo->findCompetencias();
     }
 
+    /**
+     * Cria N lançamentos recorrentes a partir dos dados do primeiro.
+     * $qtd = total de lançamentos (incluindo o primeiro).
+     *
+     * @return Lancamentos[]
+     * @throws \Exception
+     */
+    public function salvarLancamentosRecorrentes(array $dados, string $tipo, int $qtd): array
+    {
+        $this->em->beginTransaction();
+
+        try {
+            $criados = [];
+
+            for ($i = 0; $i < $qtd; $i++) {
+                $dadosParcela = $dados;
+
+                if ($i > 0) {
+                    $dataVenc = $this->calcularDataFutura(new \DateTime($dados['data_vencimento']), $tipo, $i);
+                    $dataMov  = $this->calcularDataFutura(new \DateTime($dados['data_movimento']), $tipo, $i);
+                    $dadosParcela['data_vencimento'] = $dataVenc->format('Y-m-d');
+                    $dadosParcela['data_movimento']  = $dataMov->format('Y-m-d');
+                    $dadosParcela['competencia']     = $dataVenc->format('Y-m');
+                }
+
+                $lancamento = new Lancamentos();
+                $this->preencherLancamento($lancamento, $dadosParcela);
+                $lancamento->setNumero($this->gerarNumeroSequencial($lancamento->getTipo()));
+
+                if (empty($lancamento->getCompetencia())) {
+                    $lancamento->setCompetencia($lancamento->getDataVencimento()->format('Y-m'));
+                }
+
+                $this->calcularRetencoes($lancamento);
+                $lancamento->atualizarStatus();
+
+                $user = $this->security->getUser();
+                if ($user) {
+                    $lancamento->setCreatedBy($user);
+                }
+
+                $this->em->persist($lancamento);
+                $criados[] = $lancamento;
+            }
+
+            $this->em->flush();
+            $this->em->commit();
+
+            return $criados;
+
+        } catch (\Exception $e) {
+            $this->em->rollback();
+            throw new \Exception('Erro ao salvar lançamentos recorrentes: ' . $e->getMessage());
+        }
+    }
+
     // ========== MÉTODOS PRIVADOS ==========
 
     /**
@@ -628,6 +684,26 @@ class LancamentosService
         } else {
             $lancamento->setValorIss(null);
         }
+    }
+
+    /**
+     * Calcula data futura baseada no tipo de recorrência e índice (n=1 → próxima ocorrência)
+     */
+    private function calcularDataFutura(\DateTime $base, string $tipo, int $n): \DateTime
+    {
+        $data = clone $base;
+        match ($tipo) {
+            'semanal'    => $data->modify("+{$n} weeks"),
+            'quinzenal'  => $data->modify('+' . ($n * 15) . ' days'),
+            'mensal'     => $data->modify("+{$n} months"),
+            'bimestral'  => $data->modify('+' . ($n * 2) . ' months'),
+            'trimestral' => $data->modify('+' . ($n * 3) . ' months'),
+            'semestral'  => $data->modify('+' . ($n * 6) . ' months'),
+            'anual'      => $data->modify("+{$n} years"),
+            'bienal'     => $data->modify('+' . ($n * 2) . ' years'),
+            default      => null,
+        };
+        return $data;
     }
 
     /**

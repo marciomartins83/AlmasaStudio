@@ -15,6 +15,7 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -100,6 +101,37 @@ class LancamentosType extends AbstractType
                     'maxlength' => 20,
                 ],
                 'required' => false,
+            ])
+
+            // === RECORRÊNCIA (somente criação — mapped: false) ===
+            ->add('recorrenciaTipo', ChoiceType::class, [
+                'mapped'   => false,
+                'required' => false,
+                'label'    => 'Recorrência',
+                'choices'  => [
+                    'Nenhuma (único)'   => 'nenhuma',
+                    'Semanal (7 dias)'  => 'semanal',
+                    'Quinzenal (15 dias)' => 'quinzenal',
+                    'Mensal'            => 'mensal',
+                    'Bimestral'         => 'bimestral',
+                    'Trimestral'        => 'trimestral',
+                    'Semestral'         => 'semestral',
+                    'Anual'             => 'anual',
+                    'Bienal (2 anos)'   => 'bienal',
+                ],
+                'data' => 'nenhuma',
+                'attr' => ['class' => 'form-select'],
+            ])
+            ->add('recorrenciaQtd', IntegerType::class, [
+                'mapped'   => false,
+                'required' => false,
+                'label'    => 'Parcelas',
+                'attr'     => [
+                    'class'       => 'form-control',
+                    'min'         => 2,
+                    'max'         => 60,
+                    'placeholder' => 'Ex: 12',
+                ],
             ])
 
             // === PESSOAS (IDs via autocomplete AJAX — não carrega EntityType) ===

@@ -105,10 +105,18 @@ class LancamentosController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $dados = $this->extrairDadosFormulario($form);
-                $this->lancamentosService->salvarLancamento($dados);
+                $dados            = $this->extrairDadosFormulario($form);
+                $recorrenciaTipo  = $form->get('recorrenciaTipo')->getData() ?? 'nenhuma';
+                $recorrenciaQtd   = (int)($form->get('recorrenciaQtd')->getData() ?? 1);
 
-                $this->addFlash('success', 'Lançamento criado com sucesso!');
+                if ($recorrenciaTipo !== 'nenhuma' && $recorrenciaQtd >= 2) {
+                    $criados = $this->lancamentosService->salvarLancamentosRecorrentes($dados, $recorrenciaTipo, $recorrenciaQtd);
+                    $this->addFlash('success', count($criados) . ' lançamentos recorrentes criados com sucesso!');
+                } else {
+                    $this->lancamentosService->salvarLancamento($dados);
+                    $this->addFlash('success', 'Lançamento criado com sucesso!');
+                }
+
                 return $this->redirectToRoute('app_lancamentos_index');
 
             } catch (\Exception $e) {
