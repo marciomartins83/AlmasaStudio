@@ -9,6 +9,7 @@ use App\DTO\SortOptionDTO;
 use App\Entity\Lancamentos;
 use App\Form\LancamentosType;
 use App\Repository\LancamentosRepository;
+use App\Repository\PessoaRepository;
 use App\Service\LancamentosService;
 use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -118,6 +119,8 @@ class LancamentosController extends AbstractController
         return $this->render('lancamentos/new.html.twig', [
             'form' => $form,
             'lancamento' => $lancamento,
+            'credorPreload' => null,
+            'pagadorPreload' => null,
         ]);
     }
 
@@ -150,9 +153,14 @@ class LancamentosController extends AbstractController
             }
         }
 
+        $credor = $lancamento->getPessoaCredor();
+        $pagador = $lancamento->getPessoaPagador();
+
         return $this->render('lancamentos/edit.html.twig', [
             'form' => $form,
             'lancamento' => $lancamento,
+            'credorPreload' => $credor ? ['id' => $credor->getIdpessoa(), 'nome' => $credor->getNome()] : null,
+            'pagadorPreload' => $pagador ? ['id' => $pagador->getIdpessoa(), 'nome' => $pagador->getNome()] : null,
         ]);
     }
 
@@ -397,6 +405,23 @@ class LancamentosController extends AbstractController
     /**
      * Extrai dados do formulário para array
      */
+    #[Route('/pessoa-autocomplete', name: 'app_lancamentos_pessoa_autocomplete', methods: ['GET'])]
+    public function pessoaAutocomplete(Request $request, PessoaRepository $pessoaRepository): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 2) {
+            return $this->json([]);
+        }
+
+        $pessoas = $pessoaRepository->findByNome($q);
+        $result = array_map(fn($p) => [
+            'id'   => $p->getIdpessoa(),
+            'nome' => $p->getNome(),
+        ], array_slice($pessoas, 0, 15));
+
+        return $this->json($result);
+    }
+
     private function extrairDadosFormulario($form): array
     {
         $lancamento = $form->getData();
@@ -409,8 +434,8 @@ class LancamentosController extends AbstractController
             'id_plano_conta' => $lancamento->getPlanoConta()?->getId(),
             'historico' => $lancamento->getHistorico(),
             'centro_custo' => $lancamento->getCentroCusto(),
-            'id_pessoa_credor' => $lancamento->getPessoaCredor()?->getIdpessoa(),
-            'id_pessoa_pagador' => $lancamento->getPessoaPagador()?->getIdpessoa(),
+            'id_pessoa_credor' => $form->get('pessoaCredorId')->getData() ?: null,
+            'id_pessoa_pagador' => $form->get('pessoaPagadorId')->getData() ?: null,
             'id_contrato' => $lancamento->getContrato()?->getId(),
             'id_imovel' => $lancamento->getImovel()?->getId(),
             'id_conta_bancaria' => $lancamento->getContaBancaria()?->getId(),

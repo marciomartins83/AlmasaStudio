@@ -6,7 +6,6 @@ namespace App\Form;
 
 use App\Entity\Lancamentos;
 use App\Entity\PlanoContas;
-use App\Entity\Pessoas;
 use App\Entity\ImoveisContratos;
 use App\Entity\Imoveis;
 use App\Entity\ContasBancarias;
@@ -15,6 +14,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -102,27 +102,13 @@ class LancamentosType extends AbstractType
                 'required' => false,
             ])
 
-            // === PESSOAS ===
-            ->add('pessoaCredor', EntityType::class, [
-                'class' => Pessoas::class,
-                'label' => 'Credor/Fornecedor',
-                'choice_label' => 'nome',
-                'placeholder' => 'Selecione...',
-                'attr' => [
-                    'class' => 'form-select',
-                    'data-pessoa-autocomplete' => 'credor',
-                ],
+            // === PESSOAS (IDs via autocomplete AJAX — não carrega EntityType) ===
+            ->add('pessoaCredorId', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
-            ->add('pessoaPagador', EntityType::class, [
-                'class' => Pessoas::class,
-                'label' => 'Pagador/Cliente',
-                'choice_label' => 'nome',
-                'placeholder' => 'Selecione...',
-                'attr' => [
-                    'class' => 'form-select',
-                    'data-pessoa-autocomplete' => 'pagador',
-                ],
+            ->add('pessoaPagadorId', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
 

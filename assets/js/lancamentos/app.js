@@ -15,6 +15,8 @@ import {
     parseValor
 } from './lancamentos.js';
 
+import { initPessoasAutocomplete } from './pessoa_autocomplete.js';
+
 /**
  * Inicializa modulo quando DOM estiver pronto
  */
@@ -26,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initModalCancelar();
     initCalculoRetencoes();
     initCompetenciaAutomatica();
+    initPessoasAutocomplete();
 });
 
 /**
