@@ -1,0 +1,108 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Plano de Contas - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Tipos', 'url': path('app_dashboard_tipos_index')},
+            {'label': 'Plano de Contas', 'url': path('app_plano_contas_index')}
+        ],
+        'current': 'Editar Plano de Contas'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-edit"></i> Editar: {{ plano_contas.codigo }} — {{ plano_contas.descricao }}</h1>
+                <div>
+                    <a href="{{ path('app_plano_contas_show', {'id': plano_contas.id}) }}" class="btn btn-info">
+                        <i class="fas fa-eye"></i> Visualizar
+                    </a>
+                    <a href="{{ path('app_plano_contas_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="row">
+                            <div class="col-md-3">
+                                {{ form_row(form.codigo) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.descricao) }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form_row(form.tipo) }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                {{ form_row(form.codigoContabil) }}
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <label class="fw-semibold mb-2">Configurações</label>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    {{ form_widget(form.incideTaxaAdmin) }}
+                                    {{ form_label(form.incideTaxaAdmin) }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    {{ form_widget(form.incideIr) }}
+                                    {{ form_label(form.incideIr) }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    {{ form_widget(form.entraInforme) }}
+                                    {{ form_label(form.entraInforme) }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    {{ form_widget(form.entraDesconto) }}
+                                    {{ form_label(form.entraDesconto) }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    {{ form_widget(form.entraMulta) }}
+                                    {{ form_label(form.entraMulta) }}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    {{ form_widget(form.ativo) }}
+                                    {{ form_label(form.ativo) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Salvar Alterações
+                                </button>
+                                <a href="{{ path('app_plano_contas_show', {'id': plano_contas.id}) }}" class="btn btn-info ms-2">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                                <a href="{{ path('app_plano_contas_index') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
