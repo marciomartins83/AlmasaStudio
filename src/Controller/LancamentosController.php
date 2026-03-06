@@ -409,7 +409,7 @@ class LancamentosController extends AbstractController
     public function pessoaAutocomplete(Request $request, PessoaRepository $pessoaRepository): JsonResponse
     {
         $q = trim($request->query->get('q', ''));
-        if (strlen($q) < 2) {
+        if (strlen($q) < 1) {
             return $this->json([]);
         }
 
@@ -418,7 +418,7 @@ class LancamentosController extends AbstractController
             'id'    => $p->getIdpessoa(),
             'nome'  => $p->getNome(),
             'cod'   => $p->getCod(),
-        ], array_slice($pessoas, 0, 15));
+        ], array_slice($pessoas, 0, 20));
 
         return $this->json($result);
     }

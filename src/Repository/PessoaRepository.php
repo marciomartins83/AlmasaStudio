@@ -65,14 +65,28 @@ class PessoaRepository extends ServiceEntityRepository
     }
 
     /**
-     * Busca pessoas por nome (busca parcial) - CORRIGIDO
+     * Busca pessoas por nome (parcial) ou código numérico.
+     * Prioriza nomes compostos (com sobrenome) antes de nomes simples.
      */
-    public function findByNome(string $nome): array
+    public function findByNome(string $busca): array
     {
+        // Busca por cod quando for numérico
+        if (ctype_digit($busca)) {
+            return $this->createQueryBuilder('p')
+                ->andWhere('p.cod = :cod')
+                ->setParameter('cod', (int)$busca)
+                ->orderBy('p.nome', 'ASC')
+                ->getQuery()
+                ->getResult();
+        }
+
+        // Busca por nome: nomes compostos (com espaço = sobrenome) aparecem primeiro
         return $this->createQueryBuilder('p')
+            ->select('p', "LOCATE(' ', p.nome) AS HIDDEN hasSpace")
             ->andWhere('LOWER(p.nome) LIKE :nome')
-            ->setParameter('nome', '%' . strtolower($nome) . '%')
-            ->orderBy('p.nome', 'ASC')
+            ->setParameter('nome', '%' . strtolower($busca) . '%')
+            ->orderBy('hasSpace', 'DESC')
+            ->addOrderBy('p.nome', 'ASC')
             ->getQuery()
             ->getResult();
     }
