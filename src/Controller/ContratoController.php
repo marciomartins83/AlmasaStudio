@@ -46,9 +46,22 @@ class ContratoController extends AbstractController
     public function index(Request $request, ImoveisContratosRepository $contratosRepository, PaginationService $paginator): Response
     {
         $qb = $contratosRepository->createQueryBuilder('c')
+            ->leftJoin('c.pessoaLocatario', 'loc')
+            ->leftJoin('c.pessoaFiador', 'fia')
+            ->leftJoin('c.imovel', 'im')
+            ->leftJoin('im.pessoaProprietario', 'prop')
             ->orderBy('c.id', 'DESC');
 
+        // Filtro por nome de pessoa (locatário, fiador ou proprietário) — aplicado antes do paginator
+        $nomePessoa = trim($request->query->get('nomePessoa', ''));
+        if ($nomePessoa !== '') {
+            $qb->andWhere(
+                'LOWER(loc.nome) LIKE :nomePessoa OR LOWER(fia.nome) LIKE :nomePessoa OR LOWER(prop.nome) LIKE :nomePessoa'
+            )->setParameter('nomePessoa', '%' . strtolower($nomePessoa) . '%');
+        }
+
         $filters = [
+            new SearchFilterDTO('nomePessoa', 'Pessoa (qualquer papel)', 'text', null, 'SKIP', [], 'Nome do inquilino, fiador ou proprietário...', 4),
             new SearchFilterDTO('status', 'Status', 'select', 'c.status', 'EXACT', [
                 'ativo' => 'Ativo',
                 'encerrado' => 'Encerrado',
