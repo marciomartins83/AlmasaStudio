@@ -52,7 +52,6 @@ class RelatorioController extends AbstractController
     {
         return $this->render('relatorios/inadimplentes.html.twig', [
             'proprietarios' => $this->getProprietarios(),
-            'imoveis' => $this->getImoveis(),
             'inquilinos' => $this->getInquilinos(),
         ]);
     }
@@ -113,7 +112,6 @@ class RelatorioController extends AbstractController
         return $this->render('relatorios/despesas.html.twig', [
             'plano_contas' => $this->getPlanoContas(1), // Tipo despesa
             'fornecedores' => $this->getFornecedores(),
-            'imoveis' => $this->getImoveis(),
             'contratos' => $this->getContratos(),
         ]);
     }
@@ -174,7 +172,6 @@ class RelatorioController extends AbstractController
         return $this->render('relatorios/receitas.html.twig', [
             'plano_contas' => $this->getPlanoContas(0), // Tipo receita
             'pagadores' => $this->getPagadores(),
-            'imoveis' => $this->getImoveis(),
             'contratos' => $this->getContratos(),
         ]);
     }
@@ -233,7 +230,6 @@ class RelatorioController extends AbstractController
     public function despesasReceitas(): Response
     {
         return $this->render('relatorios/despesas_receitas.html.twig', [
-            'imoveis' => $this->getImoveis(),
             'proprietarios' => $this->getProprietarios(),
         ]);
     }

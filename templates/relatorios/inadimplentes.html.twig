@@ -39,15 +39,11 @@
                             placeholder: 'Todos — ou digite nome/código...'
                         } %}
 
-                        <div class="mb-3">
-                            <label for="id_imovel" class="form-label">Imovel</label>
-                            <select class="form-select" id="id_imovel" name="id_imovel">
-                                <option value="">Todos</option>
-                                {% for imovel in imoveis %}
-                                    <option value="{{ imovel.id }}">{{ imovel.codigoInterno }} - {{ imovel.endereco.logradouro.logradouro }}, {{ imovel.endereco.endNumero }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% include '_partials/imovel_autocomplete_field.html.twig' with {
+                            fieldId: 'id_imovel',
+                            label: 'Imóvel',
+                            placeholder: 'Todos — ou código/endereço...'
+                        } %}
 
                         <div class="mb-3">
                             <label for="id_inquilino" class="form-label">Inquilino</label>

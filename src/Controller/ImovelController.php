@@ -158,6 +158,30 @@ class ImovelController extends AbstractController
         }
     }
 
+    #[Route('/autocomplete', name: 'autocomplete', methods: ['GET'])]
+    public function autocomplete(Request $request, ImoveisRepository $imoveisRepository): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 2) return $this->json([]);
+
+        $results = $imoveisRepository->createQueryBuilder('i')
+            ->leftJoin('i.endereco', 'e')
+            ->leftJoin('e.logradouro', 'l')
+            ->addSelect('e', 'l')
+            ->where('i.codigoInterno LIKE :q OR l.logradouro LIKE :q')
+            ->setParameter('q', '%' . $q . '%')
+            ->orderBy('i.codigoInterno', 'ASC')
+            ->setMaxResults(20)
+            ->getQuery()
+            ->getResult();
+
+        return $this->json(array_map(fn(Imoveis $i) => [
+            'id'      => $i->getId(),
+            'nome'    => $i->getCodigoInterno() . ' - ' . ($i->getEndereco()?->getLogradouro()?->getLogradouro() ?? '') . ', ' . ($i->getEndereco()?->getEndNumero() ?? ''),
+            'cod'     => null,
+        ], $results));
+    }
+
     /**
      * DELETE de foto (AJAX)
      */

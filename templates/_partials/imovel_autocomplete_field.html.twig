@@ -1,0 +1,29 @@
+{#
+  Partial: campo de autocomplete de imóvel
+  Parâmetros:
+    - fieldId    : string — id base do campo (ex: 'id_imovel')
+    - label      : string — rótulo exibido
+    - required   : bool   — (opcional, default false)
+    - placeholder: string — (opcional)
+#}
+{% set _placeholder = placeholder ?? 'Código (IM0001) ou parte do endereço...' %}
+<div class="mb-3">
+    <label class="form-label">
+        {{ label }}{% if required is defined and required %} <span class="text-danger">*</span>{% endif %}
+    </label>
+    <div class="pessoa-autocomplete-wrapper position-relative"
+         data-url="{{ path('app_imovel_autocomplete') }}"
+         data-display-id="{{ fieldId }}_display"
+         data-hidden-id="{{ fieldId }}"
+         data-results-id="{{ fieldId }}_results">
+        <input type="text"
+               id="{{ fieldId }}_display"
+               class="form-control"
+               placeholder="{{ _placeholder }}"
+               autocomplete="off">
+        <input type="hidden" id="{{ fieldId }}" name="{{ fieldId }}">
+        <div id="{{ fieldId }}_results"
+             class="pessoa-autocomplete-results list-group shadow"
+             style="display:none; position:absolute; z-index:1050; width:100%;"></div>
+    </div>
+</div>
