@@ -21,15 +21,12 @@
                 </div>
                 <div class="card-body">
                     <form id="formFiltros">
-                        <div class="mb-3">
-                            <label for="id_proprietario" class="form-label">Proprietário <span class="text-danger">*</span></label>
-                            <select class="form-select" id="id_proprietario" name="id_proprietario" required>
-                                <option value="">Selecione...</option>
-                                {% for prop in proprietarios %}
-                                    <option value="{{ prop.idpessoa }}">{{ prop.cod }} - {{ prop.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% include '_partials/pessoa_autocomplete_field.html.twig' with {
+                            fieldId: 'id_proprietario',
+                            label: 'Proprietário',
+                            required: true,
+                            placeholder: 'Digite nome ou código...'
+                        } %}
 
                         <div class="row mb-3">
                             <div class="col-6">
@@ -97,4 +94,5 @@
     window.RELATORIO_TIPO = 'extrato_proprietario';
 </script>
 {{ encore_entry_script_tags('relatorios') }}
+{{ encore_entry_script_tags('pessoa_autocomplete') }}
 {% endblock %}
