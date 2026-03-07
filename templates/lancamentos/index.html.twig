@@ -247,7 +247,7 @@
                     <select id="baixa_conta_bancaria" class="form-select" required>
                         <option value="">Selecione a conta...</option>
                         {% for conta in contasBancarias %}
-                            <option value="{{ conta.id }}">{{ conta.descricao }}</option>
+                            <option value="{{ conta.id }}">{{ conta.descricao ?: conta.codigo }}</option>
                         {% endfor %}
                     </select>
                     <div class="form-text text-danger" id="baixa_conta_erro" style="display:none;">
