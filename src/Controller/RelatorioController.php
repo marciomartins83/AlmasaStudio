@@ -507,7 +507,13 @@ class RelatorioController extends AbstractController
     private function getImoveis(): array
     {
         return $this->em->getRepository(Imoveis::class)
-            ->findBy([], ['id' => 'ASC']);
+            ->createQueryBuilder('i')
+            ->leftJoin('i.endereco', 'e')
+            ->leftJoin('e.logradouro', 'l')
+            ->addSelect('e', 'l')
+            ->orderBy('i.codigoInterno', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     private function getContratos(): array

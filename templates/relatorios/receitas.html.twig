@@ -87,7 +87,7 @@
                             <select class="form-select" id="id_imovel" name="id_imovel">
                                 <option value="">Todos</option>
                                 {% for imovel in imoveis %}
-                                    <option value="{{ imovel.id }}">{{ imovel.id }}</option>
+                                    <option value="{{ imovel.id }}">{{ imovel.codigoInterno }} - {{ imovel.endereco.logradouro.logradouro }}, {{ imovel.endereco.endNumero }}</option>
                                 {% endfor %}
                             </select>
                         </div>
