@@ -453,7 +453,12 @@ class LancamentosService
      */
     public function listarContasBancariasAtivas(): array
     {
-        return $this->contaBancariaRepo->findBy(['ativo' => true], ['descricao' => 'ASC']);
+        return $this->contaBancariaRepo->createQueryBuilder('c')
+            ->where('c.ativo = true')
+            ->andWhere('c.idPessoa IS NULL')
+            ->orderBy('c.descricao', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     /**
