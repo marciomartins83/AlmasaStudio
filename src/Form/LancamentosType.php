@@ -72,7 +72,7 @@ class LancamentosType extends AbstractType
             // === CLASSIFICAÇÃO ===
             ->add('planoConta', EntityType::class, [
                 'class' => PlanoContas::class,
-                'label' => 'Plano de Conta',
+                'label' => 'Tipo de Lançamento',
                 'choice_label' => function (PlanoContas $plano) {
                     return $plano->getCodigo() . ' - ' . $plano->getDescricao();
                 },
