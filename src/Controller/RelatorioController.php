@@ -335,9 +335,7 @@ class RelatorioController extends AbstractController
 
         $dados = $this->relatorioService->getResumoContas($filtros);
 
-        $pdf = $this->relatorioService->gerarPdf('contas_bancarias', [
-            'dados' => $dados,
-        ], $filtros);
+        $pdf = $this->relatorioService->gerarPdf('contas_bancarias', $dados, $filtros);
 
         return new Response($pdf, 200, [
             'Content-Type' => 'application/pdf',
