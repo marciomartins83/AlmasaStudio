@@ -33,7 +33,7 @@ class PlanoContasController extends AbstractController
         $filters = [
             new SearchFilterDTO('codigo', 'Código', 'text', 'p.codigo', 'LIKE', [], 'Buscar...', 3),
             new SearchFilterDTO('descricao', 'Descrição', 'text', 'p.descricao', 'LIKE', [], 'Buscar...', 6),
-            new SearchFilterDTO('tipo', 'Tipo', 'select', 'p.tipo', '=', [
+            new SearchFilterDTO('tipo', 'Tipo', 'select', 'p.tipo', 'EXACT', [
                 '' => 'Todos',
                 '0' => 'Receita',
                 '1' => 'Despesa',
