@@ -921,7 +921,7 @@ class PessoaController extends AbstractController
         }
     }
 
-    #[Route('/autocomplete', name: 'app_pessoa_autocomplete', methods: ['GET'])]
+    #[Route('/autocomplete', name: 'autocomplete', methods: ['GET'])]
     public function autocomplete(Request $request, PessoaRepository $pessoaRepository): JsonResponse
     {
         $q = trim($request->query->get('q', ''));
