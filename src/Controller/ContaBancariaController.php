@@ -36,9 +36,9 @@ class ContaBancariaController extends AbstractController
             new SearchFilterDTO('conta', 'Descrição / Banco', 'text', 'c.descricao', 'LIKE', [], 'Banco, número...', 3),
             new SearchFilterDTO('titular', 'Titular (proprietário)', 'text', 'p.nome', 'LIKE', [], 'Nome do proprietário...', 3),
             new SearchFilterDTO('tipo', 'Tipo', 'select', 'c.idPessoa', 'NULL_CHECK', [
-                'Todos' => '',
-                'Almasa (próprias)' => 'null',
-                'Proprietários' => 'not_null',
+                '' => 'Todos',
+                'null' => 'Almasa (próprias)',
+                'not_null' => 'Proprietários',
             ], null, 3),
         ];
         $sortOptions = [
