@@ -75,12 +75,14 @@ class LancamentosController extends AbstractController
 
         $estatisticas = $this->lancamentosService->getEstatisticas();
         $planosContas = $this->lancamentosService->listarPlanosContaAtivos();
+        $contasBancarias = $this->lancamentosService->listarContasBancariasAtivas();
 
         return $this->render('lancamentos/index.html.twig', [
-            'lancamentos'  => $pagination['items'],
-            'estatisticas' => $estatisticas,
-            'planosContas' => $planosContas,
-            'competencias' => $competencias,
+            'lancamentos'    => $pagination['items'],
+            'estatisticas'   => $estatisticas,
+            'planosContas'   => $planosContas,
+            'competencias'   => $competencias,
+            'contasBancarias' => $contasBancarias,
             'totalItems'   => $pagination['totalItems'],
             'currentPage'  => $pagination['currentPage'],
             'itemsPerPage' => $pagination['itemsPerPage'],

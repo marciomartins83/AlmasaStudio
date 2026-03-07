@@ -242,6 +242,18 @@
                         <option value="cheque">Cheque</option>
                     </select>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Conta Bancária <span class="text-danger">*</span></label>
+                    <select id="baixa_conta_bancaria" class="form-select" required>
+                        <option value="">Selecione a conta...</option>
+                        {% for conta in contasBancarias %}
+                            <option value="{{ conta.id }}">{{ conta.descricao }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text text-danger" id="baixa_conta_erro" style="display:none;">
+                        Informe a conta bancária de origem/destino.
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

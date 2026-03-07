@@ -44,6 +44,11 @@ function initBotoesBaixa() {
             document.getElementById('baixa_id').value = id;
             document.getElementById('baixa_valor').value = saldo;
 
+            const contaEl = document.getElementById('baixa_conta_bancaria');
+            if (contaEl) contaEl.value = '';
+            const erroEl = document.getElementById('baixa_conta_erro');
+            if (erroEl) erroEl.style.display = 'none';
+
             const modal = new bootstrap.Modal(document.getElementById('modalBaixa'));
             modal.show();
         });
@@ -105,16 +110,26 @@ function initModalBaixa() {
 
     btnConfirmar.addEventListener('click', async () => {
         const id = document.getElementById('baixa_id').value;
+        const contaBancariaEl = document.getElementById('baixa_conta_bancaria');
+        const contaErroEl = document.getElementById('baixa_conta_erro');
         const dados = {
-            data_pagamento: document.getElementById('baixa_data').value,
-            valor_pago: document.getElementById('baixa_valor').value,
-            forma_pagamento: document.getElementById('baixa_forma').value
+            data_pagamento:   document.getElementById('baixa_data').value,
+            valor_pago:       document.getElementById('baixa_valor').value,
+            forma_pagamento:  document.getElementById('baixa_forma').value,
+            id_conta_bancaria: contaBancariaEl ? contaBancariaEl.value : ''
         };
 
         if (!dados.valor_pago || parseFloat(dados.valor_pago) <= 0) {
             exibirErro('Informe o valor pago');
             return;
         }
+
+        if (!dados.id_conta_bancaria) {
+            if (contaErroEl) contaErroEl.style.display = '';
+            if (contaBancariaEl) contaBancariaEl.focus();
+            return;
+        }
+        if (contaErroEl) contaErroEl.style.display = 'none';
 
         try {
             btnConfirmar.disabled = true;
