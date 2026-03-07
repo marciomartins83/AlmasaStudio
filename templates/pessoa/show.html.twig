@@ -58,7 +58,7 @@
                         </tr>
                         <tr>
                             <th>Tipo Pessoa:</th>
-                            <td>{{ pessoa.fisicaJuridica == 'F' ? 'Pessoa Fisica' : 'Pessoa Juridica' }}</td>
+                            <td>{{ pessoa.fisicaJuridica in ['F', 'fisica'] ? 'Pessoa Fisica' : 'Pessoa Juridica' }}</td>
                         </tr>
                         <tr>
                             <th>Data Nascimento:</th>

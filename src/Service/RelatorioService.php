@@ -513,15 +513,20 @@ class RelatorioService
     {
         $visualizacao = $filtros['visualizacao'] ?? 'sintetico';
 
+        $statusNormalizado = $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'];
+
+        // Analítico precisa de itens individuais — desabilitar pré-agrupamento nas queries
+        $semAgrupamento = $visualizacao === 'analitico' ? ['agrupar_por' => null] : [];
+
         // Buscar despesas
-        $filtrosDespesas = array_merge($filtros, ['status' => $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status']]);
+        $filtrosDespesas = array_merge($filtros, ['status' => $statusNormalizado], $semAgrupamento);
         $despesas = $this->getDespesas($filtrosDespesas);
 
         // Buscar receitas
         $filtrosReceitas = array_merge($filtros, [
-            'status' => $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'],
-            'origem' => 'todos'
-        ]);
+            'status' => $statusNormalizado,
+            'origem' => 'todos',
+        ], $semAgrupamento);
         $receitas = $this->getReceitas($filtrosReceitas);
 
         if ($visualizacao === 'sintetico') {
@@ -600,7 +605,7 @@ class RelatorioService
                 'data' => $this->getDataPorTipo($lancamento, $filtros['tipo_data'] ?? 'vencimento'),
                 'tipo' => 'D',
                 'historico' => $lancamento->getHistorico(),
-                'plano_conta' => $lancamento->getPlanoConta()->getDescricao(),
+                'plano_conta' => $lancamento->getPlanoConta()?->getDescricao() ?? '-',
                 'valor_receita' => 0,
                 'valor_despesa' => (float) $lancamento->getValor(),
             ];
