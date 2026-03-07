@@ -307,20 +307,24 @@ class RelatorioController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
         }
 
-        $filtros = $this->extrairFiltros($request);
-        $this->converterDatas($filtros);
+        try {
+            $filtros = $this->extrairFiltros($request);
+            $this->converterDatas($filtros);
 
-        $dados = $this->relatorioService->getResumoContas($filtros);
+            $dados = $this->relatorioService->getResumoContas($filtros);
 
-        $html = $this->renderView('relatorios/preview/contas_bancarias.html.twig', [
-            'dados' => $dados,
-            'filtros' => $filtros,
-        ]);
+            $html = $this->renderView('relatorios/preview/contas_bancarias.html.twig', [
+                'dados' => $dados,
+                'filtros' => $filtros,
+            ]);
 
-        return new JsonResponse([
-            'success' => true,
-            'html' => $html,
-        ]);
+            return new JsonResponse([
+                'success' => true,
+                'html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     #[Route('/contas-bancarias/pdf', name: 'app_relatorios_contas_bancarias_pdf', methods: ['GET'])]
