@@ -88,6 +88,13 @@ class PaginationService
                     $qb->andWhere("{$dqlField} <= :{$paramName}")
                        ->setParameter($paramName, $value . '-31');
                     break;
+                case 'NULL_CHECK':
+                    if ($value === 'null') {
+                        $qb->andWhere("{$dqlField} IS NULL");
+                    } elseif ($value === 'not_null') {
+                        $qb->andWhere("{$dqlField} IS NOT NULL");
+                    }
+                    break;
             }
         }
 
