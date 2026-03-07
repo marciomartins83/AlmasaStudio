@@ -10,7 +10,7 @@ Encore
     .setOutputPath('public/build/')
     // Caminho público usado pelo servidor web
     // Em produção, o app roda em /almasa, então os assets ficam em /almasa/build
-    .setPublicPath(process.env.PUBLIC_PATH || '/build')
+    .setPublicPath(process.env.PUBLIC_PATH || (Encore.isProduction() ? '/almasa/build' : '/build'))
     .setManifestKeyPrefix('build/')
 
     /*
