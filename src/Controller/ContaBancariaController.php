@@ -28,18 +28,19 @@ class ContaBancariaController extends AbstractController
     public function index(EntityManagerInterface $entityManager, PaginationService $paginator, Request $request): Response
     {
         $qb = $entityManager->getRepository(ContasBancarias::class)->createQueryBuilder('c')
+            ->leftJoin('c.idPessoa', 'p')
+            ->addSelect('p')
             ->orderBy('c.id', 'DESC');
 
         $filters = [
-            new SearchFilterDTO('conta', 'Conta', 'text', 'c.codigo', 'LIKE', [], 'Conta...', 3),
-            new SearchFilterDTO('titular', 'Titular', 'text', 'c.titular', 'LIKE', [], 'Titular...', 3),
+            new SearchFilterDTO('conta', 'Conta / Descrição', 'text', 'c.descricao', 'LIKE', [], 'Banco, conta...', 3),
+            new SearchFilterDTO('titular', 'Titular', 'text', 'p.nome', 'LIKE', [], 'Nome do titular...', 3),
         ];
         $sortOptions = [
             new SortOptionDTO('codigo', 'Conta'),
-            new SortOptionDTO('titular', 'Titular'),
             new SortOptionDTO('id', 'ID', 'DESC'),
         ];
-        $pagination = $paginator->paginate($qb, $request, null, ['c.codigo', 'c.titular'], null, $filters, $sortOptions, 'codigo', 'ASC');
+        $pagination = $paginator->paginate($qb, $request, null, ['c.descricao', 'c.codigo', 'p.nome'], null, $filters, $sortOptions, 'codigo', 'ASC');
 
         return $this->render('conta_bancaria/index.html.twig', [
             'pagination' => $pagination,
