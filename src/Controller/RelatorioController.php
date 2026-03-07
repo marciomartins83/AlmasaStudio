@@ -413,17 +413,21 @@ class RelatorioController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
         }
 
-        $filtros = $this->extrairFiltros($request);
-        $this->converterDatas($filtros);
+        try {
+            $filtros = $this->extrairFiltros($request);
+            $this->converterDatas($filtros);
 
-        $dados = $this->relatorioService->getExtratoProprietario($filtros);
+            $dados = $this->relatorioService->getExtratoProprietario($filtros);
 
-        $html = $this->renderView('relatorios/preview/extrato_proprietario.html.twig', [
-            'dados'   => $dados,
-            'filtros' => $filtros,
-        ]);
+            $html = $this->renderView('relatorios/preview/extrato_proprietario.html.twig', [
+                'dados'   => $dados,
+                'filtros' => $filtros,
+            ]);
 
-        return new JsonResponse(['success' => true, 'html' => $html]);
+            return new JsonResponse(['success' => true, 'html' => $html]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     #[Route('/extrato-proprietario/pdf', name: 'app_relatorios_extrato_proprietario_pdf', methods: ['GET'])]

@@ -1014,10 +1014,11 @@ class RelatorioService
             COALESCE(SUM(CASE WHEN tipo = 'receber' THEN COALESCE(valor_pago::numeric, valor::numeric) ELSE 0 END), 0)
             - COALESCE(SUM(CASE WHEN tipo = 'pagar' THEN COALESCE(valor_pago::numeric, valor::numeric) ELSE 0 END), 0)
             AS saldo
-        FROM lancamentos
-        WHERE (id_proprietario = :id OR id_pessoa_credor = :id OR id_pessoa_pagador = :id)
-          AND status IN ('pago','pago_parcial')
-          AND data_vencimento < :data";
+        FROM lancamentos l
+        LEFT JOIN imoveis im ON im.id = l.id_imovel
+        WHERE (l.id_proprietario = :id OR l.id_pessoa_credor = :id OR l.id_pessoa_pagador = :id OR im.id_pessoa_proprietario = :id)
+          AND l.status IN ('pago','pago_parcial')
+          AND l.data_vencimento < :data";
         $saldo2 = (float)($conn->executeQuery($sql2, ['id' => $idProprietario, 'data' => $data])->fetchOne() ?? 0);
 
         return round($saldo1 + $saldo2, 2);
@@ -1048,12 +1049,13 @@ class RelatorioService
             'valor'     => (float)$lf->getValorTotal(),
         ], $qb->getQuery()->getResult());
 
-        // CRUD novo (lancamentos — tipo=pagar onde prop é pagador)
+        // CRUD novo (lancamentos — tipo=pagar onde prop é pagador ou imóvel pertence ao prop)
         $qb2 = $this->em->createQueryBuilder();
         $qb2->select('l')
             ->from(Lancamentos::class, 'l')
+            ->leftJoin('l.imovel', 'im')
             ->where('l.tipo = :tipo')
-            ->andWhere('(l.proprietario = :prop OR l.pessoaPagador = :prop)')
+            ->andWhere('(l.proprietario = :prop OR l.pessoaPagador = :prop OR im.pessoaProprietario = :prop)')
             ->andWhere('l.dataVencimento >= :inicio')
             ->andWhere('l.dataVencimento <= :fim')
             ->setParameter('tipo', 'pagar')
@@ -1126,12 +1128,13 @@ class RelatorioService
             $grupos[$imovelId]['subtotal'] += $valor;
         }
 
-        // CRUD novo (lancamentos — tipo=receber onde prop é credor ou id_proprietario)
+        // CRUD novo (lancamentos — tipo=receber onde prop é credor ou imóvel pertence ao prop)
         $qb2 = $this->em->createQueryBuilder();
         $qb2->select('l')
             ->from(Lancamentos::class, 'l')
+            ->leftJoin('l.imovel', 'im2')
             ->where('l.tipo = :tipo')
-            ->andWhere('(l.proprietario = :prop OR l.pessoaCredor = :prop)')
+            ->andWhere('(l.proprietario = :prop OR l.pessoaCredor = :prop OR im2.pessoaProprietario = :prop)')
             ->andWhere('l.dataVencimento >= :inicio')
             ->andWhere('l.dataVencimento <= :fim')
             ->setParameter('tipo', 'receber')
