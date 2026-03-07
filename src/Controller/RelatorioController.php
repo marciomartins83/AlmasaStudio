@@ -436,9 +436,7 @@ class RelatorioController extends AbstractController
 
         $dados = $this->relatorioService->getExtratoProprietario($filtros);
 
-        $pdf = $this->relatorioService->gerarPdf('extrato_proprietario', [
-            'dados' => $dados,
-        ], $filtros);
+        $pdf = $this->relatorioService->gerarPdf('extrato_proprietario', $dados, $filtros);
 
         return new Response($pdf, 200, [
             'Content-Type'        => 'application/pdf',
