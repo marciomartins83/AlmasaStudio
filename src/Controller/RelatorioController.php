@@ -534,6 +534,11 @@ class RelatorioController extends AbstractController
     private function getContasBancarias(): array
     {
         return $this->em->getRepository(ContasBancarias::class)
-            ->findBy(['ativo' => true], ['codigo' => 'ASC']);
+            ->createQueryBuilder('c')
+            ->where('c.ativo = true')
+            ->andWhere('c.idPessoa IS NULL')
+            ->orderBy('c.codigo', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }
