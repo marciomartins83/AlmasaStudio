@@ -1,20 +1,20 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Novo Plano de Contas - {{ parent() }}{% endblock %}
+{% block title %}Novo Tipo de Lançamentos - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Tipos', 'url': path('app_dashboard_tipos_index')},
-            {'label': 'Plano de Contas', 'url': path('app_plano_contas_index')}
+            {'label': 'Tipo de Lançamentos', 'url': path('app_plano_contas_index')}
         ],
-        'current': 'Novo Plano de Contas'
+        'current': 'Novo Tipo de Lançamentos'
     } %}
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1><i class="fas fa-plus"></i> Novo Plano de Contas</h1>
+                <h1><i class="fas fa-plus"></i> Novo Tipo de Lançamentos</h1>
                 <a href="{{ path('app_plano_contas_index') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Voltar
                 </a>

@@ -54,7 +54,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_plano_conta" class="form-label">Plano de Conta</label>
+                            <label for="id_plano_conta" class="form-label">Tipo de Lançamento</label>
                             <select class="form-select" id="id_plano_conta" name="id_plano_conta">
                                 <option value="">Todos</option>
                                 {% for pc in plano_contas %}
@@ -83,7 +83,7 @@
                             <label for="agrupar_por" class="form-label">Agrupar por</label>
                             <select class="form-select" id="agrupar_por" name="agrupar_por">
                                 <option value="nenhum">Nao Agrupar</option>
-                                <option value="plano_conta">Plano de Conta</option>
+                                <option value="plano_conta">Tipo de Lançamento</option>
                                 <option value="fornecedor">Fornecedor</option>
                                 <option value="imovel">Imovel</option>
                             </select>

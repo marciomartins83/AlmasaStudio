@@ -65,10 +65,10 @@ class PlanoContasController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $this->planoContasService->criar($planoContas);
-                $this->addFlash('success', 'Plano de Contas criado com sucesso!');
+                $this->addFlash('success', 'Tipo de Lançamentos criado com sucesso!');
                 return $this->redirectToRoute('app_plano_contas_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro ao criar Plano de Contas: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao criar Tipo de Lançamentos: ' . $e->getMessage());
             }
         }
 
@@ -95,10 +95,10 @@ class PlanoContasController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $this->planoContasService->atualizar($planoContas);
-                $this->addFlash('success', 'Plano de Contas atualizado com sucesso!');
+                $this->addFlash('success', 'Tipo de Lançamentos atualizado com sucesso!');
                 return $this->redirectToRoute('app_plano_contas_index');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro ao atualizar Plano de Contas: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao atualizar Tipo de Lançamentos: ' . $e->getMessage());
             }
         }
 
@@ -114,9 +114,9 @@ class PlanoContasController extends AbstractController
         if ($this->isCsrfTokenValid('delete' . $planoContas->getId(), $request->request->get('_token'))) {
             try {
                 $this->planoContasService->deletar($planoContas);
-                $this->addFlash('success', 'Plano de Contas excluído com sucesso!');
+                $this->addFlash('success', 'Tipo de Lançamentos excluído com sucesso!');
             } catch (\Exception $e) {
-                $this->addFlash('error', 'Erro ao excluir Plano de Contas: ' . $e->getMessage());
+                $this->addFlash('error', 'Erro ao excluir Tipo de Lançamentos: ' . $e->getMessage());
             }
         }
 
