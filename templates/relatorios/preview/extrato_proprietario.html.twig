@@ -1,6 +1,8 @@
 {# Preview Extrato de Conta Corrente do Proprietário #}
 {% if dados is empty %}
-    <div class="alert alert-warning">Nenhum dado encontrado para os filtros selecionados.</div>
+    <div class="alert alert-warning">
+        Nenhum dado encontrado. id_proprietario recebido: <strong>{{ filtros.id_proprietario ?? '(vazio — não selecionado)' }}</strong>
+    </div>
 {% else %}
 
 {# Identificação do proprietário #}
