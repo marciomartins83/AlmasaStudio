@@ -134,6 +134,18 @@ class RelatorioManager {
             return;
         }
 
+        // Valida campos autocomplete obrigatorios (hidden vazio = nao selecionado)
+        const wrappers = this.form.querySelectorAll('.pessoa-autocomplete-wrapper, .imovel-autocomplete-wrapper');
+        for (const w of wrappers) {
+            const hiddenId = w.dataset.hiddenId;
+            const hidden = hiddenId ? document.getElementById(hiddenId) : null;
+            const display = w.dataset.displayId ? document.getElementById(w.dataset.displayId) : null;
+            if (hidden && display && display.value.trim() !== '' && hidden.value === '') {
+                this.mostrarErro('Selecione um item da lista de sugestões do campo "' + (display.placeholder || hiddenId) + '".');
+                return;
+            }
+        }
+
         this.mostrarLoading();
 
         const filtros = this.coletarFiltros();

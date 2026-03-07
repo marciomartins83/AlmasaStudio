@@ -74,7 +74,9 @@ function initAutocomplete(wrapper) {
             btn.type = 'button';
             btn.className = 'list-group-item list-group-item-action';
             btn.textContent = p.cod ? `${p.nome}  —  cód. ${p.cod}` : p.nome;
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); selecionar(p); });
+            // mousedown previne blur no displayEl (fecha dropdown antes do click)
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); });
+            btn.addEventListener('click', () => { selecionar(p); });
             resultsEl.appendChild(btn);
         });
         resultsEl.style.display = 'block';
