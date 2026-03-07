@@ -76,6 +76,9 @@ class LancamentosType extends AbstractType
                 'choice_label' => function (PlanoContas $plano) {
                     return $plano->getCodigo() . ' - ' . $plano->getDescricao();
                 },
+                'choice_attr' => function (PlanoContas $plano) {
+                    return ['data-tipo' => $plano->getTipo()];
+                },
                 'query_builder' => function ($repo) {
                     return $repo->createQueryBuilder('p')
                         ->where('p.ativo = true')

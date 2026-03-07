@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCompetenciaAutomatica();
     initPessoasAutocomplete();
     initRecorrencia();
+    initFiltroPlanoConta();
 });
 
 /**
@@ -279,6 +280,43 @@ function initRecorrencia() {
 
     tipoSelect.addEventListener('change', atualizar);
     if (qtdInput) qtdInput.addEventListener('input', atualizar);
+}
+
+/**
+ * Filtra plano de conta conforme tipo (receber=Receita, pagar=Despesa)
+ */
+function initFiltroPlanoConta() {
+    const tipoSelect  = document.getElementById('lancamentos_tipo');
+    const planoSelect = document.getElementById('lancamentos_planoConta');
+    if (!tipoSelect || !planoSelect) return;
+
+    // Guarda todas as options originais
+    const todasOpcoes = Array.from(planoSelect.options).map(o => ({
+        value:    o.value,
+        text:     o.text,
+        tipoPlano: o.dataset.tipo ?? '',
+    }));
+
+    function filtrar() {
+        const tipo = tipoSelect.value;
+        // receber → tipo 0 (Receita) | pagar → tipo 1 (Despesa)
+        const tipoFiltro = tipo === 'receber' ? '0' : (tipo === 'pagar' ? '1' : null);
+        const valorAtual = planoSelect.value;
+
+        planoSelect.innerHTML = '';
+        todasOpcoes.forEach(o => {
+            if (o.value === '' || tipoFiltro === null || o.tipoPlano === tipoFiltro) {
+                const opt = new Option(o.text, o.value);
+                if (o.value && o.value === valorAtual && o.tipoPlano === tipoFiltro) {
+                    opt.selected = true;
+                }
+                planoSelect.appendChild(opt);
+            }
+        });
+    }
+
+    tipoSelect.addEventListener('change', filtrar);
+    filtrar(); // aplica ao carregar a página
 }
 
 /**
