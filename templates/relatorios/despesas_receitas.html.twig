@@ -61,15 +61,11 @@
                             </select>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="id_proprietario" class="form-label">Proprietario</label>
-                            <select class="form-select" id="id_proprietario" name="id_proprietario">
-                                <option value="">Todos</option>
-                                {% for prop in proprietarios %}
-                                    <option value="{{ prop.idpessoa }}">{{ prop.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {% include '_partials/pessoa_autocomplete_field.html.twig' with {
+                            fieldId: 'id_proprietario',
+                            label: 'Proprietário',
+                            placeholder: 'Todos — ou digite nome/código...'
+                        } %}
 
                         <div class="mb-3">
                             <label for="visualizacao" class="form-label">Visualizacao</label>
@@ -132,4 +128,5 @@
     window.RELATORIO_TIPO = 'despesas_receitas';
 </script>
 {{ encore_entry_script_tags('relatorios') }}
+{{ encore_entry_script_tags('pessoa_autocomplete') }}
 {% endblock %}

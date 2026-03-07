@@ -921,6 +921,24 @@ class PessoaController extends AbstractController
         }
     }
 
+    #[Route('/autocomplete', name: 'app_pessoa_autocomplete', methods: ['GET'])]
+    public function autocomplete(Request $request, PessoaRepository $pessoaRepository): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 1) {
+            return $this->json([]);
+        }
+
+        $pessoas = $pessoaRepository->findByNome($q);
+        $result = array_map(fn($p) => [
+            'id'   => $p->getIdpessoa(),
+            'nome' => $p->getNome(),
+            'cod'  => $p->getCod(),
+        ], array_slice($pessoas, 0, 20));
+
+        return $this->json($result);
+    }
+
     #[Route('/salvar-tipo-conta-bancaria', name: 'salvar_tipo_conta_bancaria', methods: ['POST'])]
     public function salvarTipoContaBancaria(Request $request): JsonResponse
     {

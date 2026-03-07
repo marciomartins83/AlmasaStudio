@@ -45,6 +45,9 @@ Encore
     // Módulo Relatórios PDF
     .addEntry('relatorios', './assets/js/relatorios/app.js')
 
+    // Pessoa Autocomplete — global, reutilizável em qualquer template
+    .addEntry('pessoa_autocomplete', './assets/js/pessoa_autocomplete/app.js')
+
     // CRUD Filters — busca avancada, collapse, limpar
     .addEntry('crud_filters', './assets/js/crud/crud_filters.js')
 
