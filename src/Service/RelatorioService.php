@@ -282,6 +282,11 @@ class RelatorioService
                 ->setParameter('idImovel', $filtros['id_imovel']);
         }
 
+        if (!empty($filtros['id_proprietario'])) {
+            $qb->andWhere('lf.proprietario = :idProprietario')
+                ->setParameter('idProprietario', $filtros['id_proprietario']);
+        }
+
         $qb->orderBy('lf.dataVencimento', 'ASC');
         $lancamentos = $qb->getQuery()->getResult();
 
@@ -421,6 +426,11 @@ class RelatorioService
         if (!empty($filtros['id_imovel'])) {
             $qb->andWhere('lf.imovel = :idImovel')
                 ->setParameter('idImovel', $filtros['id_imovel']);
+        }
+
+        if (!empty($filtros['id_proprietario'])) {
+            $qb->andWhere('lf.proprietario = :idProprietario')
+                ->setParameter('idProprietario', $filtros['id_proprietario']);
         }
 
         if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
@@ -596,29 +606,30 @@ class RelatorioService
     {
         $resultado = [];
 
-        // Processar despesas
+        // Processar despesas (getDespesas retorna arrays normalizados com chaves valorFloat/dataVencimento/etc)
         foreach ($despesas as $item) {
-            $lancamento = $item instanceof Lancamentos ? $item : ($item['entidade'] ?? null);
-            if (!$lancamento) continue;
+            if (!is_array($item) || !isset($item['valorFloat'])) continue;
 
             $resultado[] = [
-                'data' => $this->getDataPorTipo($lancamento, $filtros['tipo_data'] ?? 'vencimento'),
+                'data' => $item['dataVencimento'],
                 'tipo' => 'D',
-                'historico' => $lancamento->getHistorico(),
-                'plano_conta' => $lancamento->getPlanoConta()?->getDescricao() ?? '-',
+                'historico' => $item['historico'] ?? '-',
+                'plano_conta' => $item['planoConta']['descricao'] ?? '-',
                 'valor_receita' => 0,
-                'valor_despesa' => (float) $lancamento->getValor(),
+                'valor_despesa' => (float) $item['valorFloat'],
             ];
         }
 
-        // Processar receitas
+        // Processar receitas (getReceitas retorna arrays normalizados com chaves data/historico/plano_conta/valor)
         foreach ($receitas as $item) {
+            if (!is_array($item) || !isset($item['valor'])) continue;
+
             $resultado[] = [
-                'data' => is_array($item) ? $item['data'] : $item->getDataVencimento(),
+                'data' => $item['data'],
                 'tipo' => 'R',
-                'historico' => is_array($item) ? $item['historico'] : $item->getHistorico(),
-                'plano_conta' => is_array($item) ? $item['plano_conta'] : '',
-                'valor_receita' => is_array($item) ? $item['valor'] : (float) $item->getValorTotal(),
+                'historico' => $item['historico'] ?? '-',
+                'plano_conta' => $item['plano_conta'] ?? '-',
+                'valor_receita' => (float) $item['valor'],
                 'valor_despesa' => 0,
             ];
         }
