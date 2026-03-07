@@ -967,22 +967,34 @@ class RelatorioService
     public function getExtratoProprietario(array $filtros): array
     {
         $idProprietario = (int)($filtros['id_proprietario'] ?? 0);
-        if (!$idProprietario) return [];
-
-        $proprietario = $this->em->getRepository(Pessoas::class)->find($idProprietario);
-        if (!$proprietario) return [];
-
         $dataInicio = $filtros['data_inicio'] ?? new \DateTime('first day of this month');
         $dataFim    = $filtros['data_fim']    ?? new \DateTime();
         $status     = $filtros['status']      ?? 'todos';
 
-        $saldoAnterior   = $this->calcularSaldoAnteriorExtrato($idProprietario, $dataInicio);
-        $pagamentos      = $this->getPagamentosExtrato($idProprietario, $dataInicio, $dataFim, $status);
-        $movimentacao    = $this->getMovimentacaoExtrato($idProprietario, $dataInicio, $dataFim, $status);
+        if ($idProprietario) {
+            $proprietario = $this->em->getRepository(Pessoas::class)->find($idProprietario);
+            if (!$proprietario) return [];
+            return [$this->buildExtratoUnico($idProprietario, $proprietario, $dataInicio, $dataFim, $status)];
+        }
 
+        // Sem filtro: todos os proprietários com movimento no período
+        $ids = $this->getProprietariosIdsComMovimento($dataInicio, $dataFim);
+        $result = [];
+        foreach ($ids as $id) {
+            $proprietario = $this->em->getRepository(Pessoas::class)->find($id);
+            if (!$proprietario) continue;
+            $result[] = $this->buildExtratoUnico($id, $proprietario, $dataInicio, $dataFim, $status);
+        }
+        return $result;
+    }
+
+    private function buildExtratoUnico(int $id, Pessoas $proprietario, \DateTimeInterface $inicio, \DateTimeInterface $fim, string $status): array
+    {
+        $saldoAnterior    = $this->calcularSaldoAnteriorExtrato($id, $inicio);
+        $pagamentos       = $this->getPagamentosExtrato($id, $inicio, $fim, $status);
+        $movimentacao     = $this->getMovimentacaoExtrato($id, $inicio, $fim, $status);
         $totalPagamentos  = array_sum(array_column($pagamentos, 'valor'));
         $totalMovimentacao = array_sum(array_map(fn($g) => $g['subtotal'], $movimentacao));
-        $saldoAtual = $saldoAnterior - $totalPagamentos + $totalMovimentacao;
 
         return [
             'proprietario'       => $proprietario,
@@ -991,8 +1003,33 @@ class RelatorioService
             'movimentacao'       => $movimentacao,
             'total_pagamentos'   => $totalPagamentos,
             'total_movimentacao' => $totalMovimentacao,
-            'saldo_atual'        => $saldoAtual,
+            'saldo_atual'        => $saldoAnterior - $totalPagamentos + $totalMovimentacao,
         ];
+    }
+
+    private function getProprietariosIdsComMovimento(\DateTimeInterface $inicio, \DateTimeInterface $fim): array
+    {
+        $conn = $this->em->getConnection();
+        $i = $inicio->format('Y-m-d');
+        $f = $fim->format('Y-m-d');
+
+        $sql = "
+            SELECT DISTINCT id_proprietario AS id FROM lancamentos_financeiros
+            WHERE id_proprietario IS NOT NULL AND data_vencimento BETWEEN :i AND :f
+            UNION
+            SELECT DISTINCT id_proprietario AS id FROM lancamentos
+            WHERE id_proprietario IS NOT NULL AND data_vencimento BETWEEN :i AND :f
+            UNION
+            SELECT DISTINCT im.id_pessoa_proprietario AS id FROM lancamentos l
+            JOIN imoveis im ON im.id = l.id_imovel
+            WHERE l.data_vencimento BETWEEN :i AND :f
+            ORDER BY id
+        ";
+
+        return array_column(
+            $conn->executeQuery($sql, ['i' => $i, 'f' => $f])->fetchAllAssociative(),
+            'id'
+        );
     }
 
     private function calcularSaldoAnteriorExtrato(int $idProprietario, \DateTimeInterface $dataInicio): float

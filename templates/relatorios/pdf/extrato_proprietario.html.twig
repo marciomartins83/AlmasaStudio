@@ -46,19 +46,19 @@
 
     {% if dados is not empty %}
 
+    {% for extrato in dados %}
     {# Bloco identificação do proprietário #}
     <div class="prop-block">
         <div class="prop-row bold">
-            Proprietário: {{ dados.proprietario.cod }} - {{ dados.proprietario.nome }}
-            {% if dados.proprietario.cnpj %}
-                &nbsp;&nbsp;&nbsp; CNPJ: {{ dados.proprietario.cnpj }}
-            {% elseif dados.proprietario.cpf %}
-                &nbsp;&nbsp;&nbsp; CPF: {{ dados.proprietario.cpf }}
+            Proprietário: {{ extrato.proprietario.cod }} - {{ extrato.proprietario.nome }}
+            {% if extrato.proprietario.cnpj %}
+                &nbsp;&nbsp;&nbsp; CNPJ: {{ extrato.proprietario.cnpj }}
+            {% elseif extrato.proprietario.cpf %}
+                &nbsp;&nbsp;&nbsp; CPF: {{ extrato.proprietario.cpf }}
             {% endif %}
         </div>
     </div>
 
-    {# Tabela principal: Histórico | Débito | Crédito #}
     <table>
         <thead>
             <tr>
@@ -68,19 +68,13 @@
             </tr>
         </thead>
         <tbody>
-
-            {# Saldo Anterior #}
             <tr class="row-saldo-ant">
                 <td>Saldo Anterior</td>
                 <td></td>
-                <td class="text-right bold">{{ dados.saldo_anterior|number_format(2, ',', '.') }}</td>
+                <td class="text-right bold">{{ extrato.saldo_anterior|number_format(2, ',', '.') }}</td>
             </tr>
-
-            {# PAGAMENTOS #}
-            <tr>
-                <td colspan="3" class="row-section">PAGAMENTOS</td>
-            </tr>
-            {% for pag in dados.pagamentos %}
+            <tr><td colspan="3" class="row-section">PAGAMENTOS</td></tr>
+            {% for pag in extrato.pagamentos %}
             <tr class="row-lancamento">
                 <td>{{ pag.data|date('d/m') }} {{ pag.historico }}</td>
                 <td class="text-right text-danger">{{ pag.valor|number_format(2, ',', '.') }}</td>
@@ -89,25 +83,14 @@
             {% endfor %}
             <tr class="row-subtotal">
                 <td colspan="2" class="text-right">SUBTOTAL:</td>
-                <td class="text-right text-danger">-{{ dados.total_pagamentos|number_format(2, ',', '.') }}</td>
+                <td class="text-right text-danger">-{{ extrato.total_pagamentos|number_format(2, ',', '.') }}</td>
             </tr>
-
-            {# MOVIMENTAÇÃO #}
-            <tr>
-                <td colspan="3" class="row-section">MOVIMENTAÇÃO</td>
-            </tr>
-            {% for grupo in dados.movimentacao %}
-            <tr>
-                <td colspan="3" class="row-imovel">
-                    Imóvel: {{ grupo.imovel_cod }} - {{ grupo.imovel_endereco }}
-                </td>
-            </tr>
+            <tr><td colspan="3" class="row-section">MOVIMENTAÇÃO</td></tr>
+            {% for grupo in extrato.movimentacao %}
+            <tr><td colspan="3" class="row-imovel">Imóvel: {{ grupo.imovel_cod }} - {{ grupo.imovel_endereco }}</td></tr>
             <tr class="row-inquilino">
-                <td colspan="3">
-                    &nbsp;&nbsp;Inquilino(a): {{ grupo.inquilino_nome }}
-                    {% if grupo.proximo_reajuste %}
-                        &nbsp;&nbsp;&nbsp; Próx. Reaj.: {{ grupo.proximo_reajuste|date('d/m/Y') }}
-                    {% endif %}
+                <td colspan="3">&nbsp;&nbsp;Inquilino(a): {{ grupo.inquilino_nome }}
+                    {% if grupo.proximo_reajuste %}&nbsp;&nbsp;&nbsp; Próx. Reaj.: {{ grupo.proximo_reajuste|date('d/m/Y') }}{% endif %}
                 </td>
             </tr>
             {% for lanc in grupo.lancamentos %}
@@ -122,15 +105,14 @@
                 <td class="text-right text-success">{{ grupo.subtotal|number_format(2, ',', '.') }}</td>
             </tr>
             {% endfor %}
-
-            {# Saldo Atual #}
             <tr class="row-saldo-atual">
                 <td colspan="2" class="text-right">Saldo Atual:</td>
-                <td class="text-right">{{ dados.saldo_atual|number_format(2, ',', '.') }}</td>
+                <td class="text-right">{{ extrato.saldo_atual|number_format(2, ',', '.') }}</td>
             </tr>
-
         </tbody>
     </table>
+    <div style="margin-bottom:20px;"></div>
+    {% endfor %}
 
     {% else %}
     <p style="text-align:center; color:#999; margin-top:30px;">Nenhum dado encontrado para os filtros selecionados.</p>
