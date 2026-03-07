@@ -397,6 +397,56 @@ class RelatorioController extends AbstractController
     }
 
     // =========================================================================
+    // EXTRATO DE CONTA CORRENTE DO PROPRIETÁRIO
+    // =========================================================================
+
+    #[Route('/extrato-proprietario', name: 'app_relatorios_extrato_proprietario', methods: ['GET'])]
+    public function extratoProprietario(): Response
+    {
+        return $this->render('relatorios/extrato_proprietario.html.twig', [
+            'proprietarios' => $this->getProprietarios(),
+        ]);
+    }
+
+    #[Route('/extrato-proprietario/preview', name: 'app_relatorios_extrato_proprietario_preview', methods: ['POST'])]
+    public function extratoProprietarioPreview(Request $request): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $filtros = $this->extrairFiltros($request);
+        $this->converterDatas($filtros);
+
+        $dados = $this->relatorioService->getExtratoProprietario($filtros);
+
+        $html = $this->renderView('relatorios/preview/extrato_proprietario.html.twig', [
+            'dados'   => $dados,
+            'filtros' => $filtros,
+        ]);
+
+        return new JsonResponse(['success' => true, 'html' => $html]);
+    }
+
+    #[Route('/extrato-proprietario/pdf', name: 'app_relatorios_extrato_proprietario_pdf', methods: ['GET'])]
+    public function extratoProprietarioPdf(Request $request): Response
+    {
+        $filtros = $this->extrairFiltrosGet($request);
+        $this->converterDatas($filtros);
+
+        $dados = $this->relatorioService->getExtratoProprietario($filtros);
+
+        $pdf = $this->relatorioService->gerarPdf('extrato_proprietario', [
+            'dados' => $dados,
+        ], $filtros);
+
+        return new Response($pdf, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="extrato_proprietario.pdf"',
+        ]);
+    }
+
+    // =========================================================================
     // MÉTODOS AUXILIARES
     // =========================================================================
 

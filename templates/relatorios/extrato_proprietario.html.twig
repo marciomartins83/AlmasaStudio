@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Extrato do Proprietario - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Relatorios', 'url': path('app_relatorios_index')}
+        ],
+        'current': 'Extrato do Proprietario'
+    } %}
+
+    <div class="row">
+        {# Filtros #}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-filter"></i> Filtros
+                </div>
+                <div class="card-body">
+                    <form id="formFiltros">
+                        <div class="mb-3">
+                            <label for="id_proprietario" class="form-label">Proprietario <span class="text-danger">*</span></label>
+                            <select class="form-select" id="id_proprietario" name="id_proprietario" required>
+                                <option value="">Selecione...</option>
+                                {% for prop in proprietarios %}
+                                    <option value="{{ prop.idpessoa }}">{{ prop.cod }} - {{ prop.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label for="data_inicio" class="form-label">Data Inicio</label>
+                                <input type="date" class="form-control" id="data_inicio" name="data_inicio"
+                                       value="{{ "first day of this month"|date('Y-m-d') }}" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="data_fim" class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" id="data_fim" name="data_fim"
+                                       value="{{ "now"|date('Y-m-d') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pago">Pago</option>
+                                <option value="todos">Todos</option>
+                                <option value="aberto">Aberto</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="button" id="btnPreview" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Preview
+                            </button>
+                            <button type="button" id="btnPdf" class="btn btn-danger" disabled>
+                                <i class="fas fa-file-pdf"></i> Gerar PDF
+                            </button>
+                            <a href="{{ path('app_relatorios_index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# Preview #}
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-eye"></i> Preview do Extrato
+                </div>
+                <div class="card-body" id="previewContent">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                        <p>Selecione o proprietario e periodo e clique em "Preview".</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+    window.ROUTES = {
+        preview: '{{ path('app_relatorios_extrato_proprietario_preview') }}',
+        pdf: '{{ path('app_relatorios_extrato_proprietario_pdf') }}'
+    };
+    window.RELATORIO_TIPO = 'extrato_proprietario';
+</script>
+{{ encore_entry_script_tags('relatorios') }}
+{% endblock %}

@@ -108,6 +108,24 @@
             </div>
         </div>
 
+        {# Extrato de Conta Corrente #}
+        <div class="col-md-4">
+            <div class="card h-100 border-dark">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-file-invoice-dollar fa-3x text-dark"></i>
+                    </div>
+                    <h5 class="card-title">Extrato do Proprietario</h5>
+                    <p class="card-text text-muted">
+                        Saldo anterior, pagamentos e movimentacao por imovel no periodo.
+                    </p>
+                    <a href="{{ path('app_relatorios_extrato_proprietario') }}" class="btn btn-dark">
+                        <i class="fas fa-file-alt"></i> Gerar Relatorio
+                    </a>
+                </div>
+            </div>
+        </div>
+
         {# Plano de Contas #}
         <div class="col-md-4">
             <div class="card h-100 border-secondary">

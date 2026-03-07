@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\ContasBancarias;
+use App\Entity\ImoveisContratos;
+use App\Entity\Imoveis;
 use App\Entity\Lancamentos;
 use App\Entity\LancamentosFinanceiros;
+use App\Entity\Pessoas;
 use App\Entity\PlanoContas;
 use App\Repository\LancamentosRepository;
 use App\Repository\LancamentosFinanceirosRepository;
@@ -875,13 +878,20 @@ class RelatorioService
             'despesas_receitas' => 'relatorios/pdf/despesas_receitas.html.twig',
             'contas_bancarias' => 'relatorios/pdf/contas_bancarias.html.twig',
             'plano_contas' => 'relatorios/pdf/plano_contas.html.twig',
+            'extrato_proprietario' => 'relatorios/pdf/extrato_proprietario.html.twig',
             default => throw new \InvalidArgumentException("Tipo de relatório inválido: $tipo"),
         };
+
+        $logoPath = $this->projectDir . '/public/images/almasa-logo.png';
+        $logoDataUri = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : '';
 
         $html = $this->twig->render($template, [
             'dados' => $dados,
             'filtros' => $filtros,
             'data_emissao' => new \DateTime(),
+            'logo_data_uri' => $logoDataUri,
         ]);
 
         $options = new Options();
@@ -899,6 +909,165 @@ class RelatorioService
         $dompdf->render();
 
         return $dompdf->output();
+    }
+
+    // =========================================================================
+    // RELATÓRIO EXTRATO DE CONTA CORRENTE DO PROPRIETÁRIO
+    // =========================================================================
+
+    /**
+     * Gera extrato de conta corrente por proprietário no período.
+     * Estrutura: saldo anterior + pagamentos (despesas) + movimentação (receitas por imóvel) + saldo atual
+     */
+    public function getExtratoProprietario(array $filtros): array
+    {
+        $idProprietario = (int)($filtros['id_proprietario'] ?? 0);
+        if (!$idProprietario) return [];
+
+        $proprietario = $this->em->getRepository(Pessoas::class)->find($idProprietario);
+        if (!$proprietario) return [];
+
+        $dataInicio = $filtros['data_inicio'] ?? new \DateTime('first day of this month');
+        $dataFim    = $filtros['data_fim']    ?? new \DateTime();
+        $status     = $filtros['status']      ?? 'todos';
+
+        $saldoAnterior   = $this->calcularSaldoAnteriorExtrato($idProprietario, $dataInicio);
+        $pagamentos      = $this->getPagamentosExtrato($idProprietario, $dataInicio, $dataFim, $status);
+        $movimentacao    = $this->getMovimentacaoExtrato($idProprietario, $dataInicio, $dataFim, $status);
+
+        $totalPagamentos  = array_sum(array_column($pagamentos, 'valor'));
+        $totalMovimentacao = array_sum(array_map(fn($g) => $g['subtotal'], $movimentacao));
+        $saldoAtual = $saldoAnterior - $totalPagamentos + $totalMovimentacao;
+
+        return [
+            'proprietario'       => $proprietario,
+            'saldo_anterior'     => $saldoAnterior,
+            'pagamentos'         => $pagamentos,
+            'movimentacao'       => $movimentacao,
+            'total_pagamentos'   => $totalPagamentos,
+            'total_movimentacao' => $totalMovimentacao,
+            'saldo_atual'        => $saldoAtual,
+        ];
+    }
+
+    private function calcularSaldoAnteriorExtrato(int $idProprietario, \DateTimeInterface $dataInicio): float
+    {
+        $conn = $this->em->getConnection();
+        $sql = "SELECT
+            COALESCE(SUM(CASE WHEN tipo_lancamento IN ('aluguel','receita') THEN valor_total::numeric ELSE 0 END), 0)
+            - COALESCE(SUM(CASE WHEN tipo_lancamento = 'despesa' THEN valor_total::numeric ELSE 0 END), 0)
+            AS saldo
+        FROM lancamentos_financeiros
+        WHERE id_proprietario = :id AND situacao = 'pago' AND data_vencimento < :data";
+
+        $result = $conn->executeQuery($sql, [
+            'id'   => $idProprietario,
+            'data' => $dataInicio instanceof \DateTimeInterface ? $dataInicio->format('Y-m-d') : $dataInicio,
+        ])->fetchAssociative();
+
+        return round((float)($result['saldo'] ?? 0), 2);
+    }
+
+    private function getPagamentosExtrato(int $idProprietario, \DateTimeInterface $inicio, \DateTimeInterface $fim, string $status): array
+    {
+        $qb = $this->em->createQueryBuilder();
+        $qb->select('lf')
+            ->from(LancamentosFinanceiros::class, 'lf')
+            ->where('lf.tipoLancamento = :tipo')
+            ->andWhere('lf.proprietario = :prop')
+            ->andWhere('lf.dataVencimento >= :inicio')
+            ->andWhere('lf.dataVencimento <= :fim')
+            ->setParameter('tipo', 'despesa')
+            ->setParameter('prop', $idProprietario)
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
+            ->orderBy('lf.dataVencimento', 'ASC');
+
+        if ($status !== 'todos') {
+            $sit = $status === 'efetivado' ? 'pago' : $status;
+            $qb->andWhere('lf.situacao = :sit')->setParameter('sit', $sit);
+        }
+
+        return array_map(fn(LancamentosFinanceiros $lf) => [
+            'data'      => $lf->getDataVencimento(),
+            'historico' => $lf->getHistorico() ?? $lf->getDescricao() ?? '-',
+            'valor'     => (float)$lf->getValorTotal(),
+        ], $qb->getQuery()->getResult());
+    }
+
+    private function getMovimentacaoExtrato(int $idProprietario, \DateTimeInterface $inicio, \DateTimeInterface $fim, string $status): array
+    {
+        $qb = $this->em->createQueryBuilder();
+        $qb->select('lf', 'im', 'inq')
+            ->from(LancamentosFinanceiros::class, 'lf')
+            ->leftJoin('lf.imovel', 'im')
+            ->leftJoin('lf.inquilino', 'inq')
+            ->where('lf.tipoLancamento IN (:tipos)')
+            ->andWhere('lf.proprietario = :prop')
+            ->andWhere('lf.dataVencimento >= :inicio')
+            ->andWhere('lf.dataVencimento <= :fim')
+            ->setParameter('tipos', ['aluguel', 'receita'])
+            ->setParameter('prop', $idProprietario)
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
+            ->orderBy('im.id', 'ASC')
+            ->addOrderBy('lf.dataVencimento', 'ASC');
+
+        if ($status !== 'todos') {
+            $sit = $status === 'efetivado' ? 'pago' : $status;
+            $qb->andWhere('lf.situacao = :sit')->setParameter('sit', $sit);
+        }
+
+        $grupos = [];
+        foreach ($qb->getQuery()->getResult() as $lf) {
+            $imovel   = $lf->getImovel();
+            $imovelId = $imovel?->getId() ?? 0;
+
+            if (!isset($grupos[$imovelId])) {
+                $contrato = $imovel ? $this->getContratoAtivoImovel($imovel->getId()) : null;
+                $grupos[$imovelId] = [
+                    'imovel_cod'       => $imovel?->getCodigoInterno() ?? (string)$imovelId,
+                    'imovel_endereco'  => $imovel ? $this->buildEnderecoImovel($imovel) : '-',
+                    'inquilino_nome'   => $lf->getInquilino()?->getNome() ?? '-',
+                    'proximo_reajuste' => $contrato?->getDataProximoReajuste(),
+                    'lancamentos'      => [],
+                    'subtotal'         => 0.0,
+                ];
+            }
+
+            $valor = (float)$lf->getValorTotal();
+            $grupos[$imovelId]['lancamentos'][] = [
+                'data'      => $lf->getDataVencimento(),
+                'historico' => $lf->getHistorico() ?? $lf->getDescricao() ?? '-',
+                'valor'     => $valor,
+            ];
+            $grupos[$imovelId]['subtotal'] += $valor;
+        }
+
+        return array_values($grupos);
+    }
+
+    private function getContratoAtivoImovel(int $imovelId): ?ImoveisContratos
+    {
+        return $this->em->getRepository(ImoveisContratos::class)->findOneBy([
+            'imovel'  => $imovelId,
+            'status'  => 'ativo',
+        ]);
+    }
+
+    private function buildEnderecoImovel(Imoveis $imovel): string
+    {
+        try {
+            $end  = $imovel->getEndereco();
+            $log  = $end?->getLogradouro();
+            $rua  = $log?->getLogradouro() ?? '';
+            $num  = $end?->getEndNumero() ?? '';
+            $comp = $end?->getComplemento() ?? '';
+            $partes = array_filter([$rua, $num ? (string)$num : '', $comp]);
+            return implode(', ', $partes) ?: $imovel->getCodigoInterno() ?? '';
+        } catch (\Throwable) {
+            return $imovel->getCodigoInterno() ?? '';
+        }
     }
 
     // =========================================================================
