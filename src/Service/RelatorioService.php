@@ -671,6 +671,7 @@ class RelatorioService
      */
     public function getMovimentosContaBancaria(array $filtros): array
     {
+        // --- lancamentos_financeiros (histórico migrado) ---
         $qb = $this->em->createQueryBuilder();
         $qb->select('lf', 'cb')
             ->from(LancamentosFinanceiros::class, 'lf')
@@ -683,21 +684,17 @@ class RelatorioService
             $qb->andWhere('lf.contaBancaria = :idConta')
                 ->setParameter('idConta', $filtros['id_conta_bancaria']);
         }
-
         if (!empty($filtros['data_inicio'])) {
             $qb->andWhere('lf.dataVencimento >= :dataInicio')
                 ->setParameter('dataInicio', $filtros['data_inicio']);
         }
-
         if (!empty($filtros['data_fim'])) {
             $qb->andWhere('lf.dataVencimento <= :dataFim')
                 ->setParameter('dataFim', $filtros['data_fim']);
         }
-
         $qb->orderBy('lf.dataVencimento', 'ASC');
-        $lancamentos = $qb->getQuery()->getResult();
 
-        return array_map(fn(LancamentosFinanceiros $lf) => [
+        $movimentos = array_map(fn(LancamentosFinanceiros $lf) => [
             'dataPagamento'   => $lf->getDataVencimento(),
             'receber'         => in_array($lf->getTipoLancamento(), ['receita', 'aluguel']),
             'historico'       => $lf->getHistorico() ?? $lf->getDescricao(),
@@ -706,7 +703,43 @@ class RelatorioService
             '_contaBancaria'  => $lf->getContaBancaria(),
             '_valor'          => (float) $lf->getValorTotal(),
             '_isReceber'      => in_array($lf->getTipoLancamento(), ['receita', 'aluguel']),
-        ], $lancamentos);
+        ], $qb->getQuery()->getResult());
+
+        // --- lancamentos CRUD ---
+        $qb2 = $this->em->createQueryBuilder();
+        $qb2->select('l', 'cb2')
+            ->from(Lancamentos::class, 'l')
+            ->leftJoin('l.contaBancaria', 'cb2')
+            ->where('l.contaBancaria IS NOT NULL')
+            ->andWhere('l.status IN (:statuses)')
+            ->setParameter('statuses', ['pago', 'pago_parcial']);
+
+        if (!empty($filtros['id_conta_bancaria'])) {
+            $qb2->andWhere('l.contaBancaria = :idConta2')
+                ->setParameter('idConta2', $filtros['id_conta_bancaria']);
+        }
+        if (!empty($filtros['data_inicio'])) {
+            $qb2->andWhere('l.dataVencimento >= :dataInicio2')
+                ->setParameter('dataInicio2', $filtros['data_inicio']);
+        }
+        if (!empty($filtros['data_fim'])) {
+            $qb2->andWhere('l.dataVencimento <= :dataFim2')
+                ->setParameter('dataFim2', $filtros['data_fim']);
+        }
+        $qb2->orderBy('l.dataVencimento', 'ASC');
+
+        $movimentosCrud = array_map(fn(Lancamentos $l) => [
+            'dataPagamento'   => $l->getDataPagamento() ?? $l->getDataVencimento(),
+            'receber'         => $l->getTipo() === 'receber',
+            'historico'       => $l->getHistorico(),
+            'numeroDocumento' => $l->getNumeroDocumento(),
+            'valorFloat'      => (float) ($l->getValorPago() ?: $l->getValor()),
+            '_contaBancaria'  => $l->getContaBancaria(),
+            '_valor'          => (float) ($l->getValorPago() ?: $l->getValor()),
+            '_isReceber'      => $l->getTipo() === 'receber',
+        ], $qb2->getQuery()->getResult());
+
+        return array_merge($movimentos, $movimentosCrud);
     }
 
     /**
@@ -715,7 +748,9 @@ class RelatorioService
     public function getSaldoInicialConta(int $contaId, \DateTimeInterface $data): float
     {
         $conn = $this->em->getConnection();
-        $sql = "SELECT COALESCE(SUM(
+        $dataStr = $data->format('Y-m-d');
+
+        $sql1 = "SELECT COALESCE(SUM(
                     CASE WHEN tipo_lancamento IN ('receita', 'aluguel')
                          THEN valor_total::numeric
                          ELSE -valor_total::numeric
@@ -726,12 +761,22 @@ class RelatorioService
                   AND situacao = 'pago'
                   AND data_vencimento < :data";
 
-        $result = $conn->executeQuery($sql, [
-            'contaId' => $contaId,
-            'data'    => $data->format('Y-m-d'),
-        ])->fetchOne();
+        $saldo1 = (float) $conn->executeQuery($sql1, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
 
-        return (float) $result;
+        $sql2 = "SELECT COALESCE(SUM(
+                    CASE WHEN tipo = 'receber'
+                         THEN COALESCE(valor_pago, valor)::numeric
+                         ELSE -COALESCE(valor_pago, valor)::numeric
+                    END
+                ), 0)
+                FROM lancamentos
+                WHERE id_conta_bancaria = :contaId
+                  AND status IN ('pago', 'pago_parcial')
+                  AND data_vencimento < :data";
+
+        $saldo2 = (float) $conn->executeQuery($sql2, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
+
+        return round($saldo1 + $saldo2, 2);
     }
 
     /**
