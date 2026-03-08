@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>DRE Almasa - Despesas x Receitas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
+        .container { padding: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; font-size: 9px; }
+        th { background: #333; color: #fff; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; }
+        .text-success { color: #198754; }
+        .text-primary { color: #0d6efd; }
+        .total-row-receitas { background: #eee; font-weight: bold; color: #198754; }
+        .total-row-despesas { background: #eee; font-weight: bold; color: #dc3545; }
+        .saldo-positivo { color: #198754; }
+        .saldo-negativo { color: #dc3545; }
+        .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+        .secao-titulo { font-weight: bold; padding: 6px; margin: 12px 0 4px 0; border-left: 4px solid #333; background: #f8f9fa; }
+        .secao-receitas { border-left-color: #198754; }
+        .secao-despesas { border-left-color: #dc3545; }
+        .resumo-box { border: 2px solid #333; padding: 10px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% set periodo_texto = '' %}
+        {% if filtros.data_inicio is defined and filtros.data_fim is defined %}
+            {% set periodo_texto = filtros.data_inicio|date('d/m/Y') ~ ' a ' ~ filtros.data_fim|date('d/m/Y') %}
+        {% endif %}
+
+        {% include 'relatorios/pdf/_header.html.twig' with {
+            titulo: 'DRE ALMASA EMPRESA — DESPESAS x RECEITAS',
+            periodo: periodo_texto
+        } %}
+
+        {# TABELA DRE SINTETICO #}
+        <table>
+            <thead>
+                <tr>
+                    <th>Categoria / Plano de Contas</th>
+                    <th class="text-right">Receitas</th>
+                    <th class="text-right">%</th>
+                    <th class="text-right">Despesas</th>
+                    <th class="text-right">%</th>
+                    <th class="text-right">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if dados is iterable and dados|length > 0 %}
+                    {% for chave, grupo in dados %}
+                        {% if grupo.nome is defined %}
+                            <tr>
+                                <td>{{ grupo.nome }}</td>
+                                <td class="text-right text-success">R$ {{ grupo.receitas|number_format(2, ',', '.') }}</td>
+                                <td class="text-right">{{ grupo.percentual_receitas|default(0) }}%</td>
+                                <td class="text-right text-danger">R$ {{ grupo.despesas|number_format(2, ',', '.') }}</td>
+                                <td class="text-right">{{ grupo.percentual_despesas|default(0) }}%</td>
+                                <td class="text-right {% if grupo.saldo >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}" style="font-weight:bold;">
+                                    R$ {{ grupo.saldo|number_format(2, ',', '.') }}
+                                </td>
+                            </tr>
+                        {% else %}
+                            {# Analitico #}
+                            <tr>
+                                <td>{{ grupo.data|date('d/m/Y') }} — {{ grupo.descricao|default('-') }}</td>
+                                <td class="text-right text-success">
+                                    {% if grupo.valor_receita > 0 %}R$ {{ grupo.valor_receita|number_format(2, ',', '.') }}{% endif %}
+                                </td>
+                                <td></td>
+                                <td class="text-right text-danger">
+                                    {% if grupo.valor_despesa > 0 %}R$ {{ grupo.valor_despesa|number_format(2, ',', '.') }}{% endif %}
+                                </td>
+                                <td></td>
+                                <td class="text-right {% if grupo.saldo_acumulado >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}">
+                                    R$ {{ grupo.saldo_acumulado|number_format(2, ',', '.') }}
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhum dado encontrado no periodo.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row-receitas">
+                    <td class="text-right">TOTAL RECEITAS:</td>
+                    <td class="text-right">R$ {{ totais_receitas.total_geral|number_format(2, ',', '.') }}</td>
+                    <td colspan="4"></td>
+                </tr>
+                <tr class="total-row-despesas">
+                    <td class="text-right">TOTAL DESPESAS:</td>
+                    <td colspan="2"></td>
+                    <td class="text-right">R$ {{ totais_despesas.total_geral|number_format(2, ',', '.') }}</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {# RESUMO #}
+        <div class="resumo-box">
+            <table style="border: none;">
+                <tr>
+                    <td style="border: none; width: 33%; text-align: center;">
+                        <strong>Total Receitas</strong><br>
+                        <span class="text-success" style="font-size: 14px; font-weight: bold;">
+                            R$ {{ totais_receitas.total_geral|number_format(2, ',', '.') }}
+                        </span>
+                    </td>
+                    <td style="border: none; width: 33%; text-align: center;">
+                        <strong>Total Despesas</strong><br>
+                        <span class="text-danger" style="font-size: 14px; font-weight: bold;">
+                            R$ {{ totais_despesas.total_geral|number_format(2, ',', '.') }}
+                        </span>
+                    </td>
+                    <td style="border: none; width: 34%; text-align: center;">
+                        <strong>RESULTADO DO PERIODO</strong><br>
+                        <span style="font-size: 16px; font-weight: bold; color: {% if saldo >= 0 %}#198754{% else %}#dc3545{% endif %};">
+                            R$ {{ saldo|number_format(2, ',', '.') }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {% include 'relatorios/pdf/_footer.html.twig' %}
+    </div>
+</body>
+</html>

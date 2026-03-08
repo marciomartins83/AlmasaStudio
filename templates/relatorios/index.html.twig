@@ -17,129 +17,220 @@
         </h1>
     </div>
 
-    <div class="row g-4">
-        {# Inadimplentes #}
-        <div class="col-md-4">
-            <div class="card h-100 border-danger">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+    {# ================================================================= #}
+    {# SECAO: RELATORIOS DO CLIENTE                                      #}
+    {# ================================================================= #}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Relatorios Cliente</h5>
+            <small>Financeiro dos proprietarios, inquilinos e imoveis</small>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                {# Inadimplentes #}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card h-100 border-danger">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+                            </div>
+                            <h5 class="card-title">Inadimplentes</h5>
+                            <p class="card-text text-muted">
+                                Devedores com valores em atraso, juros e multa.
+                            </p>
+                            <a href="{{ path('app_relatorios_inadimplentes') }}" class="btn btn-danger">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
                     </div>
-                    <h5 class="card-title">Inadimplentes</h5>
-                    <p class="card-text text-muted">
-                        Lista de devedores com valores em atraso, juros e multa calculados.
-                    </p>
-                    <a href="{{ path('app_relatorios_inadimplentes') }}" class="btn btn-danger">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
+                </div>
+
+                {# Despesas Cliente #}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card h-100 border-warning">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-arrow-circle-down fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="card-title">Despesas</h5>
+                            <p class="card-text text-muted">
+                                Contas a pagar dos clientes por periodo.
+                            </p>
+                            <a href="{{ path('app_relatorios_despesas') }}" class="btn btn-warning">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {# Receitas Cliente #}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-arrow-circle-up fa-3x text-success"></i>
+                            </div>
+                            <h5 class="card-title">Receitas</h5>
+                            <p class="card-text text-muted">
+                                Contas a receber dos clientes por periodo.
+                            </p>
+                            <a href="{{ path('app_relatorios_receitas') }}" class="btn btn-success">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {# Comparativo Cliente #}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card h-100 border-primary">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-balance-scale fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title">Despesas x Receitas</h5>
+                            <p class="card-text text-muted">
+                                Comparativo com saldo final dos clientes.
+                            </p>
+                            <a href="{{ path('app_relatorios_despesas_receitas') }}" class="btn btn-primary">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {# Extrato Proprietario #}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card h-100" style="border: 1px solid #6f42c1;">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-file-invoice-dollar fa-3x" style="color: #6f42c1;"></i>
+                            </div>
+                            <h5 class="card-title">Extrato Proprietario</h5>
+                            <p class="card-text text-muted">
+                                Saldo, pagamentos e movimentacao por imovel.
+                            </p>
+                            <a href="{{ path('app_relatorios_extrato_proprietario') }}" class="btn" style="background-color: #6f42c1; color: #fff;">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        {# Despesas #}
-        <div class="col-md-4">
-            <div class="card h-100 border-warning">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-arrow-circle-down fa-3x text-warning"></i>
+    {# ================================================================= #}
+    {# SECAO: RELATORIOS ALMASA EMPRESA                                  #}
+    {# ================================================================= #}
+    <div class="card mb-4">
+        <div class="card-header" style="background-color: #198754; color: #fff;">
+            <h5 class="mb-0"><i class="fas fa-building me-2"></i>Relatorios Almasa Empresa</h5>
+            <small>Financeiro da administradora (DRE, custos operacionais, receitas de taxas)</small>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                {# Despesas Almasa #}
+                <div class="col-md-4">
+                    <div class="card h-100 border-danger">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-arrow-circle-down fa-3x text-danger"></i>
+                            </div>
+                            <h5 class="card-title">Despesas Almasa</h5>
+                            <p class="card-text text-muted">
+                                Custos operacionais, comissoes e despesas da empresa.
+                            </p>
+                            <a href="{{ path('app_relatorios_almasa_despesas') }}" class="btn btn-danger">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
                     </div>
-                    <h5 class="card-title">Despesas</h5>
-                    <p class="card-text text-muted">
-                        Relatorio descritivo de contas a pagar por periodo.
-                    </p>
-                    <a href="{{ path('app_relatorios_despesas') }}" class="btn btn-warning">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
+                </div>
+
+                {# Receitas Almasa #}
+                <div class="col-md-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-arrow-circle-up fa-3x text-success"></i>
+                            </div>
+                            <h5 class="card-title">Receitas Almasa</h5>
+                            <p class="card-text text-muted">
+                                Taxas de administracao, honorarios e receitas da empresa.
+                            </p>
+                            <a href="{{ path('app_relatorios_almasa_receitas') }}" class="btn btn-success">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {# DRE Almasa #}
+                <div class="col-md-4">
+                    <div class="card h-100" style="border: 2px solid #6f42c1;">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-chart-line fa-3x" style="color: #6f42c1;"></i>
+                            </div>
+                            <h5 class="card-title">DRE Almasa</h5>
+                            <p class="card-text text-muted">
+                                Demonstrativo de Resultado — Despesas x Receitas da empresa.
+                            </p>
+                            <a href="{{ path('app_relatorios_almasa_despesas_receitas') }}" class="btn" style="background-color: #6f42c1; color: #fff;">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        {# Receitas #}
-        <div class="col-md-4">
-            <div class="card h-100 border-success">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-arrow-circle-up fa-3x text-success"></i>
-                    </div>
-                    <h5 class="card-title">Receitas</h5>
-                    <p class="card-text text-muted">
-                        Relatorio descritivo de contas a receber por periodo.
-                    </p>
-                    <a href="{{ path('app_relatorios_receitas') }}" class="btn btn-success">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
-                </div>
-            </div>
+    {# ================================================================= #}
+    {# SECAO: RELATORIOS CADASTRAIS                                      #}
+    {# ================================================================= #}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Relatorios Cadastrais</h5>
+            <small>Cadastros e configuracoes do sistema</small>
         </div>
-
-        {# Comparativo #}
-        <div class="col-md-4">
-            <div class="card h-100 border-primary">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-balance-scale fa-3x text-primary"></i>
+        <div class="card-body">
+            <div class="row g-4">
+                {# Contas Bancarias #}
+                <div class="col-md-4">
+                    <div class="card h-100 border-info">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-university fa-3x text-info"></i>
+                            </div>
+                            <h5 class="card-title">Contas Bancarias</h5>
+                            <p class="card-text text-muted">
+                                Movimentacao e saldo de cada conta bancaria.
+                            </p>
+                            <a href="{{ path('app_relatorios_contas_bancarias') }}" class="btn btn-info">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
                     </div>
-                    <h5 class="card-title">Despesas x Receitas</h5>
-                    <p class="card-text text-muted">
-                        Comparativo entre despesas e receitas com saldo final.
-                    </p>
-                    <a href="{{ path('app_relatorios_despesas_receitas') }}" class="btn btn-primary">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
                 </div>
-            </div>
-        </div>
 
-        {# Contas Bancarias #}
-        <div class="col-md-4">
-            <div class="card h-100 border-info">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-university fa-3x text-info"></i>
+                {# Tipo de Lancamentos #}
+                <div class="col-md-4">
+                    <div class="card h-100 border-secondary">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-sitemap fa-3x text-secondary"></i>
+                            </div>
+                            <h5 class="card-title">Tipo de Lancamentos</h5>
+                            <p class="card-text text-muted">
+                                Estrutura hierarquica do plano de contas.
+                            </p>
+                            <a href="{{ path('app_relatorios_plano_contas') }}" class="btn btn-secondary">
+                                <i class="fas fa-file-alt"></i> Gerar
+                            </a>
+                        </div>
                     </div>
-                    <h5 class="card-title">Contas Bancarias</h5>
-                    <p class="card-text text-muted">
-                        Movimentacao e saldo de cada conta bancaria.
-                    </p>
-                    <a href="{{ path('app_relatorios_contas_bancarias') }}" class="btn btn-info">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        {# Extrato de Conta Corrente #}
-        <div class="col-md-4">
-            <div class="card h-100" style="border: 1px solid #6f42c1;">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-file-invoice-dollar fa-3x" style="color: #6f42c1;"></i>
-                    </div>
-                    <h5 class="card-title">Extrato do Proprietario</h5>
-                    <p class="card-text text-muted">
-                        Saldo anterior, pagamentos e movimentacao por imovel no periodo.
-                    </p>
-                    <a href="{{ path('app_relatorios_extrato_proprietario') }}" class="btn" style="background-color: #6f42c1; color: #fff; border-color: #6f42c1;">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        {# Tipo de Lançamentos #}
-        <div class="col-md-4">
-            <div class="card h-100 border-secondary">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-sitemap fa-3x text-secondary"></i>
-                    </div>
-                    <h5 class="card-title">Tipo de Lançamentos</h5>
-                    <p class="card-text text-muted">
-                        Estrutura hierarquica do plano de contas.
-                    </p>
-                    <a href="{{ path('app_relatorios_plano_contas') }}" class="btn btn-secondary">
-                        <i class="fas fa-file-alt"></i> Gerar Relatorio
-                    </a>
                 </div>
             </div>
         </div>
