@@ -49,6 +49,10 @@ class PlanoContas
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $ativo = true;
 
+    #[ORM\ManyToOne(targetEntity: AlmasaPlanoContas::class, inversedBy: 'planosContasCliente')]
+    #[ORM\JoinColumn(name: 'id_almasa_plano_conta', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?AlmasaPlanoContas $almasaPlanoConta = null;
+
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
@@ -263,6 +267,17 @@ class PlanoContas
                 $informe->setPlanoConta(null);
             }
         }
+        return $this;
+    }
+
+    public function getAlmasaPlanoConta(): ?AlmasaPlanoContas
+    {
+        return $this->almasaPlanoConta;
+    }
+
+    public function setAlmasaPlanoConta(?AlmasaPlanoContas $almasaPlanoConta): self
+    {
+        $this->almasaPlanoConta = $almasaPlanoConta;
         return $this;
     }
 
