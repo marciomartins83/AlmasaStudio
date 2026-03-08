@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ conta.codigo }} - {{ conta.descricao }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': '#'},
+            {'label': 'Plano de Contas Almasa', 'url': path('app_almasa_plano_contas_index')}
+        ],
+        'current': conta.codigo
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-sitemap"></i> {{ conta.codigo }} — {{ conta.descricao }}</h1>
+                <div>
+                    <a href="{{ path('app_almasa_plano_contas_edit', {'id': conta.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <a href="{{ path('app_almasa_plano_contas_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="200">ID:</th>
+                                    <td>{{ conta.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Código:</th>
+                                    <td><code>{{ conta.codigo }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Descrição:</th>
+                                    <td><strong>{{ conta.descricao }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo:</th>
+                                    <td>
+                                        {% if conta.tipo == 'receita' %}
+                                            <span class="badge bg-success">Receita</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Despesa</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Nível:</th>
+                                    <td>
+                                        <span class="badge bg-{{ conta.nivel == 1 ? 'dark' : (conta.nivel == 2 ? 'secondary' : 'info') }}">
+                                            {{ conta.nivelLabel }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="200">Conta Pai:</th>
+                                    <td>
+                                        {% if conta.pai %}
+                                            <a href="{{ path('app_almasa_plano_contas_show', {'id': conta.pai.id}) }}">
+                                                {{ conta.pai.codigo }} - {{ conta.pai.descricao }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">(Raiz)</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Aceita Lançamentos:</th>
+                                    <td>{{ conta.isAceitaLancamentos() ? 'Sim' : 'Não' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Ativo:</th>
+                                    <td>
+                                        {% if conta.isAtivo() %}
+                                            <i class="fas fa-check-circle text-success"></i> Sim
+                                        {% else %}
+                                            <i class="fas fa-times-circle text-danger"></i> Não
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Criado em:</th>
+                                    <td>{{ conta.createdAt|date('d/m/Y H:i') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Atualizado em:</th>
+                                    <td>{{ conta.updatedAt|date('d/m/Y H:i') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if conta.filhos|length > 0 %}
+                    <hr>
+                    <h5><i class="fas fa-folder-open"></i> Subcontas</h5>
+                    <table class="table table-striped table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Código</th>
+                                <th>Descrição</th>
+                                <th>Nível</th>
+                                <th>Aceita Lanç.</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for filho in conta.filhos %}
+                            <tr>
+                                <td><code>{{ filho.codigo }}</code></td>
+                                <td>{{ filho.descricao }}</td>
+                                <td><span class="badge bg-info">{{ filho.nivelLabel }}</span></td>
+                                <td>{{ filho.isAceitaLancamentos() ? 'Sim' : 'Não' }}</td>
+                                <td>
+                                    <a href="{{ path('app_almasa_plano_contas_show', {'id': filho.id}) }}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
