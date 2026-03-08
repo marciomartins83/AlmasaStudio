@@ -203,6 +203,25 @@ class AlmasaPlanoContas
         return $this->almasaLancamentos;
     }
 
+    public function addAlmasaLancamento(AlmasaLancamento $lancamento): self
+    {
+        if (!$this->almasaLancamentos->contains($lancamento)) {
+            $this->almasaLancamentos->add($lancamento);
+            $lancamento->setAlmasaPlanoConta($this);
+        }
+        return $this;
+    }
+
+    public function removeAlmasaLancamento(AlmasaLancamento $lancamento): self
+    {
+        if ($this->almasaLancamentos->removeElement($lancamento)) {
+            if ($lancamento->getAlmasaPlanoConta() === $this) {
+                $lancamento->setAlmasaPlanoConta(null);
+            }
+        }
+        return $this;
+    }
+
     /**
      * @return Collection<int, PlanoContas>
      */
