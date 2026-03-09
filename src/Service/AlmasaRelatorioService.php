@@ -130,6 +130,43 @@ class AlmasaRelatorioService
     }
 
     // =========================================================================
+    // PLANO DE CONTAS ALMASA (relatorio)
+    // =========================================================================
+
+    public function getPlanoContas(array $filtros): array
+    {
+        $qb = $this->em->createQueryBuilder();
+        $qb->select('pc', 'pai')
+            ->from(AlmasaPlanoContas::class, 'pc')
+            ->leftJoin('pc.pai', 'pai')
+            ->orderBy('pc.codigo', 'ASC');
+
+        if (!empty($filtros['tipo']) && $filtros['tipo'] !== 'todos') {
+            $qb->andWhere('pc.tipo = :tipo')
+                ->setParameter('tipo', $filtros['tipo']);
+        }
+
+        if (!empty($filtros['nivel']) && $filtros['nivel'] !== 'todos') {
+            $qb->andWhere('pc.nivel = :nivel')
+                ->setParameter('nivel', (int) $filtros['nivel']);
+        }
+
+        if (!empty($filtros['ativo']) && $filtros['ativo'] !== 'todos') {
+            $ativo = $filtros['ativo'] === 'ativos';
+            $qb->andWhere('pc.ativo = :ativo')
+                ->setParameter('ativo', $ativo);
+        }
+
+        if (!empty($filtros['aceita_lancamentos']) && $filtros['aceita_lancamentos'] !== 'todos') {
+            $aceita = $filtros['aceita_lancamentos'] === 'sim';
+            $qb->andWhere('pc.aceitaLancamentos = :aceita')
+                ->setParameter('aceita', $aceita);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    // =========================================================================
     // DRE ALMASA (agregacao por plano de contas hierarquico)
     // =========================================================================
 
@@ -160,6 +197,7 @@ class AlmasaRelatorioService
             'almasa_despesas' => 'relatorios/pdf/almasa_despesas.html.twig',
             'almasa_receitas' => 'relatorios/pdf/almasa_receitas.html.twig',
             'almasa_despesas_receitas' => 'relatorios/pdf/almasa_despesas_receitas.html.twig',
+            'almasa_plano_contas' => 'relatorios/pdf/almasa_plano_contas.html.twig',
             default => throw new \InvalidArgumentException("Tipo de relatorio invalido: $tipo"),
         };
 

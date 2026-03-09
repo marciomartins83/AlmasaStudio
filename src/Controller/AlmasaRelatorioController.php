@@ -205,6 +205,53 @@ class AlmasaRelatorioController extends AbstractController
     }
 
     // =========================================================================
+    // PLANO DE CONTAS ALMASA
+    // =========================================================================
+
+    #[Route('/plano-contas', name: 'app_relatorios_almasa_plano_contas', methods: ['GET'])]
+    public function planoContas(): Response
+    {
+        return $this->render('relatorios/almasa_plano_contas.html.twig');
+    }
+
+    #[Route('/plano-contas/preview', name: 'app_relatorios_almasa_plano_contas_preview', methods: ['POST'])]
+    public function planoContasPreview(Request $request): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF invalido'], 403);
+        }
+
+        $filtros = $this->extrairFiltros($request);
+        $dados = $this->relatorioService->getPlanoContas($filtros);
+
+        $html = $this->renderView('relatorios/preview/almasa_plano_contas.html.twig', [
+            'dados' => $dados,
+            'filtros' => $filtros,
+        ]);
+
+        return new JsonResponse([
+            'success' => true,
+            'html' => $html,
+        ]);
+    }
+
+    #[Route('/plano-contas/pdf', name: 'app_relatorios_almasa_plano_contas_pdf', methods: ['GET'])]
+    public function planoContasPdf(Request $request): Response
+    {
+        $filtros = $this->extrairFiltrosGet($request);
+        $dados = $this->relatorioService->getPlanoContas($filtros);
+
+        $pdf = $this->relatorioService->gerarPdf('almasa_plano_contas', [
+            'dados' => $dados,
+        ], $filtros);
+
+        return new Response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="almasa_plano_contas.pdf"',
+        ]);
+    }
+
+    // =========================================================================
     // METODOS AUXILIARES
     // =========================================================================
 
