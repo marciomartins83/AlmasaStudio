@@ -19,6 +19,26 @@
                 </a>
             </div>
 
+            {# Painel de Busca #}
+            {% include '_partials/search_panel.html.twig' with {
+                filterDefs: pagination.filterDefs,
+                filters: pagination.filters,
+                routeName: 'app_almasa_plano_contas_index',
+                itemsPerPage: pagination.itemsPerPage,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir
+            } %}
+
+            {# Painel de Ordenacao #}
+            {% include '_partials/sort_panel.html.twig' with {
+                sortOptions: pagination.sortOptions,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                routeName: 'app_almasa_plano_contas_index',
+                filters: pagination.filters,
+                itemsPerPage: pagination.itemsPerPage
+            } %}
+
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -26,17 +46,17 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th width="80">ID</th>
-                                    <th width="120">Código</th>
-                                    <th>Descrição</th>
+                                    <th width="120">Codigo</th>
+                                    <th>Descricao</th>
                                     <th width="100">Tipo</th>
-                                    <th width="100">Nível</th>
-                                    <th width="100" class="text-center">Aceita Lanç.</th>
+                                    <th width="100">Nivel</th>
+                                    <th width="100" class="text-center">Aceita Lanc.</th>
                                     <th width="80" class="text-center">Ativo</th>
-                                    <th width="200">Ações</th>
+                                    <th width="200">Acoes</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for conta in contas %}
+                                {% for conta in pagination.items %}
                                 <tr>
                                     <td>{{ conta.id }}</td>
                                     <td>
@@ -114,7 +134,7 @@
                                 <tr>
                                     <td colspan="8" class="text-center text-muted py-4">
                                         <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-                                        Nenhuma conta cadastrada
+                                        Nenhuma conta encontrada
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -123,7 +143,25 @@
                     </div>
                 </div>
             </div>
+
+            {# Paginacao #}
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: pagination.totalItems,
+                currentPage: pagination.currentPage,
+                itemsPerPage: pagination.itemsPerPage,
+                totalPages: pagination.totalPages,
+                routeName: 'app_almasa_plano_contas_index',
+                filters: pagination.filters,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                showSearch: false
+            } %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{{ encore_entry_script_tags('crud_filters') }}
 {% endblock %}

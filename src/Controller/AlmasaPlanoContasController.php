@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\SearchFilterDTO;
+use App\DTO\SortOptionDTO;
 use App\Entity\AlmasaPlanoContas;
 use App\Form\AlmasaPlanoContasType;
 use App\Repository\AlmasaPlanoContasRepository;
 use App\Service\AlmasaPlanoContasService;
+use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,16 +21,63 @@ class AlmasaPlanoContasController extends AbstractController
 {
     public function __construct(
         private AlmasaPlanoContasService $service,
-        private AlmasaPlanoContasRepository $repository
+        private AlmasaPlanoContasRepository $repository,
+        private PaginationService $paginator
     ) {}
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $contas = $this->repository->findHierarquiaCompleta();
+        $qb = $this->repository->createQueryBuilder('a')
+            ->leftJoin('a.pai', 'pai')
+            ->orderBy('a.codigo', 'ASC');
+
+        $filters = [
+            new SearchFilterDTO('codigo', 'Codigo', 'text', 'a.codigo', 'LIKE', [], null, 2),
+            new SearchFilterDTO('descricao', 'Descricao', 'text', 'a.descricao', 'LIKE', [], null, 3),
+            new SearchFilterDTO('tipo', 'Tipo', 'select', 'a.tipo', 'EXACT', [
+                AlmasaPlanoContas::TIPO_RECEITA => 'Receita',
+                AlmasaPlanoContas::TIPO_DESPESA => 'Despesa',
+            ], null, 2),
+            new SearchFilterDTO('nivel', 'Nivel', 'select', 'a.nivel', 'EXACT', [
+                (string) AlmasaPlanoContas::NIVEL_GRUPO => 'Grupo',
+                (string) AlmasaPlanoContas::NIVEL_SUBGRUPO => 'Subgrupo',
+                (string) AlmasaPlanoContas::NIVEL_CONTA => 'Conta',
+            ], null, 2),
+            new SearchFilterDTO('aceitaLancamentos', 'Aceita Lanc.', 'select', 'a.aceitaLancamentos', 'BOOL', [
+                '1' => 'Sim',
+                '0' => 'Nao',
+            ], null, 2),
+            new SearchFilterDTO('ativo', 'Ativo', 'select', 'a.ativo', 'BOOL', [
+                '1' => 'Sim',
+                '0' => 'Nao',
+            ], null, 1),
+        ];
+
+        $sortOptions = [
+            new SortOptionDTO('id', 'ID', 'ASC'),
+            new SortOptionDTO('codigo', 'Codigo', 'ASC'),
+            new SortOptionDTO('descricao', 'Descricao', 'ASC'),
+            new SortOptionDTO('tipo', 'Tipo', 'ASC'),
+            new SortOptionDTO('nivel', 'Nivel', 'ASC'),
+            new SortOptionDTO('aceitaLancamentos', 'Aceita Lanc.', 'DESC'),
+            new SortOptionDTO('ativo', 'Ativo', 'DESC'),
+        ];
+
+        $pagination = $this->paginator->paginate(
+            $qb,
+            $request,
+            null,
+            [],
+            'a.id',
+            $filters,
+            $sortOptions,
+            'codigo',
+            'ASC'
+        );
 
         return $this->render('almasa_plano_contas/index.html.twig', [
-            'contas' => $contas,
+            'pagination' => $pagination,
         ]);
     }
 
@@ -90,7 +140,7 @@ class AlmasaPlanoContasController extends AbstractController
         if ($this->isCsrfTokenValid('delete' . $conta->getId(), $request->request->get('_token'))) {
             try {
                 $this->service->deletar($conta);
-                $this->addFlash('success', 'Conta excluída com sucesso!');
+                $this->addFlash('success', 'Conta excluida com sucesso!');
             } catch (\Exception $e) {
                 $this->addFlash('error', $e->getMessage());
             }
