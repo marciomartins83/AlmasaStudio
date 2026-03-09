@@ -75,6 +75,34 @@
         {% endfor %}
     </div>
 
+    {# Seção Almasa Empresa #}
+    <h3 class="mt-5 mb-3">Almasa Empresa</h3>
+    <div class="row g-4">
+        {% set cards_almasa = [
+            {'title': 'Plano de Contas', 'description': 'Plano de contas hierarquico da empresa.', 'link': path('app_almasa_plano_contas_index'), 'icon': 'diagram-3', 'details': 'Estrutura de grupos, subgrupos e contas para classificacao contabil dos lancamentos da administradora.'},
+            {'title': 'Lancamentos Almasa', 'description': 'Receitas e despesas da empresa.', 'link': path('app_almasa_lancamentos_index'), 'icon': 'journal-text', 'details': 'Lancamentos financeiros da administradora: taxas de administracao, custos operacionais, comissoes e demais movimentacoes.'},
+            {'title': 'Relatorios Almasa', 'description': 'DRE, despesas e receitas da empresa.', 'link': path('app_relatorios_index'), 'icon': 'graph-up', 'details': 'Relatorios financeiros exclusivos da administradora: despesas, receitas e demonstrativo de resultado (DRE).'}
+        ] %}
+
+        {% for card in cards_almasa %}
+        <div class="col-md-4">
+            <div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
+                <div class="almasa-card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-{{ card.icon }} fs-2 almasa-text-gradient me-2"></i>
+                        <h3 class="fs-5 fw-semibold m-0">{{ card.title }}</h3>
+                    </div>
+                    <p class="text-secondary">{{ card.description }}</p>
+                    <button class="btn btn-link p-0 almasa-text-gradient" onclick="event.stopPropagation(); toggleDetails('almasa-{{ loop.index }}')">
+                        Ver mais →
+                    </button>
+                    <p id="details-almasa-{{ loop.index }}" class="text-muted mt-2 d-none">{{ card.details }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
     {# Seção Pessoas - Centralizada #}
 <h3 class="mt-5 mb-3">Gestão de Pessoas</h3>
 <div class="row g-4">
