@@ -1,0 +1,306 @@
+{{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true, 'id': 'almasa-pc-form'}}) }}
+
+{# === PASSO 1: Nivel Hierarquico === #}
+<div class="card mb-3 border-primary">
+    <div class="card-header bg-primary text-white py-2">
+        <i class="fas fa-layer-group"></i> <strong>Passo 1</strong> — O que deseja {{ is_edit|default(false) ? 'editar' : 'criar' }}?
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                {{ form_row(form.nivel) }}
+            </div>
+            <div class="col-md-8">
+                <div id="nivel-help" class="alert alert-light border mb-0 mt-4">
+                    <i class="fas fa-info-circle text-primary"></i>
+                    <span id="nivel-help-text">Selecione o nivel para ver a descricao.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# === PASSO 2: Vinculacao (aparece apos selecionar nivel) === #}
+<div class="card mb-3" id="card-vinculacao" style="display:none">
+    <div class="card-header bg-light py-2">
+        <i class="fas fa-sitemap"></i> <strong>Passo 2</strong> — Vinculacao
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6" id="pai-wrapper">
+                {{ form_row(form.pai) }}
+                <small class="text-muted" id="pai-help"></small>
+            </div>
+            <div class="col-md-3" id="tipo-wrapper">
+                {{ form_row(form.tipo) }}
+                <small class="text-muted" id="tipo-help"></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# === PASSO 3: Identificacao (aparece apos selecionar nivel) === #}
+<div class="card mb-3" id="card-identificacao" style="display:none">
+    <div class="card-header bg-light py-2">
+        <i class="fas fa-tag"></i> <strong>Passo 3</strong> — Identificacao
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                {{ form_row(form.codigo) }}
+                <small class="text-muted" id="codigo-help"></small>
+            </div>
+            <div class="col-md-9">
+                {{ form_row(form.descricao) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# === PASSO 4: Opcoes (aparece apos selecionar nivel) === #}
+<div class="card mb-3" id="card-opcoes" style="display:none">
+    <div class="card-header bg-light py-2">
+        <i class="fas fa-cog"></i> Opcoes
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3" id="aceita-wrapper">
+                <div class="form-check mt-1">
+                    {{ form_widget(form.aceitaLancamentos) }}
+                    {{ form_label(form.aceitaLancamentos) }}
+                </div>
+                <small class="text-muted" id="aceita-help"></small>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check mt-1">
+                    {{ form_widget(form.ativo) }}
+                    {{ form_label(form.ativo) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# === Botoes === #}
+<div class="d-flex justify-content-between mt-3">
+    <a href="{{ path('app_almasa_plano_contas_index') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+    <div>
+        {% if is_edit|default(false) %}
+        <a href="{{ path('app_almasa_plano_contas_show', {'id': conta.id}) }}" class="btn btn-info me-2">
+            <i class="fas fa-eye"></i> Visualizar
+        </a>
+        {% endif %}
+        <button type="submit" class="btn btn-success" id="btn-salvar">
+            <i class="fas fa-save"></i> {{ is_edit|default(false) ? 'Salvar Alteracoes' : 'Salvar' }}
+        </button>
+    </div>
+</div>
+
+{{ form_end(form) }}
+
+<script>
+(function() {
+    const nivelSelect = document.getElementById('almasa_pc_nivel');
+    const paiSelect = document.getElementById('almasa_pc_pai');
+    const tipoSelect = document.getElementById('almasa_pc_tipo');
+    const codigoInput = document.getElementById('almasa_pc_codigo');
+
+    const cardVinculacao = document.getElementById('card-vinculacao');
+    const cardIdentificacao = document.getElementById('card-identificacao');
+    const cardOpcoes = document.getElementById('card-opcoes');
+    const paiWrapper = document.getElementById('pai-wrapper');
+    const tipoWrapper = document.getElementById('tipo-wrapper');
+    const aceitaWrapper = document.getElementById('aceita-wrapper');
+    const nivelHelp = document.getElementById('nivel-help-text');
+    const paiHelp = document.getElementById('pai-help');
+    const tipoHelp = document.getElementById('tipo-help');
+    const codigoHelp = document.getElementById('codigo-help');
+    const aceitaHelp = document.getElementById('aceita-help');
+
+    const aceitaCheckbox = document.getElementById('{{ form.aceitaLancamentos.vars.id }}');
+
+    const NIVEL_TEXTS = {
+        '1': {
+            help: 'Classe e o nivel raiz do plano de contas. Exemplos: Ativo, Passivo, Receita, Despesa.',
+            paiHelp: '',
+            tipoHelp: 'Defina o tipo contabil desta classe.',
+            codigoHelp: 'Ex: 1, 2, 3, 4, 5',
+            codigoPlaceholder: 'Ex: 1',
+            aceitaHelp: 'Classes nao recebem lancamentos.',
+            label: 'Classe'
+        },
+        '2': {
+            help: 'Grupo e uma subdivisao dentro de uma Classe. Ex: dentro de "Receita", criar grupo "Receitas Operacionais".',
+            paiHelp: 'Selecione a Classe onde este grupo sera criado.',
+            tipoHelp: 'Herdado da classe pai.',
+            codigoHelp: 'Ex: 4.1, 4.2',
+            codigoPlaceholder: 'Ex: 4.1',
+            aceitaHelp: 'Grupos nao recebem lancamentos.',
+            label: 'Grupo',
+            paiNivel: 1
+        },
+        '3': {
+            help: 'Subgrupo e uma subdivisao dentro de um Grupo. Ex: dentro de "Receitas Operacionais", criar "Taxas de Administracao".',
+            paiHelp: 'Selecione o Grupo onde este subgrupo sera criado.',
+            tipoHelp: 'Herdado do grupo pai.',
+            codigoHelp: 'Ex: 4.1.01, 4.1.02',
+            codigoPlaceholder: 'Ex: 4.1.01',
+            aceitaHelp: 'Subgrupos nao recebem lancamentos.',
+            label: 'Subgrupo',
+            paiNivel: 2
+        },
+        '4': {
+            help: 'Conta e o nivel operacional — e aqui que os lancamentos sao registrados. Ex: "Taxa Adm. Locacao", "Energia Eletrica".',
+            paiHelp: 'Selecione o Subgrupo onde esta conta sera criada.',
+            tipoHelp: 'Herdado do subgrupo pai.',
+            codigoHelp: 'Ex: 4.1.01.001',
+            codigoPlaceholder: 'Ex: 4.1.01.001',
+            aceitaHelp: 'Contas recebem lancamentos financeiros.',
+            label: 'Conta',
+            paiNivel: 3
+        }
+    };
+
+    // Salvar todas as opcoes do pai para filtrar depois
+    const allPaiOptions = [];
+    for (let i = 0; i < paiSelect.options.length; i++) {
+        const opt = paiSelect.options[i];
+        allPaiOptions.push({
+            value: opt.value,
+            text: opt.text,
+            nivel: opt.getAttribute('data-nivel'),
+            tipo: opt.getAttribute('data-tipo'),
+            selected: opt.selected
+        });
+    }
+
+    function onNivelChange() {
+        const nivel = nivelSelect.value;
+        if (!nivel) {
+            cardVinculacao.style.display = 'none';
+            cardIdentificacao.style.display = 'none';
+            cardOpcoes.style.display = 'none';
+            nivelHelp.textContent = 'Selecione o nivel para ver a descricao.';
+            return;
+        }
+
+        const config = NIVEL_TEXTS[nivel];
+
+        // Mostrar cards
+        cardVinculacao.style.display = '';
+        cardIdentificacao.style.display = '';
+        cardOpcoes.style.display = '';
+
+        // Atualizar textos de ajuda
+        nivelHelp.innerHTML = '<strong>' + config.label + ':</strong> ' + config.help;
+        paiHelp.textContent = config.paiHelp;
+        tipoHelp.textContent = config.tipoHelp;
+        codigoHelp.textContent = config.codigoHelp;
+        codigoInput.setAttribute('placeholder', config.codigoPlaceholder);
+        aceitaHelp.textContent = config.aceitaHelp;
+
+        // Classe (1): sem pai, tipo manual
+        if (nivel === '1') {
+            paiWrapper.style.display = 'none';
+            paiSelect.value = '';
+            tipoSelect.disabled = false;
+            tipoHelp.textContent = config.tipoHelp;
+        } else {
+            paiWrapper.style.display = '';
+            tipoHelp.textContent = config.tipoHelp;
+            // Filtrar opcoes do pai
+            filterPaiOptions(config.paiNivel);
+        }
+
+        // AceitaLancamentos: so para Conta (4)
+        if (nivel === '4') {
+            aceitaWrapper.style.display = '';
+            aceitaCheckbox.checked = true;
+            aceitaCheckbox.disabled = false;
+        } else {
+            aceitaWrapper.style.display = 'none';
+            aceitaCheckbox.checked = false;
+        }
+    }
+
+    function filterPaiOptions(targetNivel) {
+        // Limpar select
+        while (paiSelect.options.length > 0) {
+            paiSelect.remove(0);
+        }
+
+        // Placeholder
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.text = 'Selecione...';
+        paiSelect.add(placeholder);
+
+        // Filtrar por nivel
+        let currentValue = null;
+        allPaiOptions.forEach(function(opt) {
+            if (opt.nivel === String(targetNivel)) {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.text = opt.text;
+                option.setAttribute('data-nivel', opt.nivel);
+                option.setAttribute('data-tipo', opt.tipo);
+                if (opt.selected) {
+                    option.selected = true;
+                    currentValue = opt.value;
+                }
+                paiSelect.add(option);
+            }
+        });
+
+        // Se a opcao selecionada nao esta no filtro, limpar
+        if (!currentValue) {
+            paiSelect.value = '';
+        }
+
+        onPaiChange();
+    }
+
+    function onPaiChange() {
+        const nivel = nivelSelect.value;
+        if (nivel === '1') return; // Classe nao tem pai
+
+        const selectedOption = paiSelect.options[paiSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const paiTipo = selectedOption.getAttribute('data-tipo');
+            if (paiTipo) {
+                tipoSelect.value = paiTipo;
+                tipoSelect.disabled = true;
+            }
+        } else {
+            tipoSelect.disabled = false;
+        }
+    }
+
+    // Event listeners
+    nivelSelect.addEventListener('change', onNivelChange);
+    paiSelect.addEventListener('change', onPaiChange);
+
+    // Re-habilitar tipo antes do submit (senao o disabled nao envia)
+    document.getElementById('almasa-pc-form').addEventListener('submit', function() {
+        tipoSelect.disabled = false;
+    });
+
+    // Inicializar (para edicao onde ja tem valor)
+    if (nivelSelect.value) {
+        onNivelChange();
+        // Restaurar pai selecionado na edicao
+        const nivel = nivelSelect.value;
+        if (nivel !== '1') {
+            const config = NIVEL_TEXTS[nivel];
+            allPaiOptions.forEach(function(opt) {
+                if (opt.selected && opt.nivel === String(config.paiNivel)) {
+                    paiSelect.value = opt.value;
+                }
+            });
+            onPaiChange();
+        }
+    }
+})();
+</script>
