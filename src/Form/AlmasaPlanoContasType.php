@@ -21,7 +21,7 @@ class AlmasaPlanoContasType extends AbstractType
         $builder
             ->add('nivel', ChoiceType::class, [
                 'label' => 'O que deseja criar?',
-                'attr' => ['class' => 'form-select form-select-lg', 'id' => 'almasa_pc_nivel'],
+                'attr' => ['class' => 'form-select form-select-lg'],
                 'choices' => [
                     'Classe' => AlmasaPlanoContas::NIVEL_CLASSE,
                     'Grupo' => AlmasaPlanoContas::NIVEL_GRUPO,
@@ -51,12 +51,12 @@ class AlmasaPlanoContasType extends AbstractType
                         ->orderBy('a.codigo', 'ASC');
                 },
                 'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select', 'id' => 'almasa_pc_pai'],
+                'attr' => ['class' => 'form-select'],
                 'required' => false,
             ])
             ->add('tipo', ChoiceType::class, [
                 'label' => 'Tipo Contabil',
-                'attr' => ['class' => 'form-select', 'id' => 'almasa_pc_tipo'],
+                'attr' => ['class' => 'form-select'],
                 'choices' => [
                     'Ativo' => AlmasaPlanoContas::TIPO_ATIVO,
                     'Passivo' => AlmasaPlanoContas::TIPO_PASSIVO,
@@ -68,7 +68,7 @@ class AlmasaPlanoContasType extends AbstractType
             ])
             ->add('codigo', TextType::class, [
                 'label' => 'Codigo',
-                'attr' => ['class' => 'form-control', 'maxlength' => 20, 'id' => 'almasa_pc_codigo'],
+                'attr' => ['class' => 'form-control', 'maxlength' => 20],
                 'required' => true,
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Campo obrigatorio']),

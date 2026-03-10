@@ -102,10 +102,10 @@
 
 <script>
 (function() {
-    const nivelSelect = document.getElementById('almasa_pc_nivel');
-    const paiSelect = document.getElementById('almasa_pc_pai');
-    const tipoSelect = document.getElementById('almasa_pc_tipo');
-    const codigoInput = document.getElementById('almasa_pc_codigo');
+    const nivelSelect = document.getElementById('{{ form.nivel.vars.id }}');
+    const paiSelect = document.getElementById('{{ form.pai.vars.id }}');
+    const tipoSelect = document.getElementById('{{ form.tipo.vars.id }}');
+    const codigoInput = document.getElementById('{{ form.codigo.vars.id }}');
 
     const cardVinculacao = document.getElementById('card-vinculacao');
     const cardIdentificacao = document.getElementById('card-identificacao');
