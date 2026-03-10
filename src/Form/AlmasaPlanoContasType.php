@@ -41,6 +41,9 @@ class AlmasaPlanoContasType extends AbstractType
                 'label' => 'Tipo',
                 'attr' => ['class' => 'form-select'],
                 'choices' => [
+                    'Ativo' => AlmasaPlanoContas::TIPO_ATIVO,
+                    'Passivo' => AlmasaPlanoContas::TIPO_PASSIVO,
+                    'Patrimônio Líquido' => AlmasaPlanoContas::TIPO_PATRIMONIO_LIQUIDO,
                     'Receita' => AlmasaPlanoContas::TIPO_RECEITA,
                     'Despesa' => AlmasaPlanoContas::TIPO_DESPESA,
                 ],
@@ -50,9 +53,11 @@ class AlmasaPlanoContasType extends AbstractType
                 'label' => 'Nível',
                 'attr' => ['class' => 'form-select'],
                 'choices' => [
-                    '1 - Grupo' => AlmasaPlanoContas::NIVEL_GRUPO,
-                    '2 - Subgrupo' => AlmasaPlanoContas::NIVEL_SUBGRUPO,
-                    '3 - Conta' => AlmasaPlanoContas::NIVEL_CONTA,
+                    '1 - Classe' => AlmasaPlanoContas::NIVEL_CLASSE,
+                    '2 - Grupo' => AlmasaPlanoContas::NIVEL_GRUPO,
+                    '3 - Subgrupo' => AlmasaPlanoContas::NIVEL_SUBGRUPO,
+                    '4 - Conta' => AlmasaPlanoContas::NIVEL_CONTA,
+                    '5 - Subconta' => AlmasaPlanoContas::NIVEL_SUBCONTA,
                 ],
                 'required' => true,
             ])
@@ -64,8 +69,9 @@ class AlmasaPlanoContasType extends AbstractType
                 },
                 'query_builder' => function ($repo) {
                     return $repo->createQueryBuilder('a')
-                        ->where('a.nivel < 3')
+                        ->where('a.nivel < :nivelMax')
                         ->andWhere('a.ativo = true')
+                        ->setParameter('nivelMax', AlmasaPlanoContas::NIVEL_SUBCONTA)
                         ->orderBy('a.codigo', 'ASC');
                 },
                 'placeholder' => '(Nenhum - Conta Raiz)',

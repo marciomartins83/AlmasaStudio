@@ -17,16 +17,21 @@
         .total-row { background: #eee; font-weight: bold; }
         .footer { margin-top: 20px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: bold; }
+        .badge-primary { background: #0d6efd; color: #fff; }
         .badge-success { background: #198754; color: #fff; }
         .badge-danger { background: #dc3545; color: #fff; }
+        .badge-warning { background: #ffc107; color: #333; }
         .badge-dark { background: #333; color: #fff; }
         .badge-secondary { background: #6c757d; color: #fff; }
         .badge-info { background: #17a2b8; color: #fff; }
+        .badge-light { background: #f8f9fa; color: #333; border: 1px solid #ccc; }
         .check { color: #198754; }
         .times { color: #adb5bd; }
         .nivel-1 { font-weight: bold; }
-        .nivel-2 { padding-left: 15px; }
-        .nivel-3 { padding-left: 30px; }
+        .nivel-2 { padding-left: 12px; font-weight: bold; }
+        .nivel-3 { padding-left: 24px; }
+        .nivel-4 { padding-left: 36px; }
+        .nivel-5 { padding-left: 48px; }
         .legenda { margin-top: 15px; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; font-size: 8px; }
     </style>
 </head>
@@ -60,20 +65,18 @@
                                 {{ conta.descricao }}
                             </td>
                             <td class="text-center">
-                                {% if conta.tipo == 'receita' %}
-                                    <span class="badge badge-success">Receita</span>
-                                {% else %}
-                                    <span class="badge badge-danger">Despesa</span>
-                                {% endif %}
+                                {% set tipoBadge = {
+                                    'ativo': 'primary',
+                                    'passivo': 'warning',
+                                    'patrimonio_liquido': 'info',
+                                    'receita': 'success',
+                                    'despesa': 'danger'
+                                } %}
+                                <span class="badge badge-{{ tipoBadge[conta.tipo] ?? 'secondary' }}">{{ conta.tipoLabel }}</span>
                             </td>
                             <td class="text-center">
-                                {% if conta.nivel == 1 %}
-                                    <span class="badge badge-dark">Grupo</span>
-                                {% elseif conta.nivel == 2 %}
-                                    <span class="badge badge-secondary">Subgrupo</span>
-                                {% else %}
-                                    <span class="badge badge-info">Conta</span>
-                                {% endif %}
+                                {% set nivelBadge = { 1: 'dark', 2: 'secondary', 3: 'info', 4: 'primary', 5: 'light' } %}
+                                <span class="badge badge-{{ nivelBadge[conta.nivel] ?? 'secondary' }}">{{ conta.nivelLabel }}</span>
                             </td>
                             <td class="text-center">
                                 {% if conta.isAceitaLancamentos() %}
@@ -116,13 +119,19 @@
         </table>
 
         <div class="legenda">
-            <strong>Legenda:</strong>
-            <span class="badge badge-success">Receita</span> - Contas de entrada |
-            <span class="badge badge-danger">Despesa</span> - Contas de saida
+            <strong>Tipo:</strong>
+            <span class="badge badge-primary">Ativo</span> |
+            <span class="badge badge-warning">Passivo</span> |
+            <span class="badge badge-info">Patrim. Liq.</span> |
+            <span class="badge badge-success">Receita</span> |
+            <span class="badge badge-danger">Despesa</span>
             <br>
-            <span class="badge badge-dark">Grupo</span> - Nivel 1 |
-            <span class="badge badge-secondary">Subgrupo</span> - Nivel 2 |
-            <span class="badge badge-info">Conta</span> - Nivel 3 (aceita lancamentos)
+            <strong>Nivel:</strong>
+            <span class="badge badge-dark">Classe</span> 1 |
+            <span class="badge badge-secondary">Grupo</span> 2 |
+            <span class="badge badge-info">Subgrupo</span> 3 |
+            <span class="badge badge-primary">Conta</span> 4 |
+            <span class="badge badge-light">Subconta</span> 5
         </div>
 
         {% include 'relatorios/pdf/_footer.html.twig' %}

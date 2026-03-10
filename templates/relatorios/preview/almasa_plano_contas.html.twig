@@ -18,33 +18,37 @@
                     <tr>
                         <td>
                             <code>
-                                {% if conta.nivel == 1 %}
-                                    <strong>{{ conta.codigo }}</strong>
-                                {% elseif conta.nivel == 2 %}
-                                    &nbsp;&nbsp;{{ conta.codigo }}
+                                {% set indent = '&nbsp;&nbsp;'|repeat(conta.nivel - 1) %}
+                                {% if conta.nivel <= 2 %}
+                                    <strong>{{ indent|raw }}{{ conta.codigo }}</strong>
                                 {% else %}
-                                    &nbsp;&nbsp;&nbsp;&nbsp;{{ conta.codigo }}
+                                    {{ indent|raw }}{{ conta.codigo }}
                                 {% endif %}
                             </code>
                         </td>
                         <td>
+                            {% set indent = '&nbsp;&nbsp;'|repeat(conta.nivel - 1) %}
                             {% if conta.nivel == 1 %}
                                 <strong class="text-dark">{{ conta.descricao }}</strong>
                             {% elseif conta.nivel == 2 %}
-                                <span class="text-secondary">&nbsp;&nbsp;{{ conta.descricao }}</span>
+                                <strong class="text-secondary">{{ indent|raw }}{{ conta.descricao }}</strong>
                             {% else %}
-                                &nbsp;&nbsp;&nbsp;&nbsp;{{ conta.descricao }}
+                                <span class="text-{{ conta.nivel >= 4 ? 'body' : 'secondary' }}">{{ indent|raw }}{{ conta.descricao }}</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            {% if conta.tipo == 'receita' %}
-                                <span class="badge bg-success">Receita</span>
-                            {% else %}
-                                <span class="badge bg-danger">Despesa</span>
-                            {% endif %}
+                            {% set tipoBadge = {
+                                'ativo': 'primary',
+                                'passivo': 'warning',
+                                'patrimonio_liquido': 'info',
+                                'receita': 'success',
+                                'despesa': 'danger'
+                            } %}
+                            <span class="badge bg-{{ tipoBadge[conta.tipo] ?? 'secondary' }}">{{ conta.tipoLabel }}</span>
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-{{ conta.nivel == 1 ? 'dark' : (conta.nivel == 2 ? 'secondary' : 'info') }}">
+                            {% set nivelBadge = { 1: 'dark', 2: 'secondary', 3: 'info', 4: 'primary', 5: 'light text-dark' } %}
+                            <span class="badge bg-{{ nivelBadge[conta.nivel] ?? 'secondary' }}">
                                 {{ conta.nivelLabel }}
                             </span>
                         </td>
@@ -93,12 +97,18 @@
 {# Legenda #}
 <div class="mt-3">
     <small class="text-muted">
-        <strong>Legenda:</strong>
-        <span class="badge bg-success ms-2">Receita</span>
+        <strong>Tipo:</strong>
+        <span class="badge bg-primary ms-2">Ativo</span>
+        <span class="badge bg-warning ms-1">Passivo</span>
+        <span class="badge bg-info ms-1">Patrim. Liq.</span>
+        <span class="badge bg-success ms-1">Receita</span>
         <span class="badge bg-danger ms-1">Despesa</span>
         &nbsp;|&nbsp;
-        <span class="badge bg-dark ms-1">Grupo</span>
-        <span class="badge bg-secondary ms-1">Subgrupo</span>
-        <span class="badge bg-info ms-1">Conta</span>
+        <strong>Nivel:</strong>
+        <span class="badge bg-dark ms-1">Classe</span>
+        <span class="badge bg-secondary ms-1">Grupo</span>
+        <span class="badge bg-info ms-1">Subgrupo</span>
+        <span class="badge bg-primary ms-1">Conta</span>
+        <span class="badge bg-light text-dark ms-1">Subconta</span>
     </small>
 </div>

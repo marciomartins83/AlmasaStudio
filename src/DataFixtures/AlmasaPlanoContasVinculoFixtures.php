@@ -19,18 +19,19 @@ class AlmasaPlanoContasVinculoFixtures extends Fixture implements DependentFixtu
 
     public function load(ObjectManager $manager): void
     {
-        // Mapeamento: plano_contas.codigo => almasa_plano_contas.codigo
+        // Mapeamento: plano_contas.codigo => almasa_plano_contas.codigo (v2)
+        // Receitas agora no grupo 4, despesas no grupo 5
         $mapeamento = [
-            '2001' => '1.1.01', // Taxa de Administração
-            '2051' => '1.1.02', // Tx. Administração Condominio
-            '2046' => '1.1.03', // Taxa de Locação
-            '1030' => '1.1.01', // Tx. Administração (Almasa)
-            '1035' => '1.1.04', // Honorarios - Juridico
-            '1011' => '1.1.03', // Taxa de Locação
-            '1026' => '1.1.05', // Comissões Recebidas
-            '1041' => '1.2.01', // Juros
-            '1013' => '1.3.01', // Receitas Diversas
-            '2029' => '2.5.01', // Comissões Pagas
+            '2001' => '4.1.01', // Taxa de Administração → Taxa de Administração de Aluguel
+            '2051' => '4.1.01', // Tx. Administração Condominio → Taxa de Administração de Aluguel
+            '2046' => '4.1.02', // Taxa de Locação → Comissão de Locação
+            '1030' => '4.1.01', // Tx. Administração (Almasa) → Taxa de Administração de Aluguel
+            '1035' => '4.2.01', // Honorarios - Juridico → Multas Contratuais
+            '1011' => '4.1.02', // Taxa de Locação → Comissão de Locação
+            '1026' => '4.1.02', // Comissões Recebidas → Comissão de Locação
+            '1041' => '4.2.02', // Juros → Juros de Mora
+            '1013' => '4.2.03', // Receitas Diversas → Serviços de Vistoria
+            '2029' => '5.2.01', // Comissões Pagas → Salários (grupo despesa pessoal)
         ];
 
         $planoContasRepo = $manager->getRepository(PlanoContas::class);

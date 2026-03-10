@@ -61,33 +61,37 @@
                                     <td>{{ conta.id }}</td>
                                     <td>
                                         <code>
-                                            {% if conta.nivel == 1 %}
-                                                <strong>{{ conta.codigo }}</strong>
-                                            {% elseif conta.nivel == 2 %}
-                                                &nbsp;&nbsp;{{ conta.codigo }}
+                                            {% set indent = '&nbsp;&nbsp;'|repeat(conta.nivel - 1) %}
+                                            {% if conta.nivel <= 2 %}
+                                                <strong>{{ indent|raw }}{{ conta.codigo }}</strong>
                                             {% else %}
-                                                &nbsp;&nbsp;&nbsp;&nbsp;{{ conta.codigo }}
+                                                {{ indent|raw }}{{ conta.codigo }}
                                             {% endif %}
                                         </code>
                                     </td>
                                     <td>
+                                        {% set indent = '&nbsp;&nbsp;'|repeat(conta.nivel - 1) %}
                                         {% if conta.nivel == 1 %}
                                             <strong class="text-dark">{{ conta.descricao }}</strong>
                                         {% elseif conta.nivel == 2 %}
-                                            <span class="text-secondary">&nbsp;&nbsp;{{ conta.descricao }}</span>
+                                            <strong class="text-secondary">{{ indent|raw }}{{ conta.descricao }}</strong>
                                         {% else %}
-                                            &nbsp;&nbsp;&nbsp;&nbsp;{{ conta.descricao }}
+                                            <span class="text-{{ conta.nivel >= 4 ? 'body' : 'secondary' }}">{{ indent|raw }}{{ conta.descricao }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if conta.tipo == 'receita' %}
-                                            <span class="badge bg-success">Receita</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Despesa</span>
-                                        {% endif %}
+                                        {% set tipoBadge = {
+                                            'ativo': 'primary',
+                                            'passivo': 'warning',
+                                            'patrimonio_liquido': 'info',
+                                            'receita': 'success',
+                                            'despesa': 'danger'
+                                        } %}
+                                        <span class="badge bg-{{ tipoBadge[conta.tipo] ?? 'secondary' }}">{{ conta.tipoLabel }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-{{ conta.nivel == 1 ? 'dark' : (conta.nivel == 2 ? 'secondary' : 'info') }}">
+                                        {% set nivelBadge = { 1: 'dark', 2: 'secondary', 3: 'info', 4: 'primary', 5: 'light text-dark' } %}
+                                        <span class="badge bg-{{ nivelBadge[conta.nivel] ?? 'secondary' }}">
                                             {{ conta.nivelLabel }}
                                         </span>
                                     </td>
@@ -115,7 +119,7 @@
                                                class="btn btn-warning btn-sm">
                                                 <i class="fas fa-edit"></i> Editar
                                             </a>
-                                            {% if conta.nivel == 3 %}
+                                            {% if conta.filhos is empty %}
                                             <form method="post"
                                                   action="{{ path('app_almasa_plano_contas_delete', {'id': conta.id}) }}"
                                                   style="display:inline-block"

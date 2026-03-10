@@ -22,12 +22,17 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class AlmasaPlanoContas
 {
+    public const TIPO_ATIVO = 'ativo';
+    public const TIPO_PASSIVO = 'passivo';
+    public const TIPO_PATRIMONIO_LIQUIDO = 'patrimonio_liquido';
     public const TIPO_RECEITA = 'receita';
     public const TIPO_DESPESA = 'despesa';
 
-    public const NIVEL_GRUPO = 1;
-    public const NIVEL_SUBGRUPO = 2;
-    public const NIVEL_CONTA = 3;
+    public const NIVEL_CLASSE = 1;
+    public const NIVEL_GRUPO = 2;
+    public const NIVEL_SUBGRUPO = 3;
+    public const NIVEL_CONTA = 4;
+    public const NIVEL_SUBCONTA = 5;
 
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'IDENTITY')]
@@ -40,11 +45,11 @@ class AlmasaPlanoContas
     #[ORM\Column(type: Types::STRING, length: 255)]
     private string $descricao;
 
-    #[ORM\Column(type: Types::STRING, length: 10)]
-    private string $tipo = self::TIPO_RECEITA;
+    #[ORM\Column(type: Types::STRING, length: 25)]
+    private string $tipo = self::TIPO_ATIVO;
 
     #[ORM\Column(type: Types::SMALLINT)]
-    private int $nivel = self::NIVEL_CONTA;
+    private int $nivel = self::NIVEL_CLASSE;
 
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'filhos')]
     #[ORM\JoinColumn(name: 'id_pai', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
@@ -254,6 +259,11 @@ class AlmasaPlanoContas
 
     // === METODOS AUXILIARES ===
 
+    public function isClasse(): bool
+    {
+        return $this->nivel === self::NIVEL_CLASSE;
+    }
+
     public function isGrupo(): bool
     {
         return $this->nivel === self::NIVEL_GRUPO;
@@ -269,6 +279,11 @@ class AlmasaPlanoContas
         return $this->nivel === self::NIVEL_CONTA;
     }
 
+    public function isSubconta(): bool
+    {
+        return $this->nivel === self::NIVEL_SUBCONTA;
+    }
+
     public function isReceita(): bool
     {
         return $this->tipo === self::TIPO_RECEITA;
@@ -279,12 +294,26 @@ class AlmasaPlanoContas
         return $this->tipo === self::TIPO_DESPESA;
     }
 
+    public function getTipoLabel(): string
+    {
+        return match ($this->tipo) {
+            self::TIPO_ATIVO => 'Ativo',
+            self::TIPO_PASSIVO => 'Passivo',
+            self::TIPO_PATRIMONIO_LIQUIDO => 'Patrimônio Líquido',
+            self::TIPO_RECEITA => 'Receita',
+            self::TIPO_DESPESA => 'Despesa',
+            default => 'Desconhecido',
+        };
+    }
+
     public function getNivelLabel(): string
     {
         return match ($this->nivel) {
+            self::NIVEL_CLASSE => 'Classe',
             self::NIVEL_GRUPO => 'Grupo',
             self::NIVEL_SUBGRUPO => 'Subgrupo',
             self::NIVEL_CONTA => 'Conta',
+            self::NIVEL_SUBCONTA => 'Subconta',
             default => 'Desconhecido',
         };
     }

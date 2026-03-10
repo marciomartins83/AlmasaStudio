@@ -13,47 +13,109 @@ class AlmasaPlanoContasFixtures extends Fixture
     public function load(ObjectManager $manager): void
     {
         $estrutura = [
-            // NIVEL 1 — GRUPOS
-            ['codigo' => '1', 'descricao' => 'Receitas', 'tipo' => 'receita', 'nivel' => 1, 'pai' => null, 'aceita' => false],
-            ['codigo' => '2', 'descricao' => 'Despesas', 'tipo' => 'despesa', 'nivel' => 1, 'pai' => null, 'aceita' => false],
+            // =====================================================================
+            // 1. ATIVO
+            // =====================================================================
+            ['codigo' => '1', 'descricao' => 'ATIVO', 'tipo' => 'ativo', 'nivel' => 1, 'pai' => null, 'aceita' => false],
+            ['codigo' => '1.1', 'descricao' => 'Ativo Circulante', 'tipo' => 'ativo', 'nivel' => 2, 'pai' => '1', 'aceita' => false],
 
-            // NIVEL 2 — SUBGRUPOS RECEITA
-            ['codigo' => '1.1', 'descricao' => 'Receitas Operacionais', 'tipo' => 'receita', 'nivel' => 2, 'pai' => '1', 'aceita' => false],
-            ['codigo' => '1.2', 'descricao' => 'Receitas Financeiras', 'tipo' => 'receita', 'nivel' => 2, 'pai' => '1', 'aceita' => false],
-            ['codigo' => '1.3', 'descricao' => 'Receitas Diversas', 'tipo' => 'receita', 'nivel' => 2, 'pai' => '1', 'aceita' => false],
+            // 1.1.01 Disponivel
+            ['codigo' => '1.1.01', 'descricao' => 'Disponível', 'tipo' => 'ativo', 'nivel' => 3, 'pai' => '1.1', 'aceita' => false],
+            ['codigo' => '1.1.01.001', 'descricao' => 'Caixa', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.01', 'aceita' => true],
+            ['codigo' => '1.1.01.002', 'descricao' => 'Banco Conta Movimento', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.01', 'aceita' => true],
+            ['codigo' => '1.1.01.003', 'descricao' => 'Aplicações Financeiras', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.01', 'aceita' => true],
 
-            // NIVEL 2 — SUBGRUPOS DESPESA
-            ['codigo' => '2.1', 'descricao' => 'Despesas com Pessoal', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '2', 'aceita' => false],
-            ['codigo' => '2.2', 'descricao' => 'Despesas Administrativas', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '2', 'aceita' => false],
-            ['codigo' => '2.3', 'descricao' => 'Despesas com Veículos', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '2', 'aceita' => false],
-            ['codigo' => '2.4', 'descricao' => 'Despesas com Imóvel (escritório)', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '2', 'aceita' => false],
-            ['codigo' => '2.5', 'descricao' => 'Comissões Pagas', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '2', 'aceita' => false],
+            // 1.1.02 Contas a Receber
+            ['codigo' => '1.1.02', 'descricao' => 'Contas a Receber', 'tipo' => 'ativo', 'nivel' => 3, 'pai' => '1.1', 'aceita' => false],
+            ['codigo' => '1.1.02.001', 'descricao' => 'Aluguéis a Receber', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.02', 'aceita' => true],
+            ['codigo' => '1.1.02.002', 'descricao' => 'Taxa de Administração a Receber', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.02', 'aceita' => true],
+            ['codigo' => '1.1.02.003', 'descricao' => 'Multas Contratuais a Receber', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.02', 'aceita' => true],
+            ['codigo' => '1.1.02.004', 'descricao' => 'Juros de Mora a Receber', 'tipo' => 'ativo', 'nivel' => 4, 'pai' => '1.1.02', 'aceita' => true],
 
-            // NIVEL 3 — CONTAS RECEITA
-            ['codigo' => '1.1.01', 'descricao' => 'Taxa de Administração - Locação', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.1', 'aceita' => true],
-            ['codigo' => '1.1.02', 'descricao' => 'Taxa de Administração - Condomínio', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.1', 'aceita' => true],
-            ['codigo' => '1.1.03', 'descricao' => 'Taxa de Locação', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.1', 'aceita' => true],
-            ['codigo' => '1.1.04', 'descricao' => 'Honorários - Jurídico', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.1', 'aceita' => true],
-            ['codigo' => '1.1.05', 'descricao' => 'Comissões - Vendas', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.1', 'aceita' => true],
-            ['codigo' => '1.2.01', 'descricao' => 'Juros Bancários', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.2', 'aceita' => true],
-            ['codigo' => '1.3.01', 'descricao' => 'Receitas Diversas', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '1.3', 'aceita' => true],
+            // =====================================================================
+            // 2. PASSIVO
+            // =====================================================================
+            ['codigo' => '2', 'descricao' => 'PASSIVO', 'tipo' => 'passivo', 'nivel' => 1, 'pai' => null, 'aceita' => false],
+            ['codigo' => '2.1', 'descricao' => 'Passivo Circulante', 'tipo' => 'passivo', 'nivel' => 2, 'pai' => '2', 'aceita' => false],
 
-            // NIVEL 3 — CONTAS DESPESA
-            ['codigo' => '2.1.01', 'descricao' => 'Salários', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.1', 'aceita' => true],
-            ['codigo' => '2.1.02', 'descricao' => 'Encargos Sociais', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.1', 'aceita' => true],
-            ['codigo' => '2.1.03', 'descricao' => 'Sindicato', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.1', 'aceita' => true],
-            ['codigo' => '2.2.01', 'descricao' => 'Material Escritório', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.2', 'aceita' => true],
-            ['codigo' => '2.2.02', 'descricao' => 'Material Limpeza / Cozinha', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.2', 'aceita' => true],
-            ['codigo' => '2.2.03', 'descricao' => 'Publicidade', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.2', 'aceita' => true],
-            ['codigo' => '2.2.04', 'descricao' => 'Condução / Correio', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.2', 'aceita' => true],
-            ['codigo' => '2.2.05', 'descricao' => 'Taxas Bancárias', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.2', 'aceita' => true],
-            ['codigo' => '2.2.06', 'descricao' => 'Despesas Diversas', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.2', 'aceita' => true],
-            ['codigo' => '2.3.01', 'descricao' => 'Combustível', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.3', 'aceita' => true],
-            ['codigo' => '2.3.02', 'descricao' => 'Manutenção Veículo', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.3', 'aceita' => true],
-            ['codigo' => '2.4.01', 'descricao' => 'Seguro do Prédio', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.4', 'aceita' => true],
-            ['codigo' => '2.4.02', 'descricao' => 'Manutenção do Prédio', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.4', 'aceita' => true],
-            ['codigo' => '2.4.03', 'descricao' => 'Manutenção Máquinas/Equipamentos', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.4', 'aceita' => true],
-            ['codigo' => '2.5.01', 'descricao' => 'Comissões Pagas - Corretor', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '2.5', 'aceita' => true],
+            // 2.1.01 Obrigacoes com Proprietarios
+            ['codigo' => '2.1.01', 'descricao' => 'Obrigações com Proprietários', 'tipo' => 'passivo', 'nivel' => 3, 'pai' => '2.1', 'aceita' => false],
+            ['codigo' => '2.1.01.01', 'descricao' => 'Conta Corrente de Proprietários', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.01', 'aceita' => false],
+            ['codigo' => '2.1.01.01.001', 'descricao' => 'Proprietário João da Silva', 'tipo' => 'passivo', 'nivel' => 5, 'pai' => '2.1.01.01', 'aceita' => true],
+            ['codigo' => '2.1.01.01.002', 'descricao' => 'Proprietário Maria Oliveira', 'tipo' => 'passivo', 'nivel' => 5, 'pai' => '2.1.01.01', 'aceita' => true],
+            ['codigo' => '2.1.01.01.003', 'descricao' => 'Proprietário Empresa ABC', 'tipo' => 'passivo', 'nivel' => 5, 'pai' => '2.1.01.01', 'aceita' => true],
+
+            // 2.1.02 Obrigacoes Trabalhistas
+            ['codigo' => '2.1.02', 'descricao' => 'Obrigações Trabalhistas', 'tipo' => 'passivo', 'nivel' => 3, 'pai' => '2.1', 'aceita' => false],
+            ['codigo' => '2.1.02.001', 'descricao' => 'Salários a Pagar', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.02', 'aceita' => true],
+            ['codigo' => '2.1.02.002', 'descricao' => 'INSS a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.02', 'aceita' => true],
+            ['codigo' => '2.1.02.003', 'descricao' => 'FGTS a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.02', 'aceita' => true],
+            ['codigo' => '2.1.02.004', 'descricao' => 'Férias a Pagar', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.02', 'aceita' => true],
+            ['codigo' => '2.1.02.005', 'descricao' => '13º Salário', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.02', 'aceita' => true],
+
+            // 2.1.03 Obrigacoes Tributarias
+            ['codigo' => '2.1.03', 'descricao' => 'Obrigações Tributárias', 'tipo' => 'passivo', 'nivel' => 3, 'pai' => '2.1', 'aceita' => false],
+            ['codigo' => '2.1.03.001', 'descricao' => 'ISS a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.03', 'aceita' => true],
+            ['codigo' => '2.1.03.002', 'descricao' => 'PIS a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.03', 'aceita' => true],
+            ['codigo' => '2.1.03.003', 'descricao' => 'COFINS a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.03', 'aceita' => true],
+            ['codigo' => '2.1.03.004', 'descricao' => 'IRPJ a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.03', 'aceita' => true],
+            ['codigo' => '2.1.03.005', 'descricao' => 'CSLL a Recolher', 'tipo' => 'passivo', 'nivel' => 4, 'pai' => '2.1.03', 'aceita' => true],
+
+            // =====================================================================
+            // 3. PATRIMONIO LIQUIDO
+            // =====================================================================
+            ['codigo' => '3', 'descricao' => 'PATRIMÔNIO LÍQUIDO', 'tipo' => 'patrimonio_liquido', 'nivel' => 1, 'pai' => null, 'aceita' => false],
+
+            // 3.1 Capital Social
+            ['codigo' => '3.1', 'descricao' => 'Capital Social', 'tipo' => 'patrimonio_liquido', 'nivel' => 2, 'pai' => '3', 'aceita' => false],
+            ['codigo' => '3.1.01', 'descricao' => 'Capital Social Integralizado', 'tipo' => 'patrimonio_liquido', 'nivel' => 3, 'pai' => '3.1', 'aceita' => true],
+
+            // 3.2 Conta Corrente de Socios
+            ['codigo' => '3.2', 'descricao' => 'Conta Corrente de Sócios', 'tipo' => 'patrimonio_liquido', 'nivel' => 2, 'pai' => '3', 'aceita' => false],
+            ['codigo' => '3.2.01', 'descricao' => 'Conta Corrente Sócios', 'tipo' => 'patrimonio_liquido', 'nivel' => 3, 'pai' => '3.2', 'aceita' => false],
+            ['codigo' => '3.2.01.001', 'descricao' => 'Sócio – Celestino Almeida Silva', 'tipo' => 'patrimonio_liquido', 'nivel' => 4, 'pai' => '3.2.01', 'aceita' => true],
+            ['codigo' => '3.2.01.002', 'descricao' => 'Sócio – (outro sócio)', 'tipo' => 'patrimonio_liquido', 'nivel' => 4, 'pai' => '3.2.01', 'aceita' => true],
+
+            // =====================================================================
+            // 4. RECEITAS
+            // =====================================================================
+            ['codigo' => '4', 'descricao' => 'RECEITAS', 'tipo' => 'receita', 'nivel' => 1, 'pai' => null, 'aceita' => false],
+
+            // 4.1 Receitas de Administracao
+            ['codigo' => '4.1', 'descricao' => 'Receitas de Administração', 'tipo' => 'receita', 'nivel' => 2, 'pai' => '4', 'aceita' => false],
+            ['codigo' => '4.1.01', 'descricao' => 'Taxa de Administração de Aluguel', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.1', 'aceita' => true],
+            ['codigo' => '4.1.02', 'descricao' => 'Comissão de Locação', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.1', 'aceita' => true],
+            ['codigo' => '4.1.03', 'descricao' => 'Taxa de Renovação de Contrato', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.1', 'aceita' => true],
+            ['codigo' => '4.1.04', 'descricao' => 'Taxa de Cadastro', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.1', 'aceita' => true],
+
+            // 4.2 Outras Receitas
+            ['codigo' => '4.2', 'descricao' => 'Outras Receitas', 'tipo' => 'receita', 'nivel' => 2, 'pai' => '4', 'aceita' => false],
+            ['codigo' => '4.2.01', 'descricao' => 'Multas Contratuais', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.2', 'aceita' => true],
+            ['codigo' => '4.2.02', 'descricao' => 'Juros de Mora', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.2', 'aceita' => true],
+            ['codigo' => '4.2.03', 'descricao' => 'Serviços de Vistoria', 'tipo' => 'receita', 'nivel' => 3, 'pai' => '4.2', 'aceita' => true],
+
+            // =====================================================================
+            // 5. DESPESAS OPERACIONAIS
+            // =====================================================================
+            ['codigo' => '5', 'descricao' => 'DESPESAS OPERACIONAIS', 'tipo' => 'despesa', 'nivel' => 1, 'pai' => null, 'aceita' => false],
+
+            // 5.1 Despesas Administrativas
+            ['codigo' => '5.1', 'descricao' => 'Despesas Administrativas', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '5', 'aceita' => false],
+            ['codigo' => '5.1.01', 'descricao' => 'Aluguel do Escritório', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.02', 'descricao' => 'Energia Elétrica', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.03', 'descricao' => 'Água', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.04', 'descricao' => 'Internet', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.05', 'descricao' => 'Telefone', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.06', 'descricao' => 'Material de Escritório', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.07', 'descricao' => 'Software Imobiliário', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+            ['codigo' => '5.1.08', 'descricao' => 'Contabilidade', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.1', 'aceita' => true],
+
+            // 5.2 Despesas com Pessoal
+            ['codigo' => '5.2', 'descricao' => 'Despesas com Pessoal', 'tipo' => 'despesa', 'nivel' => 2, 'pai' => '5', 'aceita' => false],
+            ['codigo' => '5.2.01', 'descricao' => 'Salários', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.2', 'aceita' => true],
+            ['codigo' => '5.2.02', 'descricao' => 'Pró-labore', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.2', 'aceita' => true],
+            ['codigo' => '5.2.03', 'descricao' => 'INSS', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.2', 'aceita' => true],
+            ['codigo' => '5.2.04', 'descricao' => 'FGTS', 'tipo' => 'despesa', 'nivel' => 3, 'pai' => '5.2', 'aceita' => true],
         ];
 
         $entidades = [];

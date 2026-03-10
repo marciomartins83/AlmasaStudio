@@ -36,13 +36,18 @@ class AlmasaPlanoContasController extends AbstractController
             new SearchFilterDTO('codigo', 'Codigo', 'text', 'a.codigo', 'LIKE', [], null, 2),
             new SearchFilterDTO('descricao', 'Descricao', 'text', 'a.descricao', 'LIKE', [], null, 3),
             new SearchFilterDTO('tipo', 'Tipo', 'select', 'a.tipo', 'EXACT', [
+                AlmasaPlanoContas::TIPO_ATIVO => 'Ativo',
+                AlmasaPlanoContas::TIPO_PASSIVO => 'Passivo',
+                AlmasaPlanoContas::TIPO_PATRIMONIO_LIQUIDO => 'Patrimônio Líquido',
                 AlmasaPlanoContas::TIPO_RECEITA => 'Receita',
                 AlmasaPlanoContas::TIPO_DESPESA => 'Despesa',
             ], null, 2),
             new SearchFilterDTO('nivel', 'Nivel', 'select', 'a.nivel', 'EXACT', [
+                (string) AlmasaPlanoContas::NIVEL_CLASSE => 'Classe',
                 (string) AlmasaPlanoContas::NIVEL_GRUPO => 'Grupo',
                 (string) AlmasaPlanoContas::NIVEL_SUBGRUPO => 'Subgrupo',
                 (string) AlmasaPlanoContas::NIVEL_CONTA => 'Conta',
+                (string) AlmasaPlanoContas::NIVEL_SUBCONTA => 'Subconta',
             ], null, 2),
             new SearchFilterDTO('aceitaLancamentos', 'Aceita Lanc.', 'select', 'a.aceitaLancamentos', 'BOOL', [
                 '1' => 'Sim',
