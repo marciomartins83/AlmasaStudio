@@ -46,11 +46,24 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-3">
-                {{ form_row(form.codigo) }}
+            <div class="col-md-4">
+                {# Modo simples — para Classe (nivel 1) ou sem pai #}
+                <div id="codigo-modo-simples">
+                    {{ form_row(form.codigo) }}
+                </div>
+                {# Modo composto — prefixo travado + sufixo editavel #}
+                <div id="codigo-modo-composto" style="display:none">
+                    <label class="form-label">Codigo</label>
+                    <div class="input-group">
+                        <span class="input-group-text fw-bold bg-light" id="codigo-prefixo-display"></span>
+                        <input type="text" class="form-control fw-bold" id="codigo-sufixo-input" placeholder="001">
+                    </div>
+                    <small class="text-success" id="codigo-sugestao"></small>
+                </div>
+                {{ form_errors(form.codigo) }}
                 <small class="text-muted" id="codigo-help"></small>
             </div>
-            <div class="col-md-9">
+            <div class="col-md-8">
                 {{ form_row(form.descricao) }}
             </div>
         </div>
@@ -102,16 +115,18 @@
 
 <script>
 (function() {
+    const API_URL = '{{ path("app_almasa_plano_contas_api_proximo_codigo", {paiId: "__ID__"}) }}';
+
     const nivelSelect = document.getElementById('{{ form.nivel.vars.id }}');
     const paiSelect = document.getElementById('{{ form.pai.vars.id }}');
     const tipoSelect = document.getElementById('{{ form.tipo.vars.id }}');
     const codigoInput = document.getElementById('{{ form.codigo.vars.id }}');
+    const aceitaCheckbox = document.getElementById('{{ form.aceitaLancamentos.vars.id }}');
 
     const cardVinculacao = document.getElementById('card-vinculacao');
     const cardIdentificacao = document.getElementById('card-identificacao');
     const cardOpcoes = document.getElementById('card-opcoes');
     const paiWrapper = document.getElementById('pai-wrapper');
-    const tipoWrapper = document.getElementById('tipo-wrapper');
     const aceitaWrapper = document.getElementById('aceita-wrapper');
     const nivelHelp = document.getElementById('nivel-help-text');
     const paiHelp = document.getElementById('pai-help');
@@ -119,15 +134,21 @@
     const codigoHelp = document.getElementById('codigo-help');
     const aceitaHelp = document.getElementById('aceita-help');
 
-    const aceitaCheckbox = document.getElementById('{{ form.aceitaLancamentos.vars.id }}');
+    // Codigo composto
+    const codigoSimples = document.getElementById('codigo-modo-simples');
+    const codigoComposto = document.getElementById('codigo-modo-composto');
+    const prefixoDisplay = document.getElementById('codigo-prefixo-display');
+    const sufixoInput = document.getElementById('codigo-sufixo-input');
+    const codigoSugestao = document.getElementById('codigo-sugestao');
+
+    let currentPrefixo = '';
 
     const NIVEL_TEXTS = {
         '1': {
             help: 'Classe e o nivel raiz do plano de contas. Exemplos: Ativo, Passivo, Receita, Despesa.',
             paiHelp: '',
             tipoHelp: 'Defina o tipo contabil desta classe.',
-            codigoHelp: 'Ex: 1, 2, 3, 4, 5',
-            codigoPlaceholder: 'Ex: 1',
+            codigoHelp: 'Informe o numero da classe (ex: 1, 2, 3)',
             aceitaHelp: 'Classes nao recebem lancamentos.',
             label: 'Classe'
         },
@@ -135,8 +156,7 @@
             help: 'Grupo e uma subdivisao dentro de uma Classe. Ex: dentro de "Receita", criar grupo "Receitas Operacionais".',
             paiHelp: 'Selecione a Classe onde este grupo sera criado.',
             tipoHelp: 'Herdado da classe pai.',
-            codigoHelp: 'Ex: 4.1, 4.2',
-            codigoPlaceholder: 'Ex: 4.1',
+            codigoHelp: '',
             aceitaHelp: 'Grupos nao recebem lancamentos.',
             label: 'Grupo',
             paiNivel: 1
@@ -145,8 +165,7 @@
             help: 'Subgrupo e uma subdivisao dentro de um Grupo. Ex: dentro de "Receitas Operacionais", criar "Taxas de Administracao".',
             paiHelp: 'Selecione o Grupo onde este subgrupo sera criado.',
             tipoHelp: 'Herdado do grupo pai.',
-            codigoHelp: 'Ex: 4.1.01, 4.1.02',
-            codigoPlaceholder: 'Ex: 4.1.01',
+            codigoHelp: '',
             aceitaHelp: 'Subgrupos nao recebem lancamentos.',
             label: 'Subgrupo',
             paiNivel: 2
@@ -155,8 +174,7 @@
             help: 'Conta e o nivel operacional — e aqui que os lancamentos sao registrados. Ex: "Taxa Adm. Locacao", "Energia Eletrica".',
             paiHelp: 'Selecione o Subgrupo onde esta conta sera criada.',
             tipoHelp: 'Herdado do subgrupo pai.',
-            codigoHelp: 'Ex: 4.1.01.001',
-            codigoPlaceholder: 'Ex: 4.1.01.001',
+            codigoHelp: '',
             aceitaHelp: 'Contas recebem lancamentos financeiros.',
             label: 'Conta',
             paiNivel: 3
@@ -198,19 +216,18 @@
         paiHelp.textContent = config.paiHelp;
         tipoHelp.textContent = config.tipoHelp;
         codigoHelp.textContent = config.codigoHelp;
-        codigoInput.setAttribute('placeholder', config.codigoPlaceholder);
         aceitaHelp.textContent = config.aceitaHelp;
 
-        // Classe (1): sem pai, tipo manual
+        // Classe (1): sem pai, tipo manual, codigo livre
         if (nivel === '1') {
             paiWrapper.style.display = 'none';
             paiSelect.value = '';
             tipoSelect.disabled = false;
             tipoHelp.textContent = config.tipoHelp;
+            mostrarCodigoSimples();
+            codigoInput.setAttribute('placeholder', 'Ex: 1');
         } else {
             paiWrapper.style.display = '';
-            tipoHelp.textContent = config.tipoHelp;
-            // Filtrar opcoes do pai
             filterPaiOptions(config.paiNivel);
         }
 
@@ -226,18 +243,15 @@
     }
 
     function filterPaiOptions(targetNivel) {
-        // Limpar select
         while (paiSelect.options.length > 0) {
             paiSelect.remove(0);
         }
 
-        // Placeholder
         const placeholder = document.createElement('option');
         placeholder.value = '';
         placeholder.text = 'Selecione...';
         paiSelect.add(placeholder);
 
-        // Filtrar por nivel
         let currentValue = null;
         allPaiOptions.forEach(function(opt) {
             if (opt.nivel === String(targetNivel)) {
@@ -254,9 +268,9 @@
             }
         });
 
-        // Se a opcao selecionada nao esta no filtro, limpar
         if (!currentValue) {
             paiSelect.value = '';
+            mostrarCodigoSimples();
         }
 
         onPaiChange();
@@ -264,33 +278,82 @@
 
     function onPaiChange() {
         const nivel = nivelSelect.value;
-        if (nivel === '1') return; // Classe nao tem pai
+        if (nivel === '1') return;
 
         const selectedOption = paiSelect.options[paiSelect.selectedIndex];
         if (selectedOption && selectedOption.value) {
+            // Herdar tipo do pai
             const paiTipo = selectedOption.getAttribute('data-tipo');
             if (paiTipo) {
                 tipoSelect.value = paiTipo;
                 tipoSelect.disabled = true;
             }
+            // Buscar proximo codigo via API
+            fetchProximoCodigo(selectedOption.value);
         } else {
             tipoSelect.disabled = false;
+            mostrarCodigoSimples();
         }
     }
+
+    function fetchProximoCodigo(paiId) {
+        const url = API_URL.replace('__ID__', paiId);
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) return;
+                currentPrefixo = data.prefixo;
+                mostrarCodigoComposto(data.prefixo, data.sufixo, data.padLen);
+            })
+            .catch(function() {
+                mostrarCodigoSimples();
+            });
+    }
+
+    function mostrarCodigoSimples() {
+        codigoSimples.style.display = '';
+        codigoComposto.style.display = 'none';
+        currentPrefixo = '';
+        codigoSugestao.textContent = '';
+    }
+
+    function mostrarCodigoComposto(prefixo, sufixo, padLen) {
+        codigoSimples.style.display = 'none';
+        codigoComposto.style.display = '';
+
+        prefixoDisplay.textContent = prefixo;
+        sufixoInput.value = sufixo;
+        sufixoInput.setAttribute('maxlength', String(padLen + 1));
+        sufixoInput.setAttribute('placeholder', sufixo);
+        codigoSugestao.innerHTML = '<i class="fas fa-magic"></i> Proximo disponivel: <strong>' + prefixo + sufixo + '</strong>';
+
+        // Atualizar campo hidden do Symfony
+        codigoInput.value = prefixo + sufixo;
+        codigoInput.style.display = 'none';
+    }
+
+    // Sincronizar sufixo editavel com campo hidden do Symfony
+    sufixoInput.addEventListener('input', function() {
+        codigoInput.value = currentPrefixo + sufixoInput.value;
+    });
 
     // Event listeners
     nivelSelect.addEventListener('change', onNivelChange);
     paiSelect.addEventListener('change', onPaiChange);
 
-    // Re-habilitar tipo antes do submit (senao o disabled nao envia)
+    // Re-habilitar tipo antes do submit
     document.getElementById('almasa-pc-form').addEventListener('submit', function() {
         tipoSelect.disabled = false;
+        // Garantir que o codigo esta atualizado
+        if (currentPrefixo && sufixoInput.value) {
+            codigoInput.value = currentPrefixo + sufixoInput.value;
+        }
+        codigoInput.style.display = '';
     });
 
     // Inicializar (para edicao onde ja tem valor)
     if (nivelSelect.value) {
         onNivelChange();
-        // Restaurar pai selecionado na edicao
         const nivel = nivelSelect.value;
         if (nivel !== '1') {
             const config = NIVEL_TEXTS[nivel];

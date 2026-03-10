@@ -12,6 +12,7 @@ use App\Repository\AlmasaPlanoContasRepository;
 use App\Service\AlmasaPlanoContasService;
 use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -106,6 +107,50 @@ class AlmasaPlanoContasController extends AbstractController
         return $this->render('almasa_plano_contas/new.html.twig', [
             'conta' => $conta,
             'form' => $form,
+        ]);
+    }
+
+    #[Route('/api/proximo-codigo/{paiId}', name: 'api_proximo_codigo', methods: ['GET'])]
+    public function proximoCodigo(int $paiId): JsonResponse
+    {
+        $pai = $this->repository->find($paiId);
+        if (!$pai) {
+            return new JsonResponse(['error' => 'Nao encontrado'], 404);
+        }
+
+        $prefixo = $pai->getCodigo() . '.';
+        $nivelFilho = $pai->getNivel() + 1;
+
+        $padLen = match ($nivelFilho) {
+            2 => 1,
+            3 => 2,
+            4 => 3,
+            default => 3,
+        };
+
+        $filhos = $this->repository->createQueryBuilder('a')
+            ->where('a.pai = :pai')
+            ->setParameter('pai', $pai)
+            ->orderBy('a.codigo', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        if (empty($filhos)) {
+            $nextNum = 1;
+        } else {
+            $lastCode = $filhos[0]->getCodigo();
+            $suffix = substr($lastCode, strlen($prefixo));
+            $nextNum = intval($suffix) + 1;
+        }
+
+        $sufixo = str_pad((string) $nextNum, $padLen, '0', STR_PAD_LEFT);
+
+        return new JsonResponse([
+            'prefixo' => $prefixo,
+            'sufixo' => $sufixo,
+            'codigo' => $prefixo . $sufixo,
+            'padLen' => $padLen,
         ]);
     }
 
