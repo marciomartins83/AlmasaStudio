@@ -48,6 +48,9 @@ Encore
     // Pessoa Autocomplete — global, reutilizável em qualquer template
     .addEntry('pessoa_autocomplete', './assets/js/pessoa_autocomplete/app.js')
 
+    // Vinculo Bancario — filtro de contas por pessoa
+    .addEntry('vinculo_bancario', './assets/js/vinculo_bancario/app.js')
+
     // CRUD Filters — busca avancada, collapse, limpar
     .addEntry('crud_filters', './assets/js/crud/crud_filters.js')
 

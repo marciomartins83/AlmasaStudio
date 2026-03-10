@@ -27,25 +27,9 @@
                 </div>
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.contaBancaria) }}
-                            </div>
-                            <div class="col-md-6">
-                                {{ form_row(form.almasaPlanoConta) }}
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-md-10">
-                                {{ form_row(form.observacao) }}
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end pb-3">
-                                <div class="form-check">
-                                    {{ form_widget(form.ativo) }}
-                                    {{ form_label(form.ativo) }}
-                                </div>
-                            </div>
-                        </div>
+
+                        {% include 'almasa_vinculo_bancario/_form.html.twig' %}
+
                         <div class="row mt-3">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-success">
@@ -56,10 +40,17 @@
                                 </a>
                             </div>
                         </div>
+
                     {{ form_end(form) }}
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{{ encore_entry_script_tags('pessoa_autocomplete') }}
+{{ encore_entry_script_tags('vinculo_bancario') }}
 {% endblock %}

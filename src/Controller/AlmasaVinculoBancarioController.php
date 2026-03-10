@@ -9,9 +9,12 @@ use App\DTO\SortOptionDTO;
 use App\Entity\AlmasaVinculoBancario;
 use App\Form\AlmasaVinculoBancarioType;
 use App\Repository\AlmasaVinculoBancarioRepository;
+use App\Repository\PessoaRepository;
 use App\Service\AlmasaVinculoBancarioService;
 use App\Service\PaginationService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -74,6 +77,52 @@ class AlmasaVinculoBancarioController extends AbstractController
         ]);
     }
 
+    #[Route('/pessoa-autocomplete', name: 'pessoa_autocomplete', methods: ['GET'])]
+    public function pessoaAutocomplete(Request $request, PessoaRepository $pessoaRepository): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 1) {
+            return $this->json([]);
+        }
+
+        $pessoas = $pessoaRepository->findByNome($q);
+        $result = array_map(fn($p) => [
+            'id'   => $p->getIdpessoa(),
+            'nome' => $p->getNome(),
+            'cod'  => $p->getCod(),
+        ], array_slice($pessoas, 0, 20));
+
+        return $this->json($result);
+    }
+
+    #[Route('/api/contas-por-pessoa/{pessoaId}', name: 'api_contas_por_pessoa', methods: ['GET'])]
+    public function contasPorPessoa(int $pessoaId, EntityManagerInterface $em): JsonResponse
+    {
+        $contas = $em->createQueryBuilder()
+            ->select('cb.id', 'cb.codigo', 'cb.digitoConta', 'b.nome AS bancoNome', 'ag.codigo AS agenciaCodigo')
+            ->from('App\Entity\ContasBancarias', 'cb')
+            ->leftJoin('cb.idBanco', 'b')
+            ->leftJoin('cb.idAgencia', 'ag')
+            ->where('cb.idPessoa = :pessoaId')
+            ->andWhere('cb.ativo = true')
+            ->setParameter('pessoaId', $pessoaId)
+            ->orderBy('b.nome', 'ASC')
+            ->addOrderBy('cb.codigo', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        $result = array_map(function ($c) {
+            $digito = $c['digitoConta'] ? '-' . $c['digitoConta'] : '';
+            $agencia = $c['agenciaCodigo'] ?? '';
+            return [
+                'id'    => $c['id'],
+                'label' => ($c['bancoNome'] ?? '') . ' Ag:' . $agencia . ' Cc:' . $c['codigo'] . $digito,
+            ];
+        }, $contas);
+
+        return $this->json($result);
+    }
+
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
@@ -94,6 +143,7 @@ class AlmasaVinculoBancarioController extends AbstractController
         return $this->render('almasa_vinculo_bancario/new.html.twig', [
             'vinculo' => $vinculo,
             'form' => $form,
+            'pessoaPreload' => null,
         ]);
     }
 
@@ -121,9 +171,13 @@ class AlmasaVinculoBancarioController extends AbstractController
             }
         }
 
+        $pessoa = $vinculo->getContaBancaria()->getIdPessoa();
+        $pessoaPreload = $pessoa ? ['id' => $pessoa->getIdpessoa(), 'nome' => $pessoa->getNome()] : null;
+
         return $this->render('almasa_vinculo_bancario/edit.html.twig', [
             'vinculo' => $vinculo,
             'form' => $form,
+            'pessoaPreload' => $pessoaPreload,
         ]);
     }
 

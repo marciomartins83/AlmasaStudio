@@ -1,0 +1,74 @@
+{# Partial: campos do formulario de vinculo bancario #}
+{# Requer: form, pessoaPreload #}
+
+{# Busca de Pessoa para filtrar contas bancarias #}
+<div class="card border-info mb-3">
+    <div class="card-header bg-info bg-opacity-10 py-2">
+        <i class="fas fa-search text-info"></i>
+        <strong>Buscar Pessoa</strong>
+        <small class="text-muted ms-1">— filtra as contas bancarias pelo titular</small>
+    </div>
+    <div class="card-body py-2">
+        <div class="row align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">Nome da Pessoa</label>
+                <div class="pessoa-autocomplete-wrapper position-relative"
+                     data-url="{{ path('app_almasa_vinculo_bancario_pessoa_autocomplete') }}"
+                     data-display-id="pessoa_display"
+                     data-hidden-id="pessoa_hidden"
+                     data-results-id="pessoa_results">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text"
+                               id="pessoa_display"
+                               class="form-control"
+                               placeholder="Digite o nome da pessoa para filtrar contas bancarias..."
+                               autocomplete="off"
+                               value="{{ pessoaPreload ? pessoaPreload.nome : '' }}">
+                    </div>
+                    <div id="pessoa_results"
+                         class="pessoa-autocomplete-results list-group shadow"
+                         style="display:none; position:absolute; z-index:1000; width:100%;"></div>
+                </div>
+                <input type="hidden" id="pessoa_hidden" value="{{ pessoaPreload ? pessoaPreload.id : '' }}">
+            </div>
+            <div class="col-md-4">
+                <button type="button" id="btn-limpar-filtro-pessoa"
+                        class="btn btn-outline-secondary btn-sm mb-1"
+                        style="display: {{ pessoaPreload ? 'inline-block' : 'none' }};">
+                    <i class="fas fa-times"></i> Mostrar todas as contas
+                </button>
+            </div>
+        </div>
+        <div id="filtro-pessoa-status" class="mt-1" style="display:none;">
+            <small class="text-info"><i class="fas fa-filter"></i> <span></span></small>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        {{ form_row(form.contaBancaria) }}
+    </div>
+    <div class="col-md-6">
+        {{ form_row(form.almasaPlanoConta) }}
+    </div>
+</div>
+<div class="row mt-2">
+    <div class="col-md-10">
+        {{ form_row(form.observacao) }}
+    </div>
+    <div class="col-md-2 d-flex align-items-end pb-3">
+        <div class="form-check">
+            {{ form_widget(form.ativo) }}
+            {{ form_label(form.ativo) }}
+        </div>
+    </div>
+</div>
+
+<script>
+window.VINCULO_BANCARIO_CFG = {
+    contaBancariaSelectId: '{{ form.contaBancaria.vars.id }}',
+    contasPorPessoaUrl: "{{ path('app_almasa_vinculo_bancario_api_contas_por_pessoa', {'pessoaId': '__PESSOA_ID__'}) }}"
+};
+</script>
