@@ -4,7 +4,7 @@
  * Gera contas individuais no AlmasaPlanoContas para cada proprietário.
  *
  * Subgrupo pai: 2.1.01 — Obrigações com Proprietários
- * Formato:      2.1.01.001 — Conta Corrente de <Nome>
+ * Formato:      2.1.01.001 — <Nome>
  *
  * Idempotente: se a conta já existe para o proprietário, pula.
  *
@@ -66,7 +66,7 @@ $existentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $existentesPorNome = [];
 $maxNum = 0;
 foreach ($existentes as $e) {
-    $nome = preg_replace('/^Conta Corrente de\s+/i', '', $e['descricao']);
+    $nome = $e['descricao'];
     $existentesPorNome[mb_strtoupper(trim($nome))] = $e['codigo'];
     $suffix = substr($e['codigo'], strlen('2.1.01.'));
     $num = (int) $suffix;
@@ -105,7 +105,7 @@ foreach ($proprietarios as $prop) {
     }
 
     $codigo = '2.1.01.' . str_pad((string) $nextNum, 3, '0', STR_PAD_LEFT);
-    $descricao = 'Conta Corrente de ' . $nome;
+    $descricao = $nome;
 
     $insertStmt->execute([$codigo, $descricao, $paiTipo, $paiId, $now, $now]);
     $criadas++;
