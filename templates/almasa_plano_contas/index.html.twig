@@ -61,22 +61,30 @@
                                     <td>{{ conta.id }}</td>
                                     <td>
                                         <code>
-                                            {% set indent = '&nbsp;&nbsp;'|repeat(conta.nivel - 1) %}
-                                            {% if conta.nivel <= 2 %}
-                                                <strong>{{ indent|raw }}{{ conta.codigo }}</strong>
+                                            {% if conta.nivel == 1 %}
+                                                <strong>{{ conta.codigo }}</strong>
+                                            {% elseif conta.nivel == 2 %}
+                                                <strong>&nbsp;&nbsp;{{ conta.codigo }}</strong>
+                                            {% elseif conta.nivel == 3 %}
+                                                &nbsp;&nbsp;&nbsp;&nbsp;{{ conta.codigo }}
+                                            {% elseif conta.nivel == 4 %}
+                                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ conta.codigo }}
                                             {% else %}
-                                                {{ indent|raw }}{{ conta.codigo }}
+                                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ conta.codigo }}
                                             {% endif %}
                                         </code>
                                     </td>
                                     <td>
-                                        {% set indent = '&nbsp;&nbsp;'|repeat(conta.nivel - 1) %}
                                         {% if conta.nivel == 1 %}
                                             <strong class="text-dark">{{ conta.descricao }}</strong>
                                         {% elseif conta.nivel == 2 %}
-                                            <strong class="text-secondary">{{ indent|raw }}{{ conta.descricao }}</strong>
+                                            <strong class="text-secondary">&nbsp;&nbsp;{{ conta.descricao }}</strong>
+                                        {% elseif conta.nivel == 3 %}
+                                            <span class="text-secondary">&nbsp;&nbsp;&nbsp;&nbsp;{{ conta.descricao }}</span>
+                                        {% elseif conta.nivel == 4 %}
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ conta.descricao }}
                                         {% else %}
-                                            <span class="text-{{ conta.nivel >= 4 ? 'body' : 'secondary' }}">{{ indent|raw }}{{ conta.descricao }}</span>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ conta.descricao }}
                                         {% endif %}
                                     </td>
                                     <td>
