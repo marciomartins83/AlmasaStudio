@@ -81,11 +81,12 @@
         {% set cards_almasa = [
             {'title': 'Plano de Contas', 'description': 'Plano de contas hierarquico da empresa.', 'link': path('app_almasa_plano_contas_index'), 'icon': 'diagram-3', 'details': 'Estrutura de grupos, subgrupos e contas para classificacao contabil dos lancamentos da administradora.'},
             {'title': 'Lancamentos Almasa', 'description': 'Receitas e despesas da empresa.', 'link': path('app_almasa_lancamentos_index'), 'icon': 'journal-text', 'details': 'Lancamentos financeiros da administradora: taxas de administracao, custos operacionais, comissoes e demais movimentacoes.'},
-            {'title': 'Relatorios Almasa', 'description': 'DRE, despesas e receitas da empresa.', 'link': path('app_relatorios_index'), 'icon': 'graph-up', 'details': 'Relatorios financeiros exclusivos da administradora: despesas, receitas e demonstrativo de resultado (DRE).'}
+            {'title': 'Relatorios Almasa', 'description': 'DRE, despesas e receitas da empresa.', 'link': path('app_relatorios_index'), 'icon': 'graph-up', 'details': 'Relatorios financeiros exclusivos da administradora: despesas, receitas e demonstrativo de resultado (DRE).'},
+            {'title': 'Vinculos Bancarios', 'description': 'Vincule contas bancarias ao plano de contas.', 'link': path('app_almasa_vinculo_bancario_index'), 'icon': 'link-45deg', 'details': 'Associe cada conta bancaria a uma conta do plano de contas para classificacao contabil automatica dos lancamentos.'}
         ] %}
 
         {% for card in cards_almasa %}
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="almasa-card h-100" style="cursor: pointer;" onclick="window.location='{{ card.link }}'">
                 <div class="almasa-card-body">
                     <div class="d-flex align-items-center mb-2">

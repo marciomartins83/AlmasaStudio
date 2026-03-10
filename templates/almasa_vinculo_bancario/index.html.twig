@@ -1,0 +1,163 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vinculos Bancarios - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': '#'}
+        ],
+        'current': 'Vinculos Bancarios'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-link"></i> Vinculos Bancarios</h1>
+                <a href="{{ path('app_almasa_vinculo_bancario_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Vinculo
+                </a>
+            </div>
+
+            {# Painel de Busca #}
+            {% include '_partials/search_panel.html.twig' with {
+                filterDefs: pagination.filterDefs,
+                filters: pagination.filters,
+                routeName: 'app_almasa_vinculo_bancario_index',
+                itemsPerPage: pagination.itemsPerPage,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir
+            } %}
+
+            {# Painel de Ordenacao #}
+            {% include '_partials/sort_panel.html.twig' with {
+                sortOptions: pagination.sortOptions,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                routeName: 'app_almasa_vinculo_bancario_index',
+                filters: pagination.filters,
+                itemsPerPage: pagination.itemsPerPage
+            } %}
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="60">ID</th>
+                                    <th>Conta Bancaria</th>
+                                    <th>Plano de Contas</th>
+                                    <th width="200">Observacao</th>
+                                    <th width="80" class="text-center">Ativo</th>
+                                    <th width="120">Criado em</th>
+                                    <th width="180">Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vinculo in pagination.items %}
+                                <tr>
+                                    <td>{{ vinculo.id }}</td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ vinculo.contaBancaria.idBanco ? vinculo.contaBancaria.idBanco.nome : '' }}</strong>
+                                            {% if vinculo.contaBancaria.idAgencia %}
+                                                <small class="text-muted">Ag: {{ vinculo.contaBancaria.idAgencia.codigo }}</small>
+                                            {% endif %}
+                                            <small>Cc: {{ vinculo.contaBancaria.codigo }}{% if vinculo.contaBancaria.digitoConta %}-{{ vinculo.contaBancaria.digitoConta }}{% endif %}</small>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user fa-xs"></i>
+                                            {{ vinculo.contaBancaria.idPessoa ? vinculo.contaBancaria.idPessoa.nome : 'Almasa' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <code>{{ vinculo.almasaPlanoConta.codigo }}</code>
+                                        {{ vinculo.almasaPlanoConta.descricao }}
+                                        <br>
+                                        {% set tipoBadge = {
+                                            'ativo': 'primary',
+                                            'passivo': 'warning',
+                                            'patrimonio_liquido': 'info',
+                                            'receita': 'success',
+                                            'despesa': 'danger'
+                                        } %}
+                                        <span class="badge bg-{{ tipoBadge[vinculo.almasaPlanoConta.tipo] ?? 'secondary' }} badge-sm">
+                                            {{ vinculo.almasaPlanoConta.tipoLabel }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if vinculo.observacao %}
+                                            <small>{{ vinculo.observacao|length > 50 ? vinculo.observacao[:50] ~ '...' : vinculo.observacao }}</small>
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if vinculo.isAtivo() %}
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ vinculo.createdAt|date('d/m/Y') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group d-none d-md-flex" role="group">
+                                            <a href="{{ path('app_almasa_vinculo_bancario_show', {'id': vinculo.id}) }}"
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_almasa_vinculo_bancario_edit', {'id': vinculo.id}) }}"
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            <form method="post"
+                                                  action="{{ path('app_almasa_vinculo_bancario_delete', {'id': vinculo.id}) }}"
+                                                  style="display:inline-block"
+                                                  data-confirm-delete="Tem certeza que deseja excluir este vinculo?">
+                                                <input type="hidden" name="_token"
+                                                       value="{{ csrf_token('delete' ~ vinculo.id) }}">
+                                                <button class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        Nenhum vinculo bancario encontrado
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {# Paginacao #}
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: pagination.totalItems,
+                currentPage: pagination.currentPage,
+                itemsPerPage: pagination.itemsPerPage,
+                totalPages: pagination.totalPages,
+                routeName: 'app_almasa_vinculo_bancario_index',
+                filters: pagination.filters,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                showSearch: false
+            } %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{{ encore_entry_script_tags('crud_filters') }}
+{% endblock %}

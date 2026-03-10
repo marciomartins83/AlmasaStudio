@@ -1,0 +1,151 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vinculo Bancario #{{ vinculo.id }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': '#'},
+            {'label': 'Vinculos Bancarios', 'url': path('app_almasa_vinculo_bancario_index')}
+        ],
+        'current': 'Vinculo #' ~ vinculo.id
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-link"></i> Vinculo Bancario #{{ vinculo.id }}</h1>
+                <div>
+                    <a href="{{ path('app_almasa_vinculo_bancario_edit', {'id': vinculo.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <a href="{{ path('app_almasa_vinculo_bancario_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header"><i class="fas fa-university"></i> Conta Bancaria</div>
+                        <div class="card-body">
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <th width="150">Banco:</th>
+                                    <td><strong>{{ vinculo.contaBancaria.idBanco ? vinculo.contaBancaria.idBanco.nome : '-' }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Agencia:</th>
+                                    <td>{{ vinculo.contaBancaria.idAgencia ? vinculo.contaBancaria.idAgencia.codigo : '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Conta:</th>
+                                    <td>
+                                        {{ vinculo.contaBancaria.codigo }}{% if vinculo.contaBancaria.digitoConta %}-{{ vinculo.contaBancaria.digitoConta }}{% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Pessoa:</th>
+                                    <td>
+                                        {% if vinculo.contaBancaria.idPessoa %}
+                                            <i class="fas fa-user fa-xs text-muted"></i>
+                                            {{ vinculo.contaBancaria.idPessoa.nome }}
+                                        {% else %}
+                                            <span class="text-muted">Almasa</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header"><i class="fas fa-sitemap"></i> Plano de Contas</div>
+                        <div class="card-body">
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <th width="150">Codigo:</th>
+                                    <td><code>{{ vinculo.almasaPlanoConta.codigo }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Descricao:</th>
+                                    <td><strong>{{ vinculo.almasaPlanoConta.descricao }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo:</th>
+                                    <td>
+                                        {% set tipoBadge = {
+                                            'ativo': 'primary',
+                                            'passivo': 'warning',
+                                            'patrimonio_liquido': 'info',
+                                            'receita': 'success',
+                                            'despesa': 'danger'
+                                        } %}
+                                        <span class="badge bg-{{ tipoBadge[vinculo.almasaPlanoConta.tipo] ?? 'secondary' }}">
+                                            {{ vinculo.almasaPlanoConta.tipoLabel }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Nivel:</th>
+                                    <td>
+                                        {% set nivelBadge = { 1: 'dark', 2: 'secondary', 3: 'info', 4: 'primary', 5: 'light text-dark' } %}
+                                        <span class="badge bg-{{ nivelBadge[vinculo.almasaPlanoConta.nivel] ?? 'secondary' }}">
+                                            {{ vinculo.almasaPlanoConta.nivelLabel }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="fas fa-info-circle"></i> Detalhes do Vinculo</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ vinculo.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Observacao:</th>
+                                    <td>{{ vinculo.observacao ?? '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <th width="150">Ativo:</th>
+                                    <td>
+                                        {% if vinculo.isAtivo() %}
+                                            <i class="fas fa-check-circle text-success"></i> Sim
+                                        {% else %}
+                                            <i class="fas fa-times-circle text-danger"></i> Nao
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Criado em:</th>
+                                    <td>{{ vinculo.createdAt|date('d/m/Y H:i') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Atualizado em:</th>
+                                    <td>{{ vinculo.updatedAt|date('d/m/Y H:i') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
