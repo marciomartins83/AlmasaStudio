@@ -6,6 +6,7 @@ namespace App\Form;
 
 use App\Entity\Lancamentos;
 use App\Entity\PlanoContas;
+use App\Entity\AlmasaPlanoContas;
 use App\Entity\ImoveisContratos;
 use App\Entity\Imoveis;
 use App\Entity\ContasBancarias;
@@ -72,7 +73,7 @@ class LancamentosType extends AbstractType
             // === CLASSIFICAÇÃO ===
             ->add('planoConta', EntityType::class, [
                 'class' => PlanoContas::class,
-                'label' => 'Tipo de Lançamento',
+                'label' => 'Tipo de Lançamento (legado)',
                 'choice_label' => function (PlanoContas $plano) {
                     return $plano->getCodigo() . ' - ' . $plano->getDescricao();
                 },
@@ -86,7 +87,41 @@ class LancamentosType extends AbstractType
                 },
                 'placeholder' => 'Selecione...',
                 'attr' => ['class' => 'form-select'],
-                'required' => true,
+                'required' => false,
+            ])
+
+            // === PARTIDAS DOBRADAS ===
+            ->add('planoContaDebito', EntityType::class, [
+                'class' => AlmasaPlanoContas::class,
+                'label' => 'Conta Débito',
+                'choice_label' => function (AlmasaPlanoContas $conta) {
+                    return $conta->getCodigo() . ' - ' . $conta->getDescricao();
+                },
+                'query_builder' => function ($repo) {
+                    return $repo->createQueryBuilder('a')
+                        ->where('a.aceitaLancamentos = true')
+                        ->andWhere('a.ativo = true')
+                        ->orderBy('a.codigo', 'ASC');
+                },
+                'placeholder' => 'Selecione a conta de débito...',
+                'attr' => ['class' => 'form-select'],
+                'required' => false,
+            ])
+            ->add('planoContaCredito', EntityType::class, [
+                'class' => AlmasaPlanoContas::class,
+                'label' => 'Conta Crédito',
+                'choice_label' => function (AlmasaPlanoContas $conta) {
+                    return $conta->getCodigo() . ' - ' . $conta->getDescricao();
+                },
+                'query_builder' => function ($repo) {
+                    return $repo->createQueryBuilder('a')
+                        ->where('a.aceitaLancamentos = true')
+                        ->andWhere('a.ativo = true')
+                        ->orderBy('a.codigo', 'ASC');
+                },
+                'placeholder' => 'Selecione a conta de crédito...',
+                'attr' => ['class' => 'form-select'],
+                'required' => false,
             ])
             ->add('competencia', TextType::class, [
                 'label' => 'Compet\u00eancia',

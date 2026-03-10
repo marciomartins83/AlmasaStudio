@@ -12,6 +12,7 @@ use App\Entity\Imoveis;
 use App\Entity\ContasBancarias;
 use App\Repository\LancamentosRepository;
 use App\Repository\PlanoContasRepository;
+use App\Repository\AlmasaPlanoContasRepository;
 use App\Repository\PessoaRepository;
 use App\Repository\ImoveisContratosRepository;
 use App\Repository\ImoveisRepository;
@@ -34,6 +35,7 @@ class LancamentosService
         private EntityManagerInterface $em,
         private LancamentosRepository $lancamentoRepo,
         private PlanoContasRepository $planoContaRepo,
+        private AlmasaPlanoContasRepository $almasaPlanoContaRepo,
         private PessoaRepository $pessoaRepo,
         private ImoveisContratosRepository $contratoRepo,
         private ImoveisRepository $imovelRepo,
@@ -553,12 +555,27 @@ class LancamentosService
             $lancamento->setCompetencia($dados['competencia']);
         }
 
-        // Plano de Conta
+        // Plano de Conta (legado)
         if (!empty($dados['id_plano_conta'])) {
             $planoConta = $this->planoContaRepo->find($dados['id_plano_conta']);
             if ($planoConta) {
                 $lancamento->setPlanoConta($planoConta);
             }
+        }
+
+        // Partidas Dobradas — Plano de Contas Almasa
+        if (!empty($dados['id_plano_conta_debito'])) {
+            $pcDebito = $this->almasaPlanoContaRepo->find($dados['id_plano_conta_debito']);
+            $lancamento->setPlanoContaDebito($pcDebito);
+        } else {
+            $lancamento->setPlanoContaDebito(null);
+        }
+
+        if (!empty($dados['id_plano_conta_credito'])) {
+            $pcCredito = $this->almasaPlanoContaRepo->find($dados['id_plano_conta_credito']);
+            $lancamento->setPlanoContaCredito($pcCredito);
+        } else {
+            $lancamento->setPlanoContaCredito(null);
         }
 
         // Histórico

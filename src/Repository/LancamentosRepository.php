@@ -25,11 +25,13 @@ class LancamentosRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('l')
             ->leftJoin('l.planoConta', 'pc')
+            ->leftJoin('l.planoContaDebito', 'pcDebito')
+            ->leftJoin('l.planoContaCredito', 'pcCredito')
             ->leftJoin('l.pessoaCredor', 'credor')
             ->leftJoin('l.pessoaPagador', 'pagador')
             ->leftJoin('l.contrato', 'c')
             ->leftJoin('l.imovel', 'i')
-            ->addSelect('pc', 'credor', 'pagador', 'c', 'i');
+            ->addSelect('pc', 'pcDebito', 'pcCredito', 'credor', 'pagador', 'c', 'i');
     }
 
     /**

@@ -116,6 +116,8 @@
                             <th width="100">Vencimento</th>
                             <th>Credor/Pagador</th>
                             <th>Historico</th>
+                            <th width="100">Debito</th>
+                            <th width="100">Credito</th>
                             <th width="120" class="text-end">Valor</th>
                             <th width="120" class="text-end">Saldo</th>
                             <th width="100">Status</th>
@@ -150,6 +152,20 @@
                                 {{ lancamento.historico|default('-') }}
                                 {% if lancamento.planoConta %}
                                     <br><small class="text-muted">{{ lancamento.planoConta.codigo }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lancamento.planoContaDebito %}
+                                    <span title="{{ lancamento.planoContaDebito.descricao }}">{{ lancamento.planoContaDebito.codigo }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lancamento.planoContaCredito %}
+                                    <span title="{{ lancamento.planoContaCredito.descricao }}">{{ lancamento.planoContaCredito.codigo }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td class="text-end">R$ {{ lancamento.valorFloat|number_format(2, ',', '.') }}</td>
@@ -197,7 +213,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td colspan="11" class="text-center text-muted py-4">
                                 <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
                                 <span>Nenhum lancamento encontrado</span><br>
                                 <small>Clique em "Novo Lancamento" para comecar</small>

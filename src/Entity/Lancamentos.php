@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Repository\LancamentosRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\AlmasaPlanoContas;
 
 /**
  * Lancamentos - Módulo Contas a Pagar/Receber
@@ -26,6 +27,8 @@ use Doctrine\ORM\Mapping as ORM;
         new ORM\Index(name: 'idx_lancamentos_pessoa_pagador', columns: ['id_pessoa_pagador']),
         new ORM\Index(name: 'idx_lancamentos_contrato', columns: ['id_contrato']),
         new ORM\Index(name: 'idx_lancamentos_competencia', columns: ['competencia']),
+        new ORM\Index(name: 'idx_lancamentos_pc_debito', columns: ['id_plano_conta_debito']),
+        new ORM\Index(name: 'idx_lancamentos_pc_credito', columns: ['id_plano_conta_credito']),
     ]
 )]
 #[ORM\HasLifecycleCallbacks]
@@ -73,8 +76,16 @@ class Lancamentos
     // === CLASSIFICAÇÃO ===
 
     #[ORM\ManyToOne(targetEntity: PlanoContas::class, inversedBy: 'lancamentos')]
-    #[ORM\JoinColumn(name: 'id_plano_conta', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'id_plano_conta', referencedColumnName: 'id', nullable: true)]
     private ?PlanoContas $planoConta = null;
+
+    #[ORM\ManyToOne(targetEntity: AlmasaPlanoContas::class)]
+    #[ORM\JoinColumn(name: 'id_plano_conta_debito', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
+    private ?AlmasaPlanoContas $planoContaDebito = null;
+
+    #[ORM\ManyToOne(targetEntity: AlmasaPlanoContas::class)]
+    #[ORM\JoinColumn(name: 'id_plano_conta_credito', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
+    private ?AlmasaPlanoContas $planoContaCredito = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     private ?string $historico = null;
@@ -319,6 +330,28 @@ class Lancamentos
     public function setPlanoConta(?PlanoContas $planoConta): self
     {
         $this->planoConta = $planoConta;
+        return $this;
+    }
+
+    public function getPlanoContaDebito(): ?AlmasaPlanoContas
+    {
+        return $this->planoContaDebito;
+    }
+
+    public function setPlanoContaDebito(?AlmasaPlanoContas $planoContaDebito): self
+    {
+        $this->planoContaDebito = $planoContaDebito;
+        return $this;
+    }
+
+    public function getPlanoContaCredito(): ?AlmasaPlanoContas
+    {
+        return $this->planoContaCredito;
+    }
+
+    public function setPlanoContaCredito(?AlmasaPlanoContas $planoContaCredito): self
+    {
+        $this->planoContaCredito = $planoContaCredito;
         return $this;
     }
 

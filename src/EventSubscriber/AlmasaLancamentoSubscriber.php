@@ -14,9 +14,10 @@ use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
 
-#[AsDoctrineListener(event: Events::postPersist)]
-#[AsDoctrineListener(event: Events::postUpdate)]
-#[AsDoctrineListener(event: Events::postFlush)]
+// Desativado: partidas dobradas explícitas substituem auto-criação
+// #[AsDoctrineListener(event: Events::postPersist)]
+// #[AsDoctrineListener(event: Events::postUpdate)]
+// #[AsDoctrineListener(event: Events::postFlush)]
 class AlmasaLancamentoSubscriber
 {
     /** @var Lancamentos[] */

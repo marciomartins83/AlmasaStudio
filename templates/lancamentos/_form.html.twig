@@ -49,8 +49,31 @@
             <div class="col-md-2">
                 {{ form_row(form.competencia) }}
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4" style="display:none">
                 {{ form_row(form.planoConta) }}
+            </div>
+        </div>
+
+        {# Partidas Dobradas #}
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header py-2 bg-transparent">
+                        <i class="fas fa-exchange-alt text-primary"></i>
+                        <strong>Partidas Dobradas</strong>
+                        <small class="text-muted ms-1">— classifique o lançamento no plano de contas Almasa</small>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {{ form_row(form.planoContaDebito) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.planoContaCredito) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="row">
