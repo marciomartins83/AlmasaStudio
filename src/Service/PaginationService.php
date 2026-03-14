@@ -117,9 +117,26 @@ class PaginationService
         $validSortFields = array_map(fn(SortOptionDTO $s) => $s->field, $sortOptions);
         if ($sortField && in_array($sortField, $validSortFields)) {
             $qb->resetDQLPart('orderBy');
-            // If sort field contains a dot, use as-is; otherwise prefix with alias
-            $sortDql = str_contains($sortField, '.') ? $sortField : "{$alias}.{$sortField}";
-            $qb->orderBy($sortDql, $sortDir);
+
+            // Find matching sort option for compound expressions
+            $matchedOption = null;
+            foreach ($sortOptions as $opt) {
+                if ($opt->field === $sortField) {
+                    $matchedOption = $opt;
+                    break;
+                }
+            }
+
+            if ($matchedOption?->expressions) {
+                // Compound sort: multiple ORDER BY expressions (ex: hierarchical)
+                foreach ($matchedOption->expressions as [$expr, $dir]) {
+                    $qb->addOrderBy($expr, str_replace('{DIR}', $sortDir, $dir));
+                }
+            } else {
+                // Simple sort: single field
+                $sortDql = str_contains($sortField, '.') ? $sortField : "{$alias}.{$sortField}";
+                $qb->orderBy($sortDql, $sortDir);
+            }
         }
 
         // Count total

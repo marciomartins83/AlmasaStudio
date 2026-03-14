@@ -31,6 +31,7 @@ class AlmasaPlanoContasController extends AbstractController
     {
         $qb = $this->repository->createQueryBuilder('a')
             ->leftJoin('a.pai', 'pai')
+            ->addSelect("CASE a.nivel WHEN 1 THEN '' WHEN 2 THEN SUBSTRING(a.codigo, 1, 1) WHEN 3 THEN SUBSTRING(a.codigo, 1, 3) WHEN 4 THEN SUBSTRING(a.codigo, 1, 6) ELSE SUBSTRING(a.codigo, 1, 10) END AS HIDDEN parentPath")
             ->orderBy('a.codigo', 'ASC');
 
         $filters = [
@@ -63,7 +64,11 @@ class AlmasaPlanoContasController extends AbstractController
         $sortOptions = [
             new SortOptionDTO('id', 'ID', 'ASC'),
             new SortOptionDTO('codigo', 'Codigo', 'ASC'),
-            new SortOptionDTO('descricao', 'Descricao', 'ASC'),
+            new SortOptionDTO('descricao', 'Descricao', 'ASC', [
+                ['parentPath', 'ASC'],
+                ['a.nivel', 'ASC'],
+                ['a.descricao', '{DIR}'],
+            ]),
             new SortOptionDTO('tipo', 'Tipo', 'ASC'),
             new SortOptionDTO('nivel', 'Nivel', 'ASC'),
             new SortOptionDTO('aceitaLancamentos', 'Aceita Lanc.', 'DESC'),
