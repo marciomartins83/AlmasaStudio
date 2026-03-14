@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.26.1 |
-| **Data Ultima Atualizacao** | 2026-03-05 (Migracao v6 completa — 506k lancamentos, imovel_map corrigido, FK 0 erros) |
-| **Status Geral** | Em producao — Migracao 100% completa, schema validado, FK integrity 0 erros. |
+| **Versao Atual** | 6.28.0 |
+| **Data Ultima Atualizacao** | 2026-03-10 (Plano de Contas Almasa v2 + Vinculos Bancarios + DRE + Schema sincronizado) |
+| **Status Geral** | Em producao — Migracao 100% completa, schema validado (Doctrine OK), FK integrity 0 erros, 13 novos commits integrados. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
-| **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. |
+| **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
 | **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via KIMI |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Deploy v6.26.1 na VPS |
+| **Proxima Tarefa** | Deploy v6.28.0 na VPS + testes E2E Plano de Contas |
 | **Issue Aberta** | — |
 | **Migracao MySQL->PostgreSQL** | v6.0 — 21 fases + hotfix completo. 506.704 lancamentos, 42.844 repasses, 4.933 pessoas, 3.236 imoveis. FK integrity 0 erros. |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
@@ -2249,6 +2249,62 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
   - `templates/relatorios/preview/contas_bancarias.html.twig`
   - `templates/relatorios/preview/despesas.html.twig`
   - `templates/financeiro/lancamento_show.html.twig`
+
+### [6.28.0] - 2026-03-10
+
+#### Adicionado
+- **Modulo Almasa Plano de Contas v2 — Refactor e Expansão**
+  - 5 grupos contábeis (Ativo, Passivo, Receita, Despesa, Patrimônio)
+  - 5 níveis hierárquicos de lançamentos
+  - Busca avançada, ordenação por grupo/código, paginação
+  - Relatório Plano de Contas Almasa com preview AJAX e PDF
+  - Seção "Almasa Empresa" adicionada ao dashboard
+  - 15 rotas, 8 templates, 3 modulos JS, FormType com validações
+
+#### Adicionado
+- **Modulo Vinculos Bancarios — Integração Contas/Plano de Contas**
+  - CRUD completo de vinculos entre contas bancárias e plano de contas
+  - Busca de pessoa no formulário (autocomplete)
+  - Unique constraint: (conta_bancaria, plano_conta)
+  - 6 rotas, 4 templates, 2 modulos JS
+
+#### Adicionado
+- **Partidas Dobradas — Débito/Crédito no Plano**
+  - Sistema de débito/crédito integrado ao formulário
+  - Validação de saldo na edição
+  - DRE (Demonstrativo de Resultado) gerado dinamicamente
+
+#### Alterado
+- Plano de Contas: código auto-sugerido com prefixo travado (2.1.01.XXX, etc.)
+- Script PHP `gerar_contas_proprietarios.php` — cria contas individuais por proprietário
+- UX do formulário Plano de Contas: redesenhado com grupos visiveis
+- IDs do JavaScript corrigidos no formulário (seletores jQuery)
+- Remover filtro Twig inexistente 'repeat' (erro em template)
+
+#### Corrigido
+- Prefixo "Conta Corrente de" removido das contas de proprietários (apenas nome agora)
+
+#### Lição Aprendida
+- Unique constraints em migrations devem ser declaradas como `uniqueConstraints` na Entity ORM, não como índices
+- PostgreSQL requer remoção de constraint antes de remover índice dependente
+- Plano de Contas Almasa é o centro da contabilidade — todas as contas bancárias devem vincular aqui
+
+---
+
+### [6.27.0] - 2026-03-08
+
+#### Adicionado
+- **Documentação de Banco de Dados** — Mapa completo com 85 tabelas, ~630k registros
+  - Módulos: Pessoas, Imóveis, Contratos, Financeiro, Contas Bancárias, Plano de Contas
+  - Hierarquias de FK: pessoas → enderecos → logradouros → bairros → cidades → estados
+  - Tabelas históricas: `lancamentos_financeiros` (506.704 migrados), `lancamentos` (CRUD novo)
+
+#### Adicionado
+- **Documentação de Tipos de Lançamentos** — 99 tipos catalogados (50 receitas, 49 despesas)
+  - Códigos 1001-1049 (receitas), 2001-2055 (despesas)
+  - Mapeamento legado: IDs 1313-1466 migrados para códigos 1001-1049
+
+---
 
 ### [6.21.2] - 2026-03-03
 
