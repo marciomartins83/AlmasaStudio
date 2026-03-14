@@ -829,6 +829,9 @@ Imoveis, ImoveisContratos, ImoveisFotos, ImoveisGarantias, ImoveisMedidores, Imo
 **Financeiro (8 entities):**
 LancamentosFinanceiros, BaixasFinanceiras, AcordosFinanceiros, Boletos, BoletosLogApi, ContratosCobrancas, ContratosItensCobranca, EmailsEnviados
 
+**Plano de Contas Almasa (3 entities) — NOVO v6.28.0:**
+AlmasaPlanoContas, AlmasaVinculoBancario, AlmasaLancamentos
+
 **Configuracoes (4 entities):**
 ConfiguracoesApiBanco, ConfiguracoesCobranca, DimobConfiguracoes, PlanoContas
 
@@ -855,6 +858,396 @@ Users, Roles, Permissions, Sessions, Telefones, Emails, ChavesPix, Profissoes, C
 | `pessoas_documentos` | `id` | `id_pessoa -> pessoas.id` | Direto |
 | `pessoas_profissoes` | `id` | `id_pessoa -> pessoas.id` | Direto |
 | `relacionamentos_familiares` | `id` | `idPessoaOrigem / idPessoaDestino -> pessoas.id` | Fonte da verdade para Conjuge |
+
+### Estatísticas do Banco (88 tabelas — atualizado 2026-03-14)
+
+| Tabela | Registros | Módulo |
+|--------|-----------|--------|
+| `lancamentos_financeiros` | 503.704 | Financeiro (migrado) |
+| `bairros` | 51.998 | Endereços |
+| `prestacoes_contas` | 42.844 | Financeiro |
+| `pessoas_tipos` | 9.787 | Pessoas |
+| `cidades` | 9.674 | Endereços |
+| `enderecos` | 8.323 | Endereços |
+| `pessoas_telefones` | 7.412 | Pessoas |
+| `telefones` | 7.291 | Pessoas |
+| `pessoas_documentos` | 5.409 | Pessoas |
+| `pessoas` | 4.795 | Pessoas |
+| `imoveis` | 3.236 | Imóveis |
+| `logradouros` | 2.737 | Endereços |
+| `pessoas_locadores` | 2.498 | Pessoas |
+| `pessoas_profissoes` | 2.320 | Pessoas |
+| `imoveis_contratos` | 2.130 | Contratos |
+| `almasa_plano_contas` | 2.103 | Plano de Contas Almasa |
+| `pessoas_emails` | 1.971 | Pessoas |
+| `emails` | 1.961 | Pessoas |
+| `profissoes` | 1.459 | Pessoas |
+| `contas_bancarias` | 390 | Bancos |
+| `pessoas_fiadores` | 288 | Pessoas |
+| `plano_contas` | 159 | Financeiro (tipos lançamento) |
+| `doctrine_migration_versions` | 46 | Sistema |
+| `nacionalidades` | 38 | Pessoas |
+| `estados` | 31 | Endereços |
+| `chaves_pix` | 22 | Pessoas |
+| `agencias` | 16 | Bancos |
+| `bancos` | 15 | Bancos |
+| `tipos_pessoas` | 12 | Tipos |
+| `estado_civil` | 11 | Tipos |
+| Demais 58 tabelas | 0–7 | Tipos, Config, Auth, etc. |
+
+> **Total geral:** ~648.000 registros em 88 tabelas.
+
+### Hierarquia de Módulos (Diagrama de FK)
+
+```
+pessoas (4.795)
+├── enderecos (8.323) → logradouros (2.737) → bairros (51.998) → cidades (9.674) → estados (31)
+├── pessoas_documentos (5.409)
+├── pessoas_telefones (7.412) → telefones (7.291)
+├── pessoas_emails (1.971) → emails (1.961)
+├── pessoas_locadores (2.498)
+├── pessoas_fiadores (288)
+├── pessoas_contratantes (3)
+├── pessoas_profissoes (2.320) → profissoes (1.459)
+├── chaves_pix (22)
+└── relacionamentos_familiares (cônjuges)
+
+imoveis (3.236)
+├── enderecos (compartilhado com pessoas)
+├── imoveis_contratos (2.130) → pessoas (locatário, fiador)
+│   └── contratos_cobrancas → boletos
+├── imoveis_fotos, imoveis_garantias, imoveis_medidores
+└── imoveis_propriedades
+
+lancamentos_financeiros (503.704) — HISTÓRICO MIGRADO
+├── FK: id_contrato → imoveis_contratos
+├── FK: id_imovel → imoveis
+├── FK: id_inquilino → pessoas
+├── FK: id_proprietario → pessoas
+└── FK: id_conta_bancaria → contas_bancarias
+
+lancamentos (0 — CRUD novo, em uso a partir de mar/2026)
+├── FK: id_plano_conta → plano_contas
+├── FK: id_plano_conta_debito → almasa_plano_contas
+├── FK: id_plano_conta_credito → almasa_plano_contas
+├── FK: id_imovel → imoveis
+├── FK: id_proprietario, id_inquilino → pessoas
+└── FK: id_conta_bancaria → contas_bancarias
+
+almasa_plano_contas (2.103)
+├── FK: id_pai → almasa_plano_contas (auto-referência hierárquica)
+└── almasa_vinculos_bancarios → contas_bancarias
+```
+
+### Estrutura das Tabelas Principais
+
+**Tabela `pessoas` (17 colunas)**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `idpessoa` | integer PK | NO | Auto-incremento |
+| `nome` | varchar(255) | NO | Nome completo ou razão social |
+| `dt_cadastro` | timestamp | NO | Data de cadastro |
+| `tipo_pessoa` | integer | NO | FK → tipos_pessoas |
+| `status` | boolean | NO | Ativo/Inativo |
+| `fisica_juridica` | varchar(255) | NO | `F` = Física, `J` = Jurídica |
+| `data_nascimento` | date | YES | — |
+| `nome_pai` | varchar(255) | YES | — |
+| `nome_mae` | varchar(255) | YES | — |
+| `renda` | numeric | YES | — |
+| `observacoes` | text | YES | — |
+| `theme_light` | boolean | NO | Preferência de tema (default true) |
+| `user_id` | integer | YES | FK → users |
+| `estado_civil_id` | integer | YES | FK → estado_civil |
+| `nacionalidade_id` | integer | YES | FK → nacionalidades |
+| `naturalidade_id` | integer | YES | FK → naturalidades |
+| `cod` | integer | YES | Código legado migração MySQL |
+
+**Tabela `lancamentos_financeiros` (47 colunas) — HISTÓRICO MIGRADO**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `id` | integer PK | NO | Auto-incremento |
+| `id_contrato` | integer | YES | FK → imoveis_contratos |
+| `id_imovel` | integer | YES | FK → imoveis |
+| `id_inquilino` | integer | YES | FK → pessoas |
+| `id_proprietario` | integer | YES | FK → pessoas |
+| `id_conta` | integer | YES | FK → plano_contas (tipo lançamento) |
+| `id_conta_bancaria` | integer | YES | FK → contas_bancarias |
+| `competencia` | date | NO | Mês/ano de referência |
+| `data_lancamento` | date | NO | Data do lançamento |
+| `data_vencimento` | date | NO | Data de vencimento |
+| `data_limite` | date | YES | Data limite para pagamento |
+| `valor_principal` | numeric | NO | Valor do aluguel (default 0) |
+| `valor_condominio` | numeric | YES | — |
+| `valor_iptu` | numeric | YES | — |
+| `valor_agua` | numeric | YES | — |
+| `valor_luz` | numeric | YES | — |
+| `valor_gas` | numeric | YES | — |
+| `valor_outros` | numeric | YES | — |
+| `valor_multa` | numeric | YES | — |
+| `valor_juros` | numeric | YES | — |
+| `valor_honorarios` | numeric | YES | — |
+| `valor_desconto` | numeric | YES | — |
+| `valor_bonificacao` | numeric | YES | — |
+| `valor_total` | numeric | NO | Soma de todos os valores (default 0) |
+| `valor_pago` | numeric | YES | — |
+| `valor_saldo` | numeric | YES | Saldo devedor |
+| `situacao` | varchar(20) | YES | `pago`, `aberto`, etc. |
+| `tipo_lancamento` | varchar(30) | YES | `receita`, `aluguel`, `despesa` |
+| `origem` | varchar(30) | YES | Origem do lançamento |
+| `descricao` | text | YES | — |
+| `historico` | text | YES | — |
+| `observacoes` | text | YES | — |
+| `gerado_automaticamente` | boolean | YES | Flag de geração automática |
+| `ativo` | boolean | YES | — |
+| + 13 colunas de auditoria/controle | — | — | created_at, updated_at, created_by, etc. |
+
+**Tabela `lancamentos` (43 colunas) — CRUD NOVO (produção mar/2026+)**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `id` | integer PK | NO | Auto-incremento |
+| `data_movimento` | date | NO | Data do movimento contábil |
+| `data_vencimento` | date | NO | Data de vencimento |
+| `data_pagamento` | date | YES | Data efetiva de pagamento |
+| `id_plano_conta` | integer | YES | FK → plano_contas (tipo legado) |
+| `id_plano_conta_debito` | integer | YES | FK → almasa_plano_contas (partida dobrada) |
+| `id_plano_conta_credito` | integer | YES | FK → almasa_plano_contas (partida dobrada) |
+| `id_imovel` | integer | YES | FK → imoveis |
+| `id_proprietario` | integer | YES | FK → pessoas |
+| `id_inquilino` | integer | YES | FK → pessoas |
+| `id_pessoa_credor` | integer | YES | FK → pessoas |
+| `id_pessoa_pagador` | integer | YES | FK → pessoas |
+| `id_contrato` | integer | YES | FK → imoveis_contratos |
+| `id_conta_bancaria` | integer | YES | FK → contas_bancarias |
+| `id_boleto` | integer | YES | FK → boletos |
+| `valor` | numeric | NO | Valor do lançamento |
+| `tipo` | varchar(10) | NO | `receber` ou `pagar` |
+| `status` | varchar(15) | YES | `aberto`, `pago`, `cancelado`, `pago_parcial` |
+| `historico` | varchar(255) | YES | Descrição do lançamento |
+| `competencia` | varchar(7) | YES | Formato `YYYY-MM` |
+| `centro_custo` | varchar(20) | YES | — |
+| `forma_pagamento` | varchar(20) | YES | — |
+| `valor_pago`, `valor_desconto`, `valor_juros`, `valor_multa` | numeric | YES | Valores de baixa |
+| `reter_inss`, `perc_inss`, `valor_inss` | — | YES | Retenção INSS |
+| `reter_iss`, `perc_iss`, `valor_iss` | — | YES | Retenção ISS |
+| + 6 colunas de auditoria/controle | — | — | created_at, updated_at, etc. |
+
+> **ATENÇÃO:** `lancamentos_financeiros` usa campos granulares (valor_principal, valor_condominio, etc.) e `tipo_lancamento IN ('receita', 'aluguel', 'despesa')`. A tabela `lancamentos` usa campo único `valor` e `tipo IN ('receber', 'pagar')`. Os Services usam tabelas diferentes: `RelatorioService` → `LancamentosFinanceiros`, `LancamentosController` → `Lancamentos`.
+
+**Tabela `imoveis` (50 colunas)**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `id` | integer PK | NO | Auto-incremento |
+| `codigo_interno` | varchar(20) | YES | Formato `IM0005` |
+| `id_tipo_imovel` | integer | NO | FK → tipos_imoveis |
+| `id_endereco` | integer | NO | FK → enderecos |
+| `id_condominio` | integer | YES | FK → condominios |
+| `id_pessoa_proprietario` | integer | NO | FK → pessoas |
+| `id_pessoa_fiador` | integer | YES | FK → pessoas |
+| `id_pessoa_corretor` | integer | YES | FK → pessoas |
+| `situacao` | varchar(20) | NO | Status do imóvel |
+| `valor_aluguel` | numeric | YES | Valor mensal |
+| `valor_condominio` | numeric | YES | — |
+| `valor_iptu_mensal` | numeric | YES | — |
+| `taxa_administracao` | numeric | YES | % de administração |
+| `dia_vencimento` | integer | YES | Dia do mês |
+| + 36 colunas de característica e controle | — | — | Áreas, quartos, publicação, etc. |
+
+**Tabela `imoveis_contratos` (25 colunas)**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `id` | integer PK | NO | Auto-incremento |
+| `id_imovel` | integer | NO | FK → imoveis |
+| `id_pessoa_locatario` | integer | YES | FK → pessoas (inquilino) |
+| `id_pessoa_fiador` | integer | YES | FK → pessoas |
+| `tipo_contrato` | varchar(20) | NO | Tipo (locação, etc.) |
+| `data_inicio` | date | NO | Início da vigência |
+| `data_fim` | date | YES | Fim da vigência |
+| `valor_contrato` | numeric | NO | Valor mensal |
+| `dia_vencimento` | integer | YES | Dia do mês |
+| `status` | varchar(20) | NO | `ativo`, `encerrado`, etc. |
+| `taxa_administracao` | numeric | YES | % (default 10) |
+| `tipo_garantia` | varchar(30) | YES | `fiador`, `caucao`, `seguro` |
+| `indice_reajuste` | varchar(20) | YES | `IGPM`, `IPCA`, etc. |
+| `periodicidade_reajuste` | varchar(20) | YES | `anual`, etc. |
+| `data_proximo_reajuste` | date | YES | — |
+| `ativo` | boolean | YES | Default true |
+| + 9 colunas de configuração | — | — | Multa, carência, boleto, email, etc. |
+
+**Tabela `almasa_plano_contas` (10 colunas) — NOVO v6.28.0**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `id` | integer PK | NO | Auto-incremento |
+| `id_pai` | integer | YES | FK → almasa_plano_contas (hierarquia) |
+| `codigo` | varchar(20) | NO | Ex: `1`, `1.1`, `1.1.01`, `1.1.01.001` |
+| `descricao` | varchar(255) | NO | Nome da conta |
+| `tipo` | varchar(25) | NO | `ativo`, `passivo`, `receita`, `despesa`, `patrimonio` |
+| `nivel` | smallint | NO | 1 a 5 |
+| `aceita_lancamentos` | boolean | NO | Só contas analíticas (nível 4-5) |
+| `ativo` | boolean | NO | — |
+| `created_at` | timestamp | NO | — |
+| `updated_at` | timestamp | NO | — |
+
+**Tabela `contas_bancarias` (25 colunas)**
+
+| Coluna | Tipo | NULL | Descrição |
+|--------|------|------|-----------|
+| `id` | integer PK | NO | Auto-incremento |
+| `id_pessoa` | integer | YES | FK → pessoas (titular) |
+| `id_banco` | integer | YES | FK → bancos |
+| `id_agencia` | integer | YES | FK → agencias |
+| `codigo` | varchar(255) | NO | Número da conta |
+| `digito_conta` | varchar(255) | YES | — |
+| `titular` | varchar(255) | YES | Nome do titular |
+| `principal` | boolean | NO | Conta principal |
+| `ativo` | boolean | NO | — |
+| + 16 colunas de configuração bancária | — | — | Carteira, remessa, convênio, etc. |
+
+### Tipos de Lançamentos (tabela `plano_contas` — 159 registros)
+
+Mapeamento completo dos tipos usados em `lancamentos_financeiros.id_conta`:
+
+- **tipo=0** → Receita (42 entradas, códigos 1001–1049)
+- **tipo=1** → Despesa (109 entradas, códigos 2001–2110)
+- **tipo=2** → Repasse/Controle (8 entradas, códigos 5001–5025)
+
+**Receitas (tipo=0, códigos 1001–1049):**
+
+| ID | Código | Descrição |
+|----|--------|-----------|
+| 1313 | 1001 | Aluguel |
+| 1314 | 1002 | Desconto |
+| 1315 | 1003 | Multa |
+| 1316 | 1004 | I.R. |
+| 1317 | 1005 | Seg. Fiança |
+| 1318 | 1006 | Condomínio |
+| 1319 | 1007 | CPMF |
+| 1320 | 1008 | IPTU |
+| 1321 | 1009 | Acordo |
+| 1344 | 1010 | Honorários de Administração |
+| 1345 | 1011 | Taxa de Locação |
+| 1346 | 1012 | Multa Sobre Aluguéis |
+| 1347 | 1013 | Receitas Diversas |
+| 1353 | 1021 | Taxa de Envio |
+| 1354 | 1022 | Reembolso |
+| 1356 | 1023 | Saldo Anterior (c) |
+| 1358 | 1024 | Transferência (c) |
+| 1360 | 1025 | Movimentação Contas Bancária (c) |
+| 1362 | 1026 | Comissões Recebidas |
+| 1365 | 1027 | Depósito efetuado |
+| 1366 | 1028 | Conta de Luz |
+| 1367 | 1029 | Conta de Água |
+| 1369 | 1030 | Tx. Administração (Almasa) |
+| 1376 | 1031 | Custas Processuais |
+| 1379 | 1032 | Conta de Gás |
+| 1380 | 1033 | Internet - Assinatura |
+| 1383 | 1034 | Água, Luz, IPTU e Cond |
+| 1387 | 1035 | Honorários - Jurídico |
+| 1390 | 1036 | Seguro do Imóvel |
+| 1394 | 1037 | Acerto de Saldo (c) |
+| 1398 | 1038 | Pró-Labore |
+| 1399 | 1039 | Multa Contratual |
+| 1402 | 1040 | Lucro Apurado |
+| 1404 | 1041 | Juros |
+| 1406 | 1042 | Rateio Extra |
+| 1409 | 1043 | Fdo Reserva |
+| 1410 | 1044 | Vaga Extra |
+| 1412 | 1045 | Cartório / Registro |
+| 1420 | 1046 | Transfer. Divisão entre os filhos |
+| 1430 | 1047 | Documentação Imobiliária (C) |
+| 1456 | 1048 | Distribuição de Lucros (C) |
+| 1466 | 1049 | Levantamento de ficha |
+
+**Despesas (tipo=1, códigos 2001–2110) — 109 entradas:**
+
+| ID | Código | Descrição |
+|----|--------|-----------|
+| 1322 | 2001 | Taxa de Administração |
+| 1323 | 2002 | IPTU |
+| 1324 | 2003 | Depósito Efetuado |
+| 1325 | 2004 | CPMF |
+| 1326 | 2005 | Encargos Sociais |
+| 1334 | 2006 | Combustível |
+| 1335 | 2007 | Prestador de Serviço |
+| 1336 | 2008 | Taxas Bancárias - Boletos |
+| 1337 | 2009 | Material de Escritório |
+| 1338 | 2010 | Material de Cozinha/Limpeza |
+| 1339 | 2011 | Despesas Gerais |
+| 1340 | 2012 | Publicidade |
+| 1341 | 2013 | Manutenção Veículo |
+| 1342 | 2014 | Seguro |
+| 1343 | 2015 | Reforma de Imóvel |
+| 1348 | 2016 | Sindicatos / Conselhos |
+| 1349 | 2017 | Cartão de Crédito |
+| 1350 | 2018 | Faculdade |
+| 1351 | 2019 | Manutenção Prédio |
+| 1352 | 2020 | Máquinas / Equipamentos |
+| 1330 | 2021 | Reembolso |
+| 1331 | 2022 | Salários |
+| 1332 | 2023 | Manutenção Jardim |
+| 1333 | 2024 | Pró-Labore |
+| 1355 | 2025 | Imposto de Renda |
+| 1357 | 2026 | Saldo anterior (d) |
+| 1359 | 2027 | Transferência (d) |
+| 1361 | 2028 | Movimentação Contas Bancárias (d) |
+| 1363 | 2029 | Comissões Pagas |
+| 1364 | 2030 | Retirada dos Sócios |
+| 1370 | 2031 | Custas Judiciais |
+| 1371 | 2032 | Condomínio |
+| 1372 | 2033 | Conta de Luz |
+| 1373 | 2034 | Conta de Água |
+| 1374 | 2035 | Conta de Telefone / Celular |
+| 1375 | 2036 | Plano de Saúde |
+| 1378 | 2038 | Honorários |
+| 1381 | 2039 | Pgto. Diversos |
+| 1384 | 2040 | Condução / Correio |
+| 1385 | 2041 | Cartório / Reg.Imóveis |
+| 1386 | 2042 | Juros |
+| 1389 | 2043 | Antecipação de aluguéis |
+| 1391 | 2044 | Manutenção site |
+| 1392 | 2045 | Gasolina |
+| 1393 | 2046 | Taxa de Locação |
+| 1395 | 2047 | Acerto de Saldo (D) |
+| 1396 | 2048 | Devolução Depósito |
+| 1397 | 2049 | Remessa |
+| 1400 | 2050 | Certidões |
+| 1401 | 2051 | Tx. Administração Condomínio |
+| 1403 | 2052 | Distribuição de Lucros (D) |
+| 1407–1470 | 2053–2110 | Manutenção Geral, Construção (58 subcategorias: cimento, ferro, areia, pintura, etc.) |
+
+**Repasse/Controle (tipo=2, códigos 5001–5025):**
+
+| ID | Código | Descrição |
+|----|--------|-----------|
+| 1327 | 5001 | Caixa |
+| 1328 | 5002 | Condomínio |
+| 1329 | 5003 | Taxa Adm. |
+| 1368 | 5021 | Taxa de Envio |
+| 1377 | 5022 | Honorários Advogado |
+| 1382 | 5023 | Seguro Fiança |
+| 1388 | 5024 | Cheque Devolvido |
+| 1405 | 5025 | Internet - Assinatura |
+
+> **Nota:** IDs são legado MySQL (1313-1470). Códigos são a referência para o sistema (1001-5025). O campo `tipo` mapeia: 0=Receita, 1=Despesa, 2=Repasse.
+
+### Duas Tabelas Financeiras — Regra de Uso
+
+| Aspecto | `lancamentos_financeiros` | `lancamentos` |
+|---------|---------------------------|---------------|
+| **Registros** | 503.704 | 0 (novo) |
+| **Origem** | Migração MySQL (histórico) | CRUD novo (mar/2026+) |
+| **Service** | `RelatorioService` (dados granulares) | `LancamentosService` (interface) |
+| **Tipo entrada** | `tipoLancamento IN ('receita','aluguel')` | `tipo = 'receber'` |
+| **Tipo saída** | `tipoLancamento = 'despesa'` | `tipo = 'pagar'` |
+| **Status pago** | `situacao = 'pago'` | `status IN ('pago','pago_parcial')` |
+| **Data** | `dataVencimento` (sem dataPagamento) | `dataVencimento` + `dataPagamento` |
+| **Valores** | Granulares (principal, condomínio, IPTU, água...) | Consolidado (`valor` único) |
+| **Partida dobrada** | Não | Sim (`id_plano_conta_debito`, `id_plano_conta_credito`) |
 
 ### Validacao de Schema
 
@@ -2410,6 +2803,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-03-03 (v6.21.2 — Código legado + Flag proprietario)
+**Ultima atualizacao:** 2026-03-14 (v6.28.0 — Plano de Contas Almasa v2 + Vinculos Bancarios + Partidas Dobradas + Documentação DB integrada)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via @agent/kimi
