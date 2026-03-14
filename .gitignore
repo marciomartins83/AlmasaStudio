@@ -85,16 +85,14 @@ plancontasv2.docx
 qwen-code-export-*.md
 session-*.md
 vps.md
-EOF
 test_qwen_local.py
 ###< documentacao temporaria ###
 
 ###> screenshots e arquivos temporarios ###
-"Captura de tela_2026-03-06_15-46-17.png"
+Captura\ de\ tela*.png
 ###< screenshots e arquivos temporarios ###
 
 ###> backups e exemplos ###
 /backups/
 /exemploRel/
-EOF
 ###< backups e exemplos ###
