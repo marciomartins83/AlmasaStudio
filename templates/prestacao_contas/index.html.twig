@@ -93,19 +93,6 @@
                 <i class="fas fa-plus"></i> Gerar Nova Prestacao
             </a>
         </div>
-        <div class="card-footer py-1">
-            {% include '_partials/pagination.html.twig' with {
-                totalItems: totalItems,
-                currentPage: currentPage,
-                itemsPerPage: itemsPerPage,
-                totalPages: totalPages,
-                routeName: 'app_prestacao_contas_index',
-                filters: filters,
-                sortField: sortField,
-                sortDir: sortDir,
-                showSearch: false
-            } %}
-        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-striped table-hover mb-0">
@@ -188,6 +175,19 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="card-footer py-1">
+            {% include '_partials/pagination.html.twig' with {
+                totalItems: totalItems,
+                currentPage: currentPage,
+                itemsPerPage: itemsPerPage,
+                totalPages: totalPages,
+                routeName: 'app_prestacao_contas_index',
+                filters: filters,
+                sortField: sortField,
+                sortDir: sortDir,
+                showSearch: false
+            } %}
         </div>
     </div>
 </div>
