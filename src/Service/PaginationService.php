@@ -29,14 +29,16 @@ class PaginationService
         $page = max(1, $request->query->getInt('page', 1));
         $search = trim($request->query->get('search', ''));
 
-        // perPage: persiste na sessão para sobreviver a redirects (ex: após exclusão)
+        // perPage: persiste na sessão por rota para sobreviver a redirects (ex: após exclusão)
         $session = $request->getSession();
+        $routeName = $request->attributes->get('_route', '_default');
+        $sessionKey = '_pagination_per_page_' . $routeName;
         $queryPerPage = $request->query->getInt('perPage', 0);
         if ($queryPerPage > 0) {
             $perPage = max(1, min(100, $queryPerPage));
-            $session->set('_pagination_per_page', $perPage);
+            $session->set($sessionKey, $perPage);
         } else {
-            $perPage = $session->get('_pagination_per_page', self::DEFAULT_PER_PAGE);
+            $perPage = $session->get($sessionKey, self::DEFAULT_PER_PAGE);
         }
 
         // Apply legacy search (text search across fields)
