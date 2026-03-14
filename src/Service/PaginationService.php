@@ -27,8 +27,17 @@ class PaginationService
         string $defaultSortDir = 'DESC'
     ): array {
         $page = max(1, $request->query->getInt('page', 1));
-        $perPage = max(1, min(100, $request->query->getInt('perPage', self::DEFAULT_PER_PAGE)));
         $search = trim($request->query->get('search', ''));
+
+        // perPage: persiste na sessão para sobreviver a redirects (ex: após exclusão)
+        $session = $request->getSession();
+        $queryPerPage = $request->query->getInt('perPage', 0);
+        if ($queryPerPage > 0) {
+            $perPage = max(1, min(100, $queryPerPage));
+            $session->set('_pagination_per_page', $perPage);
+        } else {
+            $perPage = $session->get('_pagination_per_page', self::DEFAULT_PER_PAGE);
+        }
 
         // Apply legacy search (text search across fields)
         if ($search && ($searchField || $searchFields)) {
