@@ -85,8 +85,15 @@ class LancamentosService
             // Calcular retenções
             $this->calcularRetencoes($lancamento);
 
-            // Definir status inicial
-            $lancamento->atualizarStatus();
+            // Transferência (partida dobrada completa) → auto-marcar como PAGO
+            if ($lancamento->getPlanoContaDebito() && $lancamento->getPlanoContaCredito()) {
+                $lancamento->setStatus(Lancamentos::STATUS_PAGO);
+                $lancamento->setDataPagamento($lancamento->getDataMovimento());
+                $lancamento->setValorPago($lancamento->getValorLiquido());
+            } else {
+                // Definir status inicial
+                $lancamento->atualizarStatus();
+            }
 
             // Definir usuário criador
             $user = $this->security->getUser();
@@ -131,8 +138,15 @@ class LancamentosService
             // Recalcular retenções
             $this->calcularRetencoes($lancamento);
 
-            // Atualizar status
-            $lancamento->atualizarStatus();
+            // Transferência (partida dobrada completa) → auto-marcar como PAGO
+            if ($lancamento->getPlanoContaDebito() && $lancamento->getPlanoContaCredito()) {
+                $lancamento->setStatus(Lancamentos::STATUS_PAGO);
+                $lancamento->setDataPagamento($lancamento->getDataMovimento());
+                $lancamento->setValorPago($lancamento->getValorLiquido());
+            } else {
+                // Atualizar status
+                $lancamento->atualizarStatus();
+            }
 
             $this->em->flush();
             $this->em->commit();

@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRecorrencia();
     initFiltroPlanoConta();
     initCamposMonetarios();
+    initTransferenciaCheck();
 });
 
 /**
@@ -372,4 +373,54 @@ function initCompetenciaAutomatica() {
             }
         }
     });
+}
+
+/**
+ * Transferência: intercepta submit quando débito+crédito preenchidos
+ * e conta bancária não informada — abre modal pedindo
+ */
+function initTransferenciaCheck() {
+    const form = document.querySelector('form.needs-validation');
+    if (!form) return;
+
+    const cfg = window.LANCAMENTOS_PLANO_CONTA;
+    if (!cfg) return;
+
+    const debitoHidden  = document.getElementById(cfg.debito.hiddenId);
+    const creditoHidden = document.getElementById(cfg.credito.hiddenId);
+    const contaBancariaSelect = document.getElementById('lancamentos_contaBancaria');
+    const modalEl = document.getElementById('modalContaBancaria');
+    if (!debitoHidden || !creditoHidden || !contaBancariaSelect || !modalEl) return;
+
+    const modalSelect  = document.getElementById('modal_conta_bancaria');
+    const btnConfirmar = document.getElementById('btnConfirmarContaBancaria');
+
+    form.addEventListener('submit', (e) => {
+        const temDebito  = debitoHidden.value && debitoHidden.value !== '';
+        const temCredito = creditoHidden.value && creditoHidden.value !== '';
+        const temConta   = contaBancariaSelect.value && contaBancariaSelect.value !== '';
+
+        // É transferência (ambos preenchidos) e sem conta bancária → interceptar
+        if (temDebito && temCredito && !temConta) {
+            e.preventDefault();
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    });
+
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', () => {
+            const contaId = modalSelect.value;
+            if (!contaId) {
+                modalSelect.classList.add('is-invalid');
+                return;
+            }
+            modalSelect.classList.remove('is-invalid');
+
+            // Preenche o select original do form e submete
+            contaBancariaSelect.value = contaId;
+            bootstrap.Modal.getInstance(modalEl).hide();
+            form.submit();
+        });
+    }
 }

@@ -300,6 +300,32 @@
 
 {{ form_end(form) }}
 
+{# Modal — Conta Bancária obrigatória para transferências #}
+<div class="modal fade" id="modalContaBancaria" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-university"></i> Conta Bancária</h5>
+            </div>
+            <div class="modal-body">
+                <p>Esta é uma <strong>transferência entre contas</strong> (débito e crédito preenchidos).</p>
+                <p>Informe a conta bancária vinculada:</p>
+                <select id="modal_conta_bancaria" class="form-select">
+                    <option value="">Selecione...</option>
+                    {% for opt in form.contaBancaria.vars.choices %}
+                        <option value="{{ opt.value }}">{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="btnConfirmarContaBancaria">
+                    <i class="fas fa-check"></i> Confirmar e Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 window.LANCAMENTOS_PLANO_CONTA = {
     url: '{{ path("app_almasa_plano_contas_api_busca") }}',
