@@ -102,9 +102,7 @@
                             <th width="80">Tipo</th>
                             <th width="100">Vencimento</th>
                             <th>Credor/Pagador</th>
-                            <th>Historico</th>
-                            <th width="100">Debito</th>
-                            <th width="100">Credito</th>
+                            <th>Plano de Contas</th>
                             <th width="120" class="text-end">Valor</th>
                             <th width="120" class="text-end">Saldo</th>
                             <th width="100">Status</th>
@@ -136,21 +134,12 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {{ lancamento.historico|default('-') }}
-                                {% if lancamento.planoConta %}
-                                    <br><small class="text-muted">{{ lancamento.planoConta.codigo }}</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if lancamento.planoContaDebito %}
-                                    <span title="{{ lancamento.planoContaDebito.descricao }}">{{ lancamento.planoContaDebito.codigo }}</span>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if lancamento.planoContaCredito %}
-                                    <span title="{{ lancamento.planoContaCredito.descricao }}">{{ lancamento.planoContaCredito.codigo }}</span>
+                                {% if lancamento.planoContaDebito and lancamento.planoContaCredito %}
+                                    {{ lancamento.planoContaDebito.descricao }} / {{ lancamento.planoContaCredito.descricao }}
+                                {% elseif lancamento.planoContaDebito %}
+                                    {{ lancamento.planoContaDebito.descricao }}
+                                {% elseif lancamento.planoContaCredito %}
+                                    {{ lancamento.planoContaCredito.descricao }}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
