@@ -16,6 +16,7 @@ import {
 } from './lancamentos.js';
 
 import { initPessoasAutocomplete } from './pessoa_autocomplete.js';
+import { initPlanoContaAutocompletes } from './plano_conta_autocomplete.js';
 
 /**
  * Inicializa modulo quando DOM estiver pronto
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCalculoRetencoes();
     initCompetenciaAutomatica();
     initPessoasAutocomplete();
+    initPlanoContaAutocompletes();
     initRecorrencia();
     initFiltroPlanoConta();
     initCamposMonetarios();
