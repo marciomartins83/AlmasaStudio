@@ -142,6 +142,9 @@
     const codigoSugestao = document.getElementById('codigo-sugestao');
 
     let currentPrefixo = '';
+    const IS_EDIT = {{ is_edit|default(false) ? 'true' : 'false' }};
+    const CURRENT_CODIGO = '{{ is_edit|default(false) ? conta.codigo : '' }}';
+    let isInitialLoad = IS_EDIT;
 
     const NIVEL_TEXTS = {
         '1': {
@@ -322,13 +325,21 @@
         codigoComposto.style.display = '';
 
         prefixoDisplay.textContent = prefixo;
-        sufixoInput.value = sufixo;
         sufixoInput.setAttribute('maxlength', String(padLen + 1));
         sufixoInput.setAttribute('placeholder', sufixo);
         codigoSugestao.innerHTML = '<i class="fas fa-magic"></i> Proximo disponivel: <strong>' + prefixo + sufixo + '</strong>';
 
-        // Atualizar campo hidden do Symfony
-        codigoInput.value = prefixo + sufixo;
+        // Em modo edicao na carga inicial: preservar o codigo atual, nao sobrescrever
+        if (isInitialLoad && CURRENT_CODIGO && CURRENT_CODIGO.startsWith(prefixo)) {
+            const editSufixo = CURRENT_CODIGO.substring(prefixo.length);
+            sufixoInput.value = editSufixo;
+            codigoInput.value = CURRENT_CODIGO;
+            isInitialLoad = false;
+        } else {
+            sufixoInput.value = sufixo;
+            codigoInput.value = prefixo + sufixo;
+        }
+
         codigoInput.style.display = 'none';
     }
 
