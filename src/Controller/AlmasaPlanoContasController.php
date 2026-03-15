@@ -131,6 +131,31 @@ class AlmasaPlanoContasController extends AbstractController
         ]);
     }
 
+    #[Route('/api/busca', name: 'api_busca', methods: ['GET'])]
+    public function apiBusca(Request $request): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 2) {
+            return new JsonResponse([]);
+        }
+
+        $contas = $this->repository->createQueryBuilder('a')
+            ->where('a.aceitaLancamentos = true')
+            ->andWhere('a.ativo = true')
+            ->andWhere('LOWER(a.descricao) LIKE LOWER(:q) OR LOWER(a.codigo) LIKE LOWER(:q)')
+            ->setParameter('q', '%' . $q . '%')
+            ->orderBy('a.descricao', 'ASC')
+            ->setMaxResults(20)
+            ->getQuery()
+            ->getResult();
+
+        return new JsonResponse(array_map(fn(AlmasaPlanoContas $c) => [
+            'id'       => $c->getId(),
+            'codigo'   => $c->getCodigo(),
+            'descricao' => $c->getDescricao(),
+        ], $contas));
+    }
+
     #[Route('/api/proximo-codigo/{paiId}', name: 'api_proximo_codigo', methods: ['GET'])]
     public function proximoCodigo(int $paiId): JsonResponse
     {

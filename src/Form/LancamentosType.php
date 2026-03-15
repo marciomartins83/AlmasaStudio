@@ -92,36 +92,12 @@ class LancamentosType extends AbstractType
             ])
 
             // === PARTIDAS DOBRADAS ===
-            ->add('planoContaDebito', EntityType::class, [
-                'class' => AlmasaPlanoContas::class,
-                'label' => 'Conta Débito',
-                'choice_label' => function (AlmasaPlanoContas $conta) {
-                    return $conta->getCodigo() . ' - ' . $conta->getDescricao();
-                },
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('a')
-                        ->where('a.aceitaLancamentos = true')
-                        ->andWhere('a.ativo = true')
-                        ->orderBy('a.codigo', 'ASC');
-                },
-                'placeholder' => 'Selecione a conta de débito...',
-                'attr' => ['class' => 'form-select'],
+            ->add('planoContaDebito', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
-            ->add('planoContaCredito', EntityType::class, [
-                'class' => AlmasaPlanoContas::class,
-                'label' => 'Conta Crédito',
-                'choice_label' => function (AlmasaPlanoContas $conta) {
-                    return $conta->getCodigo() . ' - ' . $conta->getDescricao();
-                },
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('a')
-                        ->where('a.aceitaLancamentos = true')
-                        ->andWhere('a.ativo = true')
-                        ->orderBy('a.codigo', 'ASC');
-                },
-                'placeholder' => 'Selecione a conta de crédito...',
-                'attr' => ['class' => 'form-select'],
+            ->add('planoContaCredito', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
             ->add('competencia', TextType::class, [

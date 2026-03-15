@@ -131,6 +131,8 @@ class LancamentosController extends AbstractController
             'lancamento' => $lancamento,
             'credorPreload' => null,
             'pagadorPreload' => null,
+            'planoDebitoPreload' => null,
+            'planoCreditoPreload' => null,
         ]);
     }
 
@@ -163,14 +165,18 @@ class LancamentosController extends AbstractController
             }
         }
 
-        $credor = $lancamento->getPessoaCredor();
+        $credor  = $lancamento->getPessoaCredor();
         $pagador = $lancamento->getPessoaPagador();
+        $pcDeb   = $lancamento->getPlanoContaDebito();
+        $pcCred  = $lancamento->getPlanoContaCredito();
 
         return $this->render('lancamentos/edit.html.twig', [
             'form' => $form,
             'lancamento' => $lancamento,
-            'credorPreload' => $credor ? ['id' => $credor->getIdpessoa(), 'nome' => $credor->getNome()] : null,
+            'credorPreload'  => $credor  ? ['id' => $credor->getIdpessoa(),  'nome' => $credor->getNome()]  : null,
             'pagadorPreload' => $pagador ? ['id' => $pagador->getIdpessoa(), 'nome' => $pagador->getNome()] : null,
+            'planoDebitoPreload'  => $pcDeb  ? ['id' => $pcDeb->getId(),  'codigo' => $pcDeb->getCodigo(),  'descricao' => $pcDeb->getDescricao()]  : null,
+            'planoCreditoPreload' => $pcCred ? ['id' => $pcCred->getId(), 'codigo' => $pcCred->getCodigo(), 'descricao' => $pcCred->getDescricao()] : null,
         ]);
     }
 
@@ -443,6 +449,8 @@ class LancamentosController extends AbstractController
             'data_vencimento' => $lancamento->getDataVencimento()->format('Y-m-d'),
             'competencia' => $lancamento->getCompetencia(),
             'id_plano_conta' => $lancamento->getPlanoConta()?->getId(),
+            'id_plano_conta_debito'  => $form->get('planoContaDebito')->getData() ?: null,
+            'id_plano_conta_credito' => $form->get('planoContaCredito')->getData() ?: null,
             'historico' => $lancamento->getHistorico(),
             'centro_custo' => $lancamento->getCentroCusto(),
             'id_pessoa_credor' => $form->get('pessoaCredorId')->getData() ?: null,

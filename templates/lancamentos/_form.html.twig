@@ -66,10 +66,34 @@
                     <div class="card-body py-2">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                {{ form_row(form.planoContaDebito) }}
+                                <label class="form-label">Conta Débito</label>
+                                <div class="plano-conta-autocomplete-wrapper position-relative">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" id="plano_debito_display" class="form-control"
+                                               placeholder="Digite código ou descrição..." autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="plano_debito_clear" title="Limpar" style="display:none">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div id="plano_debito_results" class="plano-conta-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
+                                </div>
+                                {{ form_widget(form.planoContaDebito) }}
                             </div>
                             <div class="col-md-6">
-                                {{ form_row(form.planoContaCredito) }}
+                                <label class="form-label">Conta Crédito</label>
+                                <div class="plano-conta-autocomplete-wrapper position-relative">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" id="plano_credito_display" class="form-control"
+                                               placeholder="Digite código ou descrição..." autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="plano_credito_clear" title="Limpar" style="display:none">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div id="plano_credito_results" class="plano-conta-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
+                                </div>
+                                {{ form_widget(form.planoContaCredito) }}
                             </div>
                         </div>
                     </div>
@@ -277,6 +301,25 @@
 {{ form_end(form) }}
 
 <script>
+window.LANCAMENTOS_PLANO_CONTA = {
+    url: '{{ path("app_almasa_plano_contas_api_busca") }}',
+    debito: {
+        displayId:  'plano_debito_display',
+        hiddenId:   '{{ form.planoContaDebito.vars.id }}',
+        resultsId:  'plano_debito_results',
+        clearId:    'plano_debito_clear',
+        preloadId:  '{{ planoDebitoPreload ? planoDebitoPreload.id : '' }}',
+        preloadLabel: '{{ planoDebitoPreload ? (planoDebitoPreload.codigo ~ ' - ' ~ planoDebitoPreload.descricao)|e('js') : '' }}'
+    },
+    credito: {
+        displayId:  'plano_credito_display',
+        hiddenId:   '{{ form.planoContaCredito.vars.id }}',
+        resultsId:  'plano_credito_results',
+        clearId:    'plano_credito_clear',
+        preloadId:  '{{ planoCreditoPreload ? planoCreditoPreload.id : '' }}',
+        preloadLabel: '{{ planoCreditoPreload ? (planoCreditoPreload.codigo ~ ' - ' ~ planoCreditoPreload.descricao)|e('js') : '' }}'
+    }
+};
 window.LANCAMENTOS_AUTOCOMPLETE = {
     url: "{{ path('app_lancamentos_pessoa_autocomplete') }}",
     credor: {
