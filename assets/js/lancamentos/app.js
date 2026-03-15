@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPessoasAutocomplete();
     initRecorrencia();
     initFiltroPlanoConta();
+    initCamposMonetarios();
 });
 
 /**
@@ -317,6 +318,37 @@ function initFiltroPlanoConta() {
 
     tipoSelect.addEventListener('change', filtrar);
     filtrar(); // aplica ao carregar a página
+}
+
+/**
+ * Campos monetários: limpa zero ao focar, restaura 0.00 ao sair vazio
+ */
+function initCamposMonetarios() {
+    const nomes = [
+        'lancamentos[valor]',
+        'lancamentos[valorDesconto]',
+        'lancamentos[valorJuros]',
+        'lancamentos[valorMulta]',
+    ];
+
+    nomes.forEach(nome => {
+        const input = document.querySelector(`[name="${nome}"]`);
+        if (!input) return;
+
+        input.addEventListener('focus', () => {
+            if (!parseFloat(input.value)) {
+                input.value = '';
+            } else {
+                input.select();
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            if (input.value === '' || input.value === null) {
+                input.value = '0.00';
+            }
+        });
+    });
 }
 
 /**
