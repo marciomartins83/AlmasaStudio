@@ -54,19 +54,19 @@
             </div>
         </div>
 
-        {# Partidas Dobradas #}
+        {# Plano de Contas — aceita entrada simples ou partida dobrada #}
         <div class="row mt-2">
             <div class="col-12">
                 <div class="card border-primary">
                     <div class="card-header py-2 bg-transparent">
-                        <i class="fas fa-exchange-alt text-primary"></i>
-                        <strong>Partidas Dobradas</strong>
-                        <small class="text-muted ms-1">— classifique o lançamento no plano de contas Almasa</small>
+                        <i class="fas fa-sitemap text-primary"></i>
+                        <strong>Plano de Contas</strong>
+                        <small class="text-muted ms-1">— preencha apenas o campo necessário ou ambos para partida dobrada</small>
                     </div>
                     <div class="card-body py-2">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Conta Débito</label>
+                                <label class="form-label">Conta Débito <small class="text-muted">(opcional)</small></label>
                                 <div class="plano-conta-autocomplete-wrapper position-relative">
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -81,7 +81,7 @@
                                 {{ form_widget(form.planoContaDebito) }}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Conta Crédito</label>
+                                <label class="form-label">Conta Crédito <small class="text-muted">(opcional)</small></label>
                                 <div class="plano-conta-autocomplete-wrapper position-relative">
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-search"></i></span>
