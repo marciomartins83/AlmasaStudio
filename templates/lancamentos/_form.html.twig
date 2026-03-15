@@ -305,17 +305,29 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title"><i class="fas fa-university"></i> Conta Bancária</h5>
+                <h5 class="modal-title"><i class="fas fa-university"></i> Conta Bancária da Transferência</h5>
             </div>
             <div class="modal-body">
-                <p>Esta é uma <strong>transferência entre contas</strong> (débito e crédito preenchidos).</p>
-                <p>Informe a conta bancária vinculada:</p>
-                <select id="modal_conta_bancaria" class="form-select">
-                    <option value="">Selecione...</option>
-                    {% for opt in form.contaBancaria.vars.choices %}
-                        <option value="{{ opt.value }}">{{ opt.label }}</option>
-                    {% endfor %}
-                </select>
+                <p>Transferência entre contas do plano:</p>
+                <div class="mb-3">
+                    <span class="badge bg-info me-1">Débito</span> <strong id="modal_nome_debito"></strong>
+                    <br>
+                    <span class="badge bg-success me-1">Crédito</span> <strong id="modal_nome_credito"></strong>
+                </div>
+                <hr>
+                <label class="form-label">Conta Bancária vinculada</label>
+                <div class="pessoa-autocomplete-wrapper position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="modal_cb_display" class="form-control"
+                               placeholder="Digite descrição ou titular..." autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary" id="modal_cb_clear" style="display:none">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="modal_cb_results" class="list-group shadow" style="display:none; position:absolute; z-index:1060; width:100%; max-height:200px; overflow-y:auto;"></div>
+                </div>
+                <input type="hidden" id="modal_cb_hidden" value="">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" id="btnConfirmarContaBancaria">
@@ -327,6 +339,7 @@
 </div>
 
 <script>
+window.LANCAMENTOS_CONTA_BANCARIA_URL = '{{ path("app_lancamentos_conta_bancaria_autocomplete") }}';
 window.LANCAMENTOS_PLANO_CONTA = {
     url: '{{ path("app_almasa_plano_contas_api_busca") }}',
     debito: {

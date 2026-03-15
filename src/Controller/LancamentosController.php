@@ -8,6 +8,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\Lancamentos;
 use App\Form\LancamentosType;
+use App\Repository\ContasBancariasRepository;
 use App\Repository\LancamentosRepository;
 use App\Repository\PessoaRepository;
 use App\Service\LancamentosService;
@@ -437,6 +438,29 @@ class LancamentosController extends AbstractController
         ], array_slice($pessoas, 0, 20));
 
         return $this->json($result);
+    }
+
+    #[Route('/conta-bancaria-autocomplete', name: 'app_lancamentos_conta_bancaria_autocomplete', methods: ['GET'])]
+    public function contaBancariaAutocomplete(Request $request, ContasBancariasRepository $repo): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 2) {
+            return $this->json([]);
+        }
+
+        $conn = $repo->createQueryBuilder('c')->getEntityManager()->getConnection();
+        $rows = $conn->fetchAllAssociative(
+            'SELECT id, descricao, titular
+             FROM contas_bancarias
+             WHERE ativo = true
+               AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(titular, \'\'))) LIKE unaccent(LOWER(:q)))
+             ORDER BY descricao ASC
+             LIMIT 20',
+            ['q' => '%' . $q . '%']
+        );
+
+        return $this->json($rows);
     }
 
     private function extrairDadosFormulario($form): array
