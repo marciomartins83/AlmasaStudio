@@ -363,10 +363,10 @@ function initCompetenciaAutomatica() {
     dataVencimentoInput.addEventListener('change', () => {
         const data = dataVencimentoInput.value;
         if (data && !competenciaInput.value) {
-            // Extrai ano-mes da data
+            // Extrai mes/ano da data (formato: MM/AAAA)
             const partes = data.split('-');
             if (partes.length >= 2) {
-                competenciaInput.value = `${partes[0]}-${partes[1]}`;
+                competenciaInput.value = `${partes[1]}/${partes[0]}`;
             }
         }
     });

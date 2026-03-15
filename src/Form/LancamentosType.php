@@ -12,6 +12,7 @@ use App\Entity\Imoveis;
 use App\Entity\ContasBancarias;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -127,8 +128,9 @@ class LancamentosType extends AbstractType
                 'label' => 'Compet\u00eancia',
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'YYYY-MM',
+                    'placeholder' => 'MM/AAAA',
                     'maxlength' => 7,
+                    'pattern' => '\d{2}/\d{4}',
                 ],
                 'required' => false,
             ])
@@ -343,6 +345,24 @@ class LancamentosType extends AbstractType
                 ],
                 'required' => false,
             ]);
+
+        // Competência: armazena YYYY-MM no banco, exibe MM/YYYY no form
+        $builder->get('competencia')->addViewTransformer(new CallbackTransformer(
+            function (?string $modelValue): string {
+                if (!$modelValue) return '';
+                if (preg_match('/^(\d{4})-(\d{2})$/', $modelValue, $m)) {
+                    return $m[2] . '/' . $m[1];
+                }
+                return $modelValue;
+            },
+            function (?string $viewValue): ?string {
+                if (!$viewValue) return null;
+                if (preg_match('/^(\d{2})\/(\d{4})$/', $viewValue, $m)) {
+                    return $m[2] . '-' . $m[1];
+                }
+                return $viewValue;
+            }
+        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void
