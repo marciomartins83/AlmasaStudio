@@ -32,8 +32,8 @@ class LancamentosType extends AbstractType
             ->add('tipo', ChoiceType::class, [
                 'label' => 'Tipo',
                 'choices' => [
-                    'Pagar' => Lancamentos::TIPO_PAGAR,
-                    'Receber' => Lancamentos::TIPO_RECEBER,
+                    'Débito' => Lancamentos::TIPO_PAGAR,
+                    'Crédito' => Lancamentos::TIPO_RECEBER,
                 ],
                 'attr' => ['class' => 'form-select'],
                 'required' => true,
