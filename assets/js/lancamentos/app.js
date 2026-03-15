@@ -377,7 +377,7 @@ function initCompetenciaAutomatica() {
 
 /**
  * Transferência: intercepta submit quando débito+crédito preenchidos
- * e conta bancária não informada — abre modal com autocomplete
+ * e conta bancária não informada — abre modal com 2 autocompletes
  */
 function initTransferenciaCheck() {
     const form = document.querySelector('form.needs-validation');
@@ -395,83 +395,94 @@ function initTransferenciaCheck() {
     const modalEl = document.getElementById('modalContaBancaria');
     if (!debitoHidden || !creditoHidden || !contaBancariaSelect || !modalEl) return;
 
-    const cbDisplay  = document.getElementById('modal_cb_display');
-    const cbHidden   = document.getElementById('modal_cb_hidden');
-    const cbResults  = document.getElementById('modal_cb_results');
-    const cbClear    = document.getElementById('modal_cb_clear');
-    const nomeDebito = document.getElementById('modal_nome_debito');
-    const nomeCredito = document.getElementById('modal_nome_credito');
     const btnConfirmar = document.getElementById('btnConfirmarContaBancaria');
 
-    let debounceTimer = null;
+    // Monta autocomplete para cada lado (deb / cred)
+    function initCbAutocomplete(prefix) {
+        const display = document.getElementById(`modal_cb_${prefix}_display`);
+        const hidden  = document.getElementById(`modal_cb_${prefix}_hidden`);
+        const results = document.getElementById(`modal_cb_${prefix}_results`);
+        const clear   = document.getElementById(`modal_cb_${prefix}_clear`);
+        if (!display || !hidden || !results) return null;
 
-    // Autocomplete da conta bancária no modal
-    cbDisplay.addEventListener('input', () => {
-        const q = cbDisplay.value.trim();
-        cbHidden.value = '';
-        if (cbClear) cbClear.style.display = 'none';
-        clearTimeout(debounceTimer);
-        if (q.length < 2) { fecharCb(); return; }
-        debounceTimer = setTimeout(() => buscarCb(q), 300);
-    });
+        let timer = null;
 
-    cbDisplay.addEventListener('keydown', (e) => {
-        const items = cbResults.querySelectorAll('.list-group-item-action');
-        if (!items.length) return;
-        if (e.key === 'Escape') fecharCb();
-    });
-
-    if (cbClear) {
-        cbClear.addEventListener('click', () => {
-            cbDisplay.value = '';
-            cbHidden.value = '';
-            cbClear.style.display = 'none';
-            cbDisplay.focus();
+        display.addEventListener('input', () => {
+            const q = display.value.trim();
+            hidden.value = '';
+            if (clear) clear.style.display = 'none';
+            clearTimeout(timer);
+            if (q.length < 2) { fechar(); return; }
+            timer = setTimeout(() => buscar(q), 300);
         });
-    }
 
-    async function buscarCb(q) {
-        try {
-            const resp = await fetch(`${cbUrl}?q=${encodeURIComponent(q)}`);
-            if (!resp.ok) return;
-            const contas = await resp.json();
-            renderizarCb(contas);
-        } catch (err) {
-            console.error('[conta-bancaria-autocomplete] erro:', err);
-        }
-    }
+        display.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') fechar();
+        });
 
-    function renderizarCb(contas) {
-        cbResults.innerHTML = '';
-        if (!contas.length) {
-            cbResults.innerHTML = '<div class="list-group-item text-muted fst-italic">Nenhuma conta encontrada</div>';
-            cbResults.style.display = 'block';
-            return;
-        }
-        contas.forEach(c => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'list-group-item list-group-item-action';
-            const label = c.titular ? `${c.descricao} — ${c.titular}` : c.descricao;
-            btn.textContent = label;
-            btn.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                cbDisplay.value = label;
-                cbHidden.value = c.id;
-                if (cbClear) cbClear.style.display = '';
-                fecharCb();
+        if (clear) {
+            clear.addEventListener('click', () => {
+                display.value = '';
+                hidden.value = '';
+                clear.style.display = 'none';
+                display.focus();
             });
-            cbResults.appendChild(btn);
-        });
-        cbResults.style.display = 'block';
+        }
+
+        async function buscar(q) {
+            try {
+                const resp = await fetch(`${cbUrl}?q=${encodeURIComponent(q)}`);
+                if (!resp.ok) return;
+                renderizar(await resp.json());
+            } catch (err) {
+                console.error('[cb-autocomplete] erro:', err);
+            }
+        }
+
+        function renderizar(contas) {
+            results.innerHTML = '';
+            if (!contas.length) {
+                results.innerHTML = '<div class="list-group-item text-muted fst-italic">Nenhuma conta encontrada</div>';
+                results.style.display = 'block';
+                return;
+            }
+            contas.forEach(c => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action';
+                const label = c.titular ? `${c.descricao} — ${c.titular}` : (c.descricao || '');
+                btn.textContent = label;
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    display.value = label;
+                    hidden.value = c.id;
+                    if (clear) clear.style.display = '';
+                    fechar();
+                });
+                results.appendChild(btn);
+            });
+            results.style.display = 'block';
+        }
+
+        function fechar() {
+            results.style.display = 'none';
+            results.innerHTML = '';
+        }
+
+        function reset() {
+            display.value = '';
+            hidden.value = '';
+            if (clear) clear.style.display = 'none';
+        }
+
+        return { hidden, display, reset };
     }
 
-    function fecharCb() {
-        cbResults.style.display = 'none';
-        cbResults.innerHTML = '';
-    }
+    const acDeb  = initCbAutocomplete('deb');
+    const acCred = initCbAutocomplete('cred');
+    if (!acDeb || !acCred) return;
 
-    // Interceptar submit do form
+    // Interceptar submit
     form.addEventListener('submit', (e) => {
         const temDebito  = debitoHidden.value && debitoHidden.value !== '';
         const temCredito = creditoHidden.value && creditoHidden.value !== '';
@@ -479,32 +490,33 @@ function initTransferenciaCheck() {
 
         if (temDebito && temCredito && !temConta) {
             e.preventDefault();
-            // Preencher nomes no modal
-            nomeDebito.textContent = debitoDisplay.value || '—';
-            nomeCredito.textContent = creditoDisplay.value || '—';
-            // Limpar autocomplete
-            cbDisplay.value = '';
-            cbHidden.value = '';
-            if (cbClear) cbClear.style.display = 'none';
+            document.getElementById('modal_nome_debito').textContent = debitoDisplay.value || '—';
+            document.getElementById('modal_nome_credito').textContent = creditoDisplay.value || '—';
+            acDeb.reset();
+            acCred.reset();
 
             const modal = new bootstrap.Modal(modalEl);
             modal.show();
-            setTimeout(() => cbDisplay.focus(), 500);
+            setTimeout(() => acDeb.display.focus(), 500);
         }
     });
 
     if (btnConfirmar) {
         btnConfirmar.addEventListener('click', () => {
-            const contaId = cbHidden.value;
-            if (!contaId) {
-                cbDisplay.classList.add('is-invalid');
-                cbDisplay.focus();
+            const debId  = acDeb.hidden.value;
+            const credId = acCred.hidden.value;
+
+            if (!debId && !credId) {
+                acDeb.display.classList.add('is-invalid');
+                acCred.display.classList.add('is-invalid');
+                acDeb.display.focus();
                 return;
             }
-            cbDisplay.classList.remove('is-invalid');
+            acDeb.display.classList.remove('is-invalid');
+            acCred.display.classList.remove('is-invalid');
 
-            // Preenche o select original e submete
-            contaBancariaSelect.value = contaId;
+            // Usa a primeira conta preenchida no campo do form
+            contaBancariaSelect.value = debId || credId;
             bootstrap.Modal.getInstance(modalEl).hide();
             form.submit();
         });

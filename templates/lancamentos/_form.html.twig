@@ -300,34 +300,59 @@
 
 {{ form_end(form) }}
 
-{# Modal — Conta Bancária obrigatória para transferências #}
+{# Modal — Conta Bancária para transferências #}
 <div class="modal fade" id="modalContaBancaria" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title"><i class="fas fa-university"></i> Conta Bancária da Transferência</h5>
+                <h5 class="modal-title"><i class="fas fa-university"></i> Vincular Conta Bancária</h5>
             </div>
             <div class="modal-body">
-                <p>Transferência entre contas do plano:</p>
-                <div class="mb-3">
-                    <span class="badge bg-info me-1">Débito</span> <strong id="modal_nome_debito"></strong>
-                    <br>
-                    <span class="badge bg-success me-1">Crédito</span> <strong id="modal_nome_credito"></strong>
-                </div>
-                <hr>
-                <label class="form-label">Conta Bancária vinculada</label>
-                <div class="pessoa-autocomplete-wrapper position-relative">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" id="modal_cb_display" class="form-control"
-                               placeholder="Digite descrição ou titular..." autocomplete="off">
-                        <button type="button" class="btn btn-outline-secondary" id="modal_cb_clear" style="display:none">
-                            <i class="fas fa-times"></i>
-                        </button>
+                <p class="text-muted mb-3">Informe a conta bancária de cada conta do plano envolvida na transferência <small>(pelo menos uma)</small>:</p>
+
+                {# Conta Débito #}
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <label class="form-label mb-1">
+                            <span class="badge bg-info me-1">Débito</span>
+                            <strong id="modal_nome_debito"></strong>
+                        </label>
+                        <div class="pessoa-autocomplete-wrapper position-relative">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="modal_cb_deb_display" class="form-control"
+                                       placeholder="Buscar conta bancária..." autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" id="modal_cb_deb_clear" style="display:none">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="modal_cb_deb_results" class="list-group shadow" style="display:none; position:absolute; z-index:1060; width:100%; max-height:180px; overflow-y:auto;"></div>
+                        </div>
+                        <input type="hidden" id="modal_cb_deb_hidden" value="">
                     </div>
-                    <div id="modal_cb_results" class="list-group shadow" style="display:none; position:absolute; z-index:1060; width:100%; max-height:200px; overflow-y:auto;"></div>
                 </div>
-                <input type="hidden" id="modal_cb_hidden" value="">
+
+                {# Conta Crédito #}
+                <div class="card">
+                    <div class="card-body py-2">
+                        <label class="form-label mb-1">
+                            <span class="badge bg-success me-1">Crédito</span>
+                            <strong id="modal_nome_credito"></strong>
+                        </label>
+                        <div class="pessoa-autocomplete-wrapper position-relative">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="modal_cb_cred_display" class="form-control"
+                                       placeholder="Buscar conta bancária..." autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" id="modal_cb_cred_clear" style="display:none">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="modal_cb_cred_results" class="list-group shadow" style="display:none; position:absolute; z-index:1060; width:100%; max-height:180px; overflow-y:auto;"></div>
+                        </div>
+                        <input type="hidden" id="modal_cb_cred_hidden" value="">
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" id="btnConfirmarContaBancaria">
