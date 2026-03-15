@@ -139,21 +139,22 @@ class AlmasaPlanoContasController extends AbstractController
             return new JsonResponse([]);
         }
 
-        $contas = $this->repository->createQueryBuilder('a')
-            ->where('a.aceitaLancamentos = true')
-            ->andWhere('a.ativo = true')
-            ->andWhere('LOWER(a.descricao) LIKE LOWER(:q) OR LOWER(a.codigo) LIKE LOWER(:q)')
-            ->setParameter('q', '%' . $q . '%')
-            ->orderBy('a.descricao', 'ASC')
-            ->setMaxResults(20)
-            ->getQuery()
-            ->getResult();
+        $conn = $this->repository->createQueryBuilder('a')
+            ->getEntityManager()
+            ->getConnection();
 
-        return new JsonResponse(array_map(fn(AlmasaPlanoContas $c) => [
-            'id'       => $c->getId(),
-            'codigo'   => $c->getCodigo(),
-            'descricao' => $c->getDescricao(),
-        ], $contas));
+        $rows = $conn->fetchAllAssociative(
+            'SELECT id, codigo, descricao
+             FROM almasa_plano_contas
+             WHERE ativo = true
+               AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
+                 OR LOWER(codigo) LIKE LOWER(:q))
+             ORDER BY descricao ASC
+             LIMIT 20',
+            ['q' => '%' . $q . '%']
+        );
+
+        return new JsonResponse($rows);
     }
 
     #[Route('/api/proximo-codigo/{paiId}', name: 'api_proximo_codigo', methods: ['GET'])]
