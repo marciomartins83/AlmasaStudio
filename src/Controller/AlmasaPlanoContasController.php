@@ -32,7 +32,14 @@ class AlmasaPlanoContasController extends AbstractController
         $qb = $this->repository->createQueryBuilder('a')
             ->leftJoin('a.pai', 'pai')
             ->addSelect("CASE a.nivel WHEN 1 THEN '' WHEN 2 THEN SUBSTRING(a.codigo, 1, 1) WHEN 3 THEN SUBSTRING(a.codigo, 1, 3) WHEN 4 THEN SUBSTRING(a.codigo, 1, 6) ELSE SUBSTRING(a.codigo, 1, 10) END AS HIDDEN parentPath")
-            ->orderBy('a.codigo', 'ASC');
+            ->orderBy("LENGTH(SPLIT_PART(a.codigo, '.', 1))", 'ASC')
+            ->addOrderBy("SPLIT_PART(a.codigo, '.', 1)", 'ASC')
+            ->addOrderBy("LENGTH(SPLIT_PART(a.codigo, '.', 2))", 'ASC')
+            ->addOrderBy("SPLIT_PART(a.codigo, '.', 2)", 'ASC')
+            ->addOrderBy("LENGTH(SPLIT_PART(a.codigo, '.', 3))", 'ASC')
+            ->addOrderBy("SPLIT_PART(a.codigo, '.', 3)", 'ASC')
+            ->addOrderBy("LENGTH(SPLIT_PART(a.codigo, '.', 4))", 'ASC')
+            ->addOrderBy("SPLIT_PART(a.codigo, '.', 4)", 'ASC');
 
         $filters = [
             new SearchFilterDTO('codigo', 'Codigo', 'text', 'a.codigo', 'LIKE', [], null, 2),
@@ -63,7 +70,16 @@ class AlmasaPlanoContasController extends AbstractController
 
         $sortOptions = [
             new SortOptionDTO('id', 'ID', 'ASC'),
-            new SortOptionDTO('codigo', 'Codigo', 'ASC'),
+            new SortOptionDTO('codigo', 'Codigo', 'ASC', [
+                ["LENGTH(SPLIT_PART(a.codigo, '.', 1))", 'ASC'],
+                ["SPLIT_PART(a.codigo, '.', 1)", 'ASC'],
+                ["LENGTH(SPLIT_PART(a.codigo, '.', 2))", 'ASC'],
+                ["SPLIT_PART(a.codigo, '.', 2)", 'ASC'],
+                ["LENGTH(SPLIT_PART(a.codigo, '.', 3))", 'ASC'],
+                ["SPLIT_PART(a.codigo, '.', 3)", 'ASC'],
+                ["LENGTH(SPLIT_PART(a.codigo, '.', 4))", 'ASC'],
+                ["SPLIT_PART(a.codigo, '.', 4)", '{DIR}'],
+            ]),
             new SortOptionDTO('descricao', 'Descricao', 'ASC', [
                 ['parentPath', 'ASC'],
                 ['a.nivel', 'ASC'],
