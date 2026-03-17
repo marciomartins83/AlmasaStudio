@@ -877,31 +877,48 @@ class RelatorioService
     }
 
     /**
-     * Calcula totais movimentados por plano de conta
+     * Calcula totais movimentados por plano de conta (legado + almasa débito/crédito)
      */
     public function getTotaisPlanoContas(array $filtros): array
     {
-        $qb = $this->em->createQueryBuilder();
-        $qb->select('IDENTITY(l.planoConta) as planoContaId, SUM(l.valor) as total')
-            ->from(Lancamentos::class, 'l')
-            ->where('l.planoConta IS NOT NULL')
-            ->groupBy('l.planoConta');
+        $conn = $this->em->getConnection();
+        $params = [];
+        $whereDatas = '';
 
         if (!empty($filtros['data_inicio'])) {
-            $qb->andWhere('l.dataMovimento >= :dataInicio')
-                ->setParameter('dataInicio', $filtros['data_inicio']);
+            $whereDatas .= ' AND l.data_movimento >= :di';
+            $params['di'] = $filtros['data_inicio'] instanceof \DateTimeInterface
+                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
         }
-
         if (!empty($filtros['data_fim'])) {
-            $qb->andWhere('l.dataMovimento <= :dataFim')
-                ->setParameter('dataFim', $filtros['data_fim']);
+            $whereDatas .= ' AND l.data_movimento <= :df';
+            $params['df'] = $filtros['data_fim'] instanceof \DateTimeInterface
+                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
         }
 
-        $results = $qb->getQuery()->getResult();
+        // Legado (planoConta)
+        $sql = "
+            SELECT plano_id, SUM(valor) as total FROM (
+                SELECT id_plano_conta as plano_id, valor::numeric as valor
+                FROM lancamentos l
+                WHERE id_plano_conta IS NOT NULL {$whereDatas}
+            UNION ALL
+                SELECT id_plano_conta_debito as plano_id, -valor::numeric as valor
+                FROM lancamentos l
+                WHERE id_plano_conta_debito IS NOT NULL {$whereDatas}
+            UNION ALL
+                SELECT id_plano_conta_credito as plano_id, valor::numeric as valor
+                FROM lancamentos l
+                WHERE id_plano_conta_credito IS NOT NULL {$whereDatas}
+            ) sub
+            GROUP BY plano_id
+        ";
+
+        $results = $conn->executeQuery($sql, $params)->fetchAllAssociative();
 
         $totais = [];
         foreach ($results as $row) {
-            $totais[$row['planoContaId']] = (float) $row['total'];
+            $totais[(int)$row['plano_id']] = (float) $row['total'];
         }
 
         return $totais;
