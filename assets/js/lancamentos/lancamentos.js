@@ -94,7 +94,7 @@ export async function excluirLancamento(id) {
     const url = window.ROUTES.excluir.replace('__ID__', id);
 
     const response = await fetch(url, {
-        method: 'DELETE',
+        method: 'POST',
         headers: getAjaxHeaders()
     });
 

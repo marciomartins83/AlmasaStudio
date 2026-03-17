@@ -185,7 +185,7 @@ class LancamentosController extends AbstractController
     /**
      * Excluir lançamento
      */
-    #[Route('/{id}', name: 'app_lancamentos_delete', methods: ['DELETE'])]
+    #[Route('/{id}/excluir', name: 'app_lancamentos_delete', methods: ['POST'])]
     public function delete(int $id, Request $request): JsonResponse
     {
         $token = $request->headers->get('X-CSRF-Token');
