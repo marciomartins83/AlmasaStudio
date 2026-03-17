@@ -184,6 +184,11 @@
                                             <i class="fas fa-times"></i>
                                         </button>
                                     {% endif %}
+                                    <button type="button" class="btn btn-outline-danger btn-excluir"
+                                            data-id="{{ lancamento.id }}"
+                                            title="Excluir">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -303,7 +308,8 @@
     window.ROUTES = {
         baixa: '{{ path("app_lancamentos_baixa", {id: "__ID__"}) }}',
         estornar: '{{ path("app_lancamentos_estornar", {id: "__ID__"}) }}',
-        cancelar: '{{ path("app_lancamentos_cancelar", {id: "__ID__"}) }}'
+        cancelar: '{{ path("app_lancamentos_cancelar", {id: "__ID__"}) }}',
+        excluir: '{{ path("app_lancamentos_delete", {id: "__ID__"}) }}'
     };
 </script>
 {{ encore_entry_script_tags('lancamentos') }}

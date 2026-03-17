@@ -88,6 +88,20 @@ export async function cancelarLancamento(id, motivo) {
 }
 
 /**
+ * Exclui lancamento
+ */
+export async function excluirLancamento(id) {
+    const url = window.ROUTES.excluir.replace('__ID__', id);
+
+    const response = await fetch(url, {
+        method: 'DELETE',
+        headers: getAjaxHeaders()
+    });
+
+    return response.json();
+}
+
+/**
  * Suspende lancamento
  */
 export async function suspenderLancamento(id, motivo) {

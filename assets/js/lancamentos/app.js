@@ -8,6 +8,7 @@ import {
     baixarLancamento,
     estornarBaixa,
     cancelarLancamento,
+    excluirLancamento,
     exibirSucesso,
     exibirErro,
     confirmarAcao,
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRecorrencia();
     initFiltroPlanoConta();
     initCamposMonetarios();
+    initBotoesExcluir();
     initContaBancariaVinculos();
 });
 
@@ -103,6 +105,35 @@ function initBotoesCancelar() {
 
             const modal = new bootstrap.Modal(document.getElementById('modalCancelar'));
             modal.show();
+        });
+    });
+}
+
+/**
+ * Inicializa botoes de exclusao
+ */
+function initBotoesExcluir() {
+    document.querySelectorAll('.btn-excluir').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+
+            if (!confirmarAcao('Deseja realmente EXCLUIR este lançamento? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+
+            try {
+                const result = await excluirLancamento(id);
+
+                if (result.success) {
+                    exibirSucesso(result.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    exibirErro(result.message);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir:', error);
+                exibirErro('Erro ao excluir lançamento');
+            }
         });
     });
 }
