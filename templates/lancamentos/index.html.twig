@@ -110,7 +110,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for lançamento in lancamentos %}
+                        {% for lancamento in lancamentos %}
                         <tr class="{{ lancamento.vencido ? 'table-warning' : '' }}" data-id="{{ lancamento.id }}">
                             <td>{{ lancamento.numero }}</td>
                             <td>
