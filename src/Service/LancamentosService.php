@@ -85,8 +85,11 @@ class LancamentosService
             // Calcular retenções
             $this->calcularRetencoes($lancamento);
 
-            // Transferência (partida dobrada completa) → auto-marcar como PAGO
+            // Transferência (partida dobrada completa) → exigir pessoas + auto-marcar como PAGO
             if ($lancamento->getPlanoContaDebito() && $lancamento->getPlanoContaCredito()) {
+                if (!$lancamento->getPessoaCredor() || !$lancamento->getPessoaPagador()) {
+                    throw new \Exception('Transferência exige Credor e Pagador preenchidos (aba Pessoas).');
+                }
                 $lancamento->setStatus(Lancamentos::STATUS_PAGO);
                 $lancamento->setDataPagamento($lancamento->getDataMovimento());
                 $lancamento->setValorPago((string) $lancamento->getValorLiquido());
@@ -138,8 +141,11 @@ class LancamentosService
             // Recalcular retenções
             $this->calcularRetencoes($lancamento);
 
-            // Transferência (partida dobrada completa) → auto-marcar como PAGO
+            // Transferência (partida dobrada completa) → exigir pessoas + auto-marcar como PAGO
             if ($lancamento->getPlanoContaDebito() && $lancamento->getPlanoContaCredito()) {
+                if (!$lancamento->getPessoaCredor() || !$lancamento->getPessoaPagador()) {
+                    throw new \Exception('Transferência exige Credor e Pagador preenchidos (aba Pessoas).');
+                }
                 $lancamento->setStatus(Lancamentos::STATUS_PAGO);
                 $lancamento->setDataPagamento($lancamento->getDataMovimento());
                 $lancamento->setValorPago((string) $lancamento->getValorLiquido());
