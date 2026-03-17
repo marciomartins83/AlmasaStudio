@@ -1046,10 +1046,19 @@ class RelatorioService
         WHERE id_proprietario = :id AND situacao = 'pago' AND data_vencimento < :data";
         $saldo1 = (float)($conn->executeQuery($sql1, ['id' => $idProprietario, 'data' => $data])->fetchOne() ?? 0);
 
-        // Dados do CRUD (lancamentos)
+        // Dados do CRUD (lancamentos) — receita: receber como credor/proprietário OU credor em pagar (transferência)
+        //                              — despesa: pagar como pagador/proprietário
         $sql2 = "SELECT
-            COALESCE(SUM(CASE WHEN tipo = 'receber' THEN COALESCE(valor_pago::numeric, valor::numeric) ELSE 0 END), 0)
-            - COALESCE(SUM(CASE WHEN tipo = 'pagar' THEN COALESCE(valor_pago::numeric, valor::numeric) ELSE 0 END), 0)
+            COALESCE(SUM(CASE
+                WHEN tipo = 'receber' AND (l.id_proprietario = :id OR l.id_pessoa_credor = :id OR im.id_pessoa_proprietario = :id)
+                    THEN COALESCE(valor_pago::numeric, valor::numeric)
+                WHEN tipo = 'pagar' AND l.id_pessoa_credor = :id
+                    THEN COALESCE(valor_pago::numeric, valor::numeric)
+                ELSE 0 END), 0)
+            - COALESCE(SUM(CASE
+                WHEN tipo = 'pagar' AND (l.id_proprietario = :id OR l.id_pessoa_pagador = :id OR im.id_pessoa_proprietario = :id) AND (l.id_pessoa_credor IS NULL OR l.id_pessoa_credor != :id)
+                    THEN COALESCE(valor_pago::numeric, valor::numeric)
+                ELSE 0 END), 0)
             AS saldo
         FROM lancamentos l
         LEFT JOIN imoveis im ON im.id = l.id_imovel
@@ -1165,16 +1174,20 @@ class RelatorioService
             $grupos[$imovelId]['subtotal'] += $valor;
         }
 
-        // CRUD novo (lancamentos — tipo=receber onde prop é credor ou imóvel pertence ao prop)
+        // CRUD novo (lancamentos — receitas: tipo=receber OU credor em tipo=pagar/transferência)
         $qb2 = $this->em->createQueryBuilder();
         $qb2->select('l')
             ->from(Lancamentos::class, 'l')
             ->leftJoin('l.imovel', 'im2')
-            ->where('l.tipo = :tipo')
-            ->andWhere('(l.proprietario = :prop OR l.pessoaCredor = :prop OR im2.pessoaProprietario = :prop)')
+            ->where('(
+                (l.tipo = :tipoReceber AND (l.proprietario = :prop OR l.pessoaCredor = :prop OR im2.pessoaProprietario = :prop))
+                OR
+                (l.tipo = :tipoPagar AND l.pessoaCredor = :prop)
+            )')
             ->andWhere('l.dataVencimento >= :inicio')
             ->andWhere('l.dataVencimento <= :fim')
-            ->setParameter('tipo', 'receber')
+            ->setParameter('tipoReceber', 'receber')
+            ->setParameter('tipoPagar', 'pagar')
             ->setParameter('prop', $idProprietario)
             ->setParameter('inicio', $inicio)
             ->setParameter('fim', $fim)
