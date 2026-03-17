@@ -20,7 +20,9 @@ final class Version20260315162823 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE almasa_vinculos_bancarios ADD padrao BOOLEAN NOT NULL');
+        $this->addSql('ALTER TABLE almasa_vinculos_bancarios ADD padrao BOOLEAN DEFAULT false');
+        $this->addSql('UPDATE almasa_vinculos_bancarios SET padrao = false WHERE padrao IS NULL');
+        $this->addSql('ALTER TABLE almasa_vinculos_bancarios ALTER COLUMN padrao SET NOT NULL');
     }
 
     public function down(Schema $schema): void
