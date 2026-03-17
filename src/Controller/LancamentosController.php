@@ -121,10 +121,10 @@ class LancamentosController extends AbstractController
                     $this->addFlash('success', 'Lançamento criado com sucesso!');
                 }
 
-                // Aviso se transferência sem pessoas vinculadas
+                // Mensagem específica para transferência interna
                 if (!empty($dados['id_plano_conta_debito']) && !empty($dados['id_plano_conta_credito'])) {
                     if (empty($dados['id_pessoa_credor']) || empty($dados['id_pessoa_pagador'])) {
-                        $this->addFlash('warning', 'Atenção: transferência salva sem Credor/Pagador — não aparecerá no extrato do proprietário.');
+                        $this->addFlash('info', 'Transferência interna salva com sucesso.');
                     }
                 }
 
