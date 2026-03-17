@@ -121,6 +121,13 @@ class LancamentosController extends AbstractController
                     $this->addFlash('success', 'Lançamento criado com sucesso!');
                 }
 
+                // Aviso se transferência sem pessoas vinculadas
+                if (!empty($dados['id_plano_conta_debito']) && !empty($dados['id_plano_conta_credito'])) {
+                    if (empty($dados['id_pessoa_credor']) || empty($dados['id_pessoa_pagador'])) {
+                        $this->addFlash('warning', 'Atenção: transferência salva sem Credor/Pagador — não aparecerá no extrato do proprietário.');
+                    }
+                }
+
                 return $this->redirectToRoute('app_lancamentos_index');
 
             } catch (\Exception $e) {
