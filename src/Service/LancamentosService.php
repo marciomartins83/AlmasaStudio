@@ -89,7 +89,7 @@ class LancamentosService
             if ($lancamento->getPlanoContaDebito() && $lancamento->getPlanoContaCredito()) {
                 $lancamento->setStatus(Lancamentos::STATUS_PAGO);
                 $lancamento->setDataPagamento($lancamento->getDataMovimento());
-                $lancamento->setValorPago($lancamento->getValorLiquido());
+                $lancamento->setValorPago((string) $lancamento->getValorLiquido());
             } else {
                 // Definir status inicial
                 $lancamento->atualizarStatus();
@@ -142,7 +142,7 @@ class LancamentosService
             if ($lancamento->getPlanoContaDebito() && $lancamento->getPlanoContaCredito()) {
                 $lancamento->setStatus(Lancamentos::STATUS_PAGO);
                 $lancamento->setDataPagamento($lancamento->getDataMovimento());
-                $lancamento->setValorPago($lancamento->getValorLiquido());
+                $lancamento->setValorPago((string) $lancamento->getValorLiquido());
             } else {
                 // Atualizar status
                 $lancamento->atualizarStatus();
