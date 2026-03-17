@@ -16,6 +16,12 @@ function initPlanoContaAutocomplete(cfg, url) {
         displayInput.value = cfg.preloadLabel;
         hiddenInput.value  = cfg.preloadId;
         if (clearBtn) clearBtn.style.display = '';
+        setTimeout(() => {
+            hiddenInput.dispatchEvent(new CustomEvent('plano-conta-selecionado', {
+                bubbles: true,
+                detail: { id: cfg.preloadId, codigo: '', descricao: cfg.preloadLabel }
+            }));
+        }, 100);
     }
 
     let debounceTimer = null;
@@ -63,6 +69,7 @@ function initPlanoContaAutocomplete(cfg, url) {
             hiddenInput.value  = '';
             clearBtn.style.display = 'none';
             displayInput.focus();
+            hiddenInput.dispatchEvent(new CustomEvent('plano-conta-limpo', { bubbles: true }));
         });
     }
 
@@ -113,6 +120,10 @@ function initPlanoContaAutocomplete(cfg, url) {
         hiddenInput.value  = c.id;
         if (clearBtn) clearBtn.style.display = '';
         fechar();
+        hiddenInput.dispatchEvent(new CustomEvent('plano-conta-selecionado', {
+            bubbles: true,
+            detail: { id: c.id, codigo: c.codigo, descricao: c.descricao }
+        }));
     }
 
     function fechar() {

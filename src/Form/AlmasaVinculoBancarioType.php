@@ -21,7 +21,7 @@ class AlmasaVinculoBancarioType extends AbstractType
         $builder
             ->add('contaBancaria', EntityType::class, [
                 'class' => ContasBancarias::class,
-                'label' => 'Conta Bancaria',
+                'label' => 'Conta Bancária',
                 'choice_label' => function (ContasBancarias $cb) {
                     $banco = $cb->getIdBanco()?->getNome() ?? '';
                     $agencia = $cb->getIdAgencia()?->getCodigo() ?? '';
@@ -38,7 +38,7 @@ class AlmasaVinculoBancarioType extends AbstractType
                         ->orderBy('b.nome', 'ASC')
                         ->addOrderBy('cb.codigo', 'ASC');
                 },
-                'placeholder' => 'Selecione uma conta bancaria...',
+                'placeholder' => 'Selecione uma conta bancária...',
                 'attr' => ['class' => 'form-select'],
                 'required' => true,
             ])
@@ -59,7 +59,7 @@ class AlmasaVinculoBancarioType extends AbstractType
                 'required' => true,
             ])
             ->add('observacao', TextareaType::class, [
-                'label' => 'Observacao',
+                'label' => 'Observação',
                 'attr' => ['class' => 'form-control', 'rows' => 3, 'maxlength' => 255],
                 'required' => false,
             ])

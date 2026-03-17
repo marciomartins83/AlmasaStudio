@@ -1,14 +1,14 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Registrar Repasse - Prestacao {{ prestacao.numeroFormatado }} - {{ parent() }}{% endblock %}
+{% block title %}Registrar Repasse - Prestação {{ prestacao.numeroFormatado }} - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Prestacao de Contas', 'url': path('app_prestacao_contas_index')},
-            {'label': 'Prestacao ' ~ prestacao.numeroFormatado, 'url': path('app_prestacao_contas_visualizar', {id: prestacao.id})}
+            {'label': 'Prestação de Contas', 'url': path('app_prestacao_contas_index')},
+            {'label': 'Prestação ' ~ prestacao.numeroFormatado, 'url': path('app_prestacao_contas_visualizar', {id: prestacao.id})}
         ],
         'current': 'Registrar Repasse'
     } %}
@@ -32,11 +32,11 @@
         <div class="col-lg-4">
             <div class="card mb-4">
                 <div class="card-header">
-                    <i class="fas fa-file-invoice-dollar"></i> Resumo da Prestacao
+                    <i class="fas fa-file-invoice-dollar"></i> Resumo da Prestação
                 </div>
                 <div class="card-body">
-                    <p><strong>Numero:</strong> {{ prestacao.numeroFormatado }}</p>
-                    <p><strong>Proprietario:</strong> {{ prestacao.proprietario.nome }}</p>
+                    <p><strong>Número:</strong> {{ prestacao.numeroFormatado }}</p>
+                    <p><strong>Proprietário:</strong> {{ prestacao.proprietario.nome }}</p>
                     <p><strong>Periodo:</strong> {{ prestacao.periodoFormatado }}</p>
                     <hr>
                     <table class="table table-sm table-borderless">

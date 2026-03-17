@@ -28,7 +28,7 @@ class AlmasaPlanoContasType extends AbstractType
                     'Subgrupo' => AlmasaPlanoContas::NIVEL_SUBGRUPO,
                     'Conta' => AlmasaPlanoContas::NIVEL_CONTA,
                 ],
-                'placeholder' => 'Selecione o nivel...',
+                'placeholder' => 'Selecione o nível...',
                 'required' => true,
             ])
             ->add('pai', EntityType::class, [
@@ -55,19 +55,19 @@ class AlmasaPlanoContasType extends AbstractType
                 'required' => false,
             ])
             ->add('tipo', ChoiceType::class, [
-                'label' => 'Tipo Contabil',
+                'label' => 'Tipo Contábil',
                 'attr' => ['class' => 'form-select'],
                 'choices' => [
                     'Ativo' => AlmasaPlanoContas::TIPO_ATIVO,
                     'Passivo' => AlmasaPlanoContas::TIPO_PASSIVO,
-                    'Patrimonio Liquido' => AlmasaPlanoContas::TIPO_PATRIMONIO_LIQUIDO,
+                    'Patrimônio Líquido' => AlmasaPlanoContas::TIPO_PATRIMONIO_LIQUIDO,
                     'Receita' => AlmasaPlanoContas::TIPO_RECEITA,
                     'Despesa' => AlmasaPlanoContas::TIPO_DESPESA,
                 ],
                 'required' => true,
             ])
             ->add('codigo', TextType::class, [
-                'label' => 'Codigo',
+                'label' => 'Código',
                 'attr' => ['class' => 'form-control', 'maxlength' => 20],
                 'required' => true,
                 'constraints' => [
@@ -76,7 +76,7 @@ class AlmasaPlanoContasType extends AbstractType
                 ],
             ])
             ->add('descricao', TextType::class, [
-                'label' => 'Descricao',
+                'label' => 'Descrição',
                 'attr' => ['class' => 'form-control', 'maxlength' => 255],
                 'required' => true,
                 'constraints' => [
@@ -85,7 +85,7 @@ class AlmasaPlanoContasType extends AbstractType
                 ],
             ])
             ->add('aceitaLancamentos', CheckboxType::class, [
-                'label' => 'Aceita Lancamentos?',
+                'label' => 'Aceita Lançamentos?',
                 'required' => false,
                 'attr' => ['class' => 'form-check-input'],
                 'label_attr' => ['class' => 'form-check-label'],

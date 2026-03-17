@@ -1,13 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Relatorio Despesas x Receitas - {{ parent() }}{% endblock %}
+{% block title %}Relatório Despesas x Receitas - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Relatorios', 'url': path('app_relatorios_index')}
+            {'label': 'Relatórios', 'url': path('app_relatorios_index')}
         ],
         'current': 'Despesas x Receitas'
     } %}
@@ -39,7 +39,7 @@
                             <select class="form-select" id="tipo_data" name="tipo_data">
                                 <option value="vencimento">Vencimento</option>
                                 <option value="pagamento">Pagamento</option>
-                                <option value="competencia">Competencia</option>
+                                <option value="competencia">Competência</option>
                             </select>
                         </div>
 
@@ -64,10 +64,10 @@
                         } %}
 
                         <div class="mb-3">
-                            <label for="visualizacao" class="form-label">Visualizacao</label>
+                            <label for="visualizacao" class="form-label">Visualização</label>
                             <select class="form-select" id="visualizacao" name="visualizacao">
-                                <option value="sintetico">Sintetico</option>
-                                <option value="analitico">Analitico</option>
+                                <option value="sintetico">Sintético</option>
+                                <option value="analitico">Analítico</option>
                             </select>
                         </div>
 
@@ -75,8 +75,8 @@
                             <label for="agrupar_por" class="form-label">Agrupar por</label>
                             <select class="form-select" id="agrupar_por" name="agrupar_por">
                                 <option value="plano_conta">Tipo de Lançamento</option>
-                                <option value="mes">Mes</option>
-                                <option value="imovel">Imovel</option>
+                                <option value="mes">Mês</option>
+                                <option value="imovel">Imóvel</option>
                             </select>
                         </div>
 
@@ -105,7 +105,7 @@
                 <div class="card-body" id="previewContent">
                     <div class="text-center text-muted py-5">
                         <i class="fas fa-info-circle fa-3x mb-3"></i>
-                        <p>Preencha os filtros e clique em "Preview" para visualizar o relatorio.</p>
+                        <p>Preencha os filtros e clique em "Preview" para visualizar o relatório.</p>
                     </div>
                 </div>
             </div>

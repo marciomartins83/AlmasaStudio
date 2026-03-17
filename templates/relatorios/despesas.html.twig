@@ -1,13 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Relatorio de Despesas - {{ parent() }}{% endblock %}
+{% block title %}Relatório de Despesas - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Relatorios', 'url': path('app_relatorios_index')}
+            {'label': 'Relatórios', 'url': path('app_relatorios_index')}
         ],
         'current': 'Despesas'
     } %}
@@ -82,10 +82,10 @@
                         <div class="mb-3">
                             <label for="agrupar_por" class="form-label">Agrupar por</label>
                             <select class="form-select" id="agrupar_por" name="agrupar_por">
-                                <option value="nenhum">Nao Agrupar</option>
+                                <option value="nenhum">Não Agrupar</option>
                                 <option value="plano_conta">Tipo de Lançamento</option>
                                 <option value="fornecedor">Fornecedor</option>
-                                <option value="imovel">Imovel</option>
+                                <option value="imovel">Imóvel</option>
                             </select>
                         </div>
 
@@ -114,7 +114,7 @@
                 <div class="card-body" id="previewContent">
                     <div class="text-center text-muted py-5">
                         <i class="fas fa-info-circle fa-3x mb-3"></i>
-                        <p>Preencha os filtros e clique em "Preview" para visualizar o relatorio.</p>
+                        <p>Preencha os filtros e clique em "Preview" para visualizar o relatório.</p>
                     </div>
                 </div>
             </div>

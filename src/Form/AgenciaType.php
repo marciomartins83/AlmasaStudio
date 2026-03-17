@@ -15,7 +15,7 @@ class AgenciaType extends AbstractType
     {
         $builder
             ->add('codigo', TextType::class, [
-                'label' => 'Codigo',
+                'label' => 'Código',
                 'attr' => ['class' => 'form-control']
             ])
             ->add('banco', EntityType::class, [

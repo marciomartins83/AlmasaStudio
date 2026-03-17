@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Relatorio de Inadimplentes</title>
+    <title>Relatório de Inadimplentes</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
@@ -30,7 +30,7 @@
 <body>
     <div class="container">
         {% include 'relatorios/pdf/_header.html.twig' with {
-            titulo: 'RELATORIO DE INADIMPLENTES',
+            titulo: 'RELATÓRIO DE INADIMPLENTES',
             subtitulo: 'Posicao em: ' ~ filtros.data_referencia|date('d/m/Y') ~ ' | Atraso minimo: ' ~ (filtros.dias_atraso_minimo|default(1)) ~ ' dia(s)'
         } %}
 
@@ -38,7 +38,7 @@
             <thead>
                 <tr>
                     <th>Inquilino</th>
-                    <th>Imovel</th>
+                    <th>Imóvel</th>
                     <th>Compet.</th>
                     <th>Venc.</th>
                     <th class="text-center">Dias</th>

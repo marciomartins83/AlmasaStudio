@@ -37,6 +37,8 @@ class AlmasaVinculoBancario
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $ativo = true;
 
+    #[ORM\Column(type: Types::BOOLEAN)] private bool $padrao = false;
+
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
@@ -110,6 +112,10 @@ class AlmasaVinculoBancario
         $this->ativo = $ativo;
         return $this;
     }
+
+    public function isPadrao(): bool { return $this->padrao; }
+
+    public function setPadrao(bool $padrao): self { $this->padrao = $padrao; return $this; }
 
     public function getCreatedAt(): \DateTimeInterface
     {

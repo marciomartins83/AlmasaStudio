@@ -1,15 +1,15 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Novo Lancamento - {{ parent() }}{% endblock %}
+{% block title %}Novo Lançamento - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Lancamentos', 'url': path('app_lancamentos_index')}
+            {'label': 'Lançamentos', 'url': path('app_lancamentos_index')}
         ],
-        'current': 'Novo Lancamento'
+        'current': 'Novo Lançamento'
     } %}
 
     {# Flash messages #}
@@ -22,7 +22,7 @@
 
     <div class="card">
         <div class="card-header">
-            <i class="fas fa-plus"></i> Novo Lancamento
+            <i class="fas fa-plus"></i> Novo Lançamento
         </div>
         <div class="card-body">
             {{ include('lancamentos/_form.html.twig') }}

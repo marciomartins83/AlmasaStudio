@@ -1,13 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gerar Prestacao de Contas - {{ parent() }}{% endblock %}
+{% block title %}Gerar Prestação de Contas - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Prestacao de Contas', 'url': path('app_prestacao_contas_index')}
+            {'label': 'Prestação de Contas', 'url': path('app_prestacao_contas_index')}
         ],
         'current': 'Gerar'
     } %}
@@ -31,7 +31,7 @@
         <div class="col-lg-6">
             <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-file-invoice-dollar"></i> Gerar Prestacao de Contas
+                    <i class="fas fa-file-invoice-dollar"></i> Gerar Prestação de Contas
                 </div>
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'id': 'formGerar', 'novalidate': 'novalidate'}}) }}
@@ -72,7 +72,7 @@
                     <hr>
 
                     {# Secao: Proprietario/Imovel #}
-                    <h6 class="text-muted mb-3"><i class="fas fa-user"></i> Proprietario / Imovel</h6>
+                    <h6 class="text-muted mb-3"><i class="fas fa-user"></i> Proprietário / Imóvel</h6>
 
                     <div class="row mb-3">
                         <div class="col-md-12">
@@ -122,7 +122,7 @@
                                 <i class="fas fa-search"></i> Preview
                             </button>
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check"></i> Gerar Prestacao
+                                <i class="fas fa-check"></i> Gerar Prestação
                             </button>
                         </div>
                     </div>
@@ -136,7 +136,7 @@
         <div class="col-lg-6">
             <div class="card" id="cardPreview" style="display: none;">
                 <div class="card-header">
-                    <i class="fas fa-eye"></i> Preview da Prestacao
+                    <i class="fas fa-eye"></i> Preview da Prestação
                 </div>
                 <div class="card-body" id="previewContent">
                     {# Conteudo sera preenchido via JS #}
@@ -166,7 +166,7 @@
                             <strong>Clique em "Preview"</strong> - Para visualizar o resumo antes de gerar.
                         </li>
                         <li>
-                            <strong>Clique em "Gerar Prestacao"</strong> - Para criar a prestacao de contas.
+                            <strong>Clique em "Gerar Prestação"</strong> - Para criar a prestação de contas.
                         </li>
                     </ol>
                 </div>

@@ -1,15 +1,15 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Prestacao {{ prestacao.numeroFormatado }} - {{ parent() }}{% endblock %}
+{% block title %}Prestação {{ prestacao.numeroFormatado }} - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Prestacao de Contas', 'url': path('app_prestacao_contas_index')}
+            {'label': 'Prestação de Contas', 'url': path('app_prestacao_contas_index')}
         ],
-        'current': 'Prestacao ' ~ prestacao.numeroFormatado
+        'current': 'Prestação ' ~ prestacao.numeroFormatado
     } %}
 
     {# Flash messages #}
@@ -31,7 +31,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>
                 <i class="fas fa-file-invoice-dollar"></i>
-                Prestacao de Contas <strong>{{ prestacao.numeroFormatado }}</strong>
+                Prestação de Contas <strong>{{ prestacao.numeroFormatado }}</strong>
             </span>
             <span class="badge bg-{{ prestacao.statusBadgeClass }} fs-6">
                 {{ prestacao.statusLabel }}
@@ -40,11 +40,11 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-4">
-                    <p class="mb-1"><strong>Proprietario:</strong></p>
+                    <p class="mb-1"><strong>Proprietário:</strong></p>
                     <p class="text-muted">{{ prestacao.proprietario.nome }}</p>
                 </div>
                 <div class="col-md-4">
-                    <p class="mb-1"><strong>Imovel:</strong></p>
+                    <p class="mb-1"><strong>Imóvel:</strong></p>
                     <p class="text-muted">
                         {% if prestacao.imovel %}
                             {{ prestacao.imovel.id }}
@@ -74,7 +74,7 @@
                     <p class="text-muted">{{ prestacao.formaRepasseLabel }}</p>
                 </div>
                 <div class="col-md-3">
-                    <p class="mb-1"><strong>Conta Bancaria:</strong></p>
+                    <p class="mb-1"><strong>Conta Bancária:</strong></p>
                     <p class="text-muted">
                         {% if prestacao.contaBancaria %}
                             {{ prestacao.contaBancaria.codigo }}
@@ -102,7 +102,7 @@
             <hr>
             <div class="row">
                 <div class="col-12">
-                    <p class="mb-1"><strong>Observacoes:</strong></p>
+                    <p class="mb-1"><strong>Observações:</strong></p>
                     <p class="text-muted">{{ prestacao.observacoes|nl2br }}</p>
                 </div>
             </div>
@@ -121,7 +121,7 @@
                     <thead class="table-light">
                         <tr>
                             <th width="100">Data</th>
-                            <th>Historico</th>
+                            <th>Histórico</th>
                             <th>Origem</th>
                             <th width="120" class="text-end">Valor Bruto</th>
                             <th width="100" class="text-end">Taxa Admin</th>
@@ -187,7 +187,7 @@
                     <thead class="table-light">
                         <tr>
                             <th width="100">Data</th>
-                            <th>Historico</th>
+                            <th>Histórico</th>
                             <th>Origem</th>
                             <th width="150" class="text-end">Valor</th>
                         </tr>
@@ -292,7 +292,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Cancelar Prestacao</h5>
+                <h5 class="modal-title">Cancelar Prestação</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Lancamentos - {{ parent() }}{% endblock %}
+{% block title %}Lançamentos - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -8,7 +8,7 @@
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')}
         ],
-        'current': 'Lancamentos'
+        'current': 'Lançamentos'
     } %}
 
     {# Flash messages #}
@@ -25,14 +25,14 @@
         </div>
     {% endfor %}
 
-    {# Cards de Estatisticas #}
+    {# Cards de Estatísticas #}
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card border-success">
                 <div class="card-body">
                     <h6 class="card-subtitle mb-2 text-success">A Receber</h6>
                     <h4 class="card-title mb-0">R$ {{ estatisticas.receber.saldo|number_format(2, ',', '.') }}</h4>
-                    <small class="text-muted">{{ estatisticas.receber.quantidade }} lancamento(s)</small>
+                    <small class="text-muted">{{ estatisticas.receber.quantidade }} lançamento(s)</small>
                 </div>
             </div>
         </div>
@@ -41,7 +41,7 @@
                 <div class="card-body">
                     <h6 class="card-subtitle mb-2 text-danger">A Pagar</h6>
                     <h4 class="card-title mb-0">R$ {{ estatisticas.pagar.saldo|number_format(2, ',', '.') }}</h4>
-                    <small class="text-muted">{{ estatisticas.pagar.quantidade }} lancamento(s)</small>
+                    <small class="text-muted">{{ estatisticas.pagar.quantidade }} lançamento(s)</small>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@
                 <div class="card-body">
                     <h6 class="card-subtitle mb-2 text-warning">Vencidos (Receber)</h6>
                     <h4 class="card-title mb-0">R$ {{ estatisticas.vencidos.receber.saldo|number_format(2, ',', '.') }}</h4>
-                    <small class="text-muted">{{ estatisticas.vencidos.receber.quantidade }} lancamento(s)</small>
+                    <small class="text-muted">{{ estatisticas.vencidos.receber.quantidade }} lançamento(s)</small>
                 </div>
             </div>
         </div>
@@ -59,7 +59,7 @@
                 <div class="card-body">
                     <h6 class="card-subtitle mb-2 text-secondary">Vencidos (Pagar)</h6>
                     <h4 class="card-title mb-0">R$ {{ estatisticas.vencidos.pagar.saldo|number_format(2, ',', '.') }}</h4>
-                    <small class="text-muted">{{ estatisticas.vencidos.pagar.quantidade }} lancamento(s)</small>
+                    <small class="text-muted">{{ estatisticas.vencidos.pagar.quantidade }} lançamento(s)</small>
                 </div>
             </div>
         </div>
@@ -85,12 +85,12 @@
         itemsPerPage: itemsPerPage
     } %}
 
-    {# Tabela de Lancamentos #}
+    {# Tabela de Lançamentos #}
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span><i class="fas fa-list"></i> Lancamentos</span>
+            <span><i class="fas fa-list"></i> Lançamentos</span>
             <a href="{{ path('app_lancamentos_new') }}" class="btn btn-success btn-sm">
-                <i class="fas fa-plus"></i> Novo Lancamento
+                <i class="fas fa-plus"></i> Novo Lançamento
             </a>
         </div>
         <div class="card-body p-0">
@@ -110,7 +110,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for lancamento in lancamentos %}
+                        {% for lançamento in lancamentos %}
                         <tr class="{{ lancamento.vencido ? 'table-warning' : '' }}" data-id="{{ lancamento.id }}">
                             <td>{{ lancamento.numero }}</td>
                             <td>
@@ -191,8 +191,8 @@
                         <tr>
                             <td colspan="11" class="text-center text-muted py-4">
                                 <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-                                <span>Nenhum lancamento encontrado</span><br>
-                                <small>Clique em "Novo Lancamento" para comecar</small>
+                                <span>Nenhum lançamento encontrado</span><br>
+                                <small>Clique em "Novo Lançamento" para começar</small>
                             </td>
                         </tr>
                         {% endfor %}
@@ -242,8 +242,8 @@
                         <option value="ted">TED</option>
                         <option value="boleto">Boleto</option>
                         <option value="dinheiro">Dinheiro</option>
-                        <option value="debito">Debito</option>
-                        <option value="credito">Credito</option>
+                        <option value="debito">Débito</option>
+                        <option value="credito">Crédito</option>
                         <option value="cheque">Cheque</option>
                     </select>
                 </div>
@@ -275,7 +275,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Cancelar Lancamento</h5>
+                <h5 class="modal-title">Cancelar Lançamento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

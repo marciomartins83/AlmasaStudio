@@ -29,7 +29,7 @@ class PessoaFiadorCombinedType extends AbstractType
                 'attr' => ['class' => 'form-select']
             ])
             ->add('motivoFianca', TextareaType::class, [
-                'label' => 'Motivo da Fiador',
+                'label' => 'Motivo da Fiança',
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 3]
             ])

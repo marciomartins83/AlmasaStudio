@@ -17,6 +17,7 @@ import {
 
 import { initPessoasAutocomplete } from './pessoa_autocomplete.js';
 import { initPlanoContaAutocompletes } from './plano_conta_autocomplete.js';
+import { initContaBancariaVinculos } from './conta_bancaria_vinculos.js';
 
 /**
  * Inicializa modulo quando DOM estiver pronto
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRecorrencia();
     initFiltroPlanoConta();
     initCamposMonetarios();
-    initTransferenciaCheck();
+    initContaBancariaVinculos();
 });
 
 /**
@@ -375,150 +376,3 @@ function initCompetenciaAutomatica() {
     });
 }
 
-/**
- * Transferência: intercepta submit quando débito+crédito preenchidos
- * e conta bancária não informada — abre modal com 2 autocompletes
- */
-function initTransferenciaCheck() {
-    const form = document.querySelector('form.needs-validation');
-    if (!form) return;
-
-    const cfg = window.LANCAMENTOS_PLANO_CONTA;
-    const cbUrl = window.LANCAMENTOS_CONTA_BANCARIA_URL;
-    if (!cfg || !cbUrl) return;
-
-    const debitoHidden  = document.getElementById(cfg.debito.hiddenId);
-    const creditoHidden = document.getElementById(cfg.credito.hiddenId);
-    const debitoDisplay = document.getElementById(cfg.debito.displayId);
-    const creditoDisplay = document.getElementById(cfg.credito.displayId);
-    const contaBancariaSelect = document.getElementById('lancamentos_contaBancaria');
-    const modalEl = document.getElementById('modalContaBancaria');
-    if (!debitoHidden || !creditoHidden || !contaBancariaSelect || !modalEl) return;
-
-    const btnConfirmar = document.getElementById('btnConfirmarContaBancaria');
-
-    // Monta autocomplete para cada lado (deb / cred)
-    function initCbAutocomplete(prefix) {
-        const display = document.getElementById(`modal_cb_${prefix}_display`);
-        const hidden  = document.getElementById(`modal_cb_${prefix}_hidden`);
-        const results = document.getElementById(`modal_cb_${prefix}_results`);
-        const clear   = document.getElementById(`modal_cb_${prefix}_clear`);
-        if (!display || !hidden || !results) return null;
-
-        let timer = null;
-
-        display.addEventListener('input', () => {
-            const q = display.value.trim();
-            hidden.value = '';
-            if (clear) clear.style.display = 'none';
-            clearTimeout(timer);
-            if (q.length < 2) { fechar(); return; }
-            timer = setTimeout(() => buscar(q), 300);
-        });
-
-        display.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') fechar();
-        });
-
-        if (clear) {
-            clear.addEventListener('click', () => {
-                display.value = '';
-                hidden.value = '';
-                clear.style.display = 'none';
-                display.focus();
-            });
-        }
-
-        async function buscar(q) {
-            try {
-                const resp = await fetch(`${cbUrl}?q=${encodeURIComponent(q)}`);
-                if (!resp.ok) return;
-                renderizar(await resp.json());
-            } catch (err) {
-                console.error('[cb-autocomplete] erro:', err);
-            }
-        }
-
-        function renderizar(contas) {
-            results.innerHTML = '';
-            if (!contas.length) {
-                results.innerHTML = '<div class="list-group-item text-muted fst-italic">Nenhuma conta encontrada</div>';
-                results.style.display = 'block';
-                return;
-            }
-            contas.forEach(c => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'list-group-item list-group-item-action';
-                const label = c.titular ? `${c.descricao} — ${c.titular}` : (c.descricao || '');
-                btn.textContent = label;
-                btn.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    display.value = label;
-                    hidden.value = c.id;
-                    if (clear) clear.style.display = '';
-                    fechar();
-                });
-                results.appendChild(btn);
-            });
-            results.style.display = 'block';
-        }
-
-        function fechar() {
-            results.style.display = 'none';
-            results.innerHTML = '';
-        }
-
-        function reset() {
-            display.value = '';
-            hidden.value = '';
-            if (clear) clear.style.display = 'none';
-        }
-
-        return { hidden, display, reset };
-    }
-
-    const acDeb  = initCbAutocomplete('deb');
-    const acCred = initCbAutocomplete('cred');
-    if (!acDeb || !acCred) return;
-
-    // Interceptar submit
-    form.addEventListener('submit', (e) => {
-        const temDebito  = debitoHidden.value && debitoHidden.value !== '';
-        const temCredito = creditoHidden.value && creditoHidden.value !== '';
-        const temConta   = contaBancariaSelect.value && contaBancariaSelect.value !== '';
-
-        if (temDebito && temCredito && !temConta) {
-            e.preventDefault();
-            document.getElementById('modal_nome_debito').textContent = debitoDisplay.value || '—';
-            document.getElementById('modal_nome_credito').textContent = creditoDisplay.value || '—';
-            acDeb.reset();
-            acCred.reset();
-
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-            setTimeout(() => acDeb.display.focus(), 500);
-        }
-    });
-
-    if (btnConfirmar) {
-        btnConfirmar.addEventListener('click', () => {
-            const debId  = acDeb.hidden.value;
-            const credId = acCred.hidden.value;
-
-            if (!debId && !credId) {
-                acDeb.display.classList.add('is-invalid');
-                acCred.display.classList.add('is-invalid');
-                acDeb.display.focus();
-                return;
-            }
-            acDeb.display.classList.remove('is-invalid');
-            acCred.display.classList.remove('is-invalid');
-
-            // Usa a primeira conta preenchida no campo do form
-            contaBancariaSelect.value = debId || credId;
-            bootstrap.Modal.getInstance(modalEl).hide();
-            form.submit();
-        });
-    }
-}

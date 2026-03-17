@@ -63,7 +63,7 @@ class LancamentosType extends AbstractType
                 'required' => true,
             ])
             ->add('historico', TextType::class, [
-                'label' => 'Hist\u00f3rico',
+                'label' => 'Histórico',
                 'attr' => [
                     'class' => 'form-control',
                     'maxlength' => 200,
@@ -101,7 +101,7 @@ class LancamentosType extends AbstractType
                 'required' => false,
             ])
             ->add('competencia', TextType::class, [
-                'label' => 'Compet\u00eancia',
+                'label' => 'Competência',
                 'attr' => [
                     'class' => 'form-control',
                     'placeholder' => 'MM/AAAA',
@@ -180,23 +180,14 @@ class LancamentosType extends AbstractType
             ])
             ->add('imovel', EntityType::class, [
                 'class' => Imoveis::class,
-                'label' => 'Imovel',
+                'label' => 'Imóvel',
                 'choice_label' => 'codigoInterno',
                 'placeholder' => 'Selecione...',
                 'attr' => ['class' => 'form-select'],
                 'required' => false,
             ])
-            ->add('contaBancaria', EntityType::class, [
-                'class' => ContasBancarias::class,
-                'label' => 'Conta Banc\u00e1ria',
-                'choice_label' => 'descricao',
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('c')
-                        ->where('c.ativo = true')
-                        ->orderBy('c.descricao', 'ASC');
-                },
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('contaBancariaId', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
 
@@ -216,7 +207,7 @@ class LancamentosType extends AbstractType
                 'required' => false,
             ])
             ->add('numeroDocumento', TextType::class, [
-                'label' => 'N\u00famero Documento',
+                'label' => 'Número Documento',
                 'attr' => [
                     'class' => 'form-control',
                     'maxlength' => 50,
@@ -303,8 +294,8 @@ class LancamentosType extends AbstractType
                     'TED' => 'ted',
                     'Boleto' => 'boleto',
                     'Dinheiro' => 'dinheiro',
-                    'D\u00e9bito' => 'debito',
-                    'Cr\u00e9dito' => 'credito',
+                    'Débito' => 'debito',
+                    'Crédito' => 'credito',
                     'Cheque' => 'cheque',
                 ],
                 'placeholder' => 'Selecione...',
@@ -314,7 +305,7 @@ class LancamentosType extends AbstractType
 
             // === OBSERVAÇÕES ===
             ->add('observacoes', TextareaType::class, [
-                'label' => 'Observa\u00e7\u00f5es',
+                'label' => 'Observações',
                 'attr' => [
                     'class' => 'form-control',
                     'rows' => 3,

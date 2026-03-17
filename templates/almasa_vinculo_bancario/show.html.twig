@@ -28,7 +28,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="card mb-3">
-                        <div class="card-header"><i class="fas fa-university"></i> Conta Bancaria</div>
+                        <div class="card-header"><i class="fas fa-university"></i> Conta Bancária</div>
                         <div class="card-body">
                             <table class="table table-borderless mb-0">
                                 <tr>
@@ -67,11 +67,11 @@
                         <div class="card-body">
                             <table class="table table-borderless mb-0">
                                 <tr>
-                                    <th width="150">Codigo:</th>
+                                    <th width="150">Código:</th>
                                     <td><code>{{ vinculo.almasaPlanoConta.codigo }}</code></td>
                                 </tr>
                                 <tr>
-                                    <th>Descricao:</th>
+                                    <th>Descrição:</th>
                                     <td><strong>{{ vinculo.almasaPlanoConta.descricao }}</strong></td>
                                 </tr>
                                 <tr>
@@ -90,7 +90,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th>Nivel:</th>
+                                    <th>Nível:</th>
                                     <td>
                                         {% set nivelBadge = { 1: 'dark', 2: 'secondary', 3: 'info', 4: 'primary', 5: 'light text-dark' } %}
                                         <span class="badge bg-{{ nivelBadge[vinculo.almasaPlanoConta.nivel] ?? 'secondary' }}">
@@ -115,7 +115,7 @@
                                     <td>{{ vinculo.id }}</td>
                                 </tr>
                                 <tr>
-                                    <th>Observacao:</th>
+                                    <th>Observação:</th>
                                     <td>{{ vinculo.observacao ?? '-' }}</td>
                                 </tr>
                             </table>

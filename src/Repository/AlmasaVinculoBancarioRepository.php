@@ -17,4 +17,13 @@ class AlmasaVinculoBancarioRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, AlmasaVinculoBancario::class);
     }
+
+    public function findByPlanoContaId(int $planoContaId): array
+    {
+        $query = $this->getEntityManager()->createQuery(
+            'SELECT v FROM App\Entity\AlmasaVinculoBancario v JOIN v.contaBancaria cb WHERE v.almasaPlanoConta = :planoId AND v.ativo = true AND cb.ativo = true ORDER BY v.padrao DESC, cb.descricao ASC'
+        );
+        $query->setParameter('planoId', $planoContaId);
+        return $query->getResult();
+    }
 }

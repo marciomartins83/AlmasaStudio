@@ -8,6 +8,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\Lancamentos;
 use App\Form\LancamentosType;
+use App\Repository\AlmasaVinculoBancarioRepository;
 use App\Repository\ContasBancariasRepository;
 use App\Repository\LancamentosRepository;
 use App\Repository\PessoaRepository;
@@ -463,6 +464,22 @@ class LancamentosController extends AbstractController
         return $this->json($rows);
     }
 
+    #[Route('/contas-bancarias-por-plano/{planoId}', name: 'app_lancamentos_contas_bancarias_por_plano', methods: ['GET'])]
+    public function contasBancariasPorPlano(int $planoId, AlmasaVinculoBancarioRepository $repo): JsonResponse
+    {
+        $vinculos = $repo->findByPlanoContaId($planoId);
+
+        $data = array_map(fn ($vinculo) => [
+            'id' => $vinculo->getContaBancaria()->getId(),
+            'descricao' => $vinculo->getContaBancaria()->getDescricao() ?? '',
+            'titular' => $vinculo->getContaBancaria()->getTitular() ?? '',
+            'padrao' => $vinculo->isPadrao(),
+            'label' => $vinculo->getContaBancariaLabel(),
+        ], $vinculos);
+
+        return $this->json($data);
+    }
+
     private function extrairDadosFormulario($form): array
     {
         $lancamento = $form->getData();
@@ -481,7 +498,7 @@ class LancamentosController extends AbstractController
             'id_pessoa_pagador' => $form->get('pessoaPagadorId')->getData() ?: null,
             'id_contrato' => $lancamento->getContrato()?->getId(),
             'id_imovel' => $lancamento->getImovel()?->getId(),
-            'id_conta_bancaria' => $lancamento->getContaBancaria()?->getId(),
+            'id_conta_bancaria' => $form->get('contaBancariaId')->getData() ?: null,
             'valor' => $lancamento->getValor(),
             'valor_desconto' => $lancamento->getValorDesconto(),
             'valor_juros' => $lancamento->getValorJuros(),

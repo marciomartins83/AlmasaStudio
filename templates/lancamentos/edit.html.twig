@@ -1,15 +1,15 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Editar Lancamento #{{ lancamento.numero }} - {{ parent() }}{% endblock %}
+{% block title %}Editar Lançamento #{{ lancamento.numero }} - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Dashboard', 'url': path('app_dashboard')},
-            {'label': 'Lancamentos', 'url': path('app_lancamentos_index')}
+            {'label': 'Lançamentos', 'url': path('app_lancamentos_index')}
         ],
-        'current': 'Editar Lancamento #' ~ lancamento.numero
+        'current': 'Editar Lançamento #' ~ lancamento.numero
     } %}
 
     {# Flash messages #}
@@ -20,11 +20,11 @@
         </div>
     {% endfor %}
 
-    {# Info do lancamento #}
+    {# Info do lançamento #}
     <div class="alert alert-info mb-3">
         <div class="row">
             <div class="col-md-3">
-                <strong>Numero:</strong> {{ lancamento.numero }}
+                <strong>Número:</strong> {{ lancamento.numero }}
             </div>
             <div class="col-md-3">
                 <strong>Status:</strong>
@@ -44,7 +44,7 @@
 
     <div class="card">
         <div class="card-header">
-            <i class="fas fa-edit"></i> Editar Lancamento
+            <i class="fas fa-edit"></i> Editar Lançamento
         </div>
         <div class="card-body">
             {{ include('lancamentos/_form.html.twig') }}

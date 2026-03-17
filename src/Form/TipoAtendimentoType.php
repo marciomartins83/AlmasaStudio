@@ -28,7 +28,7 @@ class TipoAtendimentoType extends AbstractType
                 ],
             ])
             ->add('descricao', TextType::class, [
-                'label' => 'Descricao',
+                'label' => 'Descrição',
                 'attr' => ['class' => 'form-control'],
             ])
         ;
