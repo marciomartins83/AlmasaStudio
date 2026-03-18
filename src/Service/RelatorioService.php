@@ -734,7 +734,7 @@ class RelatorioService
             $isReceber = $isTransferencia ? false : ($l->getTipo() === 'receber');
 
             return [
-                'dataPagamento'   => $l->getDataPagamento() ?? $l->getDataVencimento(),
+                'dataPagamento'   => $l->getDataVencimento(),
                 'receber'         => $isReceber,
                 'historico'       => $l->getHistorico(),
                 'numeroDocumento' => $l->getNumeroDocumento(),
@@ -781,7 +781,7 @@ class RelatorioService
 
             $valor = (float) ($l->getValorPago() ?: $l->getValor());
             $movimentosCrud[] = [
-                'dataPagamento'   => $l->getDataPagamento() ?? $l->getDataVencimento(),
+                'dataPagamento'   => $l->getDataVencimento(),
                 'receber'         => true, // entrada na conta crédito
                 'historico'       => $l->getHistorico() . ' (transferência)',
                 'numeroDocumento' => $l->getNumeroDocumento(),
