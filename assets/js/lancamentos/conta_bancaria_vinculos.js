@@ -120,4 +120,49 @@ export function initContaBancariaVinculos() {
   if (selectCredito) {
     selectCredito.addEventListener('change', atualizarHidden);
   }
+
+  // Interceptar submit — bloquear se plano de contas sem conta bancária vinculada
+  const form = document.querySelector('form.needs-validation');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      const temDebito = debitoHidden.value && debitoHidden.value !== '';
+      const temCredito = creditoHidden.value && creditoHidden.value !== '';
+
+      if (!temDebito && !temCredito) return; // sem plano de contas, deixa passar
+
+      const contaSelecionada = contaBancariaIdHidden.value && contaBancariaIdHidden.value !== '';
+
+      if (!contaSelecionada) {
+        e.preventDefault();
+
+        // Montar mensagem com detalhes
+        const partes = [];
+        if (temDebito && selectDebito && selectDebito.options.length <= 1) {
+          const nome = document.getElementById('plano_debito_display');
+          partes.push('Débito: ' + (nome ? nome.value : 'conta selecionada'));
+        }
+        if (temCredito && selectCredito && selectCredito.options.length <= 1) {
+          const nome = document.getElementById('plano_credito_display');
+          partes.push('Crédito: ' + (nome ? nome.value : 'conta selecionada'));
+        }
+
+        let msg = '';
+        if (partes.length > 0) {
+          msg = 'As seguintes contas do plano NÃO possuem conta bancária vinculada:\n\n'
+              + partes.join('\n')
+              + '\n\nCadastre os vínculos bancários antes de lançar.\n\n'
+              + 'Deseja ir para a tela de vínculos bancários agora?';
+        } else {
+          msg = 'Selecione a conta bancária na aba Vínculos antes de salvar.\n\n'
+              + 'Cada plano de contas precisa ter uma conta bancária vinculada.';
+        }
+
+        if (partes.length > 0 && confirm(msg)) {
+          window.open('/almasa/almasa-vinculo-bancario/new', '_blank');
+        } else if (partes.length === 0) {
+          alert(msg);
+        }
+      }
+    });
+  }
 }
