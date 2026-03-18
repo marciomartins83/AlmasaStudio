@@ -728,16 +728,70 @@ class RelatorioService
         }
         $qb2->orderBy('l.dataVencimento', 'ASC');
 
-        $movimentosCrud = array_map(fn(Lancamentos $l) => [
-            'dataPagamento'   => $l->getDataPagamento() ?? $l->getDataVencimento(),
-            'receber'         => $l->getTipo() === 'receber',
-            'historico'       => $l->getHistorico(),
-            'numeroDocumento' => $l->getNumeroDocumento(),
-            'valorFloat'      => (float) ($l->getValorPago() ?: $l->getValor()),
-            '_contaBancaria'  => $l->getContaBancaria(),
-            '_valor'          => (float) ($l->getValorPago() ?: $l->getValor()),
-            '_isReceber'      => $l->getTipo() === 'receber',
-        ], $qb2->getQuery()->getResult());
+        $movimentosCrud = array_map(function(Lancamentos $l) {
+            // Transferência (débito+crédito): contaBancaria é a do débito = SAÍDA
+            $isTransferencia = $l->getPlanoContaDebito() && $l->getPlanoContaCredito();
+            $isReceber = $isTransferencia ? false : ($l->getTipo() === 'receber');
+
+            return [
+                'dataPagamento'   => $l->getDataPagamento() ?? $l->getDataVencimento(),
+                'receber'         => $isReceber,
+                'historico'       => $l->getHistorico(),
+                'numeroDocumento' => $l->getNumeroDocumento(),
+                'valorFloat'      => (float) ($l->getValorPago() ?: $l->getValor()),
+                '_contaBancaria'  => $l->getContaBancaria(),
+                '_valor'          => (float) ($l->getValorPago() ?: $l->getValor()),
+                '_isReceber'      => $isReceber,
+            ];
+        }, $qb2->getQuery()->getResult());
+
+        // --- Transferências (partida dobrada): gerar movimento na conta do crédito ---
+        // A query acima pega o débito (contaBancaria). Aqui geramos a entrada na conta vinculada ao crédito.
+        $qb3 = $this->em->createQueryBuilder();
+        $qb3->select('l')
+            ->from(Lancamentos::class, 'l')
+            ->where('l.planoContaDebito IS NOT NULL')
+            ->andWhere('l.planoContaCredito IS NOT NULL')
+            ->andWhere('l.status IN (:st3)')
+            ->setParameter('st3', ['pago', 'pago_parcial']);
+        if (!empty($filtros['data_inicio'])) {
+            $qb3->andWhere('l.dataVencimento >= :di3')->setParameter('di3', $filtros['data_inicio']);
+        }
+        if (!empty($filtros['data_fim'])) {
+            $qb3->andWhere('l.dataVencimento <= :df3')->setParameter('df3', $filtros['data_fim']);
+        }
+
+        $vinculoRepo = $this->em->getRepository(\App\Entity\AlmasaVinculoBancario::class);
+        foreach ($qb3->getQuery()->getResult() as $l) {
+            // Conta do crédito: buscar via vínculo bancário do plano crédito
+            $pcCredito = $l->getPlanoContaCredito();
+            if (!$pcCredito) continue;
+
+            $vinculos = $vinculoRepo->findBy(['almasaPlanoConta' => $pcCredito, 'ativo' => true], ['padrao' => 'DESC'], 1);
+            if (empty($vinculos)) continue;
+
+            $contaCredito = $vinculos[0]->getContaBancaria();
+            if (!$contaCredito) continue;
+
+            // Se filtrando por conta específica, verificar
+            if (!empty($filtros['id_conta_bancaria']) && $contaCredito->getId() != $filtros['id_conta_bancaria']) continue;
+
+            // Não duplicar se a conta do crédito é a mesma do débito
+            if ($l->getContaBancaria() && $contaCredito->getId() === $l->getContaBancaria()->getId()) continue;
+
+            $valor = (float) ($l->getValorPago() ?: $l->getValor());
+            $movimentosCrud[] = [
+                'dataPagamento'   => $l->getDataPagamento() ?? $l->getDataVencimento(),
+                'receber'         => true, // entrada na conta crédito
+                'historico'       => $l->getHistorico() . ' (transferência)',
+                'numeroDocumento' => $l->getNumeroDocumento(),
+                'valorFloat'      => $valor,
+                '_contaBancaria'  => $contaCredito,
+                '_valor'          => $valor,
+                '_isReceber'      => true,
+            ];
+
+        }
 
         return array_merge($movimentos, $movimentosCrud);
     }
