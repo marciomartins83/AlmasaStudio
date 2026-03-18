@@ -314,44 +314,65 @@
 
 {{ form_end(form) }}
 
-{# Modal — Vincular Conta Bancária ao Plano de Contas #}
-<div class="modal fade" id="modalVincularConta" tabindex="-1" data-bs-backdrop="static">
+{# Modal — Conta Bancária com busca inteligente #}
+<div class="modal fade" id="modalContaBancaria" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-warning">
                 <h5 class="modal-title"><i class="fas fa-university"></i> Vincular Conta Bancária</h5>
             </div>
             <div class="modal-body">
-                <p class="text-muted mb-3">As contas do plano selecionadas não possuem conta bancária vinculada. Selecione abaixo para vincular e prosseguir:</p>
-                <div id="modal_vinc_debito_row" class="card mb-3" style="display:none">
+                <p class="text-muted mb-3">Informe a conta bancária de cada conta do plano envolvida na transferência <small>(pelo menos uma)</small>:</p>
+
+                {# Conta Débito #}
+                <div class="card mb-3">
                     <div class="card-body py-2">
                         <label class="form-label mb-1">
                             <span class="badge bg-info me-1">Débito</span>
-                            <strong id="modal_vinc_debito_nome"></strong>
+                            <strong id="modal_nome_debito"></strong>
                         </label>
-                        <select id="modal_vinc_debito_select" class="form-select">
-                            <option value="">Carregando contas bancárias...</option>
-                        </select>
-                        <input type="hidden" id="modal_vinc_debito_plano_id">
+                        <div class="pessoa-autocomplete-wrapper position-relative">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="modal_cb_deb_display" class="form-control"
+                                       placeholder="Buscar conta bancária..." autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" id="modal_cb_deb_clear" style="display:none">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="modal_cb_deb_results" class="list-group shadow" style="display:none; position:absolute; z-index:1060; width:100%; max-height:180px; overflow-y:auto;"></div>
+                        </div>
+                        <input type="hidden" id="modal_cb_deb_hidden" value="">
+                        <input type="hidden" id="modal_cb_deb_plano_id" value="">
                     </div>
                 </div>
-                <div id="modal_vinc_credito_row" class="card" style="display:none">
+
+                {# Conta Crédito #}
+                <div class="card">
                     <div class="card-body py-2">
                         <label class="form-label mb-1">
                             <span class="badge bg-success me-1">Crédito</span>
-                            <strong id="modal_vinc_credito_nome"></strong>
+                            <strong id="modal_nome_credito"></strong>
                         </label>
-                        <select id="modal_vinc_credito_select" class="form-select">
-                            <option value="">Carregando contas bancárias...</option>
-                        </select>
-                        <input type="hidden" id="modal_vinc_credito_plano_id">
+                        <div class="pessoa-autocomplete-wrapper position-relative">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="modal_cb_cred_display" class="form-control"
+                                       placeholder="Buscar conta bancária..." autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" id="modal_cb_cred_clear" style="display:none">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="modal_cb_cred_results" class="list-group shadow" style="display:none; position:absolute; z-index:1060; width:100%; max-height:180px; overflow-y:auto;"></div>
+                        </div>
+                        <input type="hidden" id="modal_cb_cred_hidden" value="">
+                        <input type="hidden" id="modal_cb_cred_plano_id" value="">
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnConfirmarVinculo">
-                    <i class="fas fa-check"></i> Vincular e Salvar
+                <button type="button" class="btn btn-primary" id="btnConfirmarContaBancaria">
+                    <i class="fas fa-check"></i> Confirmar e Salvar
                 </button>
             </div>
         </div>
@@ -359,8 +380,8 @@
 </div>
 
 <script>
+window.LANCAMENTOS_CONTA_BANCARIA_URL = '{{ path("app_lancamentos_conta_bancaria_autocomplete") }}';
 window.LANCAMENTOS_VINCULOS_URL = '{{ path("app_lancamentos_contas_bancarias_por_plano", {"planoId": "__PLANO_ID__"}) }}';
-window.LANCAMENTOS_CONTAS_TODAS_URL = '{{ path("app_lancamentos_contas_bancarias_todas") }}';
 window.LANCAMENTOS_CRIAR_VINCULO_URL = '{{ path("app_lancamentos_criar_vinculo") }}';
 window.LANCAMENTOS_PLANO_CONTA = {
     url: '{{ path("app_almasa_plano_contas_api_busca") }}',
