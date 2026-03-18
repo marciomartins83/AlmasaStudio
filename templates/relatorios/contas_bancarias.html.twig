@@ -35,19 +35,28 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Conta Bancária</label>
+                            <label for="id_conta_bancaria" class="form-label">Conta Bancária</label>
+                            <select class="form-select" id="id_conta_bancaria" name="id_conta_bancaria">
+                                <option value="">Todas</option>
+                                {% for conta in contas %}
+                                    <option value="{{ conta.id }}">
+                                        {{ conta.idBanco.nome|default('') }} - Ag {{ conta.idAgencia.codigo|default('') }} / {{ conta.codigo }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-search"></i> Ou buscar conta específica</label>
                             <div class="pessoa-autocomplete-wrapper position-relative">
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <div class="input-group input-group-sm">
                                     <input type="text" id="conta_bancaria_display" class="form-control"
-                                           placeholder="Todas (buscar conta...)" autocomplete="off">
+                                           placeholder="Digitar nome da conta..." autocomplete="off">
                                     <button type="button" class="btn btn-outline-secondary" id="conta_bancaria_clear" style="display:none">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
                                 <div id="conta_bancaria_results" class="list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
                             </div>
-                            <input type="hidden" id="id_conta_bancaria" name="id_conta_bancaria" value="">
                         </div>
 
                         <div class="mb-3">
@@ -105,17 +114,17 @@
     // Autocomplete conta bancária
     document.addEventListener('DOMContentLoaded', () => {
         const display = document.getElementById('conta_bancaria_display');
-        const hidden = document.getElementById('id_conta_bancaria');
+        const selectEl = document.getElementById('id_conta_bancaria');
         const results = document.getElementById('conta_bancaria_results');
         const clear = document.getElementById('conta_bancaria_clear');
         const cbUrl = '{{ path("app_lancamentos_conta_bancaria_autocomplete") }}';
-        if (!display || !hidden || !results) return;
+        if (!display || !selectEl || !results) return;
 
         let timer = null;
 
         display.addEventListener('input', () => {
             const q = display.value.trim();
-            hidden.value = '';
+            selectEl.value = '';
             if (clear) clear.style.display = 'none';
             clearTimeout(timer);
             if (q.length < 2) { results.style.display = 'none'; results.innerHTML = ''; return; }
@@ -139,7 +148,14 @@
                         btn.addEventListener('mousedown', (e) => {
                             e.preventDefault();
                             display.value = label;
-                            hidden.value = c.id;
+                            // Setar no select — se a option existe, seleciona; senão cria temporária
+                            const existingOpt = selectEl.querySelector('option[value="' + c.id + '"]');
+                            if (existingOpt) {
+                                selectEl.value = c.id;
+                            } else {
+                                const newOpt = new Option(label, c.id, true, true);
+                                selectEl.appendChild(newOpt);
+                            }
                             if (clear) clear.style.display = '';
                             results.style.display = 'none';
                             results.innerHTML = '';
@@ -156,7 +172,7 @@
         if (clear) {
             clear.addEventListener('click', () => {
                 display.value = '';
-                hidden.value = '';
+                selectEl.value = '';
                 clear.style.display = 'none';
                 display.focus();
             });
