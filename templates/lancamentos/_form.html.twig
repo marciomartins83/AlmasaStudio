@@ -206,6 +206,21 @@
             <div class="col-md-4">
                 {{ form_row(form.imovel) }}
             </div>
+            <div class="col-md-4">
+                <label class="form-label">Conta Bancária</label>
+                <div class="pessoa-autocomplete-wrapper position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="cb_vinc_geral_display" class="form-control"
+                               placeholder="Buscar conta bancária..." autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary" id="cb_vinc_geral_clear" style="display:none">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="cb_vinc_geral_results" class="list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:200px; overflow-y:auto;"></div>
+                </div>
+                <input type="hidden" id="cb_vinc_geral_hidden" value="">
+            </div>
         </div>
         <div class="row mt-3">
             <div class="col-md-6" id="cb_vinc_debito_wrapper" style="display:none">

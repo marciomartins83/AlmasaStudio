@@ -97,7 +97,10 @@ export function initContaBancariaVinculos() {
     return { hidden, display, reset, preload };
   }
 
-  // Autocompletes na aba Vínculos
+  // Autocomplete geral (sempre visível na aba Vínculos)
+  const acVincGeral = initBuscaConta('cb_vinc_geral');
+
+  // Autocompletes por plano (débito/crédito) na aba Vínculos
   const acVincDeb = initBuscaConta('cb_vinc_debito');
   const acVincCred = initBuscaConta('cb_vinc_credito');
 
@@ -106,9 +109,11 @@ export function initContaBancariaVinculos() {
   const acModalCred = initBuscaConta('modal_cb_cred');
 
   function atualizarHidden() {
+    // Prioridade: débito > crédito > geral
     const v1 = acVincDeb?.hidden?.value || '';
     const v2 = acVincCred?.hidden?.value || '';
-    contaBancariaIdHidden.value = v1 || v2 || '';
+    const v3 = acVincGeral?.hidden?.value || '';
+    contaBancariaIdHidden.value = v1 || v2 || v3 || '';
   }
 
   // === Mostrar/ocultar wrappers conforme plano selecionado ===
