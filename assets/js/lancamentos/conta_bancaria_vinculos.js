@@ -15,10 +15,43 @@ export function initContaBancariaVinculos() {
   const msgDebito = document.getElementById('cb_vinc_debito_msg');
   const msgCredito = document.getElementById('cb_vinc_credito_msg');
 
-  if (!cfg || !url || !debitoHidden || !creditoHidden || !contaBancariaIdHidden) {
-    return;
+  const modalEl = document.getElementById('modalVincularConta');
+  const btnConfirmar = document.getElementById('btnConfirmarVinculo');
+  const form = document.querySelector('form.needs-validation');
+
+  if (!cfg || !url || !debitoHidden || !creditoHidden || !contaBancariaIdHidden) return;
+
+  // === Cache de todas as contas bancárias ===
+  let contasCarregadas = false;
+  let todasContas = [];
+
+  async function carregarTodasContas() {
+    if (contasCarregadas) return todasContas;
+    const urlTodas = window.LANCAMENTOS_CONTAS_TODAS_URL;
+    if (!urlTodas) return [];
+    try {
+      const resp = await fetch(urlTodas, { headers: { Accept: 'application/json' } });
+      if (resp.ok) todasContas = await resp.json();
+      contasCarregadas = true;
+    } catch (e) { console.error(e); }
+    return todasContas;
   }
 
+  function popularSelectModal(selectEl, contas) {
+    selectEl.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'Selecione a conta bancária...';
+    selectEl.appendChild(ph);
+    contas.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.titular ? c.descricao + ' — ' + c.titular : c.descricao;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  // === Fetch contas vinculadas ao plano ===
   function fetchContas(planoId, lado) {
     const select = lado === 'debito' ? selectDebito : selectCredito;
     const wrapper = lado === 'debito' ? wrapperDebito : wrapperCredito;
@@ -28,14 +61,11 @@ export function initContaBancariaVinculos() {
 
     const endpoint = url.replace('__PLANO_ID__', planoId);
     fetch(endpoint, { headers: { Accept: 'application/json' } })
-      .then((resp) => {
-        if (!resp.ok) throw new Error('Network response was not ok');
-        return resp.json();
-      })
-      .then((data) => {
+      .then(resp => { if (!resp.ok) throw new Error('erro'); return resp.json(); })
+      .then(data => {
         if (!Array.isArray(data) || data.length === 0) {
           select.style.display = 'none';
-          msg.textContent = 'Nenhuma conta bancaria vinculada a este plano.';
+          msg.textContent = 'Nenhuma conta bancária vinculada. Ao salvar, será solicitada.';
           msg.style.display = '';
           return;
         }
@@ -45,30 +75,35 @@ export function initContaBancariaVinculos() {
         select.innerHTML = '';
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = 'Selecione a conta bancaria...';
+        placeholder.textContent = 'Selecione a conta bancária...';
         select.appendChild(placeholder);
 
         let defaultSet = false;
-        data.forEach((item) => {
+        data.forEach(item => {
           const option = document.createElement('option');
           option.value = item.id;
           option.textContent = item.label;
           select.appendChild(option);
-          if (item.padrao && !defaultSet) {
-            option.selected = true;
-            defaultSet = true;
-          }
+          if (item.padrao && !defaultSet) { option.selected = true; defaultSet = true; }
         });
+
+        // Separador + opção "Outra conta"
+        const sep = document.createElement('option');
+        sep.disabled = true;
+        sep.textContent = '────────────────';
+        select.appendChild(sep);
+        const outra = document.createElement('option');
+        outra.value = '__OUTRA__';
+        outra.textContent = '→ Outra conta bancária...';
+        select.appendChild(outra);
       })
-      .catch((e) => {
+      .catch(e => {
         console.error('Error fetching contas:', e);
         select.style.display = 'none';
         msg.textContent = 'Erro ao obter contas bancárias.';
         msg.style.display = '';
       })
-      .finally(() => {
-        atualizarHidden();
-      });
+      .finally(() => atualizarHidden());
   }
 
   function limpar(lado) {
@@ -77,11 +112,7 @@ export function initContaBancariaVinculos() {
     const msg = lado === 'debito' ? msgDebito : msgCredito;
     if (!select || !wrapper || !msg) return;
     wrapper.style.display = 'none';
-    select.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Selecione a conta bancaria...';
-    select.appendChild(placeholder);
+    select.innerHTML = '<option value="">Selecione a conta bancária...</option>';
     msg.style.display = 'none';
     atualizarHidden();
   }
@@ -89,123 +120,83 @@ export function initContaBancariaVinculos() {
   function atualizarHidden() {
     const valDeb = selectDebito ? selectDebito.value : '';
     const valCred = selectCredito ? selectCredito.value : '';
-    const chosen = valDeb !== '' ? valDeb : valCred !== '' ? valCred : '';
-    contaBancariaIdHidden.value = chosen;
+    const v = (valDeb && valDeb !== '__OUTRA__') ? valDeb : (valCred && valCred !== '__OUTRA__') ? valCred : '';
+    contaBancariaIdHidden.value = v;
   }
 
-  debitoHidden.addEventListener('plano-conta-selecionado', (e) => {
-    if (e.detail && e.detail.id) {
-      fetchContas(e.detail.id, 'debito');
-    }
-  });
+  // === Eventos plano de contas ===
+  debitoHidden.addEventListener('plano-conta-selecionado', e => { if (e.detail?.id) fetchContas(e.detail.id, 'debito'); });
+  debitoHidden.addEventListener('plano-conta-limpo', () => limpar('debito'));
+  creditoHidden.addEventListener('plano-conta-selecionado', e => { if (e.detail?.id) fetchContas(e.detail.id, 'credito'); });
+  creditoHidden.addEventListener('plano-conta-limpo', () => limpar('credito'));
 
-  debitoHidden.addEventListener('plano-conta-limpo', () => {
-    limpar('debito');
-  });
-
-  creditoHidden.addEventListener('plano-conta-selecionado', (e) => {
-    if (e.detail && e.detail.id) {
-      fetchContas(e.detail.id, 'credito');
-    }
-  });
-
-  creditoHidden.addEventListener('plano-conta-limpo', () => {
-    limpar('credito');
-  });
-
-  if (selectDebito) {
-    selectDebito.addEventListener('change', atualizarHidden);
+  // === "Outra conta..." abre modal para um lado ===
+  function abrirModalLado(lado) {
+    if (!modalEl) return;
+    const debRow = document.getElementById('modal_vinc_debito_row');
+    const credRow = document.getElementById('modal_vinc_credito_row');
+    carregarTodasContas().then(contas => {
+      if (lado === 'debito') {
+        debRow.style.display = '';
+        credRow.style.display = 'none';
+        document.getElementById('modal_vinc_debito_nome').textContent = document.getElementById('plano_debito_display')?.value || '—';
+        document.getElementById('modal_vinc_debito_plano_id').value = debitoHidden.value;
+        popularSelectModal(document.getElementById('modal_vinc_debito_select'), contas);
+      } else {
+        debRow.style.display = 'none';
+        credRow.style.display = '';
+        document.getElementById('modal_vinc_credito_nome').textContent = document.getElementById('plano_credito_display')?.value || '—';
+        document.getElementById('modal_vinc_credito_plano_id').value = creditoHidden.value;
+        popularSelectModal(document.getElementById('modal_vinc_credito_select'), contas);
+      }
+      new bootstrap.Modal(modalEl).show();
+    });
   }
 
-  if (selectCredito) {
-    selectCredito.addEventListener('change', atualizarHidden);
-  }
+  if (selectDebito) selectDebito.addEventListener('change', () => {
+    if (selectDebito.value === '__OUTRA__') { selectDebito.value = ''; abrirModalLado('debito'); }
+    atualizarHidden();
+  });
+  if (selectCredito) selectCredito.addEventListener('change', () => {
+    if (selectCredito.value === '__OUTRA__') { selectCredito.value = ''; abrirModalLado('credito'); }
+    atualizarHidden();
+  });
 
-  // Interceptar submit — abrir modal para vincular conta se necessário
-  const form = document.querySelector('form.needs-validation');
-  const modalEl = document.getElementById('modalVincularConta');
-  const btnConfirmar = document.getElementById('btnConfirmarVinculo');
-
+  // === Interceptar submit — modal se falta conta bancária ===
   if (form && modalEl && btnConfirmar) {
-    let contasCarregadas = false;
-    let todasContas = [];
-
-    async function carregarTodasContas() {
-      if (contasCarregadas) return todasContas;
-      const urlTodas = window.LANCAMENTOS_CONTAS_TODAS_URL;
-      if (!urlTodas) return [];
-      try {
-        const resp = await fetch(urlTodas, { headers: { Accept: 'application/json' } });
-        if (resp.ok) todasContas = await resp.json();
-        contasCarregadas = true;
-      } catch (e) { console.error(e); }
-      return todasContas;
-    }
-
-    function popularSelect(selectEl, contas) {
-      selectEl.innerHTML = '';
-      const ph = document.createElement('option');
-      ph.value = '';
-      ph.textContent = 'Selecione a conta bancária...';
-      selectEl.appendChild(ph);
-      contas.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = c.titular ? c.descricao + ' — ' + c.titular : c.descricao;
-        selectEl.appendChild(opt);
-      });
-    }
-
     form.addEventListener('submit', async (e) => {
       const temDebito = debitoHidden.value && debitoHidden.value !== '';
       const temCredito = creditoHidden.value && creditoHidden.value !== '';
-
       if (!temDebito && !temCredito) return;
 
       const contaSelecionada = contaBancariaIdHidden.value && contaBancariaIdHidden.value !== '';
       if (contaSelecionada) return;
 
-      // Verificar quais lados faltam conta
       const faltaDebito = temDebito && selectDebito && (!selectDebito.value || selectDebito.style.display === 'none');
       const faltaCredito = temCredito && selectCredito && (!selectCredito.value || selectCredito.style.display === 'none');
-
       if (!faltaDebito && !faltaCredito) return;
 
       e.preventDefault();
 
-      // Carregar todas as contas bancárias
       const contas = await carregarTodasContas();
-
-      // Configurar modal
       const debRow = document.getElementById('modal_vinc_debito_row');
       const credRow = document.getElementById('modal_vinc_credito_row');
-      const debSelect = document.getElementById('modal_vinc_debito_select');
-      const credSelect = document.getElementById('modal_vinc_credito_select');
-      const debPlanoId = document.getElementById('modal_vinc_debito_plano_id');
-      const credPlanoId = document.getElementById('modal_vinc_credito_plano_id');
 
       if (faltaDebito) {
         debRow.style.display = '';
-        document.getElementById('modal_vinc_debito_nome').textContent =
-          document.getElementById('plano_debito_display').value || '—';
-        debPlanoId.value = debitoHidden.value;
-        popularSelect(debSelect, contas);
-      } else {
-        debRow.style.display = 'none';
-      }
+        document.getElementById('modal_vinc_debito_nome').textContent = document.getElementById('plano_debito_display')?.value || '—';
+        document.getElementById('modal_vinc_debito_plano_id').value = debitoHidden.value;
+        popularSelectModal(document.getElementById('modal_vinc_debito_select'), contas);
+      } else { debRow.style.display = 'none'; }
 
       if (faltaCredito) {
         credRow.style.display = '';
-        document.getElementById('modal_vinc_credito_nome').textContent =
-          document.getElementById('plano_credito_display').value || '—';
-        credPlanoId.value = creditoHidden.value;
-        popularSelect(credSelect, contas);
-      } else {
-        credRow.style.display = 'none';
-      }
+        document.getElementById('modal_vinc_credito_nome').textContent = document.getElementById('plano_credito_display')?.value || '—';
+        document.getElementById('modal_vinc_credito_plano_id').value = creditoHidden.value;
+        popularSelectModal(document.getElementById('modal_vinc_credito_select'), contas);
+      } else { credRow.style.display = 'none'; }
 
-      const modal = new bootstrap.Modal(modalEl);
-      modal.show();
+      new bootstrap.Modal(modalEl).show();
     });
 
     btnConfirmar.addEventListener('click', async () => {
@@ -219,16 +210,8 @@ export function initContaBancariaVinculos() {
       const debVisible = debRow.style.display !== 'none';
       const credVisible = credRow.style.display !== 'none';
 
-      if (debVisible && !debSelect.value) {
-        debSelect.classList.add('is-invalid');
-        debSelect.focus();
-        return;
-      }
-      if (credVisible && !credSelect.value) {
-        credSelect.classList.add('is-invalid');
-        credSelect.focus();
-        return;
-      }
+      if (debVisible && !debSelect.value) { debSelect.classList.add('is-invalid'); debSelect.focus(); return; }
+      if (credVisible && !credSelect.value) { credSelect.classList.add('is-invalid'); credSelect.focus(); return; }
       debSelect.classList.remove('is-invalid');
       credSelect.classList.remove('is-invalid');
 
@@ -239,7 +222,6 @@ export function initContaBancariaVinculos() {
       const criarUrl = window.LANCAMENTOS_CRIAR_VINCULO_URL;
 
       try {
-        // Criar vínculos via AJAX
         if (debVisible && debSelect.value && criarUrl) {
           await fetch(criarUrl, {
             method: 'POST',
@@ -255,12 +237,11 @@ export function initContaBancariaVinculos() {
           });
         }
 
-        // Setar conta bancária no form (prioridade: débito > crédito)
-        const contaId = (debVisible && debSelect.value) ? debSelect.value : credSelect.value;
-        contaBancariaIdHidden.value = contaId;
+        contaBancariaIdHidden.value = (debVisible && debSelect.value) ? debSelect.value : credSelect.value;
 
-        // Fechar modal e submeter form
         bootstrap.Modal.getInstance(modalEl).hide();
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = '<i class="fas fa-check"></i> Vincular e Salvar';
         form.submit();
       } catch (error) {
         console.error('Erro ao criar vínculo:', error);
