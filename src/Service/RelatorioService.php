@@ -804,6 +804,7 @@ class RelatorioService
         $conn = $this->em->getConnection();
         $dataStr = $data->format('Y-m-d');
 
+        // 1. lancamentos_financeiros (histórico migrado)
         $sql1 = "SELECT COALESCE(SUM(
                     CASE WHEN tipo_lancamento IN ('receita', 'aluguel')
                          THEN valor_total::numeric
@@ -814,9 +815,9 @@ class RelatorioService
                 WHERE id_conta_bancaria = :contaId
                   AND situacao = 'pago'
                   AND data_vencimento < :data";
-
         $saldo1 = (float) $conn->executeQuery($sql1, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
 
+        // 2. lancamentos CRUD (não-transferência)
         $sql2 = "SELECT COALESCE(SUM(
                     CASE WHEN tipo = 'receber'
                          THEN COALESCE(valor_pago, valor)::numeric
@@ -826,11 +827,33 @@ class RelatorioService
                 FROM lancamentos
                 WHERE id_conta_bancaria = :contaId
                   AND status IN ('pago', 'pago_parcial')
-                  AND data_vencimento < :data";
-
+                  AND data_vencimento < :data
+                  AND (id_plano_conta_debito IS NULL OR id_plano_conta_credito IS NULL)";
         $saldo2 = (float) $conn->executeQuery($sql2, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
 
-        return round($saldo1 + $saldo2, 2);
+        // 3. Transferências — saída (conta do débito = contaBancaria)
+        $sql3 = "SELECT COALESCE(SUM(COALESCE(valor_pago, valor)::numeric), 0)
+                FROM lancamentos
+                WHERE id_conta_bancaria = :contaId
+                  AND id_plano_conta_debito IS NOT NULL
+                  AND id_plano_conta_credito IS NOT NULL
+                  AND status IN ('pago', 'pago_parcial')
+                  AND data_vencimento < :data";
+        $saldoTransfSaida = (float) $conn->executeQuery($sql3, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
+
+        // 4. Transferências — entrada (conta vinculada ao plano crédito)
+        $sql4 = "SELECT COALESCE(SUM(COALESCE(l.valor_pago, l.valor)::numeric), 0)
+                FROM lancamentos l
+                JOIN almasa_vinculos_bancarios v ON v.id_almasa_plano_conta = l.id_plano_conta_credito AND v.ativo = true
+                WHERE v.id_conta_bancaria = :contaId
+                  AND l.id_plano_conta_debito IS NOT NULL
+                  AND l.id_plano_conta_credito IS NOT NULL
+                  AND l.status IN ('pago', 'pago_parcial')
+                  AND l.data_vencimento < :data
+                  AND (l.id_conta_bancaria IS NULL OR l.id_conta_bancaria != :contaId)";
+        $saldoTransfEntrada = (float) $conn->executeQuery($sql4, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
+
+        return round($saldo1 + $saldo2 - $saldoTransfSaida + $saldoTransfEntrada, 2);
     }
 
     /**
