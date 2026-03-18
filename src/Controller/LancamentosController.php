@@ -135,13 +135,43 @@ class LancamentosController extends AbstractController
             }
         }
 
+        // Preservar preloads dos campos unmapped (para não perder dados após erro)
+        $credorPreload = null;
+        $pagadorPreload = null;
+        $planoDebitoPreload = null;
+        $planoCreditoPreload = null;
+
+        if ($form->isSubmitted()) {
+            $credorId = $form->get('pessoaCredorId')->getData();
+            $pagadorId = $form->get('pessoaPagadorId')->getData();
+            $debId = $form->get('planoContaDebito')->getData();
+            $credId = $form->get('planoContaCredito')->getData();
+
+            if ($credorId) {
+                $p = $this->lancamentosService->buscarPessoa((int)$credorId);
+                if ($p) $credorPreload = ['id' => $p->getIdpessoa(), 'nome' => $p->getNome()];
+            }
+            if ($pagadorId) {
+                $p = $this->lancamentosService->buscarPessoa((int)$pagadorId);
+                if ($p) $pagadorPreload = ['id' => $p->getIdpessoa(), 'nome' => $p->getNome()];
+            }
+            if ($debId) {
+                $pc = $this->lancamentosService->buscarPlanoConta((int)$debId);
+                if ($pc) $planoDebitoPreload = ['id' => $pc->getId(), 'codigo' => $pc->getCodigo(), 'descricao' => $pc->getDescricao()];
+            }
+            if ($credId) {
+                $pc = $this->lancamentosService->buscarPlanoConta((int)$credId);
+                if ($pc) $planoCreditoPreload = ['id' => $pc->getId(), 'codigo' => $pc->getCodigo(), 'descricao' => $pc->getDescricao()];
+            }
+        }
+
         return $this->render('lancamentos/new.html.twig', [
             'form' => $form,
             'lancamento' => $lancamento,
-            'credorPreload' => null,
-            'pagadorPreload' => null,
-            'planoDebitoPreload' => null,
-            'planoCreditoPreload' => null,
+            'credorPreload' => $credorPreload,
+            'pagadorPreload' => $pagadorPreload,
+            'planoDebitoPreload' => $planoDebitoPreload,
+            'planoCreditoPreload' => $planoCreditoPreload,
         ]);
     }
 

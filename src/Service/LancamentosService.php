@@ -63,6 +63,16 @@ class LancamentosService
         return $this->lancamentoRepo->find($id);
     }
 
+    public function buscarPessoa(int $id): ?Pessoas
+    {
+        return $this->pessoaRepo->find($id);
+    }
+
+    public function buscarPlanoConta(int $id): ?\App\Entity\AlmasaPlanoContas
+    {
+        return $this->almasaPlanoContaRepo->find($id);
+    }
+
     /**
      * Salva novo lançamento
      *
@@ -582,12 +592,6 @@ class LancamentosService
         // Partidas Dobradas — Plano de Contas Almasa
         if (!empty($dados['id_plano_conta_debito'])) {
             $pcDebito = $this->almasaPlanoContaRepo->find($dados['id_plano_conta_debito']);
-            if ($pcDebito) {
-                $vinculos = $this->vinculoBancarioRepo->findByPlanoContaId($pcDebito->getId());
-                if (empty($vinculos)) {
-                    throw new \Exception('A conta "' . $pcDebito->getCodigo() . ' - ' . $pcDebito->getDescricao() . '" não possui conta bancária vinculada. Cadastre o vínculo primeiro.');
-                }
-            }
             $lancamento->setPlanoContaDebito($pcDebito);
         } else {
             $lancamento->setPlanoContaDebito(null);
@@ -595,12 +599,6 @@ class LancamentosService
 
         if (!empty($dados['id_plano_conta_credito'])) {
             $pcCredito = $this->almasaPlanoContaRepo->find($dados['id_plano_conta_credito']);
-            if ($pcCredito) {
-                $vinculos = $this->vinculoBancarioRepo->findByPlanoContaId($pcCredito->getId());
-                if (empty($vinculos)) {
-                    throw new \Exception('A conta "' . $pcCredito->getCodigo() . ' - ' . $pcCredito->getDescricao() . '" não possui conta bancária vinculada. Cadastre o vínculo primeiro.');
-                }
-            }
             $lancamento->setPlanoContaCredito($pcCredito);
         } else {
             $lancamento->setPlanoContaCredito(null);
