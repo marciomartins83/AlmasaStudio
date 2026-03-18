@@ -813,9 +813,7 @@ class RelatorioService
                 $contas[$contaId]['saidas'] += $movimento['_valor'];
             }
 
-            if (!empty($filtros['mostrar_movimentos'])) {
-                $contas[$contaId]['movimentos'][] = $movimento;
-            }
+            $contas[$contaId]['movimentos'][] = $movimento;
         }
 
         foreach ($contas as &$conta) {
