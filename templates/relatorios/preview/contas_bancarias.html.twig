@@ -29,7 +29,7 @@
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-3">
-                        <div class="text-muted">Saldo Inicial</div>
+                        <div class="text-muted">Saldo Anterior</div>
                         <div class="h5">R$ {{ conta.saldo_inicial|number_format(2, ',', '.') }}</div>
                     </div>
                     <div class="col-md-3">
@@ -41,7 +41,7 @@
                         <div class="h5 text-danger">- R$ {{ conta.saidas|number_format(2, ',', '.') }}</div>
                     </div>
                     <div class="col-md-3">
-                        <div class="text-muted">Saldo Final</div>
+                        <div class="text-muted">Saldo Atual</div>
                         <div class="h5 {% if conta.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
                             R$ {{ conta.saldo_final|number_format(2, ',', '.') }}
                         </div>

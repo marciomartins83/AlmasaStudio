@@ -64,7 +64,7 @@
                     <table style="border: none; width: 100%;">
                         <tr>
                             <td style="border: none; width: 25%; text-align: center;">
-                                <small>Saldo Inicial</small><br>
+                                <small>Saldo Anterior</small><br>
                                 <strong>R$ {{ conta.saldo_inicial|number_format(2, ',', '.') }}</strong>
                             </td>
                             <td style="border: none; width: 25%; text-align: center;">
@@ -76,7 +76,7 @@
                                 <strong class="text-danger">- R$ {{ conta.saidas|number_format(2, ',', '.') }}</strong>
                             </td>
                             <td style="border: none; width: 25%; text-align: center;">
-                                <small>Saldo Final</small><br>
+                                <small>Saldo Atual</small><br>
                                 <strong class="{% if conta.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
                                     R$ {{ conta.saldo_final|number_format(2, ',', '.') }}
                                 </strong>
