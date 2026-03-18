@@ -210,16 +210,34 @@
         <div class="row mt-3">
             <div class="col-md-6" id="cb_vinc_debito_wrapper" style="display:none">
                 <label class="form-label"><span class="badge bg-info me-1">Débito</span> Conta Bancária</label>
-                <select id="cb_vinc_debito_select" class="form-select">
-                    <option value="">Selecione a conta bancária...</option>
-                </select>
+                <div class="pessoa-autocomplete-wrapper position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="cb_vinc_debito_display" class="form-control"
+                               placeholder="Buscar conta bancária..." autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary" id="cb_vinc_debito_clear" style="display:none">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="cb_vinc_debito_results" class="list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:200px; overflow-y:auto;"></div>
+                </div>
+                <input type="hidden" id="cb_vinc_debito_hidden" value="">
                 <div id="cb_vinc_debito_msg" class="text-muted small mt-1" style="display:none"></div>
             </div>
             <div class="col-md-6" id="cb_vinc_credito_wrapper" style="display:none">
                 <label class="form-label"><span class="badge bg-success me-1">Crédito</span> Conta Bancária</label>
-                <select id="cb_vinc_credito_select" class="form-select">
-                    <option value="">Selecione a conta bancária...</option>
-                </select>
+                <div class="pessoa-autocomplete-wrapper position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="cb_vinc_credito_display" class="form-control"
+                               placeholder="Buscar conta bancária..." autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary" id="cb_vinc_credito_clear" style="display:none">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="cb_vinc_credito_results" class="list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:200px; overflow-y:auto;"></div>
+                </div>
+                <input type="hidden" id="cb_vinc_credito_hidden" value="">
                 <div id="cb_vinc_credito_msg" class="text-muted small mt-1" style="display:none"></div>
             </div>
         </div>
