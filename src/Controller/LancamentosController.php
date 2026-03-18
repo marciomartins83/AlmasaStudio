@@ -501,6 +501,56 @@ class LancamentosController extends AbstractController
         return $this->json($rows);
     }
 
+    #[Route('/contas-bancarias-todas', name: 'app_lancamentos_contas_bancarias_todas', methods: ['GET'])]
+    public function contasBancariasTodas(ContasBancariasRepository $repo): JsonResponse
+    {
+        $conn = $repo->createQueryBuilder('c')->getEntityManager()->getConnection();
+        $rows = $conn->fetchAllAssociative(
+            'SELECT id, descricao, titular FROM contas_bancarias WHERE ativo = true ORDER BY descricao ASC'
+        );
+        return $this->json($rows);
+    }
+
+    #[Route('/criar-vinculo-bancario', name: 'app_lancamentos_criar_vinculo', methods: ['POST'])]
+    public function criarVinculoBancario(Request $request, AlmasaVinculoBancarioRepository $vinculoRepo, \App\Repository\AlmasaPlanoContasRepository $planoRepo, ContasBancariasRepository $contaRepo): JsonResponse
+    {
+        $token = $request->headers->get('X-CSRF-Token');
+        if (!$this->isCsrfTokenValid('ajax_global', $token)) {
+            return $this->json(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $dados = json_decode($request->getContent(), true) ?? [];
+        $planoId = (int)($dados['plano_id'] ?? 0);
+        $contaId = (int)($dados['conta_id'] ?? 0);
+
+        if (!$planoId || !$contaId) {
+            return $this->json(['success' => false, 'message' => 'Plano e Conta obrigatórios'], 400);
+        }
+
+        $plano = $planoRepo->find($planoId);
+        $conta = $contaRepo->find($contaId);
+        if (!$plano || !$conta) {
+            return $this->json(['success' => false, 'message' => 'Plano ou Conta não encontrados'], 404);
+        }
+
+        // Verificar se já existe
+        $existente = $vinculoRepo->findOneBy(['almasaPlanoConta' => $plano, 'contaBancaria' => $conta]);
+        if ($existente) {
+            return $this->json(['success' => true, 'message' => 'Vínculo já existe', 'id' => $existente->getId()]);
+        }
+
+        $vinculo = new \App\Entity\AlmasaVinculoBancario();
+        $vinculo->setAlmasaPlanoConta($plano);
+        $vinculo->setContaBancaria($conta);
+        $vinculo->setPadrao(true);
+
+        $em = $vinculoRepo->createQueryBuilder('v')->getEntityManager();
+        $em->persist($vinculo);
+        $em->flush();
+
+        return $this->json(['success' => true, 'message' => 'Vínculo criado', 'id' => $vinculo->getId()]);
+    }
+
     #[Route('/contas-bancarias-por-plano/{planoId}', name: 'app_lancamentos_contas_bancarias_por_plano', methods: ['GET'])]
     public function contasBancariasPorPlano(int $planoId, AlmasaVinculoBancarioRepository $repo): JsonResponse
     {
