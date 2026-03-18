@@ -1,4 +1,12 @@
-{# Preview Contas Bancarias #}
+{# Preview Contas Bancárias #}
+{% if filtros is defined and filtros.data_inicio is defined %}
+<div class="alert alert-light border mb-3 py-2">
+    <i class="fas fa-calendar"></i>
+    <strong>Período:</strong>
+    {{ filtros.data_inicio|date('d/m/Y') }} a {{ filtros.data_fim|date('d/m/Y') }}
+</div>
+{% endif %}
+
 {% if dados is iterable and dados|length > 0 %}
     {% set totalEntradas = 0 %}
     {% set totalSaidas = 0 %}
