@@ -123,13 +123,13 @@
                                                class="btn btn-info btn-sm">
                                                 <i class="fas fa-eye"></i> Ver
                                             </a>
-                                            <a href="{{ path('app_almasa_plano_contas_edit', {'id': conta.id}) }}"
+                                            <a href="{{ path('app_almasa_plano_contas_edit', {'id': conta.id, 'page': pagination.currentPage}) }}"
                                                class="btn btn-warning btn-sm">
                                                 <i class="fas fa-edit"></i> Editar
                                             </a>
                                             {% if conta.filhos is empty %}
                                             <form method="post"
-                                                  action="{{ path('app_almasa_plano_contas_delete', {'id': conta.id}) }}"
+                                                  action="{{ path('app_almasa_plano_contas_delete', {'id': conta.id, 'page': pagination.currentPage}) }}"
                                                   style="display:inline-block"
                                                   data-confirm-delete="Tem certeza que deseja excluir esta conta?">
                                                 <input type="hidden" name="_token"

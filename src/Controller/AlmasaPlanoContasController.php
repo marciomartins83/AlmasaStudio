@@ -212,6 +212,7 @@ class AlmasaPlanoContasController extends AbstractController
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, AlmasaPlanoContas $conta): Response
     {
+        $page = $request->query->getInt('page', 1);
         $form = $this->createForm(AlmasaPlanoContasType::class, $conta);
         $form->handleRequest($request);
 
@@ -219,7 +220,7 @@ class AlmasaPlanoContasController extends AbstractController
             try {
                 $this->service->atualizar($conta);
                 $this->addFlash('success', 'Conta atualizada com sucesso!');
-                return $this->redirectToRoute('app_almasa_plano_contas_index');
+                return $this->redirectToRoute('app_almasa_plano_contas_index', ['page' => $page]);
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar conta: ' . $e->getMessage());
             }
@@ -228,12 +229,15 @@ class AlmasaPlanoContasController extends AbstractController
         return $this->render('almasa_plano_contas/edit.html.twig', [
             'conta' => $conta,
             'form' => $form,
+            'page' => $page,
         ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
     public function delete(Request $request, AlmasaPlanoContas $conta): Response
     {
+        $page = $request->query->getInt('page', 1);
+
         if ($this->isCsrfTokenValid('delete' . $conta->getId(), $request->request->get('_token'))) {
             try {
                 $this->service->deletar($conta);
@@ -243,6 +247,6 @@ class AlmasaPlanoContasController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_almasa_plano_contas_index');
+        return $this->redirectToRoute('app_almasa_plano_contas_index', ['page' => $page]);
     }
 }
