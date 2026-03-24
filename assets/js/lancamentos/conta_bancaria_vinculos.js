@@ -166,7 +166,11 @@ export function initContaBancariaVinculos() {
     const temCredito = creditoHidden.value && creditoHidden.value !== '';
     const temConta = contaBancariaIdHidden.value && contaBancariaIdHidden.value !== '';
 
-    if ((temDebito || temCredito) && !temConta) {
+    // Contas a pagar não exigem banco na criação — só na baixa (pagamento)
+    const tipoSelect = document.getElementById('lancamentos_tipo');
+    const tipoPagar = tipoSelect && tipoSelect.value === 'pagar';
+
+    if ((temDebito || temCredito) && !temConta && !tipoPagar) {
       e.preventDefault();
       document.getElementById('modal_nome_debito').textContent = debitoDisplay?.value || '—';
       document.getElementById('modal_nome_credito').textContent = creditoDisplay?.value || '—';
