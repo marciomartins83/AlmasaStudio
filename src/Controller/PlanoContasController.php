@@ -13,10 +13,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/plano-contas', name: 'app_plano_contas_')]
 class PlanoContasController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private PlanoContasService $planoContasService;
 
     public function __construct(PlanoContasService $planoContasService)
@@ -96,7 +98,7 @@ class PlanoContasController extends AbstractController
             try {
                 $this->planoContasService->atualizar($planoContas);
                 $this->addFlash('success', 'Tipo de Lançamentos atualizado com sucesso!');
-                return $this->redirectToRoute('app_plano_contas_index');
+                return $this->redirectToIndex($request, 'app_plano_contas_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar Tipo de Lançamentos: ' . $e->getMessage());
             }
@@ -120,6 +122,6 @@ class PlanoContasController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_plano_contas_index');
+        return $this->redirectToIndex($request, 'app_plano_contas_index');
     }
 }

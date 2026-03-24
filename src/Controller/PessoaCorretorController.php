@@ -14,10 +14,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/pessoa-corretor', name: 'app_pessoa_corretor_')]
 class PessoaCorretorController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private PessoaCorretorService $pessoaCorretorService;
 
     public function __construct(PessoaCorretorService $pessoaCorretorService)
@@ -88,7 +90,7 @@ class PessoaCorretorController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->pessoaCorretorService->atualizar();
             $this->addFlash('success', 'Pessoa Corretor atualizada com sucesso!');
-            return $this->redirectToRoute('app_pessoa_corretor_index');
+            return $this->redirectToIndex($request, 'app_pessoa_corretor_index');
         }
 
         return $this->render('pessoa_corretor/edit.html.twig', [
@@ -105,6 +107,6 @@ class PessoaCorretorController extends AbstractController
             $this->addFlash('success', 'Pessoa Corretor excluída com sucesso!');
         }
 
-        return $this->redirectToRoute('app_pessoa_corretor_index');
+        return $this->redirectToIndex($request, 'app_pessoa_corretor_index');
     }
 } 

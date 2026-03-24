@@ -13,10 +13,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/estado-civil', name: 'app_estado_civil_')]
 class EstadoCivilController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EstadoCivilService $estadoCivilService;
 
     public function __construct(EstadoCivilService $estadoCivilService)
@@ -84,7 +86,7 @@ class EstadoCivilController extends AbstractController
             try {
                 $this->estadoCivilService->atualizar();
                 $this->addFlash('success', 'Estado Civil atualizado com sucesso!');
-                return $this->redirectToRoute('app_estado_civil_index');
+                return $this->redirectToIndex($request, 'app_estado_civil_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar Estado Civil: ' . $e->getMessage());
             }
@@ -108,6 +110,6 @@ class EstadoCivilController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_estado_civil_index');
+        return $this->redirectToIndex($request, 'app_estado_civil_index');
     }
 }

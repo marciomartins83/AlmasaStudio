@@ -11,10 +11,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-email', name: 'app_tipo_email_')]
 class TipoEmailController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EntityManagerInterface $entityManager;
     private GenericTipoService $tipoService;
 
@@ -85,7 +87,7 @@ class TipoEmailController extends AbstractController
             try {
                 $this->tipoService->atualizar($tipoEmail);
                 $this->addFlash('success', 'Tipo de email atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_email_index');
+                return $this->redirectToIndex($request, 'app_tipo_email_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro: ' . $e->getMessage());
             }
@@ -105,6 +107,6 @@ class TipoEmailController extends AbstractController
             $this->addFlash('success', 'Tipo de email excluído com sucesso!');
         }
 
-        return $this->redirectToRoute('app_tipo_email_index');
+        return $this->redirectToIndex($request, 'app_tipo_email_index');
     }
 }

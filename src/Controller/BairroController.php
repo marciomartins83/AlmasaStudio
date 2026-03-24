@@ -14,10 +14,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/bairro', name: 'app_bairro_')]
 class BairroController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private BairroService $bairroService;
 
     public function __construct(BairroService $bairroService)
@@ -98,7 +100,7 @@ class BairroController extends AbstractController
             try {
                 $this->bairroService->atualizar();
                 $this->addFlash('success', 'Bairro atualizado com sucesso!');
-                return $this->redirectToRoute('app_bairro_index');
+                return $this->redirectToIndex($request, 'app_bairro_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar bairro: ' . $e->getMessage());
             }
@@ -122,6 +124,6 @@ class BairroController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_bairro_index');
+        return $this->redirectToIndex($request, 'app_bairro_index');
     }
 }

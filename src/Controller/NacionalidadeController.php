@@ -14,10 +14,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/nacionalidade', name: 'app_nacionalidade_')]
 class NacionalidadeController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private NacionalidadeService $nacionalidadeService;
 
     public function __construct(NacionalidadeService $nacionalidadeService)
@@ -85,7 +87,7 @@ class NacionalidadeController extends AbstractController
             try {
                 $this->nacionalidadeService->atualizar();
                 $this->addFlash('success', 'Nacionalidade atualizada com sucesso!');
-                return $this->redirectToRoute('app_nacionalidade_index');
+                return $this->redirectToIndex($request, 'app_nacionalidade_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar Nacionalidade: ' . $e->getMessage());
             }
@@ -109,7 +111,7 @@ class NacionalidadeController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_nacionalidade_index');
+        return $this->redirectToIndex($request, 'app_nacionalidade_index');
     }
 
     /**

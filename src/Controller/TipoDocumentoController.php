@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-documento', name: 'app_tipo_documento_')]
 class TipoDocumentoController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EntityManagerInterface $entityManager;
     private GenericTipoService $tipoService;
 
@@ -86,7 +88,7 @@ class TipoDocumentoController extends AbstractController
             try {
                 $this->tipoService->atualizar($tipoDocumento);
                 $this->addFlash('success', 'Tipo de documento atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_documento_index');
+                return $this->redirectToIndex($request, 'app_tipo_documento_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro: ' . $e->getMessage());
             }
@@ -106,6 +108,6 @@ class TipoDocumentoController extends AbstractController
             $this->addFlash('success', 'Tipo de documento excluído com sucesso!');
         }
 
-        return $this->redirectToRoute('app_tipo_documento_index');
+        return $this->redirectToIndex($request, 'app_tipo_documento_index');
     }
 }

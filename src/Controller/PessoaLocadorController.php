@@ -14,10 +14,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/pessoa-locador', name: 'app_pessoa_locador_')]
 class PessoaLocadorController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private PessoaLocadorService $pessoaLocadorService;
 
     public function __construct(PessoaLocadorService $pessoaLocadorService)
@@ -88,7 +90,7 @@ class PessoaLocadorController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->pessoaLocadorService->atualizar();
             $this->addFlash('success', 'Pessoa Locador atualizada com sucesso!');
-            return $this->redirectToRoute('app_pessoa_locador_index');
+            return $this->redirectToIndex($request, 'app_pessoa_locador_index');
         }
 
         return $this->render('pessoa_locador/edit.html.twig', [
@@ -105,6 +107,6 @@ class PessoaLocadorController extends AbstractController
             $this->addFlash('success', 'Pessoa Locador excluída com sucesso!');
         }
 
-        return $this->redirectToRoute('app_pessoa_locador_index');
+        return $this->redirectToIndex($request, 'app_pessoa_locador_index');
     }
 } 

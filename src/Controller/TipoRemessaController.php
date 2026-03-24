@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-remessa', name: 'app_tipo_remessa_')]
 class TipoRemessaController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private GenericTipoService $genericTipoService;
 
     public function __construct(GenericTipoService $genericTipoService)
@@ -83,7 +85,7 @@ class TipoRemessaController extends AbstractController
             try {
                 $this->genericTipoService->atualizar();
                 $this->addFlash('success', 'Tipo de remessa atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_remessa_index');
+                return $this->redirectToIndex($request, 'app_tipo_remessa_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar tipo de remessa: ' . $e->getMessage());
             }
@@ -107,6 +109,6 @@ class TipoRemessaController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_tipo_remessa_index');
+        return $this->redirectToIndex($request, 'app_tipo_remessa_index');
     }
 }

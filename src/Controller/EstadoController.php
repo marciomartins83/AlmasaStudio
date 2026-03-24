@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/estado', name: 'app_estado_')]
 class EstadoController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EstadoService $estadoService;
 
     public function __construct(EstadoService $estadoService)
@@ -85,7 +87,7 @@ class EstadoController extends AbstractController
             try {
                 $this->estadoService->atualizar();
                 $this->addFlash('success', 'Estado atualizado com sucesso!');
-                return $this->redirectToRoute('app_estado_index');
+                return $this->redirectToIndex($request, 'app_estado_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar estado: ' . $e->getMessage());
             }
@@ -109,6 +111,6 @@ class EstadoController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_estado_index');
+        return $this->redirectToIndex($request, 'app_estado_index');
     }
 } 

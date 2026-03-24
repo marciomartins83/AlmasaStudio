@@ -29,9 +29,12 @@ class PaginationService
         $page = max(1, $request->query->getInt('page', 1));
         $search = trim($request->query->get('search', ''));
 
-        // perPage: persiste na sessão por rota para sobreviver a redirects (ex: após exclusão)
+        // Salva a URL completa do index na session para redirect após edit/delete
         $session = $request->getSession();
         $routeName = $request->attributes->get('_route', '_default');
+        $session->set('_pagination_return_url_' . $routeName, $request->getUri());
+
+        // perPage: persiste na sessão por rota para sobreviver a redirects (ex: após exclusão)
         $sessionKey = '_pagination_per_page_' . $routeName;
         $queryPerPage = $request->query->getInt('perPage', 0);
         if ($queryPerPage > 0) {

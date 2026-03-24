@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-atendimento', name: 'app_tipo_atendimento_')]
 class TipoAtendimentoController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EntityManagerInterface $entityManager;
     private GenericTipoService $tipoService;
 
@@ -86,7 +88,7 @@ class TipoAtendimentoController extends AbstractController
             try {
                 $this->tipoService->atualizar($tipoAtendimento);
                 $this->addFlash('success', 'Tipo de atendimento atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_atendimento_index');
+                return $this->redirectToIndex($request, 'app_tipo_atendimento_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro: ' . $e->getMessage());
             }
@@ -106,6 +108,6 @@ class TipoAtendimentoController extends AbstractController
             $this->addFlash('success', 'Tipo de atendimento excluído com sucesso!');
         }
 
-        return $this->redirectToRoute('app_tipo_atendimento_index');
+        return $this->redirectToIndex($request, 'app_tipo_atendimento_index');
     }
 }

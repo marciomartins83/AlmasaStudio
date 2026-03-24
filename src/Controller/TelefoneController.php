@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/telefone')]
 class TelefoneController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private TelefoneService $telefoneService;
 
     public function __construct(TelefoneService $telefoneService)
@@ -83,7 +85,7 @@ class TelefoneController extends AbstractController
             try {
                 $this->telefoneService->atualizar();
                 $this->addFlash('success', 'Telefone atualizado com sucesso!');
-                return $this->redirectToRoute('app_telefone_index');
+                return $this->redirectToIndex($request, 'app_telefone_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar telefone: ' . $e->getMessage());
             }
@@ -106,6 +108,6 @@ class TelefoneController extends AbstractController
                 $this->addFlash('error', 'Erro ao excluir telefone: ' . $e->getMessage());
             }
         }
-        return $this->redirectToRoute('app_telefone_index');
+        return $this->redirectToIndex($request, 'app_telefone_index');
     }
 } 

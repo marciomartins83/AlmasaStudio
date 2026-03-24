@@ -13,10 +13,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/email')]
 class EmailController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EmailService $emailService;
 
     public function __construct(EmailService $emailService)
@@ -84,7 +86,7 @@ class EmailController extends AbstractController
             try {
                 $this->emailService->atualizar();
                 $this->addFlash('success', 'Email atualizado com sucesso!');
-                return $this->redirectToRoute('app_email_index');
+                return $this->redirectToIndex($request, 'app_email_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar email: ' . $e->getMessage());
             }
@@ -108,6 +110,6 @@ class EmailController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_email_index');
+        return $this->redirectToIndex($request, 'app_email_index');
     }
 }

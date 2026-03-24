@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/banco', name: 'app_banco_')]
 class BancoController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private BancoService $bancoService;
 
     public function __construct(BancoService $bancoService)
@@ -85,7 +87,7 @@ class BancoController extends AbstractController
             try {
                 $this->bancoService->atualizar();
                 $this->addFlash('success', 'Banco atualizado com sucesso!');
-                return $this->redirectToRoute('app_banco_index');
+                return $this->redirectToIndex($request, 'app_banco_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar banco: ' . $e->getMessage());
             }
@@ -109,6 +111,6 @@ class BancoController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_banco_index');
+        return $this->redirectToIndex($request, 'app_banco_index');
     }
 }

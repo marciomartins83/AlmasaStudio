@@ -14,10 +14,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/naturalidade', name: 'app_naturalidade_')]
 class NaturalidadeController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private NaturalidadeService $naturalidadeService;
 
     public function __construct(NaturalidadeService $naturalidadeService)
@@ -85,7 +87,7 @@ class NaturalidadeController extends AbstractController
             try {
                 $this->naturalidadeService->atualizar();
                 $this->addFlash('success', 'Naturalidade atualizada com sucesso!');
-                return $this->redirectToRoute('app_naturalidade_index');
+                return $this->redirectToIndex($request, 'app_naturalidade_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar Naturalidade: ' . $e->getMessage());
             }
@@ -109,7 +111,7 @@ class NaturalidadeController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_naturalidade_index');
+        return $this->redirectToIndex($request, 'app_naturalidade_index');
     }
 
     /**

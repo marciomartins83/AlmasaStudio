@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use App\Form\LogradouroType;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 /**
  * LogradouroController - Thin Controller
@@ -25,6 +26,7 @@ use App\Form\LogradouroType;
  */
 class LogradouroController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private LogradouroService $logradouroService;
 
     public function __construct(LogradouroService $logradouroService)
@@ -93,7 +95,7 @@ class LogradouroController extends AbstractController
             try {
                 $this->logradouroService->atualizarLogradouro($logradouro);
                 $this->addFlash('success', 'Logradouro atualizado com sucesso!');
-                return $this->redirectToRoute('app_logradouro_index');
+                return $this->redirectToIndex($request, 'app_logradouro_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar logradouro: '.$e->getMessage());
             }
@@ -116,7 +118,7 @@ class LogradouroController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_logradouro_index');
+        return $this->redirectToIndex($request, 'app_logradouro_index');
     }
 
     #[Route('/cep-lookup/{cep}', name: 'app_cep_lookup')]

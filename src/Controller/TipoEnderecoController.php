@@ -12,9 +12,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 class TipoEnderecoController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EntityManagerInterface $entityManager;
     private GenericTipoService $tipoService;
 
@@ -78,7 +80,7 @@ class TipoEnderecoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->tipoService->atualizar($tipoEndereco);
-            return $this->redirectToRoute('app_tipo_endereco_index');
+            return $this->redirectToIndex($request, 'app_tipo_endereco_index');
         }
 
         return $this->render('tipo_endereco/edit.html.twig', [
@@ -94,6 +96,6 @@ class TipoEnderecoController extends AbstractController
             $this->tipoService->deletar($tipoEndereco);
         }
 
-        return $this->redirectToRoute('app_tipo_endereco_index');
+        return $this->redirectToIndex($request, 'app_tipo_endereco_index');
     }
 }

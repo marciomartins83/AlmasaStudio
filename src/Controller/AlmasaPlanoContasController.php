@@ -16,10 +16,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/almasa-plano-contas', name: 'app_almasa_plano_contas_')]
 class AlmasaPlanoContasController extends AbstractController
 {
+    use PaginationRedirectTrait;
     public function __construct(
         private AlmasaPlanoContasService $service,
         private AlmasaPlanoContasRepository $repository,
@@ -212,7 +214,6 @@ class AlmasaPlanoContasController extends AbstractController
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, AlmasaPlanoContas $conta): Response
     {
-        $page = $request->query->getInt('page', 1);
         $form = $this->createForm(AlmasaPlanoContasType::class, $conta);
         $form->handleRequest($request);
 
@@ -220,7 +221,7 @@ class AlmasaPlanoContasController extends AbstractController
             try {
                 $this->service->atualizar($conta);
                 $this->addFlash('success', 'Conta atualizada com sucesso!');
-                return $this->redirectToRoute('app_almasa_plano_contas_index', ['page' => $page]);
+                return $this->redirectToIndex($request, 'app_almasa_plano_contas_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar conta: ' . $e->getMessage());
             }
@@ -229,15 +230,12 @@ class AlmasaPlanoContasController extends AbstractController
         return $this->render('almasa_plano_contas/edit.html.twig', [
             'conta' => $conta,
             'form' => $form,
-            'page' => $page,
         ]);
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
     public function delete(Request $request, AlmasaPlanoContas $conta): Response
     {
-        $page = $request->query->getInt('page', 1);
-
         if ($this->isCsrfTokenValid('delete' . $conta->getId(), $request->request->get('_token'))) {
             try {
                 $this->service->deletar($conta);
@@ -247,6 +245,6 @@ class AlmasaPlanoContasController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_almasa_plano_contas_index', ['page' => $page]);
+        return $this->redirectToIndex($request, 'app_almasa_plano_contas_index');
     }
 }

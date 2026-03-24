@@ -13,10 +13,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/agencia')]
 class AgenciaController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private AgenciaService $agenciaService;
 
     public function __construct(AgenciaService $agenciaService)
@@ -88,7 +90,7 @@ class AgenciaController extends AbstractController
             try {
                 $this->agenciaService->atualizar();
                 $this->addFlash('success', 'Agência atualizada com sucesso!');
-                return $this->redirectToRoute('app_agencia_index');
+                return $this->redirectToIndex($request, 'app_agencia_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar agência: ' . $e->getMessage());
             }
@@ -112,6 +114,6 @@ class AgenciaController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_agencia_index');
+        return $this->redirectToIndex($request, 'app_agencia_index');
     }
 } 

@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-telefone', name: 'app_tipo_telefone_')]
 class TipoTelefoneController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private GenericTipoService $genericTipoService;
 
     public function __construct(GenericTipoService $genericTipoService)
@@ -83,7 +85,7 @@ class TipoTelefoneController extends AbstractController
             try {
                 $this->genericTipoService->atualizar();
                 $this->addFlash('success', 'Tipo de telefone atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_telefone_index');
+                return $this->redirectToIndex($request, 'app_tipo_telefone_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar tipo de telefone: ' . $e->getMessage());
             }
@@ -107,6 +109,6 @@ class TipoTelefoneController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_tipo_telefone_index');
+        return $this->redirectToIndex($request, 'app_tipo_telefone_index');
     }
 }

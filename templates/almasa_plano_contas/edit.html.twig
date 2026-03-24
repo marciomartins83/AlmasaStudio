@@ -7,14 +7,14 @@
     {% include '_partials/breadcrumb.html.twig' with {
         'items': [
             {'label': 'Financeiro', 'url': '#'},
-            {'label': 'Plano de Contas Almasa', 'url': path('app_almasa_plano_contas_index', {'page': page|default(1)})}
+            {'label': 'Plano de Contas Almasa', 'url': path('app_almasa_plano_contas_index')}
         ],
         'current': 'Editar: ' ~ conta.codigo
     } %}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1><i class="fas fa-edit"></i> Editar: {{ conta.codigo }} — {{ conta.descricao }}</h1>
-        <a href="{{ path('app_almasa_plano_contas_index', {'page': page|default(1)}) }}" class="btn btn-secondary">
+        <a href="{{ path('app_almasa_plano_contas_index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Voltar
         </a>
     </div>

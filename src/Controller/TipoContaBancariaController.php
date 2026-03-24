@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-conta-bancaria', name: 'app_tipo_conta_bancaria_')]
 class TipoContaBancariaController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EntityManagerInterface $entityManager;
     private GenericTipoService $tipoService;
 
@@ -86,7 +88,7 @@ class TipoContaBancariaController extends AbstractController
             try {
                 $this->tipoService->atualizar();
                 $this->addFlash('success', 'Tipo de conta bancária atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_conta_bancaria_index');
+                return $this->redirectToIndex($request, 'app_tipo_conta_bancaria_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro: ' . $e->getMessage());
             }
@@ -106,6 +108,6 @@ class TipoContaBancariaController extends AbstractController
             $this->addFlash('success', 'Tipo de conta bancária excluído com sucesso!');
         }
 
-        return $this->redirectToRoute('app_tipo_conta_bancaria_index');
+        return $this->redirectToIndex($request, 'app_tipo_conta_bancaria_index');
     }
 }

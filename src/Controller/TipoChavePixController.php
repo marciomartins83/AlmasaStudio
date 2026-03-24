@@ -12,10 +12,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/tipo-chave-pix', name: 'app_tipo_chave_pix_')]
 class TipoChavePixController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private EntityManagerInterface $entityManager;
     private GenericTipoService $tipoService;
 
@@ -86,7 +88,7 @@ class TipoChavePixController extends AbstractController
             try {
                 $this->tipoService->atualizar();
                 $this->addFlash('success', 'Tipo de chave PIX atualizado com sucesso!');
-                return $this->redirectToRoute('app_tipo_chave_pix_index');
+                return $this->redirectToIndex($request, 'app_tipo_chave_pix_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro: ' . $e->getMessage());
             }
@@ -106,6 +108,6 @@ class TipoChavePixController extends AbstractController
             $this->addFlash('success', 'Tipo de chave PIX excluído com sucesso!');
         }
 
-        return $this->redirectToRoute('app_tipo_chave_pix_index');
+        return $this->redirectToIndex($request, 'app_tipo_chave_pix_index');
     }
 }

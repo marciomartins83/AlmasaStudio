@@ -14,10 +14,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/cidade', name: 'app_cidade_')]
 class CidadeController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private CidadeService $cidadeService;
 
     public function __construct(CidadeService $cidadeService)
@@ -91,7 +93,7 @@ class CidadeController extends AbstractController
             try {
                 $this->cidadeService->atualizar();
                 $this->addFlash('success', 'Cidade atualizada com sucesso!');
-                return $this->redirectToRoute('app_cidade_index');
+                return $this->redirectToIndex($request, 'app_cidade_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar cidade: ' . $e->getMessage());
             }
@@ -115,6 +117,6 @@ class CidadeController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_cidade_index');
+        return $this->redirectToIndex($request, 'app_cidade_index');
     }
 }
