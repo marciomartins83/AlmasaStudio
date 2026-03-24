@@ -324,6 +324,7 @@ class PessoaController extends AbstractController
                 'nomeMae' => $pessoa->getNomeMae(),
                 'renda' => $pessoa->getRenda(),
                 'observacoes' => $pessoa->getObservacoes(),
+                'cod' => $pessoa->getCod(),
                 'telefones' => $telefones,
                 'enderecos' => $enderecos,
                 'emails' => $emails,

@@ -421,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setFormValue(window.FORM_IDS.nomeMae, pessoa.nomeMae || '');
         window.setFormValue(window.FORM_IDS.renda, pessoa.renda || '');
         window.setFormValue(window.FORM_IDS.observacoes, pessoa.observacoes || '');
+        window.setFormValue(window.FORM_IDS.cod, pessoa.cod || '');
 
         window.setSelectValue(window.FORM_IDS.estadoCivil, pessoa.estadoCivil || '');
         window.setSelectValue(window.FORM_IDS.nacionalidade, pessoa.nacionalidade || '');
