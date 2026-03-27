@@ -253,6 +253,22 @@ function validarFormulario() {
         return false;
     }
 
+    // Validar campos autocomplete obrigatórios
+    const imovelId = document.getElementById('imovel_id');
+    const locatarioId = document.getElementById('locatario_id');
+    if (imovelId && !imovelId.value) {
+        alert('Por favor, selecione um imóvel');
+        const imovelDisplay = document.getElementById('imovel_id_display');
+        if (imovelDisplay) imovelDisplay.focus();
+        return false;
+    }
+    if (locatarioId && !locatarioId.value) {
+        alert('Por favor, selecione um locatário');
+        const locatarioDisplay = document.getElementById('locatario_id_display');
+        if (locatarioDisplay) locatarioDisplay.focus();
+        return false;
+    }
+
     // Validar datas
     const dataInicio = form.querySelector('[name="data_inicio"]').value;
     const dataFim = form.querySelector('[name="data_fim"]').value;

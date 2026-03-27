@@ -63,23 +63,30 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_plano_conta" class="form-label">Tipo de Lançamento</label>
-                            <select class="form-select" id="id_plano_conta" name="id_plano_conta">
-                                <option value="">Todos</option>
-                                {% for pc in plano_contas %}
-                                    <option value="{{ pc.id }}">{{ pc.codigo }} - {{ pc.descricao }}</option>
-                                {% endfor %}
-                            </select>
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'id_plano_conta',
+                                name: 'id_plano_conta',
+                                label: 'Tipo de Lançamento',
+                                url: path('app_autocomplete_plano_contas'),
+                                value: '',
+                                display: '',
+                                placeholder: 'Todos — digite para buscar...',
+                                icon: 'fa-list',
+                                min: 1
+                            } %}
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_pessoa_pagador" class="form-label">Pagador</label>
-                            <select class="form-select" id="id_pessoa_pagador" name="id_pessoa_pagador">
-                                <option value="">Todos</option>
-                                {% for pag in pagadores %}
-                                    <option value="{{ pag.idpessoa }}">{{ pag.nome }}</option>
-                                {% endfor %}
-                            </select>
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'id_pessoa_pagador',
+                                name: 'id_pessoa_pagador',
+                                label: 'Pagador',
+                                url: path('app_autocomplete_pessoas'),
+                                value: '',
+                                display: '',
+                                placeholder: 'Todos — digite para buscar...',
+                                icon: 'fa-user'
+                            } %}
                         </div>
 
                         {% include '_partials/imovel_autocomplete_field.html.twig' with {
@@ -141,6 +148,7 @@
     };
     window.RELATORIO_TIPO = 'receitas';
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('relatorios') }}
 {{ encore_entry_script_tags('pessoa_autocomplete') }}
 {% endblock %}

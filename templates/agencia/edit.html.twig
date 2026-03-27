@@ -48,8 +48,15 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    {{ form_label(form.banco, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.banco, {'attr': {'class': 'form-select'}}) }}
+                                    <label class="form-label">Banco</label>
+                                    {{ form_widget(form.banco) }}
+                                    <div class="autocomplete-wrapper" data-url="{{ path('app_autocomplete_bancos') }}" data-hidden="#{{ form.banco.vars.id }}" data-min="1"{% if preloads.banco is defined and preloads.banco %} data-preload-label="{{ preloads.banco }}"{% endif %}>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            <input type="text" class="form-control autocomplete-display" placeholder="Digite para buscar banco...">
+                                        </div>
+                                        <div class="autocomplete-results list-group" style="display:none; position:absolute; z-index:1050; width:100%;"></div>
+                                    </div>
                                     {{ form_errors(form.banco) }}
                                 </div>
                             </div>
@@ -81,4 +88,5 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
+{% endblock %}

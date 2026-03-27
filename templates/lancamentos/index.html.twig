@@ -253,13 +253,17 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Conta Bancária <span class="text-danger">*</span></label>
-                    <select id="baixa_conta_bancaria" class="form-select" required>
-                        <option value="">Selecione a conta...</option>
-                        {% for conta in contasBancarias %}
-                            <option value="{{ conta.id }}">{{ conta.descricao ?: conta.codigo }}</option>
-                        {% endfor %}
-                    </select>
+                    {% include '_partials/autocomplete_field.html.twig' with {
+                        id: 'baixa_conta_bancaria',
+                        name: 'baixa_conta_bancaria',
+                        label: 'Conta Bancária',
+                        url: path('app_autocomplete_contas_bancarias'),
+                        value: '',
+                        display: '',
+                        required: true,
+                        placeholder: 'Digite para buscar conta...',
+                        icon: 'fa-university'
+                    } %}
                     <div class="form-text text-danger" id="baixa_conta_erro" style="display:none;">
                         Informe a conta bancária de origem/destino.
                     </div>
@@ -312,5 +316,6 @@
         excluir: '{{ path("app_lancamentos_delete", {id: "__ID__"}) }}'
     };
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('lancamentos') }}
 {% endblock %}

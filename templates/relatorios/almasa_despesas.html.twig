@@ -54,13 +54,17 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_plano_conta" class="form-label">Plano de Contas</label>
-                            <select class="form-select" id="id_plano_conta" name="id_plano_conta">
-                                <option value="">Todos</option>
-                                {% for pc in plano_contas %}
-                                    <option value="{{ pc.id }}">{{ pc.codigo }} - {{ pc.descricao }}</option>
-                                {% endfor %}
-                            </select>
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'id_plano_conta',
+                                name: 'id_plano_conta',
+                                label: 'Plano de Contas',
+                                url: path('app_autocomplete_almasa_plano_contas'),
+                                value: '',
+                                display: '',
+                                placeholder: 'Todos — digite para buscar...',
+                                icon: 'fa-list',
+                                min: 1
+                            } %}
                         </div>
 
                         <div class="mb-3">
@@ -116,5 +120,6 @@
     };
     window.RELATORIO_TIPO = 'almasa_despesas';
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('relatorios') }}
 {% endblock %}

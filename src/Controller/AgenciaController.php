@@ -5,10 +5,12 @@ namespace App\Controller;
 use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\Agencias;
+use App\Entity\Bancos;
 use App\Form\AgenciaType;
 use App\Repository\AgenciaRepository;
 use App\Service\AgenciaService;
 use App\Service\PaginationService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,10 +22,12 @@ class AgenciaController extends AbstractController
 {
     use PaginationRedirectTrait;
     private AgenciaService $agenciaService;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(AgenciaService $agenciaService)
+    public function __construct(AgenciaService $agenciaService, EntityManagerInterface $entityManager)
     {
         $this->agenciaService = $agenciaService;
+        $this->entityManager = $entityManager;
     }
     #[Route('/', name: 'app_agencia_index', methods: ['GET'])]
     public function index(AgenciaRepository $agenciaRepository, PaginationService $paginator, Request $request): Response
@@ -58,6 +62,11 @@ class AgenciaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $bancoId = $form->get('banco')->getData();
+                if ($bancoId) {
+                    $banco = $this->entityManager->getReference(Bancos::class, (int) $bancoId);
+                    $agencia->setBanco($banco);
+                }
                 $this->agenciaService->criar($agencia);
                 $this->addFlash('success', 'Agência criada com sucesso!');
                 return $this->redirectToRoute('app_agencia_index');
@@ -66,9 +75,21 @@ class AgenciaController extends AbstractController
             }
         }
 
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $bancoId = $form->get('banco')->getData();
+            if ($bancoId) {
+                $banco = $this->entityManager->find(Bancos::class, (int) $bancoId);
+                if ($banco) {
+                    $preloads['banco'] = $banco->getNome();
+                }
+            }
+        }
+
         return $this->render('agencia/new.html.twig', [
             'agencia' => $agencia,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 
@@ -84,10 +105,21 @@ class AgenciaController extends AbstractController
     public function edit(Request $request, Agencias $agencia): Response
     {
         $form = $this->createForm(AgenciaType::class, $agencia);
+
+        // Pre-set banco hidden field with current value before handleRequest
+        if (!$request->isMethod('POST') && $agencia->getBanco()) {
+            $form->get('banco')->setData((string) $agencia->getBanco()->getId());
+        }
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $bancoId = $form->get('banco')->getData();
+                if ($bancoId) {
+                    $banco = $this->entityManager->getReference(Bancos::class, (int) $bancoId);
+                    $agencia->setBanco($banco);
+                }
                 $this->agenciaService->atualizar();
                 $this->addFlash('success', 'Agência atualizada com sucesso!');
                 return $this->redirectToIndex($request, 'app_agencia_index');
@@ -96,9 +128,23 @@ class AgenciaController extends AbstractController
             }
         }
 
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $bancoId = $form->get('banco')->getData();
+            if ($bancoId) {
+                $banco = $this->entityManager->find(Bancos::class, (int) $bancoId);
+                if ($banco) {
+                    $preloads['banco'] = $banco->getNome();
+                }
+            }
+        } elseif ($agencia->getBanco()) {
+            $preloads['banco'] = $agencia->getBanco()->getNome();
+        }
+
         return $this->render('agencia/edit.html.twig', [
             'agencia' => $agencia,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

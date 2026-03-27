@@ -52,17 +52,16 @@ class BairroController extends AbstractController
     {
         $bairro = new Bairros();
 
-        // Buscar todas as cidades para preencher o campo de seleção
-        $cidades = $entityManager->getRepository(Cidades::class)->findAll();
-
-        $form = $this->createForm(BairroType::class, $bairro, [
-            'cidades' => $cidades
-        ]);
-
+        $form = $this->createForm(BairroType::class, $bairro);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $cidadeId = $form->get('cidade')->getData();
+                if ($cidadeId) {
+                    $cidade = $entityManager->getReference(Cidades::class, (int) $cidadeId);
+                    $bairro->setCidade($cidade);
+                }
                 $this->bairroService->criar($bairro);
                 $this->addFlash('success', 'Bairro criado com sucesso!');
                 return $this->redirectToRoute('app_bairro_index');
@@ -71,9 +70,21 @@ class BairroController extends AbstractController
             }
         }
 
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $cidadeId = $form->get('cidade')->getData();
+            if ($cidadeId) {
+                $cidade = $entityManager->find(Cidades::class, (int) $cidadeId);
+                if ($cidade) {
+                    $preloads['cidade'] = $cidade->getNome();
+                }
+            }
+        }
+
         return $this->render('bairro/new.html.twig', [
             'bairro' => $bairro,
-            'form' => $form->createView(),
+            'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 
@@ -91,13 +102,22 @@ class BairroController extends AbstractController
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Bairros $bairro, EntityManagerInterface $entityManager): Response
     {
-        $form = $this->createForm(BairroType::class, $bairro, [
-            'cidades' => $entityManager->getRepository(Cidades::class)->findAll()
-        ]);
+        $form = $this->createForm(BairroType::class, $bairro);
+
+        // Pre-set cidade hidden field with current value before handleRequest
+        if (!$request->isMethod('POST') && $bairro->getCidade()) {
+            $form->get('cidade')->setData((string) $bairro->getCidade()->getId());
+        }
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $cidadeId = $form->get('cidade')->getData();
+                if ($cidadeId) {
+                    $cidade = $entityManager->getReference(Cidades::class, (int) $cidadeId);
+                    $bairro->setCidade($cidade);
+                }
                 $this->bairroService->atualizar();
                 $this->addFlash('success', 'Bairro atualizado com sucesso!');
                 return $this->redirectToIndex($request, 'app_bairro_index');
@@ -106,9 +126,23 @@ class BairroController extends AbstractController
             }
         }
 
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $cidadeId = $form->get('cidade')->getData();
+            if ($cidadeId) {
+                $cidade = $entityManager->find(Cidades::class, (int) $cidadeId);
+                if ($cidade) {
+                    $preloads['cidade'] = $cidade->getNome();
+                }
+            }
+        } elseif ($bairro->getCidade()) {
+            $preloads['cidade'] = $bairro->getCidade()->getNome();
+        }
+
         return $this->render('bairro/edit.html.twig', [
             'bairro' => $bairro,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

@@ -2,9 +2,8 @@
 namespace App\Form;
 
 use App\Entity\Agencias;
-use App\Entity\Bancos;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -18,11 +17,9 @@ class AgenciaType extends AbstractType
                 'label' => 'Código',
                 'attr' => ['class' => 'form-control']
             ])
-            ->add('banco', EntityType::class, [
-                'class' => Bancos::class,
-                'choice_label' => 'nome',
-                'label' => 'Banco',
-                'attr' => ['class' => 'form-select']
+            ->add('banco', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
             ->add('nome', TextType::class, [
                 'label' => 'Nome',

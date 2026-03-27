@@ -119,6 +119,11 @@ class AlmasaPlanoContasController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $paiId = $form->get('pai')->getData();
+                if ($paiId) {
+                    $pai = $this->repository->find((int) $paiId);
+                    $conta->setPai($pai);
+                }
                 $this->service->criar($conta);
                 $this->addFlash('success', 'Conta criada com sucesso!');
                 return $this->redirectToRoute('app_almasa_plano_contas_index');
@@ -127,9 +132,21 @@ class AlmasaPlanoContasController extends AbstractController
             }
         }
 
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $paiId = $form->get('pai')->getData();
+            if ($paiId) {
+                $pai = $this->repository->find((int) $paiId);
+                if ($pai) {
+                    $preloads['pai'] = $pai->getCodigo() . ' — ' . $pai->getDescricao();
+                }
+            }
+        }
+
         return $this->render('almasa_plano_contas/new.html.twig', [
             'conta' => $conta,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 
@@ -215,10 +232,23 @@ class AlmasaPlanoContasController extends AbstractController
     public function edit(Request $request, AlmasaPlanoContas $conta): Response
     {
         $form = $this->createForm(AlmasaPlanoContasType::class, $conta);
+
+        // Pre-set pai hidden field with current value before handleRequest
+        if (!$request->isMethod('POST') && $conta->getPai()) {
+            $form->get('pai')->setData((string) $conta->getPai()->getId());
+        }
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $paiId = $form->get('pai')->getData();
+                if ($paiId) {
+                    $pai = $this->repository->find((int) $paiId);
+                    $conta->setPai($pai);
+                } else {
+                    $conta->setPai(null);
+                }
                 $this->service->atualizar($conta);
                 $this->addFlash('success', 'Conta atualizada com sucesso!');
                 return $this->redirectToIndex($request, 'app_almasa_plano_contas_index');
@@ -227,9 +257,23 @@ class AlmasaPlanoContasController extends AbstractController
             }
         }
 
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $paiId = $form->get('pai')->getData();
+            if ($paiId) {
+                $pai = $this->repository->find((int) $paiId);
+                if ($pai) {
+                    $preloads['pai'] = $pai->getCodigo() . ' — ' . $pai->getDescricao();
+                }
+            }
+        } elseif ($conta->getPai()) {
+            $preloads['pai'] = $conta->getPai()->getCodigo() . ' — ' . $conta->getPai()->getDescricao();
+        }
+
         return $this->render('almasa_plano_contas/edit.html.twig', [
             'conta' => $conta,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

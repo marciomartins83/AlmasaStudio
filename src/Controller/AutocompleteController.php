@@ -166,6 +166,40 @@ class AutocompleteController extends AbstractController
         return $this->buscar($request, 'condominios', 'id', 'nome', 'nome', 1);
     }
 
+    #[Route('/cidades', name: 'cidades', methods: ['GET'])]
+    public function cidades(Request $request): JsonResponse
+    {
+        $q = trim($request->query->get('q', ''));
+        if (strlen($q) < 1) return new JsonResponse([]);
+
+        $rows = $this->conn->fetchAllAssociative(
+            "SELECT c.id, CONCAT(c.nome, ' — ', COALESCE(e.uf, '')) AS label
+             FROM cidades c
+             LEFT JOIN estados e ON e.id = c.id_estado
+             WHERE unaccent(LOWER(c.nome)) LIKE unaccent(LOWER(:q))
+             ORDER BY c.nome ASC LIMIT 20",
+            ['q' => '%' . $q . '%']
+        );
+
+        return new JsonResponse($rows);
+    }
+
+    #[Route('/ufs', name: 'ufs', methods: ['GET'])]
+    public function ufs(Request $request): JsonResponse
+    {
+        $q = strtoupper(trim($request->query->get('q', '')));
+        if (strlen($q) < 1) return new JsonResponse([]);
+
+        $ufs = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+        $result = [];
+        foreach ($ufs as $uf) {
+            if (str_contains($uf, $q)) {
+                $result[] = ['id' => $uf, 'label' => $uf];
+            }
+        }
+        return new JsonResponse($result);
+    }
+
     #[Route('/bairros', name: 'bairros', methods: ['GET'])]
     public function bairros(Request $request): JsonResponse
     {
@@ -209,11 +243,18 @@ class AutocompleteController extends AbstractController
     {
         $q = trim($request->query->get('q', ''));
         $apenasLancamentos = $request->query->get('lancamentos', '0');
+        $nivel = $request->query->get('nivel', '');
         if (strlen($q) < 1) return new JsonResponse([]);
 
         $where = "ativo = true";
+        $params = ['q' => '%' . $q . '%'];
+
         if ($apenasLancamentos === '1') {
             $where .= " AND aceita_lancamentos = true";
+        }
+        if ($nivel !== '') {
+            $where .= " AND nivel = :nivel";
+            $params['nivel'] = (int) $nivel;
         }
 
         $rows = $this->conn->fetchAllAssociative(
@@ -224,7 +265,7 @@ class AutocompleteController extends AbstractController
                AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
                  OR LOWER(codigo) LIKE LOWER(:q))
              ORDER BY codigo ASC LIMIT 20",
-            ['q' => '%' . $q . '%']
+            $params
         );
 
         return new JsonResponse($rows);

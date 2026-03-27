@@ -5,7 +5,7 @@ namespace App\Form;
 use App\Entity\PessoasAdvogados;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -24,20 +24,8 @@ class PessoaAdvogadoType extends AbstractType
                     'placeholder' => 'Ex: 123456'
                 ]
             ])
-            ->add('seccionalOab', ChoiceType::class, [
-                'label' => 'Seccional OAB',
+            ->add('seccionalOab', HiddenType::class, [
                 'required' => true,
-                'placeholder' => 'UF...',
-                'choices' => [
-                    'AC' => 'AC', 'AL' => 'AL', 'AP' => 'AP', 'AM' => 'AM',
-                    'BA' => 'BA', 'CE' => 'CE', 'DF' => 'DF', 'ES' => 'ES',
-                    'GO' => 'GO', 'MA' => 'MA', 'MT' => 'MT', 'MS' => 'MS',
-                    'MG' => 'MG', 'PA' => 'PA', 'PB' => 'PB', 'PR' => 'PR',
-                    'PE' => 'PE', 'PI' => 'PI', 'RJ' => 'RJ', 'RN' => 'RN',
-                    'RS' => 'RS', 'RO' => 'RO', 'RR' => 'RR', 'SC' => 'SC',
-                    'SP' => 'SP', 'SE' => 'SE', 'TO' => 'TO',
-                ],
-                'attr' => ['class' => 'form-select']
             ])
             ->add('especialidade', TextType::class, [
                 'label' => 'Especialidade',

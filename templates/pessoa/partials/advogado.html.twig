@@ -5,7 +5,17 @@
     <div class="card-body">
         <div class="row">
             <div class="col-md-4">{{ form_row(form.numeroOab) }}</div>
-            <div class="col-md-4">{{ form_row(form.seccionalOab) }}</div>
+            <div class="col-md-4">
+                <label class="form-label">Seccional OAB</label>
+                {{ form_widget(form.seccionalOab) }}
+                <div class="autocomplete-wrapper" data-url="{{ path('app_autocomplete_ufs') }}" data-hidden="#{{ form.seccionalOab.vars.id }}" data-min="1"{% if form.seccionalOab.vars.value %} data-preload-label="{{ form.seccionalOab.vars.value }}"{% endif %}>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control autocomplete-display" placeholder="UF...">
+                    </div>
+                    <div class="autocomplete-results list-group" style="display:none; position:absolute; z-index:1050; width:100%;"></div>
+                </div>
+            </div>
             <div class="col-md-4">{{ form_row(form.especialidade) }}</div>
         </div>
         <div class="row">

@@ -28,7 +28,15 @@
     <div class="card-body">
         <div class="row">
             <div class="col-md-6" id="pai-wrapper">
-                {{ form_row(form.pai) }}
+                <label class="form-label">Pertence a</label>
+                {{ form_widget(form.pai) }}
+                <div class="autocomplete-wrapper" data-url="{{ path('app_autocomplete_almasa_plano_contas') }}" data-hidden="#{{ form.pai.vars.id }}" data-min="1"{% if preloads.pai is defined and preloads.pai %} data-preload-label="{{ preloads.pai }}"{% endif %}>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control autocomplete-display" placeholder="Digite para buscar..." id="pai-autocomplete-display">
+                    </div>
+                    <div class="autocomplete-results list-group" style="display:none; position:absolute; z-index:1050; width:100%;"></div>
+                </div>
                 <small class="text-muted" id="pai-help"></small>
             </div>
             <div class="col-md-3" id="tipo-wrapper">
@@ -53,7 +61,7 @@
                 </div>
                 {# Modo composto — prefixo travado + sufixo editavel #}
                 <div id="codigo-modo-composto" style="display:none">
-                    <label class="form-label">Código</label>
+                    <label class="form-label">Codigo</label>
                     <div class="input-group">
                         <span class="input-group-text fw-bold bg-light" id="codigo-prefixo-display"></span>
                         <input type="text" class="form-control fw-bold" id="codigo-sufixo-input" placeholder="001">
@@ -113,40 +121,48 @@
 
 {{ form_end(form) }}
 
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 <script>
 (function() {
-    const API_URL = '{{ path("app_almasa_plano_contas_api_proximo_codigo", {paiId: "__ID__"}) }}';
+    var API_URL = '{{ path("app_almasa_plano_contas_api_proximo_codigo", {paiId: "__ID__"}) }}';
+    var AUTOCOMPLETE_URL = '{{ path("app_autocomplete_almasa_plano_contas") }}';
 
-    const nivelSelect = document.getElementById('{{ form.nivel.vars.id }}');
-    const paiSelect = document.getElementById('{{ form.pai.vars.id }}');
-    const tipoSelect = document.getElementById('{{ form.tipo.vars.id }}');
-    const codigoInput = document.getElementById('{{ form.codigo.vars.id }}');
-    const aceitaCheckbox = document.getElementById('{{ form.aceitaLancamentos.vars.id }}');
+    var nivelSelect = document.getElementById('{{ form.nivel.vars.id }}');
+    var paiHidden = document.getElementById('{{ form.pai.vars.id }}');
+    var tipoSelect = document.getElementById('{{ form.tipo.vars.id }}');
+    var codigoInput = document.getElementById('{{ form.codigo.vars.id }}');
+    var aceitaCheckbox = document.getElementById('{{ form.aceitaLancamentos.vars.id }}');
 
-    const cardVinculacao = document.getElementById('card-vinculacao');
-    const cardIdentificacao = document.getElementById('card-identificacao');
-    const cardOpcoes = document.getElementById('card-opcoes');
-    const paiWrapper = document.getElementById('pai-wrapper');
-    const aceitaWrapper = document.getElementById('aceita-wrapper');
-    const nivelHelp = document.getElementById('nivel-help-text');
-    const paiHelp = document.getElementById('pai-help');
-    const tipoHelp = document.getElementById('tipo-help');
-    const codigoHelp = document.getElementById('codigo-help');
-    const aceitaHelp = document.getElementById('aceita-help');
+    var paiWrapper = document.getElementById('pai-wrapper');
+    var paiAutocompleteWrapper = paiWrapper.querySelector('.autocomplete-wrapper');
+    var paiDisplay = document.getElementById('pai-autocomplete-display');
+
+    var cardVinculacao = document.getElementById('card-vinculacao');
+    var cardIdentificacao = document.getElementById('card-identificacao');
+    var cardOpcoes = document.getElementById('card-opcoes');
+    var aceitaWrapper = document.getElementById('aceita-wrapper');
+    var nivelHelp = document.getElementById('nivel-help-text');
+    var paiHelp = document.getElementById('pai-help');
+    var tipoHelp = document.getElementById('tipo-help');
+    var codigoHelp = document.getElementById('codigo-help');
+    var aceitaHelp = document.getElementById('aceita-help');
 
     // Codigo composto
-    const codigoSimples = document.getElementById('codigo-modo-simples');
-    const codigoComposto = document.getElementById('codigo-modo-composto');
-    const prefixoDisplay = document.getElementById('codigo-prefixo-display');
-    const sufixoInput = document.getElementById('codigo-sufixo-input');
-    const codigoSugestao = document.getElementById('codigo-sugestao');
+    var codigoSimples = document.getElementById('codigo-modo-simples');
+    var codigoComposto = document.getElementById('codigo-modo-composto');
+    var prefixoDisplay = document.getElementById('codigo-prefixo-display');
+    var sufixoInput = document.getElementById('codigo-sufixo-input');
+    var codigoSugestao = document.getElementById('codigo-sugestao');
 
-    let currentPrefixo = '';
-    const IS_EDIT = {{ is_edit|default(false) ? 'true' : 'false' }};
-    const CURRENT_CODIGO = '{{ is_edit|default(false) ? conta.codigo : '' }}';
-    let isInitialLoad = IS_EDIT;
+    var currentPrefixo = '';
+    var IS_EDIT = {{ is_edit|default(false) ? 'true' : 'false' }};
+    var CURRENT_CODIGO = '{{ is_edit|default(false) ? conta.codigo : '' }}';
+    var isInitialLoad = IS_EDIT;
 
-    const NIVEL_TEXTS = {
+    // Store selected pai's tipo for inheritance
+    var selectedPaiTipo = null;
+
+    var NIVEL_TEXTS = {
         '1': {
             help: 'Classe e o nivel raiz do plano de contas. Exemplos: Ativo, Passivo, Receita, Despesa.',
             paiHelp: '',
@@ -184,21 +200,89 @@
         }
     };
 
-    // Salvar todas as opcoes do pai para filtrar depois
-    const allPaiOptions = [];
-    for (let i = 0; i < paiSelect.options.length; i++) {
-        const opt = paiSelect.options[i];
-        allPaiOptions.push({
-            value: opt.value,
-            text: opt.text,
-            nivel: opt.getAttribute('data-nivel'),
-            tipo: opt.getAttribute('data-tipo'),
-            selected: opt.selected
+    // Custom autocomplete for pai that filters by nivel and captures tipo
+    function initPaiAutocomplete() {
+        var display = paiDisplay;
+        var results = paiAutocompleteWrapper.querySelector('.autocomplete-results');
+        var hidden = paiHidden;
+        var minLen = 1;
+        var timer = null;
+        var activeIndex = -1;
+
+        display.addEventListener('input', function () {
+            var q = display.value.trim();
+            hidden.value = '';
+            selectedPaiTipo = null;
+            clearTimeout(timer);
+            if (q.length < minLen) { fecharPai(); return; }
+            timer = setTimeout(function () { buscarPai(q); }, 300);
         });
+
+        display.addEventListener('keydown', function (e) {
+            var items = results.querySelectorAll('.list-group-item-action');
+            if (!items.length) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, items.length - 1); marcarPai(items); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); marcarPai(items); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (activeIndex >= 0 && items[activeIndex]) items[activeIndex].click(); }
+            else if (e.key === 'Escape') { fecharPai(); }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!paiAutocompleteWrapper.contains(e.target)) fecharPai();
+        });
+
+        function buscarPai(q) {
+            var nivel = nivelSelect.value;
+            var config = NIVEL_TEXTS[nivel];
+            if (!config || !config.paiNivel) return;
+
+            var url = AUTOCOMPLETE_URL + '?q=' + encodeURIComponent(q) + '&nivel=' + config.paiNivel;
+            fetch(url)
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (data) { renderizarPai(data); })
+                .catch(function () { fecharPai(); });
+        }
+
+        function renderizarPai(items) {
+            results.innerHTML = '';
+            activeIndex = -1;
+            if (!items.length) {
+                results.innerHTML = '<div class="list-group-item text-muted fst-italic">Nenhum resultado</div>';
+                results.style.display = 'block';
+                return;
+            }
+            items.forEach(function (item) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action';
+                btn.textContent = item.label || item.nome || '';
+                btn.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    display.value = btn.textContent;
+                    hidden.value = item.id || '';
+                    selectedPaiTipo = item.tipo || null;
+                    fecharPai();
+                    onPaiChange();
+                });
+                results.appendChild(btn);
+            });
+            results.style.display = 'block';
+        }
+
+        function fecharPai() { results.style.display = 'none'; results.innerHTML = ''; activeIndex = -1; }
+        function marcarPai(items) {
+            items.forEach(function (el, i) { el.classList.toggle('active', i === activeIndex); });
+            if (items[activeIndex]) items[activeIndex].scrollIntoView({ block: 'nearest' });
+        }
+
+        // Preload
+        if (paiAutocompleteWrapper.dataset.preloadLabel) {
+            display.value = paiAutocompleteWrapper.dataset.preloadLabel;
+        }
     }
 
     function onNivelChange() {
-        const nivel = nivelSelect.value;
+        var nivel = nivelSelect.value;
         if (!nivel) {
             cardVinculacao.style.display = 'none';
             cardIdentificacao.style.display = 'none';
@@ -207,7 +291,7 @@
             return;
         }
 
-        const config = NIVEL_TEXTS[nivel];
+        var config = NIVEL_TEXTS[nivel];
 
         // Mostrar cards
         cardVinculacao.style.display = '';
@@ -224,14 +308,23 @@
         // Classe (1): sem pai, tipo manual, codigo livre
         if (nivel === '1') {
             paiWrapper.style.display = 'none';
-            paiSelect.value = '';
+            paiHidden.value = '';
+            paiDisplay.value = '';
+            selectedPaiTipo = null;
             tipoSelect.disabled = false;
             tipoHelp.textContent = config.tipoHelp;
             mostrarCodigoSimples();
             codigoInput.setAttribute('placeholder', 'Ex: 1');
         } else {
             paiWrapper.style.display = '';
-            filterPaiOptions(config.paiNivel);
+            // Clear pai when changing nivel (unless initial load)
+            if (!isInitialLoad) {
+                paiHidden.value = '';
+                paiDisplay.value = '';
+                selectedPaiTipo = null;
+                tipoSelect.disabled = false;
+                mostrarCodigoSimples();
+            }
         }
 
         // AceitaLancamentos: so para Conta (4)
@@ -245,54 +338,18 @@
         }
     }
 
-    function filterPaiOptions(targetNivel) {
-        while (paiSelect.options.length > 0) {
-            paiSelect.remove(0);
-        }
-
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.text = 'Selecione...';
-        paiSelect.add(placeholder);
-
-        let currentValue = null;
-        allPaiOptions.forEach(function(opt) {
-            if (opt.nivel === String(targetNivel)) {
-                const option = document.createElement('option');
-                option.value = opt.value;
-                option.text = opt.text;
-                option.setAttribute('data-nivel', opt.nivel);
-                option.setAttribute('data-tipo', opt.tipo);
-                if (opt.selected) {
-                    option.selected = true;
-                    currentValue = opt.value;
-                }
-                paiSelect.add(option);
-            }
-        });
-
-        if (!currentValue) {
-            paiSelect.value = '';
-            mostrarCodigoSimples();
-        }
-
-        onPaiChange();
-    }
-
     function onPaiChange() {
-        const nivel = nivelSelect.value;
+        var nivel = nivelSelect.value;
         if (nivel === '1') return;
 
-        const selectedOption = paiSelect.options[paiSelect.selectedIndex];
-        if (selectedOption && selectedOption.value) {
+        if (paiHidden.value) {
             // Herdar tipo do pai
-            const paiTipo = selectedOption.getAttribute('data-tipo');
-            if (paiTipo) {
-                tipoSelect.value = paiTipo;
+            if (selectedPaiTipo) {
+                tipoSelect.value = selectedPaiTipo;
                 tipoSelect.disabled = true;
             }
             // Buscar proximo codigo via API
-            fetchProximoCodigo(selectedOption.value);
+            fetchProximoCodigo(paiHidden.value);
         } else {
             tipoSelect.disabled = false;
             mostrarCodigoSimples();
@@ -300,7 +357,7 @@
     }
 
     function fetchProximoCodigo(paiId) {
-        const url = API_URL.replace('__ID__', paiId);
+        var url = API_URL.replace('__ID__', paiId);
         fetch(url)
             .then(function(r) { return r.json(); })
             .then(function(data) {
@@ -331,7 +388,7 @@
 
         // Em modo edicao na carga inicial: preservar o codigo atual, nao sobrescrever
         if (isInitialLoad && CURRENT_CODIGO && CURRENT_CODIGO.startsWith(prefixo)) {
-            const editSufixo = CURRENT_CODIGO.substring(prefixo.length);
+            var editSufixo = CURRENT_CODIGO.substring(prefixo.length);
             sufixoInput.value = editSufixo;
             codigoInput.value = CURRENT_CODIGO;
             isInitialLoad = false;
@@ -349,8 +406,10 @@
     });
 
     // Event listeners
-    nivelSelect.addEventListener('change', onNivelChange);
-    paiSelect.addEventListener('change', onPaiChange);
+    nivelSelect.addEventListener('change', function() {
+        isInitialLoad = false;
+        onNivelChange();
+    });
 
     // Re-habilitar tipo antes do submit
     document.getElementById('almasa-pc-form').addEventListener('submit', function() {
@@ -362,18 +421,25 @@
         codigoInput.style.display = '';
     });
 
+    // Initialize custom pai autocomplete
+    initPaiAutocomplete();
+
     // Inicializar (para edicao onde ja tem valor)
     if (nivelSelect.value) {
         onNivelChange();
-        const nivel = nivelSelect.value;
-        if (nivel !== '1') {
-            const config = NIVEL_TEXTS[nivel];
-            allPaiOptions.forEach(function(opt) {
-                if (opt.selected && opt.nivel === String(config.paiNivel)) {
-                    paiSelect.value = opt.value;
-                }
-            });
-            onPaiChange();
+        var nivel = nivelSelect.value;
+        if (nivel !== '1' && paiHidden.value) {
+            // Need to fetch the pai's tipo for inheritance
+            fetch(AUTOCOMPLETE_URL + '?q=' + encodeURIComponent(paiDisplay.value.substring(0, 5)) + '&nivel=' + NIVEL_TEXTS[nivel].paiNivel)
+                .then(function(r) { return r.ok ? r.json() : []; })
+                .then(function(data) {
+                    data.forEach(function(item) {
+                        if (String(item.id) === String(paiHidden.value)) {
+                            selectedPaiTipo = item.tipo;
+                            onPaiChange();
+                        }
+                    });
+                });
         }
     }
 })();

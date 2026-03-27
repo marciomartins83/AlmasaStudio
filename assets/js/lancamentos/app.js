@@ -54,6 +54,8 @@ function initBotoesBaixa() {
 
             const contaEl = document.getElementById('baixa_conta_bancaria');
             if (contaEl) contaEl.value = '';
+            const contaDisplay = document.getElementById('baixa_conta_bancaria_display');
+            if (contaDisplay) contaDisplay.value = '';
             const erroEl = document.getElementById('baixa_conta_erro');
             if (erroEl) erroEl.style.display = 'none';
 
@@ -128,11 +130,11 @@ function initBotoesExcluir() {
                     exibirSucesso(result.message);
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    exibirErro(result.message);
+                    alert(result.message || 'Não foi possível excluir o lançamento.');
                 }
             } catch (error) {
                 console.error('Erro ao excluir:', error);
-                exibirErro('Erro ao excluir lançamento');
+                alert('Erro ao excluir lançamento. Verifique se precisa estornar primeiro.');
             }
         });
     });
@@ -163,7 +165,9 @@ function initModalBaixa() {
 
         if (!dados.id_conta_bancaria) {
             if (contaErroEl) contaErroEl.style.display = '';
-            if (contaBancariaEl) contaBancariaEl.focus();
+            const contaDisplayEl = document.getElementById('baixa_conta_bancaria_display');
+            if (contaDisplayEl) contaDisplayEl.focus();
+            else if (contaBancariaEl) contaBancariaEl.focus();
             return;
         }
         if (contaErroEl) contaErroEl.style.display = 'none';

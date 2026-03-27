@@ -28,7 +28,16 @@
                                 {{ form_row(form.nome) }}
                             </div>
                             <div class="col-md-6">
-                                {{ form_row(form.cidade) }}
+                                <label class="form-label">Cidade</label>
+                                {{ form_widget(form.cidade) }}
+                                <div class="autocomplete-wrapper" data-url="{{ path('app_autocomplete_cidades') }}" data-hidden="#{{ form.cidade.vars.id }}" data-min="1"{% if preloads.cidade is defined and preloads.cidade %} data-preload-label="{{ preloads.cidade }}"{% endif %}>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control autocomplete-display" placeholder="Digite para buscar cidade...">
+                                    </div>
+                                    <div class="autocomplete-results list-group" style="display:none; position:absolute; z-index:1050; width:100%;"></div>
+                                </div>
+                                {{ form_errors(form.cidade) }}
                             </div>
                         </div>
                         <div class="row">
@@ -53,4 +62,5 @@
         </div>
     </div>
 </div>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

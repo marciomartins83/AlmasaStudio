@@ -167,12 +167,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function inicializarComponentesTipo(tipo) {
         const container = document.getElementById(`campos-${tipo}`);
         if (!container) return;
-        
+
         // Inicializar selects, datepickers, etc.
         container.querySelectorAll('select.form-select').forEach(select => {
             // Inicializar select2 se necessário
         });
-        
+
         // Ajustar nomes dos campos para array
         container.querySelectorAll('input, select, textarea').forEach(field => {
             const name = field.getAttribute('name');
@@ -180,6 +180,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.setAttribute('name', `${tipo}[${name}]`);
             }
         });
+
+        // Inicializar autocompletes dentro do container
+        if (typeof initAutocomplete === 'function') {
+            container.querySelectorAll('.autocomplete-wrapper').forEach(initAutocomplete);
+        }
     }
     
     // Verificar tipos disponíveis
@@ -283,6 +288,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.value = valor;
                 } else {
                     input.value = valor || '';
+                }
+                // Se o campo hidden tem autocomplete-wrapper, preencher o display
+                if (input.type === 'hidden') {
+                    const wrapper = input.closest('.mb-3, .col-md-4, .col-md-6, .col-md-12');
+                    if (wrapper) {
+                        const acWrapper = wrapper.querySelector('.autocomplete-wrapper');
+                        if (acWrapper) {
+                            const display = acWrapper.querySelector('.autocomplete-display');
+                            if (display && valor) {
+                                display.value = valor;
+                            }
+                        }
+                    }
                 }
                 console.log(`✅ Campo preenchido: ${campo} = ${valor}`);
             } else {

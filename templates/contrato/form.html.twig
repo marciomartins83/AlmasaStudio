@@ -78,16 +78,17 @@
                             <div class="tab-pane fade show active" id="geral">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">Imóvel <span class="text-danger">*</span></label>
-                                        <select name="imovel_id" class="form-select" required>
-                                            <option value="">Selecione um imóvel</option>
-                                            {% for imovel in imoveisDisponiveis %}
-                                                <option value="{{ imovel.id }}"
-                                                    {% if contrato and contrato.imovel_id == imovel.id %}selected{% endif %}>
-                                                    {{ imovel.codigo_interno }} - {{ imovel.endereco }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
+                                        {% include '_partials/autocomplete_field.html.twig' with {
+                                            id: 'imovel_id',
+                                            name: 'imovel_id',
+                                            label: 'Imóvel',
+                                            url: path('app_autocomplete_imoveis'),
+                                            value: contrato and contrato.imovel_id ? contrato.imovel_id : '',
+                                            display: contrato and contrato.imovel_display is defined ? contrato.imovel_display : '',
+                                            required: true,
+                                            placeholder: 'Digite código ou endereço...',
+                                            icon: 'fa-building'
+                                        } %}
                                     </div>
 
                                     <div class="col-md-6">
@@ -102,29 +103,30 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">Locatário <span class="text-danger">*</span></label>
-                                        <select name="locatario_id" class="form-select" required>
-                                            <option value="">Selecione o locatário</option>
-                                            {% for locatario in locatarios %}
-                                                <option value="{{ locatario.id }}"
-                                                    {% if contrato and contrato.locatario_id == locatario.id %}selected{% endif %}>
-                                                    {{ locatario.nome }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
+                                        {% include '_partials/autocomplete_field.html.twig' with {
+                                            id: 'locatario_id',
+                                            name: 'locatario_id',
+                                            label: 'Locatário',
+                                            url: path('app_autocomplete_pessoas'),
+                                            value: contrato and contrato.locatario_id ? contrato.locatario_id : '',
+                                            display: contrato and contrato.locatario_display is defined ? contrato.locatario_display : '',
+                                            required: true,
+                                            placeholder: 'Digite nome do locatário...',
+                                            icon: 'fa-user'
+                                        } %}
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">Fiador</label>
-                                        <select name="fiador_id" class="form-select">
-                                            <option value="">Nenhum</option>
-                                            {% for fiador in fiadores %}
-                                                <option value="{{ fiador.id }}"
-                                                    {% if contrato and contrato.fiador_id == fiador.id %}selected{% endif %}>
-                                                    {{ fiador.nome }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
+                                        {% include '_partials/autocomplete_field.html.twig' with {
+                                            id: 'fiador_id',
+                                            name: 'fiador_id',
+                                            label: 'Fiador',
+                                            url: path('app_autocomplete_pessoas'),
+                                            value: contrato and contrato.fiador_id ? contrato.fiador_id : '',
+                                            display: contrato and contrato.fiador_display is defined ? contrato.fiador_display : '',
+                                            placeholder: 'Nenhum — ou digite nome...',
+                                            icon: 'fa-user-shield'
+                                        } %}
                                     </div>
 
                                     <div class="col-md-4">
@@ -318,4 +320,5 @@
         imoveisDisponiveis: '{{ path('app_contrato_imoveis_disponiveis') }}'
     };
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

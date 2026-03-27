@@ -579,6 +579,12 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 
 **Service:** `LancamentosService.php` (550+ linhas) — CRUD, baixa (total/parcial), estorno, calculo retencoes INSS/ISS
 
+**Formulario (LancamentosType):**
+- Campos com autocomplete AJAX (HiddenType unmapped): pessoaCredorId, pessoaPagadorId, planoContaDebito, planoContaCredito, planoContaId, contratoId, imovelId, contaBancariaId
+- Usa `generic_autocomplete.js` para contrato, imovel e planoConta (legado)
+- Autocomplete customizado para pessoa e plano de contas Almasa (debito/credito)
+- Endpoints: `/autocomplete/contratos`, `/autocomplete/imoveis`, `/autocomplete/plano-contas`
+
 **Regras de Negocio:**
 - Numero sequencial automatico por tipo
 - Competencia default = mes do vencimento
@@ -1874,6 +1880,47 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.28.0] - 2026-03-27
+
+#### Adicionado
+- **Novos endpoints de autocomplete:**
+  - `/autocomplete/cidades` — busca cidades com UF do estado
+  - `/autocomplete/ufs` — busca estática de 27 UFs brasileiras
+  - `/autocomplete/almasa-plano-contas` agora aceita filtro `?nivel=N` para filtrar por nivel hierarquico
+
+#### Alterado
+- **Conversao de 4 EntityType/ChoiceType selects para autocomplete AJAX:**
+  - `AlmasaPlanoContasType.pai` (100+ itens) — EntityType para HiddenType unmapped com autocomplete customizado que filtra por nivel e herda tipo contabil
+  - `AgenciaType.banco` (200+ bancos) — EntityType para HiddenType unmapped com autocomplete generico
+  - `BairroType.cidade` (centenas de cidades) — EntityType para HiddenType unmapped com autocomplete generico; removida opcao `cidades` do FormType
+  - `PessoaAdvogadoType.seccionalOab` (27 UFs) — ChoiceType para HiddenType mapped com autocomplete generico
+- **Controllers atualizados:**
+  - `AlmasaPlanoContasController`: new/edit resolvem `pai` a partir do HiddenType; preloads para label
+  - `AgenciaController`: new/edit resolvem `banco` a partir do HiddenType; preloads para label
+  - `BairroController`: new/edit resolvem `cidade` a partir do HiddenType; removida carga de todas as cidades; preloads para label
+- **Templates atualizados:**
+  - `almasa_plano_contas/_form.html.twig` — reescrito JS para usar autocomplete com filtro por nivel e heranca de tipo
+  - `agencia/new.html.twig` e `edit.html.twig` — autocomplete para banco
+  - `bairro/new.html.twig` e `edit.html.twig` — autocomplete para cidade
+  - `pessoa/partials/advogado.html.twig` — autocomplete para seccionalOab
+- **pessoa_tipos.js:** `inicializarComponentesTipo()` agora inicializa autocompletes em sub-forms carregados via AJAX; `preencherDadosTipo()` preenche display de autocompletes
+
+---
+
+### [6.27.0] - 2026-03-27
+
+#### Alterado
+- **Lancamentos: Conversao de EntityType selects para autocomplete AJAX**
+  - `planoConta` (PlanoContas) convertido de EntityType para HiddenType unmapped com autocomplete via `generic_autocomplete.js`
+  - `contrato` (ImoveisContratos) convertido de EntityType para HiddenType unmapped com autocomplete
+  - `imovel` (Imoveis) convertido de EntityType para HiddenType unmapped com autocomplete
+  - Endpoints usados: `/autocomplete/plano-contas`, `/autocomplete/contratos`, `/autocomplete/imoveis`
+  - Controller atualizado: `extrairDadosFormulario()` agora le IDs dos campos unmapped
+  - Preloads implementados para edit e resubmit apos erro
+  - Service: adicionados metodos `buscarPlanoContaLegado()`, `buscarContrato()`, `buscarImovel()`
 
 ---
 

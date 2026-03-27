@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\AlmasaPlanoContas;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -31,27 +31,8 @@ class AlmasaPlanoContasType extends AbstractType
                 'placeholder' => 'Selecione o nível...',
                 'required' => true,
             ])
-            ->add('pai', EntityType::class, [
-                'class' => AlmasaPlanoContas::class,
-                'label' => 'Pertence a',
-                'choice_label' => function (AlmasaPlanoContas $conta) {
-                    return $conta->getCodigo() . ' - ' . $conta->getDescricao();
-                },
-                'choice_attr' => function (AlmasaPlanoContas $conta) {
-                    return [
-                        'data-nivel' => $conta->getNivel(),
-                        'data-tipo' => $conta->getTipo(),
-                    ];
-                },
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('a')
-                        ->where('a.nivel < :nivelMax')
-                        ->andWhere('a.ativo = true')
-                        ->setParameter('nivelMax', AlmasaPlanoContas::NIVEL_CONTA)
-                        ->orderBy('a.codigo', 'ASC');
-                },
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('pai', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
             ->add('tipo', ChoiceType::class, [

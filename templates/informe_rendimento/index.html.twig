@@ -69,23 +69,29 @@
 
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label for="proc-proprietario-inicial" class="form-label">Proprietário Inicial</label>
-                    <select id="proc-proprietario-inicial" class="form-select">
-                        <option value="">Todos</option>
-                        {% for prop in proprietarios %}
-                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
-                        {% endfor %}
-                    </select>
+                    {% include '_partials/autocomplete_field.html.twig' with {
+                        id: 'proc-proprietario-inicial',
+                        name: 'proc-proprietario-inicial',
+                        label: 'Proprietário Inicial',
+                        url: path('app_autocomplete_pessoas'),
+                        value: '',
+                        display: '',
+                        placeholder: 'Todos — digite para buscar...',
+                        icon: 'fa-user'
+                    } %}
                 </div>
 
                 <div class="col-md-3">
-                    <label for="proc-proprietario-final" class="form-label">Proprietário Final</label>
-                    <select id="proc-proprietario-final" class="form-select">
-                        <option value="">Todos</option>
-                        {% for prop in proprietarios %}
-                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
-                        {% endfor %}
-                    </select>
+                    {% include '_partials/autocomplete_field.html.twig' with {
+                        id: 'proc-proprietario-final',
+                        name: 'proc-proprietario-final',
+                        label: 'Proprietário Final',
+                        url: path('app_autocomplete_pessoas'),
+                        value: '',
+                        display: '',
+                        placeholder: 'Todos — digite para buscar...',
+                        icon: 'fa-user'
+                    } %}
                 </div>
 
                 <div class="col-md-2">
@@ -157,13 +163,16 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="manut-proprietario" class="form-label">Proprietário</label>
-                    <select id="manut-proprietario" class="form-select">
-                        <option value="">Todos</option>
-                        {% for prop in proprietarios %}
-                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
-                        {% endfor %}
-                    </select>
+                    {% include '_partials/autocomplete_field.html.twig' with {
+                        id: 'manut-proprietario',
+                        name: 'manut-proprietario',
+                        label: 'Proprietário',
+                        url: path('app_autocomplete_pessoas'),
+                        value: '',
+                        display: '',
+                        placeholder: 'Todos — digite para buscar...',
+                        icon: 'fa-user'
+                    } %}
                 </div>
                 <div class="col-md-2">
                     <label for="manut-imovel" class="form-label">Imóvel</label>
@@ -236,13 +245,16 @@
 
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label for="imp-proprietario" class="form-label">Proprietário</label>
-                    <select id="imp-proprietario" class="form-select">
-                        <option value="">Todos</option>
-                        {% for prop in proprietarios %}
-                            <option value="{{ prop.id }}">{{ prop.nome }}</option>
-                        {% endfor %}
-                    </select>
+                    {% include '_partials/autocomplete_field.html.twig' with {
+                        id: 'imp-proprietario',
+                        name: 'imp-proprietario',
+                        label: 'Proprietário',
+                        url: path('app_autocomplete_pessoas'),
+                        value: '',
+                        display: '',
+                        placeholder: 'Todos — digite para buscar...',
+                        icon: 'fa-user'
+                    } %}
                 </div>
 
                 <div class="col-md-2">
@@ -299,23 +311,29 @@
             <form id="form-dimob">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label for="dimob-proprietario-inicial" class="form-label">Proprietário Inicial</label>
-                        <select id="dimob-proprietario-inicial" class="form-select">
-                            <option value="">Todos</option>
-                            {% for prop in proprietarios %}
-                                <option value="{{ prop.id }}">{{ prop.nome }}</option>
-                            {% endfor %}
-                        </select>
+                        {% include '_partials/autocomplete_field.html.twig' with {
+                            id: 'dimob-proprietario-inicial',
+                            name: 'dimob-proprietario-inicial',
+                            label: 'Proprietário Inicial',
+                            url: path('app_autocomplete_pessoas'),
+                            value: '',
+                            display: '',
+                            placeholder: 'Todos — digite para buscar...',
+                            icon: 'fa-user'
+                        } %}
                     </div>
 
                     <div class="col-md-3">
-                        <label for="dimob-proprietario-final" class="form-label">Proprietário Final</label>
-                        <select id="dimob-proprietario-final" class="form-select">
-                            <option value="">Todos</option>
-                            {% for prop in proprietarios %}
-                                <option value="{{ prop.id }}">{{ prop.nome }}</option>
-                            {% endfor %}
-                        </select>
+                        {% include '_partials/autocomplete_field.html.twig' with {
+                            id: 'dimob-proprietario-final',
+                            name: 'dimob-proprietario-final',
+                            label: 'Proprietário Final',
+                            url: path('app_autocomplete_pessoas'),
+                            value: '',
+                            display: '',
+                            placeholder: 'Todos — digite para buscar...',
+                            icon: 'fa-user'
+                        } %}
                     </div>
 
                     <div class="col-md-2">
@@ -514,5 +532,6 @@
         dimobGerar: '{{ path("app_informe_rendimento_dimob_gerar") }}'
     };
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('js/informe_rendimento/informe_rendimento') }}
 {% endblock %}

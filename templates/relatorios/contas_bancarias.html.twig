@@ -35,28 +35,16 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="id_conta_bancaria" class="form-label">Conta Bancária</label>
-                            <select class="form-select" id="id_conta_bancaria" name="id_conta_bancaria">
-                                <option value="">Todas</option>
-                                {% for conta in contas %}
-                                    <option value="{{ conta.id }}">
-                                        {{ conta.idBanco.nome|default('') }} - Ag {{ conta.idAgencia.codigo|default('') }} / {{ conta.codigo }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-search"></i> Ou buscar conta específica</label>
-                            <div class="pessoa-autocomplete-wrapper position-relative">
-                                <div class="input-group input-group-sm">
-                                    <input type="text" id="conta_bancaria_display" class="form-control"
-                                           placeholder="Digitar nome da conta..." autocomplete="off">
-                                    <button type="button" class="btn btn-outline-secondary" id="conta_bancaria_clear" style="display:none">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                <div id="conta_bancaria_results" class="list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
-                            </div>
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'id_conta_bancaria',
+                                name: 'id_conta_bancaria',
+                                label: 'Conta Bancária',
+                                url: path('app_autocomplete_contas_bancarias'),
+                                value: '',
+                                display: '',
+                                placeholder: 'Todas — digite para buscar...',
+                                icon: 'fa-university'
+                            } %}
                         </div>
 
                         <div class="mb-3">
@@ -110,81 +98,7 @@
         pdf: '{{ path('app_relatorios_contas_bancarias_pdf') }}'
     };
     window.RELATORIO_TIPO = 'contas_bancarias';
-
-    // Autocomplete conta bancária
-    document.addEventListener('DOMContentLoaded', () => {
-        const display = document.getElementById('conta_bancaria_display');
-        const selectEl = document.getElementById('id_conta_bancaria');
-        const results = document.getElementById('conta_bancaria_results');
-        const clear = document.getElementById('conta_bancaria_clear');
-        const cbUrl = '{{ path("app_lancamentos_conta_bancaria_autocomplete") }}';
-        if (!display || !selectEl || !results) return;
-
-        let timer = null;
-
-        display.addEventListener('input', () => {
-            const q = display.value.trim();
-            selectEl.value = '';
-            if (clear) clear.style.display = 'none';
-            clearTimeout(timer);
-            if (q.length < 2) { results.style.display = 'none'; results.innerHTML = ''; return; }
-            timer = setTimeout(async () => {
-                try {
-                    const resp = await fetch(cbUrl + '?q=' + encodeURIComponent(q));
-                    if (!resp.ok) return;
-                    const contas = await resp.json();
-                    results.innerHTML = '';
-                    if (!contas.length) {
-                        results.innerHTML = '<div class="list-group-item text-muted fst-italic">Nenhuma conta encontrada</div>';
-                        results.style.display = 'block';
-                        return;
-                    }
-                    contas.forEach(c => {
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'list-group-item list-group-item-action';
-                        const label = c.titular ? c.descricao + ' — ' + c.titular : (c.descricao || '');
-                        btn.textContent = label;
-                        btn.addEventListener('mousedown', (e) => {
-                            e.preventDefault();
-                            display.value = label;
-                            // Setar no select — se a option existe, seleciona; senão cria temporária
-                            const existingOpt = selectEl.querySelector('option[value="' + c.id + '"]');
-                            if (existingOpt) {
-                                selectEl.value = c.id;
-                            } else {
-                                const newOpt = new Option(label, c.id, true, true);
-                                selectEl.appendChild(newOpt);
-                            }
-                            if (clear) clear.style.display = '';
-                            results.style.display = 'none';
-                            results.innerHTML = '';
-                        });
-                        results.appendChild(btn);
-                    });
-                    results.style.display = 'block';
-                } catch (e) { console.error(e); }
-            }, 300);
-        });
-
-        display.addEventListener('keydown', (e) => { if (e.key === 'Escape') { results.style.display = 'none'; results.innerHTML = ''; } });
-
-        if (clear) {
-            clear.addEventListener('click', () => {
-                display.value = '';
-                selectEl.value = '';
-                clear.style.display = 'none';
-                display.focus();
-            });
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!display.closest('.pessoa-autocomplete-wrapper')?.contains(e.target)) {
-                results.style.display = 'none';
-                results.innerHTML = '';
-            }
-        });
-    });
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('relatorios') }}
 {% endblock %}
