@@ -514,10 +514,15 @@ class LancamentosController extends AbstractController
         }
 
         $conn = $repo->createQueryBuilder('c')->getEntityManager()->getConnection();
+        $incluirProprietario = $request->query->get('proprietario', '1');
+        $filtroProprietario = '';
+        if ($incluirProprietario === '0') {
+            $filtroProprietario = ' AND id_pessoa IS NULL';
+        }
         $rows = $conn->fetchAllAssociative(
             'SELECT id, descricao, titular
              FROM contas_bancarias
-             WHERE ativo = true
+             WHERE ativo = true' . $filtroProprietario . '
                AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
                  OR unaccent(LOWER(COALESCE(titular, \'\'))) LIKE unaccent(LOWER(:q)))
              ORDER BY descricao ASC

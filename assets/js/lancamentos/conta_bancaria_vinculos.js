@@ -53,7 +53,9 @@ export function initContaBancariaVinculos() {
 
     async function buscar(q) {
       try {
-        const resp = await fetch(`${cbUrl}?q=${encodeURIComponent(q)}`);
+        const flagProp = document.getElementById('filtro_conta_proprietario');
+        const propParam = flagProp && !flagProp.checked ? '0' : '1';
+        const resp = await fetch(`${cbUrl}?q=${encodeURIComponent(q)}&proprietario=${propParam}`);
         if (!resp.ok) return;
         renderizar(await resp.json());
       } catch (err) { console.error('[cb-autocomplete] erro:', err); }
