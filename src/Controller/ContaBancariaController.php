@@ -34,9 +34,16 @@ class ContaBancariaController extends AbstractController
             ->addSelect('p')
             ->orderBy('c.id', 'DESC');
 
+        // Filtro titular: busca em p.nome, c.titular e c.descricao (OR)
+        $titularBusca = trim($request->query->get('titular', ''));
+        if ($titularBusca !== '') {
+            $qb->andWhere('LOWER(p.nome) LIKE LOWER(:titular_q) OR LOWER(c.titular) LIKE LOWER(:titular_q) OR LOWER(c.descricao) LIKE LOWER(:titular_q)')
+               ->setParameter('titular_q', '%' . $titularBusca . '%');
+        }
+
         $filters = [
             new SearchFilterDTO('conta', 'Descrição / Banco', 'text', 'c.descricao', 'LIKE', [], 'Banco, número...', 3),
-            new SearchFilterDTO('titular', 'Titular (proprietário)', 'text', "CONCAT(COALESCE(p.nome, ''), ' ', COALESCE(c.titular, ''), ' ', COALESCE(c.descricao, ''))", 'LIKE', [], 'Nome, titular ou descrição...', 3),
+            new SearchFilterDTO('titular', 'Titular / Descrição', 'text', null, 'NONE', [], 'Nome, titular ou descrição...', 3),
             new SearchFilterDTO('tipo', 'Tipo', 'select', 'c.idPessoa', 'NULL_CHECK', [
                 '' => 'Todos',
                 'null' => 'Almasa (próprias)',
