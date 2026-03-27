@@ -5,15 +5,11 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\PrestacoesContas;
-use App\Entity\Pessoas;
-use App\Entity\Imoveis;
-use App\Repository\PessoaRepository;
-use App\Repository\ImoveisRepository;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -23,11 +19,6 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class PrestacaoContasFiltroType extends AbstractType
 {
-    public function __construct(
-        private PessoaRepository $pessoaRepo,
-        private ImoveisRepository $imovelRepo
-    ) {}
-
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -71,33 +62,11 @@ class PrestacaoContasFiltroType extends AbstractType
                 'required' => false,
             ])
 
-            // === VÍNCULOS ===
-            ->add('proprietario', EntityType::class, [
-                'class' => Pessoas::class,
-                'label' => 'Proprietário',
-                'choice_label' => 'nome',
-                'query_builder' => function (PessoaRepository $repo) {
-                    // Buscar pessoas que são locadores (proprietários)
-                    return $repo->createQueryBuilder('p')
-                        ->innerJoin('p.locadores', 'l')
-                        ->where('l.ativo = true')
-                        ->orderBy('p.nome', 'ASC');
-                },
-                'placeholder' => 'Selecione o proprietário...',
-                'attr' => [
-                    'class' => 'form-select',
-                    'data-action' => 'change->prestacao-contas#carregarImoveis',
-                ],
+            // === VÍNCULOS (autocomplete) ===
+            ->add('proprietario', HiddenType::class, [
                 'required' => true,
             ])
-            ->add('imovel', EntityType::class, [
-                'class' => Imoveis::class,
-                'label' => 'Imóvel',
-                'choice_label' => function (Imoveis $imovel) {
-                    return $imovel->getId() . ' - ' . ($imovel->getEndereco() ?? 'Sem endereço');
-                },
-                'placeholder' => 'Todos os imóveis',
-                'attr' => ['class' => 'form-select'],
+            ->add('imovel', HiddenType::class, [
                 'required' => false,
             ])
 

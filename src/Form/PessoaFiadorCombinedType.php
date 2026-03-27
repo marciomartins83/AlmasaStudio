@@ -10,6 +10,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 
@@ -21,12 +22,9 @@ class PessoaFiadorCombinedType extends AbstractType
             ->add('pessoa', Pessoas::class, [
                 'label' => 'Dados da Pessoa'
             ])
-            ->add('idConjuge', EntityType::class, [
-                'class' => Pessoas::class,
-                'choice_label' => 'nome',
-                'label' => 'Cônjuge (Opcional)',
+            ->add('idConjuge', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
-                'attr' => ['class' => 'form-select']
             ])
             ->add('motivoFianca', TextareaType::class, [
                 'label' => 'Motivo da Fiança',

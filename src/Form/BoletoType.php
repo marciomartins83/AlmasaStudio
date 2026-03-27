@@ -6,13 +6,12 @@ namespace App\Form;
 
 use App\Entity\Boletos;
 use App\Entity\ConfiguracoesApiBanco;
-use App\Entity\Imoveis;
-use App\Entity\Pessoas;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -54,34 +53,16 @@ class BoletoType extends AbstractType
                 ],
             ])
 
-            // === PAGADOR ===
-            ->add('pessoaPagador', EntityType::class, [
-                'class' => Pessoas::class,
-                'choice_label' => 'nome',
-                'label' => 'Pagador',
-                'placeholder' => 'Digite para buscar...',
+            // === PAGADOR (autocomplete) ===
+            ->add('pessoaPagador', HiddenType::class, [
+                'mapped' => false,
                 'required' => true,
-                'attr' => [
-                    'class' => 'form-select',
-                    'data-autocomplete' => 'pessoa'
-                ],
-                'constraints' => [
-                    new Assert\NotBlank(['message' => 'Selecione o pagador']),
-                ],
             ])
 
-            // === IMÓVEL (Opcional) ===
-            ->add('imovel', EntityType::class, [
-                'class' => Imoveis::class,
-                'choice_label' => function (Imoveis $imovel) {
-                    return sprintf('%s - %s', $imovel->getCodigoInterno(), $imovel->getDescricaoResumida() ?? 'Imóvel');
-                },
-                'label' => 'Imóvel',
-                'placeholder' => 'Selecione (opcional)...',
+            // === IMÓVEL (autocomplete) ===
+            ->add('imovel', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
-                'attr' => [
-                    'class' => 'form-select'
-                ],
             ])
 
             // === IDENTIFICAÇÃO ===

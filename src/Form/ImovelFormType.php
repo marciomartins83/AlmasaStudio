@@ -4,14 +4,12 @@ namespace App\Form;
 
 use App\Entity\Imoveis;
 use App\Entity\TiposImoveis;
-use App\Entity\Enderecos;
-use App\Entity\Pessoas;
-use App\Entity\Condominios;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -45,49 +43,29 @@ class ImovelFormType extends AbstractType
                 'required' => true
             ])
 
-            ->add('endereco', EntityType::class, [
-                'class' => Enderecos::class,
-                'choice_label' => 'id', // Será customizado no frontend
-                'placeholder' => 'Selecione o endereço...',
-                'label' => 'Endereço',
-                'attr' => ['class' => 'form-select'],
-                'required' => true
+            ->add('endereco', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
 
-            ->add('condominio', EntityType::class, [
-                'class' => Condominios::class,
-                'choice_label' => 'nome',
-                'placeholder' => 'Nenhum',
-                'label' => 'Condomínio',
-                'attr' => ['class' => 'form-select'],
-                'required' => false
+            ->add('condominio', HiddenType::class, [
+                'mapped' => false,
+                'required' => false,
             ])
 
-            ->add('pessoaProprietario', EntityType::class, [
-                'class' => Pessoas::class,
-                'choice_label' => 'nome',
-                'placeholder' => 'Selecione o proprietário...',
-                'label' => 'Proprietário',
-                'attr' => ['class' => 'form-select'],
-                'required' => true
+            ->add('pessoaProprietario', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
 
-            ->add('pessoaFiador', EntityType::class, [
-                'class' => Pessoas::class,
-                'choice_label' => 'nome',
-                'placeholder' => 'Nenhum',
-                'label' => 'Fiador',
-                'attr' => ['class' => 'form-select'],
-                'required' => false
+            ->add('pessoaFiador', HiddenType::class, [
+                'mapped' => false,
+                'required' => false,
             ])
 
-            ->add('pessoaCorretor', EntityType::class, [
-                'class' => Pessoas::class,
-                'choice_label' => 'nome',
-                'placeholder' => 'Nenhum',
-                'label' => 'Corretor Responsável',
-                'attr' => ['class' => 'form-select'],
-                'required' => false
+            ->add('pessoaCorretor', HiddenType::class, [
+                'mapped' => false,
+                'required' => false,
             ])
 
             // ========== SITUAÇÃO ==========

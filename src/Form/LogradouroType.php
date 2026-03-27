@@ -2,11 +2,9 @@
 namespace App\Form;
 
 use App\Entity\Logradouros;
-use App\Entity\Bairros;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -23,12 +21,9 @@ class LogradouroType extends AbstractType
                 'label' => 'CEP',
                 'attr' => ['class' => 'form-control']
             ])
-            ->add('bairro', EntityType::class, [
-                'class' => Bairros::class,
-                'choice_label' => 'nome',
-                'label' => 'Bairro',
-                'attr' => ['class' => 'form-control'],
-                'placeholder' => 'Selecione um bairro'
+            ->add('bairro', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
         ;
     }

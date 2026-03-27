@@ -48,10 +48,28 @@
 
 <div class="row">
     <div class="col-md-6">
-        {{ form_row(form.contaBancaria) }}
+        {% include '_partials/autocomplete_field.html.twig' with {
+            id: 'vinculo_contaBancaria',
+            name: 'almasa_vinculo_bancario[contaBancaria]',
+            label: 'Conta Bancaria',
+            url: path('app_autocomplete_contas_bancarias'),
+            value: form.contaBancaria.vars.value|default(''),
+            display: preloads.contaBancaria|default(''),
+            placeholder: 'Digite para buscar conta bancaria...',
+            required: true
+        } %}
     </div>
     <div class="col-md-6">
-        {{ form_row(form.almasaPlanoConta) }}
+        {% include '_partials/autocomplete_field.html.twig' with {
+            id: 'vinculo_almasaPlanoConta',
+            name: 'almasa_vinculo_bancario[almasaPlanoConta]',
+            label: 'Conta do Plano de Contas',
+            url: path('app_autocomplete_almasa_plano_contas') ~ '?lancamentos=1',
+            value: form.almasaPlanoConta.vars.value|default(''),
+            display: preloads.almasaPlanoConta|default(''),
+            placeholder: 'Digite para buscar plano de contas...',
+            required: true
+        } %}
     </div>
 </div>
 <div class="row mt-2">

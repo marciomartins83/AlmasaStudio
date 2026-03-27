@@ -89,9 +89,15 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            {{ form_label(form.contaBancaria) }}
-                            {{ form_widget(form.contaBancaria) }}
-                            {{ form_errors(form.contaBancaria) }}
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'repasse_contaBancaria',
+                                name: 'prestacao_contas_repasse[contaBancaria]',
+                                label: 'Conta Bancaria',
+                                url: path('app_autocomplete_contas_bancarias'),
+                                value: form.contaBancaria.vars.value|default(''),
+                                display: preloads.contaBancaria|default(''),
+                                placeholder: 'Digite para buscar conta bancaria...'
+                            } %}
                         </div>
                         <div class="col-md-6">
                             {{ form_label(form.comprovante) }}
@@ -124,4 +130,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

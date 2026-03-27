@@ -49,8 +49,16 @@
             <div class="col-md-2">
                 {{ form_row(form.competencia) }}
             </div>
-            <div class="col-md-4" style="display:none">
-                {{ form_row(form.planoConta) }}
+            <div class="col-md-4">
+                <label class="form-label">Tipo de Lançamento (legado)</label>
+                <div class="autocomplete-wrapper position-relative" data-url="{{ path('app_autocomplete_plano_contas') }}" data-hidden="#{{ form.planoContaId.vars.id }}" data-min="1"{% if planoContaPreload is defined and planoContaPreload %} data-preload-label="{{ planoContaPreload.label }}"{% endif %}>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control autocomplete-display" placeholder="Digite código ou descrição..." autocomplete="off">
+                    </div>
+                    <div class="autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
+                </div>
+                {{ form_widget(form.planoContaId) }}
             </div>
         </div>
 
@@ -201,10 +209,26 @@
     <div class="tab-pane fade" id="tab-vinculos" role="tabpanel">
         <div class="row">
             <div class="col-md-4">
-                {{ form_row(form.contrato) }}
+                <label class="form-label">Contrato</label>
+                <div class="autocomplete-wrapper position-relative" data-url="{{ path('app_autocomplete_contratos') }}" data-hidden="#{{ form.contratoId.vars.id }}" data-min="1"{% if contratoPreload is defined and contratoPreload %} data-preload-label="{{ contratoPreload.label }}"{% endif %}>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control autocomplete-display" placeholder="Buscar contrato..." autocomplete="off">
+                    </div>
+                    <div class="autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
+                </div>
+                {{ form_widget(form.contratoId) }}
             </div>
             <div class="col-md-4">
-                {{ form_row(form.imovel) }}
+                <label class="form-label">Imóvel</label>
+                <div class="autocomplete-wrapper position-relative" data-url="{{ path('app_autocomplete_imoveis') }}" data-hidden="#{{ form.imovelId.vars.id }}" data-min="1"{% if imovelPreload is defined and imovelPreload %} data-preload-label="{{ imovelPreload.label }}"{% endif %}>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control autocomplete-display" placeholder="Buscar imóvel..." autocomplete="off">
+                    </div>
+                    <div class="autocomplete-results list-group shadow" style="display:none; position:absolute; z-index:1000; width:100%; max-height:250px; overflow-y:auto;"></div>
+                </div>
+                {{ form_widget(form.imovelId) }}
             </div>
             <div class="col-md-4">
                 <label class="form-label">Conta Bancária</label>
@@ -412,6 +436,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 <script>
 window.LANCAMENTOS_CONTA_BANCARIA_URL = '{{ path("app_lancamentos_conta_bancaria_autocomplete") }}';
 window.LANCAMENTOS_VINCULOS_URL = '{{ path("app_lancamentos_contas_bancarias_por_plano", {"planoId": "__PLANO_ID__"}) }}';
@@ -452,4 +477,20 @@ window.LANCAMENTOS_AUTOCOMPLETE = {
         preloadId: "{{ pagadorPreload ? pagadorPreload.id : '' }}"
     }
 };
+
+// Preload hidden field values for autocomplete fields (contrato, imovel, planoConta)
+document.addEventListener('DOMContentLoaded', function () {
+    {% if planoContaPreload is defined and planoContaPreload %}
+    var pcHidden = document.getElementById('{{ form.planoContaId.vars.id }}');
+    if (pcHidden) pcHidden.value = '{{ planoContaPreload.id }}';
+    {% endif %}
+    {% if contratoPreload is defined and contratoPreload %}
+    var ctHidden = document.getElementById('{{ form.contratoId.vars.id }}');
+    if (ctHidden) ctHidden.value = '{{ contratoPreload.id }}';
+    {% endif %}
+    {% if imovelPreload is defined and imovelPreload %}
+    var imHidden = document.getElementById('{{ form.imovelId.vars.id }}');
+    if (imHidden) imHidden.value = '{{ imovelPreload.id }}';
+    {% endif %}
+});
 </script>

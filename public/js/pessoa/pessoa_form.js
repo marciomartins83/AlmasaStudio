@@ -424,8 +424,23 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setFormValue(window.FORM_IDS.cod, pessoa.cod || '');
 
         window.setSelectValue(window.FORM_IDS.estadoCivil, pessoa.estadoCivil || '');
-        window.setSelectValue(window.FORM_IDS.nacionalidade, pessoa.nacionalidade || '');
-        window.setSelectValue(window.FORM_IDS.naturalidade, pessoa.naturalidade || '');
+
+        // Nacionalidade e Naturalidade: autocomplete (hidden + display)
+        window.setFormValue(window.FORM_IDS.nacionalidade, pessoa.nacionalidade || '');
+        var nacDisplay = document.getElementById(window.FORM_IDS.nacionalidade + '_display');
+        if (nacDisplay) {
+            nacDisplay.value = pessoa.nacionalidadeNome || '';
+            var nacClear = nacDisplay.closest('.autocomplete-wrapper')?.querySelector('.autocomplete-clear');
+            if (nacClear) nacClear.style.display = pessoa.nacionalidadeNome ? '' : 'none';
+        }
+
+        window.setFormValue(window.FORM_IDS.naturalidade, pessoa.naturalidade || '');
+        var natDisplay = document.getElementById(window.FORM_IDS.naturalidade + '_display');
+        if (natDisplay) {
+            natDisplay.value = pessoa.naturalidadeNome || '';
+            var natClear = natDisplay.closest('.autocomplete-wrapper')?.querySelector('.autocomplete-clear');
+            if (natClear) natClear.style.display = pessoa.naturalidadeNome ? '' : 'none';
+        }
 
         const tipoFisicaJuridica = pessoa.fisicaJuridica || (pessoa.cpf ? 'fisica' : 'juridica');
         configurarTipoPessoa(tipoFisicaJuridica);

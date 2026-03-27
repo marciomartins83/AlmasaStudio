@@ -140,12 +140,18 @@ class LancamentosController extends AbstractController
         $pagadorPreload = null;
         $planoDebitoPreload = null;
         $planoCreditoPreload = null;
+        $planoContaPreload = null;
+        $contratoPreload = null;
+        $imovelPreload = null;
 
         if ($form->isSubmitted()) {
             $credorId = $form->get('pessoaCredorId')->getData();
             $pagadorId = $form->get('pessoaPagadorId')->getData();
             $debId = $form->get('planoContaDebito')->getData();
             $credId = $form->get('planoContaCredito')->getData();
+            $planoContaIdVal = $form->get('planoContaId')->getData();
+            $contratoIdVal = $form->get('contratoId')->getData();
+            $imovelIdVal = $form->get('imovelId')->getData();
 
             if ($credorId) {
                 $p = $this->lancamentosService->buscarPessoa((int)$credorId);
@@ -163,6 +169,18 @@ class LancamentosController extends AbstractController
                 $pc = $this->lancamentosService->buscarPlanoConta((int)$credId);
                 if ($pc) $planoCreditoPreload = ['id' => $pc->getId(), 'codigo' => $pc->getCodigo(), 'descricao' => $pc->getDescricao()];
             }
+            if ($planoContaIdVal) {
+                $pcLeg = $this->lancamentosService->buscarPlanoContaLegado((int)$planoContaIdVal);
+                if ($pcLeg) $planoContaPreload = ['id' => $pcLeg->getId(), 'label' => $pcLeg->getCodigo() . ' - ' . $pcLeg->getDescricao()];
+            }
+            if ($contratoIdVal) {
+                $ctr = $this->lancamentosService->buscarContrato((int)$contratoIdVal);
+                if ($ctr) $contratoPreload = ['id' => $ctr->getId(), 'label' => '#' . $ctr->getId() . ' - ' . ($ctr->getImovel() ? $ctr->getImovel()->getCodigoInterno() : 'S/N') . ' (' . ($ctr->getPessoaLocatario() ? $ctr->getPessoaLocatario()->getNome() : 'S/I') . ')'];
+            }
+            if ($imovelIdVal) {
+                $imv = $this->lancamentosService->buscarImovel((int)$imovelIdVal);
+                if ($imv) $imovelPreload = ['id' => $imv->getId(), 'label' => $imv->getCodigoInterno()];
+            }
         }
 
         return $this->render('lancamentos/new.html.twig', [
@@ -172,6 +190,9 @@ class LancamentosController extends AbstractController
             'pagadorPreload' => $pagadorPreload,
             'planoDebitoPreload' => $planoDebitoPreload,
             'planoCreditoPreload' => $planoCreditoPreload,
+            'planoContaPreload' => $planoContaPreload,
+            'contratoPreload' => $contratoPreload,
+            'imovelPreload' => $imovelPreload,
         ]);
     }
 
@@ -208,6 +229,9 @@ class LancamentosController extends AbstractController
         $pagador = $lancamento->getPessoaPagador();
         $pcDeb   = $lancamento->getPlanoContaDebito();
         $pcCred  = $lancamento->getPlanoContaCredito();
+        $pcLegado = $lancamento->getPlanoConta();
+        $contrato = $lancamento->getContrato();
+        $imovel   = $lancamento->getImovel();
 
         return $this->render('lancamentos/edit.html.twig', [
             'form' => $form,
@@ -216,6 +240,9 @@ class LancamentosController extends AbstractController
             'pagadorPreload' => $pagador ? ['id' => $pagador->getIdpessoa(), 'nome' => $pagador->getNome()] : null,
             'planoDebitoPreload'  => $pcDeb  ? ['id' => $pcDeb->getId(),  'codigo' => $pcDeb->getCodigo(),  'descricao' => $pcDeb->getDescricao()]  : null,
             'planoCreditoPreload' => $pcCred ? ['id' => $pcCred->getId(), 'codigo' => $pcCred->getCodigo(), 'descricao' => $pcCred->getDescricao()] : null,
+            'planoContaPreload' => $pcLegado ? ['id' => $pcLegado->getId(), 'label' => $pcLegado->getCodigo() . ' - ' . $pcLegado->getDescricao()] : null,
+            'contratoPreload' => $contrato ? ['id' => $contrato->getId(), 'label' => '#' . $contrato->getId() . ' - ' . ($contrato->getImovel() ? $contrato->getImovel()->getCodigoInterno() : 'S/N') . ' (' . ($contrato->getPessoaLocatario() ? $contrato->getPessoaLocatario()->getNome() : 'S/I') . ')'] : null,
+            'imovelPreload' => $imovel ? ['id' => $imovel->getId(), 'label' => $imovel->getCodigoInterno()] : null,
         ]);
     }
 
@@ -576,15 +603,15 @@ class LancamentosController extends AbstractController
             'data_movimento' => $lancamento->getDataMovimento()->format('Y-m-d'),
             'data_vencimento' => $lancamento->getDataVencimento()->format('Y-m-d'),
             'competencia' => $lancamento->getCompetencia(),
-            'id_plano_conta' => $lancamento->getPlanoConta()?->getId(),
+            'id_plano_conta' => $form->get('planoContaId')->getData() ?: null,
             'id_plano_conta_debito'  => $form->get('planoContaDebito')->getData() ?: null,
             'id_plano_conta_credito' => $form->get('planoContaCredito')->getData() ?: null,
             'historico' => $lancamento->getHistorico(),
             'centro_custo' => $lancamento->getCentroCusto(),
             'id_pessoa_credor' => $form->get('pessoaCredorId')->getData() ?: null,
             'id_pessoa_pagador' => $form->get('pessoaPagadorId')->getData() ?: null,
-            'id_contrato' => $lancamento->getContrato()?->getId(),
-            'id_imovel' => $lancamento->getImovel()?->getId(),
+            'id_contrato' => $form->get('contratoId')->getData() ?: null,
+            'id_imovel' => $form->get('imovelId')->getData() ?: null,
             'id_conta_bancaria' => $form->get('contaBancariaId')->getData() ?: null,
             'valor' => $lancamento->getValor(),
             'valor_desconto' => $lancamento->getValorDesconto(),

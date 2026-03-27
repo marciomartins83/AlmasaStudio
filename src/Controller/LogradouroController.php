@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use App\Form\LogradouroType;
+use App\Repository\BairroRepository;
 use App\Controller\Trait\PaginationRedirectTrait;
 
 /**
@@ -28,10 +29,12 @@ class LogradouroController extends AbstractController
 {
     use PaginationRedirectTrait;
     private LogradouroService $logradouroService;
+    private BairroRepository $bairroRepository;
 
-    public function __construct(LogradouroService $logradouroService)
+    public function __construct(LogradouroService $logradouroService, BairroRepository $bairroRepository)
     {
         $this->logradouroService = $logradouroService;
+        $this->bairroRepository = $bairroRepository;
     }
     public function index(EntityManagerInterface $em, PaginationService $paginator, Request $request): Response
     {
@@ -63,6 +66,14 @@ class LogradouroController extends AbstractController
         if ($form->isSubmitted()) {
             if ($form->isValid()) {
                 try {
+                    // Resolver bairro autocomplete
+                    $bairroId = $form->get('bairro')->getData();
+                    if ($bairroId) {
+                        $bairro = $this->bairroRepository->find((int) $bairroId);
+                        if ($bairro) {
+                            $logradouro->setBairro($bairro);
+                        }
+                    }
                     $this->logradouroService->criarLogradouro($logradouro);
                     $this->addFlash('success', 'Logradouro criado com sucesso!');
                     return $this->redirectToRoute('app_logradouro_index');
@@ -76,6 +87,7 @@ class LogradouroController extends AbstractController
 
         return $this->render('logradouro/new.html.twig', [
             'form' => $form->createView(),
+            'preloads' => [],
         ]);
     }
 
@@ -89,10 +101,22 @@ class LogradouroController extends AbstractController
     public function edit(Request $request, Logradouros $logradouro): Response
     {
         $form = $this->createForm(LogradouroType::class, $logradouro);
+
+        // Pre-fill hidden bairro field
+        $form->get('bairro')->setData($logradouro->getBairro()?->getId());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                // Resolver bairro autocomplete
+                $bairroId = $form->get('bairro')->getData();
+                if ($bairroId) {
+                    $bairro = $this->bairroRepository->find((int) $bairroId);
+                    if ($bairro) {
+                        $logradouro->setBairro($bairro);
+                    }
+                }
                 $this->logradouroService->atualizarLogradouro($logradouro);
                 $this->addFlash('success', 'Logradouro atualizado com sucesso!');
                 return $this->redirectToIndex($request, 'app_logradouro_index');
@@ -101,9 +125,14 @@ class LogradouroController extends AbstractController
             }
         }
 
+        $preloads = [
+            'bairro' => $logradouro->getBairro()?->getNome(),
+        ];
+
         return $this->render('logradouro/edit.html.twig', [
             'form' => $form->createView(),
             'logradouro' => $logradouro,
+            'preloads' => $preloads,
         ]);
     }
 

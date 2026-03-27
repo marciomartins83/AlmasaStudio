@@ -7,6 +7,7 @@ use App\DTO\SortOptionDTO;
 use App\Entity\PessoasLocadores;
 use App\Form\PessoaLocadorType;
 use App\Repository\PessoaLocadorRepository;
+use App\Repository\PessoaRepository;
 use App\Service\PaginationService;
 use App\Service\PessoaLocadorService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,10 +22,12 @@ class PessoaLocadorController extends AbstractController
 {
     use PaginationRedirectTrait;
     private PessoaLocadorService $pessoaLocadorService;
+    private PessoaRepository $pessoaRepository;
 
-    public function __construct(PessoaLocadorService $pessoaLocadorService)
+    public function __construct(PessoaLocadorService $pessoaLocadorService, PessoaRepository $pessoaRepository)
     {
         $this->pessoaLocadorService = $pessoaLocadorService;
+        $this->pessoaRepository = $pessoaRepository;
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -61,6 +64,14 @@ class PessoaLocadorController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Resolver pessoa autocomplete
+            $pessoaId = $form->get('pessoa')->getData();
+            if ($pessoaId) {
+                $pessoa = $this->pessoaRepository->find((int) $pessoaId);
+                if ($pessoa) {
+                    $pessoaLocador->setPessoa($pessoa);
+                }
+            }
             $this->pessoaLocadorService->criar($pessoaLocador);
 
             $this->addFlash('success', 'Pessoa Locador criada com sucesso!');
@@ -70,6 +81,7 @@ class PessoaLocadorController extends AbstractController
         return $this->render('pessoa_locador/new.html.twig', [
             'pessoa_locador' => $pessoaLocador,
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -85,17 +97,34 @@ class PessoaLocadorController extends AbstractController
     public function edit(Request $request, PessoasLocadores $pessoaLocador, EntityManagerInterface $entityManager): Response
     {
         $form = $this->createForm(PessoaLocadorType::class, $pessoaLocador);
+
+        // Pre-fill hidden pessoa field
+        $form->get('pessoa')->setData($pessoaLocador->getPessoa()?->getIdpessoa());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Resolver pessoa autocomplete
+            $pessoaId = $form->get('pessoa')->getData();
+            if ($pessoaId) {
+                $pessoa = $this->pessoaRepository->find((int) $pessoaId);
+                if ($pessoa) {
+                    $pessoaLocador->setPessoa($pessoa);
+                }
+            }
             $this->pessoaLocadorService->atualizar();
             $this->addFlash('success', 'Pessoa Locador atualizada com sucesso!');
             return $this->redirectToIndex($request, 'app_pessoa_locador_index');
         }
 
+        $preloads = [
+            'pessoa' => $pessoaLocador->getPessoa()?->getNome(),
+        ];
+
         return $this->render('pessoa_locador/edit.html.twig', [
             'pessoa_locador' => $pessoaLocador,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

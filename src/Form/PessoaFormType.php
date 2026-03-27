@@ -4,8 +4,6 @@ namespace App\Form;
 
 use App\Entity\Pessoas;
 use App\Entity\EstadoCivil;
-use App\Entity\Nacionalidade;
-use App\Entity\Naturalidade;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -65,21 +63,13 @@ class PessoaFormType extends AbstractType
                 'required' => false,
             ])
             
-            ->add('nacionalidade', EntityType::class, [
-                'class' => Nacionalidade::class,
-                'choice_label' => 'nome',
-                'placeholder' => 'Selecione...',
-                'label' => 'Nacionalidade',
-                'attr' => ['class' => 'form-select'],
+            ->add('nacionalidade', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
-            
-            ->add('naturalidade', EntityType::class, [
-                'class' => Naturalidade::class,
-                'choice_label' => 'nome',
-                'placeholder' => 'Selecione...',
-                'label' => 'Naturalidade',
-                'attr' => ['class' => 'form-select'],
+
+            ->add('naturalidade', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
             

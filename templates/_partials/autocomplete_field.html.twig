@@ -1,0 +1,46 @@
+{#
+  Autocomplete field reutilizavel.
+
+  Parametros:
+    - id:           ID unico do campo (ex: 'pessoa_proprietario')
+    - name:         Nome do campo hidden para submit (ex: 'imovel_form[pessoaProprietario]')
+    - label:        Label do campo (ex: 'Proprietário')
+    - url:          URL do endpoint de busca (ex: path('app_autocomplete_pessoas'))
+    - value:        Valor atual (ID) — para modo edicao
+    - display:      Texto atual — para modo edicao
+    - required:     true/false (default false)
+    - placeholder:  Texto placeholder (default 'Digite para buscar...')
+    - min:          Caracteres minimos para buscar (default 2)
+    - icon:         Icone FontAwesome (default 'fa-search')
+    - col_class:    Classe CSS da coluna (default '')
+#}
+{% set _id = id|default('ac_' ~ random()) %}
+{% set _icon = icon|default('fa-search') %}
+{% set _min = min|default(2) %}
+{% set _placeholder = placeholder|default('Digite para buscar...') %}
+
+{% if label is defined and label %}
+<label for="{{ _id }}_display" class="form-label">{{ label }}{% if required|default(false) %} <span class="text-danger">*</span>{% endif %}</label>
+{% endif %}
+<div class="autocomplete-wrapper position-relative"
+     data-url="{{ url }}"
+     data-hidden="#{{ _id }}"
+     data-min="{{ _min }}"
+     {% if display|default('') %}data-preload-label="{{ display }}"{% endif %}>
+    <div class="input-group">
+        <span class="input-group-text"><i class="fas {{ _icon }}"></i></span>
+        <input type="text"
+               id="{{ _id }}_display"
+               class="form-control autocomplete-display"
+               placeholder="{{ _placeholder }}"
+               autocomplete="off"
+               {% if display|default('') %}value="{{ display }}"{% endif %}>
+        {% if display|default('') %}
+        <button type="button" class="btn btn-outline-secondary autocomplete-clear" onclick="this.closest('.autocomplete-wrapper').querySelector('.autocomplete-display').value='';document.getElementById('{{ _id }}').value='';this.style.display='none';">
+            <i class="fas fa-times"></i>
+        </button>
+        {% endif %}
+    </div>
+    <div class="autocomplete-results list-group position-absolute w-100" style="display:none;z-index:1050;max-height:250px;overflow-y:auto"></div>
+</div>
+<input type="hidden" id="{{ _id }}" name="{{ name }}" value="{{ value|default('') }}">

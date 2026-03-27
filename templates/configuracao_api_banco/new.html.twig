@@ -61,15 +61,29 @@
                         <div class="tab-pane fade show active" id="dados" role="tabpanel">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    {{ form_label(form.banco) }}
-                                    {{ form_widget(form.banco, {'attr': {'id': 'config_banco'}}) }}
-                                    {{ form_errors(form.banco) }}
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'config_banco',
+                                        name: 'configuracao_api_banco[banco]',
+                                        label: 'Banco',
+                                        url: path('app_autocomplete_bancos'),
+                                        value: form.banco.vars.value|default(''),
+                                        display: preloads.banco|default(''),
+                                        placeholder: 'Digite para buscar banco...',
+                                        required: true
+                                    } %}
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    {{ form_label(form.contaBancaria) }}
-                                    {{ form_widget(form.contaBancaria, {'attr': {'id': 'config_contaBancaria'}}) }}
-                                    {{ form_errors(form.contaBancaria) }}
-                                    <small class="text-muted">As contas serão filtradas pelo banco selecionado</small>
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'config_contaBancaria',
+                                        name: 'configuracao_api_banco[contaBancaria]',
+                                        label: 'Conta Bancaria',
+                                        url: path('app_autocomplete_contas_bancarias'),
+                                        value: form.contaBancaria.vars.value|default(''),
+                                        display: preloads.contaBancaria|default(''),
+                                        placeholder: 'Digite para buscar conta bancaria...',
+                                        required: true
+                                    } %}
+                                    <small class="text-muted">Digite para buscar conta bancaria</small>
                                 </div>
                             </div>
                             <div class="row">
@@ -172,5 +186,6 @@
         contasPorBanco: '{{ path('app_configuracao_api_banco_api_contas_por_banco', {bancoId: '__BANCO_ID__'}) }}'
     };
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 <script src="{{ asset('build/configuracao_api_banco.js') }}"></script>
 {% endblock %}

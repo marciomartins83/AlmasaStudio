@@ -2,13 +2,11 @@
 namespace App\Form;
 
 use App\Entity\ContasBancarias;
-use App\Entity\Agencias;
-use App\Entity\Bancos;
-use App\Entity\Pessoas;
 use App\Entity\TiposContasBancarias;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -18,12 +16,9 @@ class ContaBancariaType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('idPessoa', EntityType::class, [
-                'class' => Pessoas::class,
-                'choice_label' => 'nome',
-                'label' => 'Titular da Conta',
-                'placeholder' => 'Selecione o titular...',
-                'attr' => ['class' => 'form-select']
+            ->add('idPessoa', HiddenType::class, [
+                'mapped' => false,
+                'required' => false,
             ])
             ->add('codigo', TextType::class, [
                 'label' => 'Número da Conta',
@@ -34,17 +29,13 @@ class ContaBancariaType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Dígito verificador', 'maxlength' => '2']
             ])
-            ->add('idBanco', EntityType::class, [
-                'class' => Bancos::class,
-                'choice_label' => 'nome',
-                'label' => 'Banco',
-                'attr' => ['class' => 'form-control']
+            ->add('idBanco', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
-            ->add('idAgencia', EntityType::class, [
-                'class' => Agencias::class,
-                'choice_label' => 'codigo',
-                'label' => 'Agência',
-                'attr' => ['class' => 'form-control']
+            ->add('idAgencia', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
             ->add('idTipoConta', EntityType::class, [
                 'class' => TiposContasBancarias::class,

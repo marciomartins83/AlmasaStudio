@@ -33,7 +33,16 @@
                                 {{ form_row(form.logradouro) }}
                             </div>
                             <div class="col-md-6">
-                                {{ form_row(form.bairro) }}
+                                {% include '_partials/autocomplete_field.html.twig' with {
+                                    id: 'logradouro_bairro',
+                                    name: 'logradouro[bairro]',
+                                    label: 'Bairro',
+                                    url: path('app_autocomplete_bairros'),
+                                    value: form.bairro.vars.value|default(''),
+                                    display: preloads.bairro|default(''),
+                                    placeholder: 'Digite para buscar bairro...',
+                                    required: true
+                                } %}
                             </div>
                         </div>
                         <div class="row">
@@ -61,4 +70,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

@@ -8,7 +8,9 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\AlmasaVinculoBancario;
 use App\Form\AlmasaVinculoBancarioType;
+use App\Repository\AlmasaPlanoContasRepository;
 use App\Repository\AlmasaVinculoBancarioRepository;
+use App\Repository\ContasBancariasRepository;
 use App\Repository\PessoaRepository;
 use App\Service\AlmasaVinculoBancarioService;
 use App\Service\PaginationService;
@@ -25,7 +27,9 @@ class AlmasaVinculoBancarioController extends AbstractController
     public function __construct(
         private AlmasaVinculoBancarioService $service,
         private AlmasaVinculoBancarioRepository $repository,
-        private PaginationService $paginator
+        private PaginationService $paginator,
+        private ContasBancariasRepository $contaBancariaRepo,
+        private AlmasaPlanoContasRepository $planoContasRepo
     ) {}
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -132,6 +136,22 @@ class AlmasaVinculoBancarioController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                // Resolver autocomplete IDs
+                $contaBancariaId = $form->get('contaBancaria')->getData();
+                if ($contaBancariaId) {
+                    $contaBancaria = $this->contaBancariaRepo->find((int) $contaBancariaId);
+                    if ($contaBancaria) {
+                        $vinculo->setContaBancaria($contaBancaria);
+                    }
+                }
+                $planoContaId = $form->get('almasaPlanoConta')->getData();
+                if ($planoContaId) {
+                    $planoConta = $this->planoContasRepo->find((int) $planoContaId);
+                    if ($planoConta) {
+                        $vinculo->setAlmasaPlanoConta($planoConta);
+                    }
+                }
+
                 $this->service->criar($vinculo);
                 $this->addFlash('success', 'Vinculo bancario criado com sucesso!');
                 return $this->redirectToRoute('app_almasa_vinculo_bancario_index');
@@ -144,6 +164,7 @@ class AlmasaVinculoBancarioController extends AbstractController
             'vinculo' => $vinculo,
             'form' => $form,
             'pessoaPreload' => null,
+            'preloads' => [],
         ]);
     }
 
@@ -159,10 +180,31 @@ class AlmasaVinculoBancarioController extends AbstractController
     public function edit(Request $request, AlmasaVinculoBancario $vinculo): Response
     {
         $form = $this->createForm(AlmasaVinculoBancarioType::class, $vinculo);
+
+        // Pre-fill hidden autocomplete fields
+        $form->get('contaBancaria')->setData($vinculo->getContaBancaria()?->getId());
+        $form->get('almasaPlanoConta')->setData($vinculo->getAlmasaPlanoConta()?->getId());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                // Resolver autocomplete IDs
+                $contaBancariaId = $form->get('contaBancaria')->getData();
+                if ($contaBancariaId) {
+                    $contaBancaria = $this->contaBancariaRepo->find((int) $contaBancariaId);
+                    if ($contaBancaria) {
+                        $vinculo->setContaBancaria($contaBancaria);
+                    }
+                }
+                $planoContaId = $form->get('almasaPlanoConta')->getData();
+                if ($planoContaId) {
+                    $planoConta = $this->planoContasRepo->find((int) $planoContaId);
+                    if ($planoConta) {
+                        $vinculo->setAlmasaPlanoConta($planoConta);
+                    }
+                }
+
                 $this->service->atualizar($vinculo);
                 $this->addFlash('success', 'Vinculo bancario atualizado com sucesso!');
                 return $this->redirectToRoute('app_almasa_vinculo_bancario_index');
@@ -171,13 +213,21 @@ class AlmasaVinculoBancarioController extends AbstractController
             }
         }
 
-        $pessoa = $vinculo->getContaBancaria()->getIdPessoa();
+        $pessoa = $vinculo->getContaBancaria()?->getIdPessoa();
         $pessoaPreload = $pessoa ? ['id' => $pessoa->getIdpessoa(), 'nome' => $pessoa->getNome()] : null;
+
+        $cb = $vinculo->getContaBancaria();
+        $pc = $vinculo->getAlmasaPlanoConta();
+        $preloads = [
+            'contaBancaria' => $cb ? $cb->getDescricao() : '',
+            'almasaPlanoConta' => $pc ? ($pc->getCodigo() . ' - ' . $pc->getDescricao()) : '',
+        ];
 
         return $this->render('almasa_vinculo_bancario/edit.html.twig', [
             'vinculo' => $vinculo,
             'form' => $form,
             'pessoaPreload' => $pessoaPreload,
+            'preloads' => $preloads,
         ]);
     }
 

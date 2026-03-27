@@ -6,6 +6,7 @@ use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
 use App\Entity\ConfiguracoesApiBanco;
 use App\Form\ConfiguracaoApiBancoType;
+use App\Repository\BancosRepository;
 use App\Repository\ConfiguracoesApiBancoRepository;
 use App\Repository\ContasBancariasRepository;
 use App\Service\ConfiguracaoApiBancoService;
@@ -20,7 +21,9 @@ use Symfony\Component\Routing\Annotation\Route;
 class ConfiguracaoApiBancoController extends AbstractController
 {
     public function __construct(
-        private ConfiguracaoApiBancoService $service
+        private ConfiguracaoApiBancoService $service,
+        private BancosRepository $bancoRepo,
+        private ContasBancariasRepository $contaBancariaRepo
     ) {}
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -61,14 +64,31 @@ class ConfiguracaoApiBancoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $contaBancariaId = $configuracao->getContaBancaria()->getId();
+                // Resolver autocomplete IDs
+                $bancoId = $form->get('banco')->getData();
+                if ($bancoId) {
+                    $banco = $this->bancoRepo->find((int) $bancoId);
+                    if ($banco) {
+                        $configuracao->setBanco($banco);
+                    }
+                }
+                $contaBancariaId = $form->get('contaBancaria')->getData();
+                if ($contaBancariaId) {
+                    $contaBancaria = $this->contaBancariaRepo->find((int) $contaBancariaId);
+                    if ($contaBancaria) {
+                        $configuracao->setContaBancaria($contaBancaria);
+                    }
+                }
+
+                $cbId = $configuracao->getContaBancaria()?->getId();
                 $ambiente = $configuracao->getAmbiente();
 
-                if ($this->service->existeConfiguracaoDuplicada($contaBancariaId, $ambiente)) {
+                if ($cbId && $this->service->existeConfiguracaoDuplicada($cbId, $ambiente)) {
                     $this->addFlash('error', 'Já existe uma configuração para esta conta bancária neste ambiente.');
                     return $this->render('configuracao_api_banco/new.html.twig', [
                         'configuracao' => $configuracao,
                         'form' => $form,
+                        'preloads' => [],
                     ]);
                 }
 
@@ -86,6 +106,7 @@ class ConfiguracaoApiBancoController extends AbstractController
         return $this->render('configuracao_api_banco/new.html.twig', [
             'configuracao' => $configuracao,
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -99,18 +120,44 @@ class ConfiguracaoApiBancoController extends AbstractController
         }
 
         $form = $this->createForm(ConfiguracaoApiBancoType::class, $configuracao);
+
+        // Pre-fill hidden autocomplete fields
+        $form->get('banco')->setData($configuracao->getBanco()?->getId());
+        $form->get('contaBancaria')->setData($configuracao->getContaBancaria()?->getId());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $contaBancariaId = $configuracao->getContaBancaria()->getId();
+                // Resolver autocomplete IDs
+                $bancoId = $form->get('banco')->getData();
+                if ($bancoId) {
+                    $banco = $this->bancoRepo->find((int) $bancoId);
+                    if ($banco) {
+                        $configuracao->setBanco($banco);
+                    }
+                }
+                $contaBancariaId = $form->get('contaBancaria')->getData();
+                if ($contaBancariaId) {
+                    $contaBancaria = $this->contaBancariaRepo->find((int) $contaBancariaId);
+                    if ($contaBancaria) {
+                        $configuracao->setContaBancaria($contaBancaria);
+                    }
+                }
+
+                $cbId = $configuracao->getContaBancaria()?->getId();
                 $ambiente = $configuracao->getAmbiente();
 
-                if ($this->service->existeConfiguracaoDuplicada($contaBancariaId, $ambiente, $id)) {
+                if ($cbId && $this->service->existeConfiguracaoDuplicada($cbId, $ambiente, $id)) {
                     $this->addFlash('error', 'Já existe outra configuração para esta conta bancária neste ambiente.');
+                    $preloads = [
+                        'banco' => $configuracao->getBanco()?->getNome(),
+                        'contaBancaria' => $configuracao->getContaBancaria()?->getDescricao(),
+                    ];
                     return $this->render('configuracao_api_banco/edit.html.twig', [
                         'configuracao' => $configuracao,
                         'form' => $form,
+                        'preloads' => $preloads,
                     ]);
                 }
 
@@ -125,9 +172,15 @@ class ConfiguracaoApiBancoController extends AbstractController
             }
         }
 
+        $preloads = [
+            'banco' => $configuracao->getBanco()?->getNome(),
+            'contaBancaria' => $configuracao->getContaBancaria()?->getDescricao(),
+        ];
+
         return $this->render('configuracao_api_banco/edit.html.twig', [
             'configuracao' => $configuracao,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

@@ -3,13 +3,11 @@
 namespace App\Form;
 
 use App\Entity\ConfiguracoesApiBanco;
-use App\Entity\Bancos;
-use App\Entity\ContasBancarias;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -21,26 +19,13 @@ class ConfiguracaoApiBancoType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('banco', EntityType::class, [
-                'class' => Bancos::class,
-                'choice_label' => function (Bancos $banco) {
-                    return sprintf('%03d - %s', $banco->getNumero(), $banco->getNome());
-                },
-                'label' => 'Banco',
-                'placeholder' => 'Selecione o banco...',
-                'attr' => ['class' => 'form-select'],
-                'required' => true
+            ->add('banco', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
-            ->add('contaBancaria', EntityType::class, [
-                'class' => ContasBancarias::class,
-                'choice_label' => function (ContasBancarias $conta) {
-                    $titular = $conta->getTitular() ?? 'Sem titular';
-                    return sprintf('%s-%s (%s)', $conta->getCodigo(), $conta->getDigitoConta() ?? '0', $titular);
-                },
-                'label' => 'Conta Bancária',
-                'placeholder' => 'Selecione a conta...',
-                'attr' => ['class' => 'form-select'],
-                'required' => true
+            ->add('contaBancaria', HiddenType::class, [
+                'mapped' => false,
+                'required' => true,
             ])
             ->add('convenio', TextType::class, [
                 'label' => 'Convênio',

@@ -60,17 +60,30 @@
                             <small class="text-muted">Banco e conta para emissão</small>
                         </div>
                         <div class="col-md-6 mb-3">
-                            {{ form_label(form.pessoaPagador) }}
-                            {{ form_widget(form.pessoaPagador, {'attr': {'class': 'form-select select2-pessoa'}}) }}
-                            {{ form_errors(form.pessoaPagador) }}
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'boleto_pessoaPagador',
+                                name: 'boleto[pessoaPagador]',
+                                label: 'Pagador',
+                                url: path('app_autocomplete_pessoas'),
+                                value: form.pessoaPagador.vars.value|default(''),
+                                display: preloads.pessoaPagador|default(''),
+                                placeholder: 'Digite para buscar pagador...',
+                                required: true
+                            } %}
                             <small class="text-muted">Quem vai pagar o boleto</small>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            {{ form_label(form.imovel) }}
-                            {{ form_widget(form.imovel) }}
-                            {{ form_errors(form.imovel) }}
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'boleto_imovel',
+                                name: 'boleto[imovel]',
+                                label: 'Imóvel',
+                                url: path('app_autocomplete_imoveis'),
+                                value: form.imovel.vars.value|default(''),
+                                display: preloads.imovel|default(''),
+                                placeholder: 'Digite para buscar imóvel...'
+                            } %}
                             <small class="text-muted">Vincular a um imóvel (opcional)</small>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -275,6 +288,7 @@
 {% block javascripts %}
 {{ parent() }}
 {{ encore_entry_script_tags('boleto_form') }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Toggle campos condicionais
@@ -331,9 +345,9 @@
             }
 
             // Pagador
-            const pagadorSelect = document.getElementById('{{ form.pessoaPagador.vars.id }}');
-            if (pagadorSelect && pagadorSelect.selectedIndex > 0) {
-                document.getElementById('resumoPagador').textContent = pagadorSelect.options[pagadorSelect.selectedIndex].text;
+            const pagadorDisplay = document.getElementById('boleto_pessoaPagador_display');
+            if (pagadorDisplay && pagadorDisplay.value) {
+                document.getElementById('resumoPagador').textContent = pagadorDisplay.value;
             }
 
             // Configuração

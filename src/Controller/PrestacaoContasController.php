@@ -104,8 +104,8 @@ class PrestacaoContasController extends AbstractController
             try {
                 $dados = $form->getData();
                 $filtros = [
-                    'proprietario' => $dados['proprietario']->getIdpessoa(),
-                    'imovel' => $dados['imovel']?->getId(),
+                    'proprietario' => (int) $dados['proprietario'],
+                    'imovel' => $dados['imovel'] ? (int) $dados['imovel'] : null,
                     'data_inicio' => $dados['dataInicio'],
                     'data_fim' => $dados['dataFim'],
                     'tipo_periodo' => $dados['tipoPeriodo'],
@@ -132,6 +132,7 @@ class PrestacaoContasController extends AbstractController
 
         return $this->render('prestacao_contas/gerar.html.twig', [
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -291,6 +292,7 @@ class PrestacaoContasController extends AbstractController
         return $this->render('prestacao_contas/repasse.html.twig', [
             'prestacao' => $prestacao,
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -318,7 +320,7 @@ class PrestacaoContasController extends AbstractController
                 $dadosRepasse = [
                     'data_repasse' => $dados['dataRepasse'],
                     'forma_repasse' => $dados['formaRepasse'],
-                    'conta_bancaria' => $dados['contaBancaria']?->getId(),
+                    'conta_bancaria' => $dados['contaBancaria'] ? (int) $dados['contaBancaria'] : null,
                     'observacoes' => $dados['observacoes'],
                     'comprovante' => $comprovante,
                 ];
@@ -336,6 +338,7 @@ class PrestacaoContasController extends AbstractController
         return $this->render('prestacao_contas/repasse.html.twig', [
             'prestacao' => $prestacao,
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 

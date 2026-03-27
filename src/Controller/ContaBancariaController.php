@@ -63,6 +63,11 @@ class ContaBancariaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $pessoaId  = $form->get('idPessoa')->getData();
+                $bancoId   = $form->get('idBanco')->getData();
+                $agenciaId = $form->get('idAgencia')->getData();
+
+                $this->contaBancariaService->resolverAutocompletes($contaBancaria, $pessoaId, $bancoId, $agenciaId);
                 $this->contaBancariaService->criar($contaBancaria);
                 $this->addFlash('success', 'Conta Bancária criada com sucesso!');
                 return $this->redirectToIndex($request, 'app_conta_bancaria_index');
@@ -71,9 +76,31 @@ class ContaBancariaController extends AbstractController
             }
         }
 
+        // Preservar preloads dos campos unmapped (para não perder dados após erro)
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $pessoaId  = $form->get('idPessoa')->getData();
+            $bancoId   = $form->get('idBanco')->getData();
+            $agenciaId = $form->get('idAgencia')->getData();
+
+            if ($pessoaId) {
+                $p = $this->contaBancariaService->buscarPessoa((int) $pessoaId);
+                if ($p) { $preloads['pessoa'] = $p->getNome(); }
+            }
+            if ($bancoId) {
+                $b = $this->contaBancariaService->buscarBanco((int) $bancoId);
+                if ($b) { $preloads['banco'] = $b->getNome(); }
+            }
+            if ($agenciaId) {
+                $a = $this->contaBancariaService->buscarAgencia((int) $agenciaId);
+                if ($a) { $preloads['agencia'] = $a->getCodigo() . ' — ' . ($a->getNome() ?? ''); }
+            }
+        }
+
         return $this->render('conta_bancaria/new.html.twig', [
             'conta_bancaria' => $contaBancaria,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 
@@ -93,6 +120,11 @@ class ContaBancariaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                $pessoaId  = $form->get('idPessoa')->getData();
+                $bancoId   = $form->get('idBanco')->getData();
+                $agenciaId = $form->get('idAgencia')->getData();
+
+                $this->contaBancariaService->resolverAutocompletes($contaBancaria, $pessoaId, $bancoId, $agenciaId);
                 $this->contaBancariaService->atualizar();
                 $this->addFlash('success', 'Conta Bancária atualizada com sucesso!');
                 return $this->redirectToIndex($request, 'app_conta_bancaria_index');
@@ -101,9 +133,40 @@ class ContaBancariaController extends AbstractController
             }
         }
 
+        // Preloads para autocomplete — do entity (GET) ou do form submitted (POST com erro)
+        $preloads = [];
+        if ($form->isSubmitted()) {
+            $pessoaId  = $form->get('idPessoa')->getData();
+            $bancoId   = $form->get('idBanco')->getData();
+            $agenciaId = $form->get('idAgencia')->getData();
+
+            if ($pessoaId) {
+                $p = $this->contaBancariaService->buscarPessoa((int) $pessoaId);
+                if ($p) { $preloads['pessoa'] = $p->getNome(); }
+            }
+            if ($bancoId) {
+                $b = $this->contaBancariaService->buscarBanco((int) $bancoId);
+                if ($b) { $preloads['banco'] = $b->getNome(); }
+            }
+            if ($agenciaId) {
+                $a = $this->contaBancariaService->buscarAgencia((int) $agenciaId);
+                if ($a) { $preloads['agencia'] = $a->getCodigo() . ' — ' . ($a->getNome() ?? ''); }
+            }
+        } else {
+            // GET request — preload from existing entity
+            $pessoa  = $contaBancaria->getIdPessoa();
+            $banco   = $contaBancaria->getIdBanco();
+            $agencia = $contaBancaria->getIdAgencia();
+
+            if ($pessoa) { $preloads['pessoa'] = $pessoa->getNome(); }
+            if ($banco)  { $preloads['banco']  = $banco->getNome(); }
+            if ($agencia) { $preloads['agencia'] = $agencia->getCodigo() . ' — ' . ($agencia->getNome() ?? ''); }
+        }
+
         return $this->render('conta_bancaria/edit.html.twig', [
             'conta_bancaria' => $contaBancaria,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

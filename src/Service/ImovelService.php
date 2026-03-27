@@ -91,10 +91,11 @@ class ImovelService
      *
      * @param Imoveis $imovel
      * @param array $requestData
+     * @param array $autocompleteIds IDs dos campos autocomplete (pessoaProprietario, pessoaFiador, pessoaCorretor, endereco, condominio)
      * @return void
      * @throws \Exception
      */
-    public function salvarImovel(Imoveis $imovel, array $requestData): void
+    public function salvarImovel(Imoveis $imovel, array $requestData, array $autocompleteIds = []): void
     {
         // Validação de código interno único
         if ($imovel->getCodigoInterno()) {
@@ -105,6 +106,9 @@ class ImovelService
                 throw new \RuntimeException('Código interno já cadastrado.');
             }
         }
+
+        // Resolve campos autocomplete (IDs -> entidades)
+        $this->resolverAutocompleteIds($imovel, $autocompleteIds);
 
         $this->entityManager->getConnection()->beginTransaction();
 
@@ -137,11 +141,15 @@ class ImovelService
      *
      * @param Imoveis $imovel
      * @param array $requestData
+     * @param array $autocompleteIds IDs dos campos autocomplete (pessoaProprietario, pessoaFiador, pessoaCorretor, endereco, condominio)
      * @return void
      * @throws \Exception
      */
-    public function atualizarImovel(Imoveis $imovel, array $requestData): void
+    public function atualizarImovel(Imoveis $imovel, array $requestData, array $autocompleteIds = []): void
     {
+        // Resolve campos autocomplete (IDs -> entidades)
+        $this->resolverAutocompleteIds($imovel, $autocompleteIds);
+
         $this->entityManager->getConnection()->beginTransaction();
 
         try {
@@ -308,9 +316,65 @@ class ImovelService
         return $resultado;
     }
 
+    /**
+     * Formata endereço para label de autocomplete
+     *
+     * @param Enderecos|null $endereco
+     * @return string
+     */
+    public function formatarEnderecoLabel(?Enderecos $endereco): string
+    {
+        return $this->formatarEndereco($endereco);
+    }
+
     // ========================================================================
     // MÉTODOS PRIVADOS (Auxiliares)
     // ========================================================================
+
+    /**
+     * Resolve IDs de autocomplete para entidades e seta no imóvel
+     *
+     * @param Imoveis $imovel
+     * @param array $autocompleteIds
+     * @return void
+     */
+    private function resolverAutocompleteIds(Imoveis $imovel, array $autocompleteIds): void
+    {
+        if (!empty($autocompleteIds['pessoaProprietario'])) {
+            $pessoa = $this->pessoaRepository->find((int) $autocompleteIds['pessoaProprietario']);
+            if ($pessoa) {
+                $imovel->setPessoaProprietario($pessoa);
+            }
+        }
+
+        if (!empty($autocompleteIds['pessoaFiador'])) {
+            $pessoa = $this->pessoaRepository->find((int) $autocompleteIds['pessoaFiador']);
+            $imovel->setPessoaFiador($pessoa);
+        } else {
+            $imovel->setPessoaFiador(null);
+        }
+
+        if (!empty($autocompleteIds['pessoaCorretor'])) {
+            $pessoa = $this->pessoaRepository->find((int) $autocompleteIds['pessoaCorretor']);
+            $imovel->setPessoaCorretor($pessoa);
+        } else {
+            $imovel->setPessoaCorretor(null);
+        }
+
+        if (!empty($autocompleteIds['endereco'])) {
+            $endereco = $this->entityManager->getRepository(Enderecos::class)->find((int) $autocompleteIds['endereco']);
+            if ($endereco) {
+                $imovel->setEndereco($endereco);
+            }
+        }
+
+        if (!empty($autocompleteIds['condominio'])) {
+            $condominio = $this->entityManager->getRepository(Condominios::class)->find((int) $autocompleteIds['condominio']);
+            $imovel->setCondominio($condominio);
+        } else {
+            $imovel->setCondominio(null);
+        }
+    }
 
     /**
      * Salva propriedades do imóvel (N:N)

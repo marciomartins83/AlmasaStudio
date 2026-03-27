@@ -76,17 +76,30 @@
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            {{ form_label(form.proprietario) }}
-                            {{ form_widget(form.proprietario, {'attr': {'id': 'proprietario'}}) }}
-                            {{ form_errors(form.proprietario) }}
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'proprietario',
+                                name: 'prestacao_contas_filtro[proprietario]',
+                                label: 'Proprietario',
+                                url: path('app_autocomplete_pessoas'),
+                                value: form.proprietario.vars.value|default(''),
+                                display: preloads.proprietario|default(''),
+                                placeholder: 'Digite para buscar proprietario...',
+                                required: true
+                            } %}
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            {{ form_label(form.imovel) }}
-                            {{ form_widget(form.imovel, {'attr': {'id': 'imovel'}}) }}
-                            {{ form_errors(form.imovel) }}
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'imovel',
+                                name: 'prestacao_contas_filtro[imovel]',
+                                label: 'Imovel',
+                                url: path('app_autocomplete_imoveis'),
+                                value: form.imovel.vars.value|default(''),
+                                display: preloads.imovel|default(''),
+                                placeholder: 'Digite para buscar imovel (opcional)...'
+                            } %}
                             <small class="text-muted">Deixe em branco para incluir todos os imoveis do proprietario</small>
                         </div>
                     </div>
@@ -178,6 +191,7 @@
 
 {% block javascripts %}
 {{ parent() }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 <script>
     window.ROUTES = {
         preview: '{{ path("app_prestacao_contas_preview") }}',

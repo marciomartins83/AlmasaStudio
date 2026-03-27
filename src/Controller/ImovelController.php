@@ -86,9 +86,18 @@ class ImovelController extends AbstractController
             try {
                 $imovel = $form->getData();
                 $requestData = $request->request->all();
-                
+
+                // Resolve IDs dos campos autocomplete para entidades
+                $autocompleteIds = [
+                    'pessoaProprietario' => $form->get('pessoaProprietario')->getData(),
+                    'pessoaFiador'       => $form->get('pessoaFiador')->getData(),
+                    'pessoaCorretor'     => $form->get('pessoaCorretor')->getData(),
+                    'endereco'           => $form->get('endereco')->getData(),
+                    'condominio'         => $form->get('condominio')->getData(),
+                ];
+
                 // ✅ Thin Controller: Delega para Service
-                $this->imovelService->salvarImovel($imovel, $requestData);
+                $this->imovelService->salvarImovel($imovel, $requestData, $autocompleteIds);
                 $this->addFlash('success', 'Imóvel cadastrado com sucesso!');
                 return $this->redirectToRoute('app_imovel_index');
             } catch (\Exception $e) {
@@ -99,6 +108,7 @@ class ImovelController extends AbstractController
 
         return $this->render('imovel/new.html.twig', [
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -109,14 +119,31 @@ class ImovelController extends AbstractController
     public function edit(Request $request, Imoveis $imovel): Response
     {
         $form = $this->createForm(ImovelFormType::class, $imovel);
+
+        // Preenche campos hidden (unmapped) com IDs atuais para edit
+        $form->get('pessoaProprietario')->setData($imovel->getPessoaProprietario()?->getIdpessoa());
+        $form->get('pessoaFiador')->setData($imovel->getPessoaFiador()?->getIdpessoa());
+        $form->get('pessoaCorretor')->setData($imovel->getPessoaCorretor()?->getIdpessoa());
+        $form->get('endereco')->setData($imovel->getEndereco()?->getId());
+        $form->get('condominio')->setData($imovel->getCondominio()?->getId());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $requestData = $request->request->all();
-                
+
+                // Resolve IDs dos campos autocomplete para entidades
+                $autocompleteIds = [
+                    'pessoaProprietario' => $form->get('pessoaProprietario')->getData(),
+                    'pessoaFiador'       => $form->get('pessoaFiador')->getData(),
+                    'pessoaCorretor'     => $form->get('pessoaCorretor')->getData(),
+                    'endereco'           => $form->get('endereco')->getData(),
+                    'condominio'         => $form->get('condominio')->getData(),
+                ];
+
                 // ✅ Thin Controller: Delega para Service
-                $this->imovelService->atualizarImovel($imovel, $requestData);
+                $this->imovelService->atualizarImovel($imovel, $requestData, $autocompleteIds);
                 $this->addFlash('success', 'Imóvel atualizado com sucesso!');
                 return $this->redirectToRoute('app_imovel_index');
             } catch (\Exception $e) {
@@ -127,10 +154,21 @@ class ImovelController extends AbstractController
 
         // ✅ Thin Controller: Delega para Service
         $dadosCompletos = $this->imovelService->carregarDadosCompletos($imovel->getId());
+
+        // Preloads para autocomplete (exibir valores atuais no edit)
+        $preloads = [
+            'proprietario' => $imovel->getPessoaProprietario()?->getNome(),
+            'fiador'       => $imovel->getPessoaFiador()?->getNome(),
+            'corretor'     => $imovel->getPessoaCorretor()?->getNome(),
+            'endereco'     => $this->imovelService->formatarEnderecoLabel($imovel->getEndereco()),
+            'condominio'   => $imovel->getCondominio()?->getNome(),
+        ];
+
         return $this->render('imovel/edit.html.twig', [
             'form' => $form,
             'imovel' => $imovel,
             'dadosCompletos' => $dadosCompletos,
+            'preloads' => $preloads,
         ]);
     }
 

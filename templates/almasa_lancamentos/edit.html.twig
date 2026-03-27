@@ -33,7 +33,16 @@
                                 {{ form_row(form.tipo) }}
                             </div>
                             <div class="col-md-4">
-                                {{ form_row(form.almasaPlanoConta) }}
+                                {% include '_partials/autocomplete_field.html.twig' with {
+                                    id: 'almasa_lancamento_almasaPlanoConta',
+                                    name: 'almasa_lancamento[almasaPlanoConta]',
+                                    label: 'Plano de Contas Almasa',
+                                    url: path('app_autocomplete_almasa_plano_contas') ~ '?lancamentos=1',
+                                    value: form.almasaPlanoConta.vars.value|default(''),
+                                    display: preloads.almasaPlanoConta|default(''),
+                                    placeholder: 'Digite codigo ou descricao...',
+                                    required: true
+                                } %}
                             </div>
                             <div class="col-md-3">
                                 {{ form_row(form.descricao) }}
@@ -58,7 +67,15 @@
                         </div>
                         <div class="row">
                             <div class="col-md-4">
-                                {{ form_row(form.contaBancaria) }}
+                                {% include '_partials/autocomplete_field.html.twig' with {
+                                    id: 'almasa_lancamento_contaBancaria',
+                                    name: 'almasa_lancamento[contaBancaria]',
+                                    label: 'Conta Bancaria',
+                                    url: path('app_autocomplete_contas_bancarias'),
+                                    value: form.contaBancaria.vars.value|default(''),
+                                    display: preloads.contaBancaria|default(''),
+                                    placeholder: 'Digite para buscar conta...'
+                                } %}
                             </div>
                             <div class="col-md-8">
                                 {{ form_row(form.observacao) }}
@@ -92,4 +109,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

@@ -2,7 +2,10 @@
 
 namespace App\Service;
 
+use App\Entity\Agencias;
+use App\Entity\Bancos;
 use App\Entity\ContasBancarias;
+use App\Entity\Pessoas;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -20,6 +23,51 @@ class ContaBancariaService
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
+    }
+
+    /**
+     * Resolve os IDs dos campos autocomplete e seta as entidades na ContaBancaria
+     */
+    public function resolverAutocompletes(ContasBancarias $contaBancaria, ?string $pessoaId, ?string $bancoId, ?string $agenciaId): void
+    {
+        // Pessoa (titular)
+        if ($pessoaId) {
+            $pessoa = $this->entityManager->getReference(Pessoas::class, (int) $pessoaId);
+            $contaBancaria->setIdPessoa($pessoa);
+        } else {
+            $contaBancaria->setIdPessoa(null);
+        }
+
+        // Banco
+        if ($bancoId) {
+            $banco = $this->entityManager->getReference(Bancos::class, (int) $bancoId);
+            $contaBancaria->setIdBanco($banco);
+        } else {
+            $contaBancaria->setIdBanco(null);
+        }
+
+        // Agencia
+        if ($agenciaId) {
+            $agencia = $this->entityManager->getReference(Agencias::class, (int) $agenciaId);
+            $contaBancaria->setIdAgencia($agencia);
+        } else {
+            $contaBancaria->setIdAgencia(null);
+        }
+    }
+
+    public function buscarPessoa(int $id): ?Pessoas
+    {
+        return $this->entityManager->getRepository(Pessoas::class)->find($id);
+    }
+
+    public function buscarBanco(int $id): ?Bancos
+    {
+        return $this->entityManager->getRepository(Bancos::class)->find($id);
+    }
+
+    public function buscarAgencia(int $id): ?Agencias
+    {
+        return $this->entityManager->getRepository(Agencias::class)->find($id);
     }
 
     public function criar(ContasBancarias $contaBancaria): void

@@ -5,12 +5,6 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\Lancamentos;
-use App\Entity\PlanoContas;
-use App\Entity\AlmasaPlanoContas;
-use App\Entity\ImoveisContratos;
-use App\Entity\Imoveis;
-use App\Entity\ContasBancarias;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -72,22 +66,8 @@ class LancamentosType extends AbstractType
             ])
 
             // === CLASSIFICAÇÃO ===
-            ->add('planoConta', EntityType::class, [
-                'class' => PlanoContas::class,
-                'label' => 'Tipo de Lançamento (legado)',
-                'choice_label' => function (PlanoContas $plano) {
-                    return $plano->getCodigo() . ' - ' . $plano->getDescricao();
-                },
-                'choice_attr' => function (PlanoContas $plano) {
-                    return ['data-tipo' => $plano->getTipo()];
-                },
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('p')
-                        ->where('p.ativo = true')
-                        ->orderBy('p.descricao', 'ASC');
-                },
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('planoContaId', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
 
@@ -161,29 +141,12 @@ class LancamentosType extends AbstractType
             ])
 
             // === VÍNCULOS ===
-            ->add('contrato', EntityType::class, [
-                'class' => ImoveisContratos::class,
-                'label' => 'Contrato',
-                'choice_label' => function (ImoveisContratos $contrato) {
-                    $imovel = $contrato->getImovel();
-                    $locatario = $contrato->getPessoaLocatario();
-                    return sprintf(
-                        '#%d - %s (%s)',
-                        $contrato->getId(),
-                        $imovel ? $imovel->getCodigoInterno() : 'S/N',
-                        $locatario ? $locatario->getNome() : 'S/I'
-                    );
-                },
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('contratoId', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
-            ->add('imovel', EntityType::class, [
-                'class' => Imoveis::class,
-                'label' => 'Imóvel',
-                'choice_label' => 'codigoInterno',
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('imovelId', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
             ->add('contaBancariaId', HiddenType::class, [

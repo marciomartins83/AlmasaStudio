@@ -6,7 +6,17 @@
         <div class="row">
             <div class="col-md-4">{{ form_row(form.tipoImovel) }}</div>
             <div class="col-md-4">{{ form_row(form.quartosDesejados) }}</div>
-            <div class="col-md-4">{{ form_row(form.logradouroDesejado) }}</div>
+            <div class="col-md-4">
+                {% include '_partials/autocomplete_field.html.twig' with {
+                    id: 'pretendente_logradouroDesejado',
+                    name: form.logradouroDesejado.vars.full_name,
+                    label: 'Logradouro Desejado',
+                    url: path('app_autocomplete_logradouros'),
+                    value: form.logradouroDesejado.vars.value|default(''),
+                    display: preloads.logradouroDesejado|default(''),
+                    placeholder: 'Digite para buscar logradouro...'
+                } %}
+            </div>
         </div>
         <div class="row">
             <div class="col-md-4">{{ form_row(form.aluguelMaximo) }}</div>

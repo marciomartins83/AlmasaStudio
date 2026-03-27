@@ -73,6 +73,21 @@ class LancamentosService
         return $this->almasaPlanoContaRepo->find($id);
     }
 
+    public function buscarPlanoContaLegado(int $id): ?\App\Entity\PlanoContas
+    {
+        return $this->planoContaRepo->find($id);
+    }
+
+    public function buscarContrato(int $id): ?\App\Entity\ImoveisContratos
+    {
+        return $this->contratoRepo->find($id);
+    }
+
+    public function buscarImovel(int $id): ?\App\Entity\Imoveis
+    {
+        return $this->imovelRepo->find($id);
+    }
+
     /**
      * Salva novo lançamento
      *

@@ -9,6 +9,8 @@ use App\DTO\SortOptionDTO;
 use App\Entity\AlmasaLancamento;
 use App\Form\AlmasaLancamentoType;
 use App\Repository\AlmasaLancamentoRepository;
+use App\Repository\AlmasaPlanoContasRepository;
+use App\Repository\ContasBancariasRepository;
 use App\Service\AlmasaLancamentoService;
 use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,7 +24,9 @@ class AlmasaLancamentoController extends AbstractController
     public function __construct(
         private AlmasaLancamentoService $service,
         private AlmasaLancamentoRepository $repository,
-        private PaginationService $paginator
+        private PaginationService $paginator,
+        private AlmasaPlanoContasRepository $planoContasRepo,
+        private ContasBancariasRepository $contaBancariaRepo
     ) {}
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -68,6 +72,22 @@ class AlmasaLancamentoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                // Resolver autocomplete IDs
+                $planoContaId = $form->get('almasaPlanoConta')->getData();
+                if ($planoContaId) {
+                    $planoConta = $this->planoContasRepo->find((int) $planoContaId);
+                    if ($planoConta) {
+                        $lancamento->setAlmasaPlanoConta($planoConta);
+                    }
+                }
+                $contaBancariaId = $form->get('contaBancaria')->getData();
+                if ($contaBancariaId) {
+                    $contaBancaria = $this->contaBancariaRepo->find((int) $contaBancariaId);
+                    if ($contaBancaria) {
+                        $lancamento->setContaBancaria($contaBancaria);
+                    }
+                }
+
                 $this->service->criar($lancamento);
                 $this->addFlash('success', 'Lançamento Almasa criado com sucesso!');
                 return $this->redirectToRoute('app_almasa_lancamentos_index');
@@ -79,6 +99,7 @@ class AlmasaLancamentoController extends AbstractController
         return $this->render('almasa_lancamentos/new.html.twig', [
             'lancamento' => $lancamento,
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -94,10 +115,31 @@ class AlmasaLancamentoController extends AbstractController
     public function edit(Request $request, AlmasaLancamento $lancamento): Response
     {
         $form = $this->createForm(AlmasaLancamentoType::class, $lancamento);
+
+        // Pre-fill hidden autocomplete fields
+        $form->get('almasaPlanoConta')->setData($lancamento->getAlmasaPlanoConta()?->getId());
+        $form->get('contaBancaria')->setData($lancamento->getContaBancaria()?->getId());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                // Resolver autocomplete IDs
+                $planoContaId = $form->get('almasaPlanoConta')->getData();
+                if ($planoContaId) {
+                    $planoConta = $this->planoContasRepo->find((int) $planoContaId);
+                    if ($planoConta) {
+                        $lancamento->setAlmasaPlanoConta($planoConta);
+                    }
+                }
+                $contaBancariaId = $form->get('contaBancaria')->getData();
+                if ($contaBancariaId) {
+                    $contaBancaria = $this->contaBancariaRepo->find((int) $contaBancariaId);
+                    if ($contaBancaria) {
+                        $lancamento->setContaBancaria($contaBancaria);
+                    }
+                }
+
                 $this->service->atualizar($lancamento);
                 $this->addFlash('success', 'Lançamento Almasa atualizado com sucesso!');
                 return $this->redirectToRoute('app_almasa_lancamentos_index');
@@ -106,9 +148,17 @@ class AlmasaLancamentoController extends AbstractController
             }
         }
 
+        $pc = $lancamento->getAlmasaPlanoConta();
+        $cb = $lancamento->getContaBancaria();
+        $preloads = [
+            'almasaPlanoConta' => $pc ? ($pc->getCodigo() . ' - ' . $pc->getDescricao()) : '',
+            'contaBancaria' => $cb ? $cb->getDescricao() : '',
+        ];
+
         return $this->render('almasa_lancamentos/edit.html.twig', [
             'lancamento' => $lancamento,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

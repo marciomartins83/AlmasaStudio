@@ -7,6 +7,7 @@ use App\DTO\SortOptionDTO;
 use App\Entity\PessoasCorretores;
 use App\Form\PessoaCorretorType;
 use App\Repository\PessoaCorretorRepository;
+use App\Repository\PessoaRepository;
 use App\Service\PaginationService;
 use App\Service\PessoaCorretorService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,10 +22,12 @@ class PessoaCorretorController extends AbstractController
 {
     use PaginationRedirectTrait;
     private PessoaCorretorService $pessoaCorretorService;
+    private PessoaRepository $pessoaRepository;
 
-    public function __construct(PessoaCorretorService $pessoaCorretorService)
+    public function __construct(PessoaCorretorService $pessoaCorretorService, PessoaRepository $pessoaRepository)
     {
         $this->pessoaCorretorService = $pessoaCorretorService;
+        $this->pessoaRepository = $pessoaRepository;
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -61,6 +64,14 @@ class PessoaCorretorController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Resolver pessoa autocomplete
+            $pessoaId = $form->get('pessoa')->getData();
+            if ($pessoaId) {
+                $pessoa = $this->pessoaRepository->find((int) $pessoaId);
+                if ($pessoa) {
+                    $pessoaCorretor->setPessoa($pessoa);
+                }
+            }
             $this->pessoaCorretorService->criar($pessoaCorretor);
 
             $this->addFlash('success', 'Pessoa Corretor criada com sucesso!');
@@ -70,6 +81,7 @@ class PessoaCorretorController extends AbstractController
         return $this->render('pessoa_corretor/new.html.twig', [
             'pessoa_corretor' => $pessoaCorretor,
             'form' => $form,
+            'preloads' => [],
         ]);
     }
 
@@ -85,17 +97,34 @@ class PessoaCorretorController extends AbstractController
     public function edit(Request $request, PessoasCorretores $pessoaCorretor, EntityManagerInterface $entityManager): Response
     {
         $form = $this->createForm(PessoaCorretorType::class, $pessoaCorretor);
+
+        // Pre-fill hidden pessoa field
+        $form->get('pessoa')->setData($pessoaCorretor->getPessoa()?->getIdpessoa());
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Resolver pessoa autocomplete
+            $pessoaId = $form->get('pessoa')->getData();
+            if ($pessoaId) {
+                $pessoa = $this->pessoaRepository->find((int) $pessoaId);
+                if ($pessoa) {
+                    $pessoaCorretor->setPessoa($pessoa);
+                }
+            }
             $this->pessoaCorretorService->atualizar();
             $this->addFlash('success', 'Pessoa Corretor atualizada com sucesso!');
             return $this->redirectToIndex($request, 'app_pessoa_corretor_index');
         }
 
+        $preloads = [
+            'pessoa' => $pessoaCorretor->getPessoa()?->getNome(),
+        ];
+
         return $this->render('pessoa_corretor/edit.html.twig', [
             'pessoa_corretor' => $pessoaCorretor,
             'form' => $form,
+            'preloads' => $preloads,
         ]);
     }
 

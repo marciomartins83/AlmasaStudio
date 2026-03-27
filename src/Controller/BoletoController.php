@@ -10,6 +10,8 @@ use App\Entity\Boletos;
 use App\Form\BoletoType;
 use App\Repository\BoletosRepository;
 use App\Repository\ConfiguracoesApiBancoRepository;
+use App\Repository\ImoveisRepository;
+use App\Repository\PessoaRepository;
 use App\Service\BoletoSantanderService;
 use App\Service\PaginationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,7 +29,9 @@ class BoletoController extends AbstractController
         private BoletoSantanderService $boletoService,
         private BoletosRepository $boletosRepository,
         private ConfiguracoesApiBancoRepository $configRepository,
-        private PaginationService $paginator
+        private PaginationService $paginator,
+        private PessoaRepository $pessoaRepository,
+        private ImoveisRepository $imoveisRepository
     ) {}
 
     /**
@@ -123,6 +127,22 @@ class BoletoController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
+                // Resolver autocomplete IDs para entidades
+                $pessoaPagadorId = $form->get('pessoaPagador')->getData();
+                if ($pessoaPagadorId) {
+                    $pessoa = $this->pessoaRepository->find((int) $pessoaPagadorId);
+                    if ($pessoa) {
+                        $boleto->setPessoaPagador($pessoa);
+                    }
+                }
+                $imovelId = $form->get('imovel')->getData();
+                if ($imovelId) {
+                    $imovel = $this->imoveisRepository->find((int) $imovelId);
+                    if ($imovel) {
+                        $boleto->setImovel($imovel);
+                    }
+                }
+
                 // O service vai gerar o nosso número e salvar
                 $config = $boleto->getConfiguracaoApi();
                 $boleto->setNossoNumero($this->boletoService->gerarNossoNumero($config));
@@ -155,6 +175,7 @@ class BoletoController extends AbstractController
         return $this->render('boleto/new.html.twig', [
             'form' => $form->createView(),
             'boleto' => $boleto,
+            'preloads' => [],
         ]);
     }
 

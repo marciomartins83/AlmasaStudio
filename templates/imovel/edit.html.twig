@@ -103,19 +103,79 @@
                                     {{ form_row(form.situacaoFinanceira) }}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form_row(form.endereco) }}
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'imovel_form_endereco',
+                                        name: 'imovel_form[endereco]',
+                                        label: 'Endereço',
+                                        url: path('app_autocomplete_enderecos'),
+                                        value: form.endereco.vars.value|default(''),
+                                        display: preloads.endereco|default(''),
+                                        required: true,
+                                        placeholder: 'Digite o endereço...',
+                                        icon: 'fa-map-marker-alt'
+                                    } %}
+                                    {{ form_errors(form.endereco) }}
+                                    {% do form.endereco.setRendered %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form_row(form.condominio) }}
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'imovel_form_condominio',
+                                        name: 'imovel_form[condominio]',
+                                        label: 'Condomínio',
+                                        url: path('app_autocomplete_condominios'),
+                                        value: form.condominio.vars.value|default(''),
+                                        display: preloads.condominio|default(''),
+                                        required: false,
+                                        placeholder: 'Digite o nome do condomínio...',
+                                        icon: 'fa-building'
+                                    } %}
+                                    {{ form_errors(form.condominio) }}
+                                    {% do form.condominio.setRendered %}
                                 </div>
                                 <div class="col-md-4">
-                                    {{ form_row(form.pessoaProprietario) }}
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'imovel_form_pessoaProprietario',
+                                        name: 'imovel_form[pessoaProprietario]',
+                                        label: 'Proprietário',
+                                        url: path('app_autocomplete_pessoas'),
+                                        value: form.pessoaProprietario.vars.value|default(''),
+                                        display: preloads.proprietario|default(''),
+                                        required: true,
+                                        placeholder: 'Digite o nome do proprietário...',
+                                        icon: 'fa-user'
+                                    } %}
+                                    {{ form_errors(form.pessoaProprietario) }}
+                                    {% do form.pessoaProprietario.setRendered %}
                                 </div>
                                 <div class="col-md-4">
-                                    {{ form_row(form.pessoaFiador) }}
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'imovel_form_pessoaFiador',
+                                        name: 'imovel_form[pessoaFiador]',
+                                        label: 'Fiador',
+                                        url: path('app_autocomplete_pessoas'),
+                                        value: form.pessoaFiador.vars.value|default(''),
+                                        display: preloads.fiador|default(''),
+                                        required: false,
+                                        placeholder: 'Digite o nome do fiador...',
+                                        icon: 'fa-user-shield'
+                                    } %}
+                                    {{ form_errors(form.pessoaFiador) }}
+                                    {% do form.pessoaFiador.setRendered %}
                                 </div>
                                 <div class="col-md-4">
-                                    {{ form_row(form.pessoaCorretor) }}
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'imovel_form_pessoaCorretor',
+                                        name: 'imovel_form[pessoaCorretor]',
+                                        label: 'Corretor Responsável',
+                                        url: path('app_autocomplete_pessoas'),
+                                        value: form.pessoaCorretor.vars.value|default(''),
+                                        display: preloads.corretor|default(''),
+                                        required: false,
+                                        placeholder: 'Digite o nome do corretor...',
+                                        icon: 'fa-user-tie'
+                                    } %}
+                                    {{ form_errors(form.pessoaCorretor) }}
+                                    {% do form.pessoaCorretor.setRendered %}
                                 </div>
                                 <div class="col-md-12">
                                     <h6 class="text-muted mt-3">Disponibilidade</h6>
@@ -370,4 +430,5 @@
         propriedades: {{ dadosCompletos.propriedades|json_encode|raw }}
     };
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

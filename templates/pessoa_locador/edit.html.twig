@@ -14,11 +14,64 @@
     <h1><i class="fas fa-edit"></i> Editar Locador</h1>
 
     {{ form_start(form) }}
-    {{ form_widget(form) }}
-    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {% include '_partials/autocomplete_field.html.twig' with {
+                        id: 'pessoa_locador_pessoa',
+                        name: 'pessoa_locador[pessoa]',
+                        label: 'Pessoa',
+                        url: path('app_autocomplete_pessoas'),
+                        value: form.pessoa.vars.value|default(''),
+                        display: preloads.pessoa|default(''),
+                        placeholder: 'Digite para buscar pessoa...',
+                        required: true
+                    } %}
+                </div>
+                <div class="col-md-6">{{ form_row(form.formaRetirada) }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">{{ form_row(form.dependentes) }}</div>
+                <div class="col-md-4">{{ form_row(form.diaRetirada) }}</div>
+                <div class="col-md-4">{{ form_row(form.dataFechamento) }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">{{ form_row(form.carencia) }}</div>
+                <div class="col-md-4">{{ form_row(form.situacao) }}</div>
+                <div class="col-md-4">{{ form_row(form.codigoContabil) }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">{{ form_row(form.protesto) }}</div>
+                <div class="col-md-4">{{ form_row(form.diasProtesto) }}</div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-md-3">{{ form_row(form.cobrarCpmf) }}</div>
+                <div class="col-md-3">{{ form_row(form.etiqueta) }}</div>
+                <div class="col-md-3">{{ form_row(form.cobrarTarifaRec) }}</div>
+                <div class="col-md-3">{{ form_row(form.multaItau) }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">{{ form_row(form.moraDiaria) }}</div>
+                <div class="col-md-3">{{ form_row(form.naoGerarJudicial) }}</div>
+                <div class="col-md-3">{{ form_row(form.enderecoCobranca) }}</div>
+                <div class="col-md-3">{{ form_row(form.condominioConta) }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">{{ form_row(form.extEmail) }}</div>
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Salvar Alteracoes</button>
     <a href="{{ path('app_pessoa_locador_index') }}" class="btn btn-secondary">Voltar</a>
     {{ form_end(form) }}
 
     {{ include('pessoa_locador/_delete_form.html.twig') }}
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {% endblock %}

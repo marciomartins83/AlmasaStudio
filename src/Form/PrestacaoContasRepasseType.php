@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\PrestacoesContas;
-use App\Entity\ContasBancarias;
-use App\Repository\ContasBancariasRepository;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -45,21 +43,7 @@ class PrestacaoContasRepasseType extends AbstractType
                 'attr' => ['class' => 'form-select'],
                 'required' => true,
             ])
-            ->add('contaBancaria', EntityType::class, [
-                'class' => ContasBancarias::class,
-                'label' => 'Conta Bancária',
-                'choice_label' => function (ContasBancarias $conta) {
-                    $banco = $conta->getIdBanco();
-                    $bancoNome = $banco ? $banco->getNome() : 'Sem banco';
-                    return $bancoNome . ' - ' . $conta->getCodigo();
-                },
-                'query_builder' => function (ContasBancariasRepository $repo) {
-                    return $repo->createQueryBuilder('c')
-                        ->where('c.ativo = true')
-                        ->orderBy('c.id', 'ASC');
-                },
-                'placeholder' => 'Selecione a conta...',
-                'attr' => ['class' => 'form-select'],
+            ->add('contaBancaria', HiddenType::class, [
                 'required' => false,
             ])
             ->add('comprovante', FileType::class, [

@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\AlmasaLancamento;
-use App\Entity\AlmasaPlanoContas;
-use App\Entity\ContasBancarias;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -32,20 +30,8 @@ class AlmasaLancamentoType extends AbstractType
                 ],
                 'required' => true,
             ])
-            ->add('almasaPlanoConta', EntityType::class, [
-                'class' => AlmasaPlanoContas::class,
-                'label' => 'Plano de Contas Almasa',
-                'choice_label' => function (AlmasaPlanoContas $conta) {
-                    return $conta->getCodigo() . ' - ' . $conta->getDescricao();
-                },
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('a')
-                        ->where('a.aceitaLancamentos = true')
-                        ->andWhere('a.ativo = true')
-                        ->orderBy('a.codigo', 'ASC');
-                },
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('almasaPlanoConta', HiddenType::class, [
+                'mapped' => false,
                 'required' => true,
             ])
             ->add('descricao', TextType::class, [
@@ -92,17 +78,8 @@ class AlmasaLancamentoType extends AbstractType
                 ],
                 'required' => true,
             ])
-            ->add('contaBancaria', EntityType::class, [
-                'class' => ContasBancarias::class,
-                'label' => 'Conta Bancária',
-                'choice_label' => 'descricao',
-                'query_builder' => function ($repo) {
-                    return $repo->createQueryBuilder('c')
-                        ->where('c.ativo = true')
-                        ->orderBy('c.descricao', 'ASC');
-                },
-                'placeholder' => 'Selecione...',
-                'attr' => ['class' => 'form-select'],
+            ->add('contaBancaria', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
             ])
             ->add('observacao', TextareaType::class, [

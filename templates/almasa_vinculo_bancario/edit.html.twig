@@ -55,6 +55,7 @@
 
 {% block javascripts %}
 {{ parent() }}
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('pessoa_autocomplete') }}
 {{ encore_entry_script_tags('vinculo_bancario') }}
 {% endblock %}

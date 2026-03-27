@@ -4,13 +4,13 @@ namespace App\Form;
 
 use App\Entity\PessoasPretendentes;
 use App\Entity\TiposImoveis;
-use App\Entity\Logradouros;
 use App\Entity\Users;
 use App\Entity\TiposAtendimento;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -41,13 +41,9 @@ class PessoaPretendenteType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control']
             ])
-            ->add('logradouroDesejado', EntityType::class, [
-                'class' => Logradouros::class,
-                'choice_label' => 'logradouro',
-                'label' => 'Logradouro Desejado',
-                'placeholder' => 'Selecione...',
+            ->add('logradouroDesejado', HiddenType::class, [
+                'mapped' => false,
                 'required' => false,
-                'attr' => ['class' => 'form-select']
             ])
             ->add('disponivel', CheckboxType::class, [
                 'label' => 'Disponível para contato?',

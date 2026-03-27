@@ -25,15 +25,18 @@ class PessoaController extends AbstractController
     private PessoaService $pessoaService;
     private ProfissaoService $profissaoService;
     private LoggerInterface $logger;
+    private EntityManagerInterface $entityManager;
 
     public function __construct(
         PessoaService $pessoaService,
         ProfissaoService $profissaoService,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        EntityManagerInterface $entityManager
     ) {
         $this->pessoaService = $pessoaService;
         $this->profissaoService = $profissaoService;
         $this->logger = $logger;
+        $this->entityManager = $entityManager;
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -117,6 +120,22 @@ class PessoaController extends AbstractController
             try {
                 $pessoa = $form->getData();
                 $requestData = $request->request->all();
+                $pessoaFormData = $requestData['pessoa_form'] ?? [];
+
+                // Campos unmapped: nacionalidade e naturalidade (autocomplete HiddenType)
+                $nacionalidadeId = $pessoaFormData['nacionalidade'] ?? null;
+                if ($nacionalidadeId) {
+                    $pessoa->setNacionalidade($this->entityManager->getReference(\App\Entity\Nacionalidade::class, (int) $nacionalidadeId));
+                } else {
+                    $pessoa->setNacionalidade(null);
+                }
+
+                $naturalidadeId = $pessoaFormData['naturalidade'] ?? null;
+                if ($naturalidadeId) {
+                    $pessoa->setNaturalidade($this->entityManager->getReference(\App\Entity\Naturalidade::class, (int) $naturalidadeId));
+                } else {
+                    $pessoa->setNaturalidade(null);
+                }
 
                 // Prepara os dados do cônjuge mesclando dados básicos com as coleções
                 $dadosConjuge = $requestData['novo_conjuge'] ?? [];
@@ -133,7 +152,7 @@ class PessoaController extends AbstractController
 
                 // Merge explícito dos campos raw com os dados do formulário
                 $formData = array_merge(
-                    $requestData['pessoa_form'] ?? [],
+                    $pessoaFormData,
                     [
                         'novo_conjuge' => $dadosConjuge,
                         'temConjuge' => $requestData['temConjuge'] ?? null,
@@ -155,10 +174,10 @@ class PessoaController extends AbstractController
                 $tipoPessoa = $requestData['tipos_pessoa'] ?? [];
 
                 $this->pessoaService->criarPessoa($pessoa, $formData, $tipoPessoa);
-                
+
                 $this->addFlash('success', 'Pessoa cadastrada com sucesso!');
                 return $this->redirectToRoute('app_pessoa_index');
-                
+
             } catch (\RuntimeException $e) {
                 $this->addFlash('error', $e->getMessage());
             } catch (\Exception $e) {
@@ -169,7 +188,13 @@ class PessoaController extends AbstractController
         return $this->render('pessoa/pessoa_form.html.twig', [
             'form' => $form->createView(),
             'isEditMode' => false,
-            'pessoaId' => null
+            'pessoaId' => null,
+            'preloads' => [
+                'nacionalidade' => '',
+                'nacionalidadeId' => '',
+                'naturalidade' => '',
+                'naturalidadeId' => '',
+            ],
         ]);
     }
 
@@ -222,7 +247,8 @@ class PessoaController extends AbstractController
         try {
             $form = $this->createForm($subFormType);
             return $this->render($template, [
-                'form' => $form->createView()
+                'form' => $form->createView(),
+                'preloads' => [],
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Erro ao carregar sub-formulário: ' . $e->getMessage());
@@ -319,7 +345,9 @@ class PessoaController extends AbstractController
                 'dataNascimento' => $pessoa->getDataNascimento()?->format('Y-m-d'),
                 'estadoCivil' => $pessoa->getEstadoCivil()?->getId(),
                 'nacionalidade' => $pessoa->getNacionalidade()?->getId(),
+                'nacionalidadeNome' => $pessoa->getNacionalidade()?->getNome(),
                 'naturalidade' => $pessoa->getNaturalidade()?->getId(),
+                'naturalidadeNome' => $pessoa->getNaturalidade()?->getNome(),
                 'nomePai' => $pessoa->getNomePai(),
                 'nomeMae' => $pessoa->getNomeMae(),
                 'renda' => $pessoa->getRenda(),
@@ -558,8 +586,10 @@ class PessoaController extends AbstractController
                     'nome' => $pessoa->getNome(),
                     'cpf' => $cpf,
                     'data_nascimento' => $pessoa->getDataNascimento() ? $pessoa->getDataNascimento()->format('Y-m-d') : null,
-                    'nacionalidade' => $pessoa->getNacionalidade() ? $pessoa->getNacionalidade()->getNome() : null,
-                    'naturalidade' => $pessoa->getNaturalidade() ? $pessoa->getNaturalidade()->getNome() : null
+                    'nacionalidade' => $pessoa->getNacionalidade() ? $pessoa->getNacionalidade()->getId() : null,
+                    'nacionalidadeNome' => $pessoa->getNacionalidade() ? $pessoa->getNacionalidade()->getNome() : null,
+                    'naturalidade' => $pessoa->getNaturalidade() ? $pessoa->getNaturalidade()->getId() : null,
+                    'naturalidadeNome' => $pessoa->getNaturalidade() ? $pessoa->getNaturalidade()->getNome() : null,
                 ];
             }
 
@@ -658,6 +688,22 @@ class PessoaController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $requestData = $request->request->all();
+                $pessoaFormData = $requestData['pessoa_form'] ?? [];
+
+                // Campos unmapped: nacionalidade e naturalidade (autocomplete HiddenType)
+                $nacionalidadeId = $pessoaFormData['nacionalidade'] ?? null;
+                if ($nacionalidadeId) {
+                    $pessoa->setNacionalidade($this->entityManager->getReference(\App\Entity\Nacionalidade::class, (int) $nacionalidadeId));
+                } else {
+                    $pessoa->setNacionalidade(null);
+                }
+
+                $naturalidadeId = $pessoaFormData['naturalidade'] ?? null;
+                if ($naturalidadeId) {
+                    $pessoa->setNaturalidade($this->entityManager->getReference(\App\Entity\Naturalidade::class, (int) $naturalidadeId));
+                } else {
+                    $pessoa->setNaturalidade(null);
+                }
 
                 // Prepara os dados do cônjuge mesclando dados básicos com as coleções
                 $dadosConjuge = $requestData['novo_conjuge'] ?? [];
@@ -674,7 +720,7 @@ class PessoaController extends AbstractController
 
                 // Merge explícito dos campos raw com os dados do formulário
                 $formData = array_merge(
-                    $requestData['pessoa_form'] ?? [],
+                    $pessoaFormData,
                     [
                         'novo_conjuge' => $dadosConjuge,
                         'temConjuge' => $requestData['temConjuge'] ?? null,
@@ -721,6 +767,12 @@ class PessoaController extends AbstractController
             'pessoaId' => $pessoaId,
             'enderecosPreload' => $enderecos,
             'tiposEnderecos' => $tiposEnderecos,
+            'preloads' => [
+                'nacionalidade' => $pessoa->getNacionalidade()?->getNome(),
+                'nacionalidadeId' => $pessoa->getNacionalidade()?->getId(),
+                'naturalidade' => $pessoa->getNaturalidade()?->getNome(),
+                'naturalidadeId' => $pessoa->getNaturalidade()?->getId(),
+            ],
         ]);
     }
 

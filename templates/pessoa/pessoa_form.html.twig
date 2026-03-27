@@ -126,22 +126,32 @@
                             
                             <div class="row">
                                 <div class="col-md-6">
-                                    <label for="{{ form.nacionalidade.vars.id }}" class="form-label">Nacionalidade</label>
-                                    <div class="input-group">
-                                        {{ form_widget(form.nacionalidade, {'attr': {'class': 'form-select'}}) }}
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNacionalidade">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'pessoa_form_nacionalidade',
+                                        name: 'pessoa_form[nacionalidade]',
+                                        label: 'Nacionalidade',
+                                        url: path('app_autocomplete_nacionalidades'),
+                                        value: preloads.nacionalidadeId|default(''),
+                                        display: preloads.nacionalidade|default(''),
+                                        required: false,
+                                        placeholder: 'Digite a nacionalidade...',
+                                        icon: 'fa-globe',
+                                        min: 1
+                                    } %}
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="{{ form.naturalidade.vars.id }}" class="form-label">Naturalidade</label>
-                                    <div class="input-group">
-                                        {{ form_widget(form.naturalidade, {'attr': {'class': 'form-select'}}) }}
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNaturalidade">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
+                                    {% include '_partials/autocomplete_field.html.twig' with {
+                                        id: 'pessoa_form_naturalidade',
+                                        name: 'pessoa_form[naturalidade]',
+                                        label: 'Naturalidade',
+                                        url: path('app_autocomplete_naturalidades'),
+                                        value: preloads.naturalidadeId|default(''),
+                                        display: preloads.naturalidade|default(''),
+                                        required: false,
+                                        placeholder: 'Digite a naturalidade...',
+                                        icon: 'fa-map-marker-alt',
+                                        min: 2
+                                    } %}
                                 </div>
                             </div>
                             
@@ -541,32 +551,32 @@
                                     
                                     <div class="row mt-3">
                                         <div class="col-md-6">
-                                            <label class="form-label">Nacionalidade</label>
-                                            <div class="input-group">
-                                                <select class="form-select" name="novo_conjuge[nacionalidade]">
-                                                    <option value="">Selecione...</option>
-                                                    {% for nac in form.nacionalidade.vars.choices %}
-                                                        <option value="{{ nac.value }}">{{ nac.label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNacionalidade">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
+                                            {% include '_partials/autocomplete_field.html.twig' with {
+                                                id: 'conjuge_nacionalidade',
+                                                name: 'novo_conjuge[nacionalidade]',
+                                                label: 'Nacionalidade',
+                                                url: path('app_autocomplete_nacionalidades'),
+                                                value: '',
+                                                display: '',
+                                                required: false,
+                                                placeholder: 'Digite a nacionalidade...',
+                                                icon: 'fa-globe',
+                                                min: 1
+                                            } %}
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Naturalidade</label>
-                                            <div class="input-group">
-                                                <select class="form-select" name="novo_conjuge[naturalidade]">
-                                                    <option value="">Selecione...</option>
-                                                    {% for nat in form.naturalidade.vars.choices %}
-                                                        <option value="{{ nat.value }}">{{ nat.label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaNaturalidade">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                            </div>
+                                            {% include '_partials/autocomplete_field.html.twig' with {
+                                                id: 'conjuge_naturalidade',
+                                                name: 'novo_conjuge[naturalidade]',
+                                                label: 'Naturalidade',
+                                                url: path('app_autocomplete_naturalidades'),
+                                                value: '',
+                                                display: '',
+                                                required: false,
+                                                placeholder: 'Digite a naturalidade...',
+                                                icon: 'fa-map-marker-alt',
+                                                min: 2
+                                            } %}
                                         </div>
                                     </div>
                                     
@@ -767,7 +777,8 @@
     window.PESSOA_PRELOAD = null;
 </script>
 
-{% set _v = '20260305d' %}
+{% set _v = '20260327a' %}
+<script src="{{ asset('js/generic_autocomplete.js') }}?v={{ _v }}"></script>
 <script src="{{ asset('js/pessoa/pessoa.js') }}?v={{ _v }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_tipos.js') }}?v={{ _v }}"></script>
 <script src="{{ asset('js/pessoa/pessoa_telefones.js') }}?v={{ _v }}"></script>

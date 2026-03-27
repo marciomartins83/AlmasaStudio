@@ -145,7 +145,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                                         data-cpf="${pessoa.cpf || ''}"
                                                         data-nascimento="${pessoa.data_nascimento || ''}"
                                                         data-nacionalidade="${pessoa.nacionalidade || ''}"
-                                                        data-naturalidade="${pessoa.naturalidade || ''}">
+                                                        data-nacionalidade-nome="${pessoa.nacionalidadeNome || ''}"
+                                                        data-naturalidade="${pessoa.naturalidade || ''}"
+                                                        data-naturalidade-nome="${pessoa.naturalidadeNome || ''}">
                                                     <i class="fas fa-check"></i> Selecionar
                                                 </button>
                                             </div>
@@ -189,7 +191,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 cpf: btn.dataset.cpf,
                 data_nascimento: btn.dataset.nascimento,
                 nacionalidade: btn.dataset.nacionalidade,
-                naturalidade: btn.dataset.naturalidade
+                nacionalidadeNome: btn.dataset.nacionalidadeNome,
+                naturalidade: btn.dataset.naturalidade,
+                naturalidadeNome: btn.dataset.naturalidadeNome
             };
 
             console.log('Cônjuge selecionado:', conjugeData);
@@ -225,8 +229,10 @@ document.addEventListener('DOMContentLoaded', function() {
             nome: document.querySelector('input[name="novo_conjuge[nome]"]'),
             cpf: document.querySelector('input[name="novo_conjuge[cpf]"]'),
             dataNascimento: document.querySelector('input[name="novo_conjuge[data_nascimento]"]'),
-            nacionalidade: document.querySelector('select[name="novo_conjuge[nacionalidade]"]'),
-            naturalidade: document.querySelector('select[name="novo_conjuge[naturalidade]"]')
+            nacionalidade: document.getElementById('conjuge_nacionalidade'),
+            nacionalidadeDisplay: document.getElementById('conjuge_nacionalidade_display'),
+            naturalidade: document.getElementById('conjuge_naturalidade'),
+            naturalidadeDisplay: document.getElementById('conjuge_naturalidade_display')
         };
 
         // Preencher campos de texto
@@ -241,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
             campos.cpf.value = cpfFormatado;
             console.log('CPF carregado:', cpfFormatado);
         }
-        
+
         // Vincular máscara de CPF ao campo de CPF do cônjuge para digitação
         if (campos.cpf) {
             campos.cpf.addEventListener('input', () => {
@@ -257,23 +263,21 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Data nascimento carregada:', conjuge.data_nascimento);
         }
 
-        // Preencher selects (tentar encontrar opção pelo texto)
+        // Preencher autocomplete (hidden + display) para nacionalidade e naturalidade
         if (campos.nacionalidade && conjuge.nacionalidade) {
-            Array.from(campos.nacionalidade.options).forEach(option => {
-                if (option.text.toLowerCase().includes(conjuge.nacionalidade.toLowerCase())) {
-                    option.selected = true;
-                    console.log('Nacionalidade selecionada:', conjuge.nacionalidade);
-                }
-            });
+            campos.nacionalidade.value = conjuge.nacionalidade;
+            if (campos.nacionalidadeDisplay && conjuge.nacionalidadeNome) {
+                campos.nacionalidadeDisplay.value = conjuge.nacionalidadeNome;
+            }
+            console.log('Nacionalidade preenchida:', conjuge.nacionalidade);
         }
 
         if (campos.naturalidade && conjuge.naturalidade) {
-            Array.from(campos.naturalidade.options).forEach(option => {
-                if (option.text.toLowerCase().includes(conjuge.naturalidade.toLowerCase())) {
-                    option.selected = true;
-                    console.log('Naturalidade selecionada:', conjuge.naturalidade);
-                }
-            });
+            campos.naturalidade.value = conjuge.naturalidade;
+            if (campos.naturalidadeDisplay && conjuge.naturalidadeNome) {
+                campos.naturalidadeDisplay.value = conjuge.naturalidadeNome;
+            }
+            console.log('Naturalidade preenchida:', conjuge.naturalidade);
         }
 
         // Marcar campos como readonly para indicar que são de cônjuge existente
