@@ -168,23 +168,8 @@ export function initContaBancariaVinculos() {
     const temCredito = creditoHidden.value && creditoHidden.value !== '';
     const temConta = contaBancariaIdHidden.value && contaBancariaIdHidden.value !== '';
 
-    // Contas a pagar não exigem banco na criação — só na baixa (pagamento)
-    const tipoSelect = document.getElementById('lancamentos_tipo');
-    const tipoPagar = tipoSelect && tipoSelect.value === 'pagar';
-
-    if ((temDebito || temCredito) && !temConta && !tipoPagar) {
-      e.preventDefault();
-      document.getElementById('modal_nome_debito').textContent = debitoDisplay?.value || '—';
-      document.getElementById('modal_nome_credito').textContent = creditoDisplay?.value || '—';
-      document.getElementById('modal_cb_deb_plano_id').value = debitoHidden.value || '';
-      document.getElementById('modal_cb_cred_plano_id').value = creditoHidden.value || '';
-      acModalDeb.reset();
-      acModalCred.reset();
-
-      const modal = new bootstrap.Modal(modalEl);
-      modal.show();
-      setTimeout(() => acModalDeb.display.focus(), 500);
-    }
+    // Conta bancária não é obrigatória na criação — será informada na baixa
+    // Modal de vínculo removido: salva sem conta bancária
   });
 
   btnConfirmar.addEventListener('click', async () => {
