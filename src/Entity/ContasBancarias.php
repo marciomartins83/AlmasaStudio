@@ -42,9 +42,9 @@ class ContasBancarias
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?int $idDocumentoTitular = null;
     #[ORM\Column(type: 'boolean')]
-    private bool $principal;
+    private bool $principal = false;
     #[ORM\Column(type: 'boolean')]
-    private bool $ativo;
+    private bool $ativo = true;
     #[ORM\Column(type: 'decimal', nullable: true)]
     private ?string $codigoCedente = null;
     #[ORM\Column(type: 'bigint', nullable: true)]
@@ -56,9 +56,9 @@ class ContasBancarias
     #[ORM\Column(nullable: true)]
     private ?int $numeroUsado = null;
     #[ORM\Column(type: 'boolean')]
-    private bool $registrada;
+    private bool $registrada = false;
     #[ORM\Column(type: 'boolean')]
-    private bool $aceitaMultipag;
+    private bool $aceitaMultipag = false;
     #[ORM\Column(nullable: true)]
     private ?string $convenioSicredi = null;
     #[ORM\Column(type: 'bigint', nullable: true)]
