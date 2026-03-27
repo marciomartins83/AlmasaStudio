@@ -14,10 +14,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Controller\Trait\PaginationRedirectTrait;
 
 #[Route('/conta-bancaria', name: 'app_conta_bancaria_')]
 class ContaBancariaController extends AbstractController
 {
+    use PaginationRedirectTrait;
     private ContaBancariaService $contaBancariaService;
 
     public function __construct(ContaBancariaService $contaBancariaService)
@@ -63,7 +65,7 @@ class ContaBancariaController extends AbstractController
             try {
                 $this->contaBancariaService->criar($contaBancaria);
                 $this->addFlash('success', 'Conta Bancária criada com sucesso!');
-                return $this->redirectToRoute('app_conta_bancaria_index');
+                return $this->redirectToIndex($request, 'app_conta_bancaria_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao criar conta bancária: ' . $e->getMessage());
             }
@@ -93,7 +95,7 @@ class ContaBancariaController extends AbstractController
             try {
                 $this->contaBancariaService->atualizar();
                 $this->addFlash('success', 'Conta Bancária atualizada com sucesso!');
-                return $this->redirectToRoute('app_conta_bancaria_index');
+                return $this->redirectToIndex($request, 'app_conta_bancaria_index');
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Erro ao atualizar conta bancária: ' . $e->getMessage());
             }
@@ -117,6 +119,6 @@ class ContaBancariaController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('app_conta_bancaria_index');
+        return $this->redirectToIndex($request, 'app_conta_bancaria_index');
     }
 } 
