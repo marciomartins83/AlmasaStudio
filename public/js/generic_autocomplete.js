@@ -56,7 +56,7 @@ function initAutocomplete(wrapper) {
     });
 
     function buscar(q) {
-        fetch(url + '?q=' + encodeURIComponent(q))
+        fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + 'q=' + encodeURIComponent(q))
             .then(function (r) { return r.ok ? r.json() : []; })
             .then(function (data) { renderizar(data); })
             .catch(function () { fechar(); });

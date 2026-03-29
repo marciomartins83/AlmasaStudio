@@ -147,10 +147,18 @@ class AutocompleteController extends AbstractController
         $q = trim($request->query->get('q', ''));
         if (strlen($q) < 1) return new JsonResponse([]);
 
+        $filtroProprietario = '';
+        $apenas = $request->query->get('apenas', '');
+        if ($apenas === 'almasa') {
+            $filtroProprietario = ' AND cb.id_pessoa IS NULL';
+        } elseif ($apenas === 'proprietarios') {
+            $filtroProprietario = ' AND cb.id_pessoa IS NOT NULL';
+        }
+
         $rows = $this->conn->fetchAllAssociative(
             "SELECT cb.id, CONCAT(cb.descricao, COALESCE(' — ' || cb.titular, '')) AS label
              FROM contas_bancarias cb
-             WHERE cb.ativo = true
+             WHERE cb.ativo = true{$filtroProprietario}
                AND (unaccent(LOWER(cb.descricao)) LIKE unaccent(LOWER(:q))
                  OR unaccent(LOWER(COALESCE(cb.titular, ''))) LIKE unaccent(LOWER(:q)))
              ORDER BY cb.descricao ASC LIMIT 20",
