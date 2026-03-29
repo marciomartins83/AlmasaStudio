@@ -101,7 +101,6 @@
                             <th width="60">N</th>
                             <th width="80">Tipo</th>
                             <th width="100">Vencimento</th>
-                            <th>Credor/Pagador</th>
                             <th>Plano de Contas</th>
                             <th width="120" class="text-end">Valor</th>
                             <th width="120" class="text-end">Saldo</th>
@@ -122,15 +121,6 @@
                                 {{ lancamento.dataVencimento|date('d/m/Y') }}
                                 {% if lancamento.vencido %}
                                     <br><small class="text-danger">{{ lancamento.diasAtraso }} dia(s)</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if lancamento.tipo == 'pagar' and lancamento.pessoaCredor %}
-                                    {{ lancamento.pessoaCredor.nome }}
-                                {% elseif lancamento.tipo == 'receber' and lancamento.pessoaPagador %}
-                                    {{ lancamento.pessoaPagador.nome }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td>
