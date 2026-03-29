@@ -11,9 +11,13 @@
  *   </div>
  *   <input type="hidden" id="campo_id" name="campo_id">
  */
-document.addEventListener('DOMContentLoaded', function () {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.autocomplete-wrapper').forEach(initAutocomplete);
+    });
+} else {
     document.querySelectorAll('.autocomplete-wrapper').forEach(initAutocomplete);
-});
+}
 
 function initAutocomplete(wrapper) {
     var display = wrapper.querySelector('.autocomplete-display');
