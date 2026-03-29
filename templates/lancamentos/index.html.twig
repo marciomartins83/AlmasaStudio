@@ -101,6 +101,7 @@
                             <th width="60">N</th>
                             <th width="80">Tipo</th>
                             <th width="100">Vencimento</th>
+                            <th>Histórico</th>
                             <th>Plano de Contas</th>
                             <th width="120" class="text-end">Valor</th>
                             <th width="120" class="text-end">Saldo</th>
@@ -123,6 +124,7 @@
                                     <br><small class="text-danger">{{ lancamento.diasAtraso }} dia(s)</small>
                                 {% endif %}
                             </td>
+                            <td>{{ lancamento.historico|default('-') }}</td>
                             <td>
                                 {% if lancamento.planoContaDebito and lancamento.planoContaCredito %}
                                     {{ lancamento.planoContaDebito.descricao }} / {{ lancamento.planoContaCredito.descricao }}
