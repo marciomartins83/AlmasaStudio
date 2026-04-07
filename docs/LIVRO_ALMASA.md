@@ -81,11 +81,11 @@
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
 | 6.25.1 | 2026-03-04 | Code review completo — 17 Thin Controllers refatorados, inline JS corrigido, schema validado |
 | 6.25.0 | 2026-03-04 | Tema escuro completo — 40+ componentes CSS com dark mode, dashboard e base.html.twig adaptados |
-| 6.24.4 | 2026-03-04 | Card Lançamentos adicionado ao dashboard e menu Financeiro |
-| 6.24.3 | 2026-03-04 | Tema escuro global — ThemeService + ThemeExtension para todas as páginas |
-| 6.24.2 | 2026-03-04 | Filtro format_documento corrigido — RG brasileiro com dígito verificador (X ou número) |
-| 6.24.1 | 2026-03-04 | Remove CPF/CNPJ do card Dados da Pessoa Principal no modo edicao |
-| 6.24.0 | 2026-03-04 | Mascara CPF/RG/CNPJ em todas as telas — filtro Twig mask_documento (revertido em show) |
+| 6.24.x | 2026-03-04 | Card Lancamentos, tema escuro global, mascaras CPF/RG/CNPJ, filtro Twig mask_documento |
+| 6.26.x | 2026-03-04–05 | Migracao completa v6 — 506.704 lancamentos, 42.844 repasses, FK integrity 0 erros |
+| 6.27.0 | 2026-03-08 | Lancamentos: EntityType selects convertidos para autocomplete AJAX |
+| 6.28.0 | 2026-03-10 | Modulo Almasa Plano de Contas v2, Vinculos Bancarios, Partidas Dobradas |
+| 6.29.0 | 2026-04-07 | Autocomplete global (17 endpoints), PaginationRedirectTrait, 30+ selects convertidos |
 | 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
 | 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
 | 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
@@ -176,6 +176,12 @@ Para historico completo das versoes V6.0–V6.4, consulte:
 - Consultas DQL/SQL complexas
 - SEMPRE colocar DQL em Repository, NUNCA em Controller ou Service
 
+### PaginationRedirectTrait (v6.29.0)
+
+Trait reutilizavel que preserva pagina, ordenacao e filtros apos editar/excluir em qualquer CRUD. Salva a URL atual na session e redireciona de volta apos a operacao, evitando que o usuario perca a posicao na listagem. Aplicado em 25 Controllers.
+
+**Uso:** Controller usa `$this->savePaginationUrl()` antes de processar e `$this->redirectToPagination()` apos salvar/excluir.
+
 ### Padroes de Codigo
 
 - **Clean Code** — nomes descritivos, metodos pequenos e focados
@@ -230,6 +236,7 @@ src/
 │   ├── RelatorioController.php
 │   ├── InformeRendimentoController.php
 │   ├── ConfiguracaoApiBancoController.php
+│   ├── AutocompleteController.php       (17 endpoints de busca AJAX)
 │   └── ... (cadastros auxiliares)
 │
 ├── Service/
@@ -288,7 +295,9 @@ assets/
 │   ├── relatorios/                 # Relatorios PDF
 │   ├── prestacao_contas/           # Prestacao de contas
 │   ├── informe_rendimento/         # DIMOB
-│   └── configuracao_api_banco/     # Config API
+│   ├── configuracao_api_banco/     # Config API
+│   ├── crud/                       # Filtros e confirm delete
+│   └── generic_autocomplete.js     # Autocomplete reutilizavel (typeahead, keyboard nav, debounce)
 ```
 
 ### Templates
@@ -297,7 +306,11 @@ assets/
 templates/
 ├── base.html.twig
 ├── _partials/
-│   └── breadcrumb.html.twig
+│   ├── breadcrumb.html.twig
+│   ├── autocomplete_field.html.twig  # Partial generico para campos autocomplete
+│   ├── search_panel.html.twig
+│   ├── sort_panel.html.twig
+│   └── pagination.html.twig
 ├── pessoa/
 │   ├── index.html.twig
 │   ├── pessoa_form.html.twig
@@ -440,13 +453,16 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 - **Conjuges de inquilinos:** 11 registros criados (apenas nome disponivel em `locinquilino.nomecjg`)
   - Referencia salva em `pessoas.observacoes` do inquilino principal
 
-### Issue Aberta
+### Busca Avancada de Pessoa
 
-**#1: Conjuge nao carrega na busca**
-- Severidade: MEDIA
-- `searchPessoaAdvanced` retorna `'conjuge' => null`
-- Causa: Metodo `buscarConjugePessoa()` nao implementado completamente
-- Proxima tarefa: Implementar busca completa com todos dados multiplos
+A busca avancada (`searchPessoaAdvanced`) retorna campo `cod` legado alem dos dados padroes.
+
+### Issue Resolvida
+
+**#1: Conjuge nao carrega na busca** — RESOLVIDA (v6.20.2)
+- `buscarConjugePessoa()` implementado completo, retorna dados via `relacionamentos_familiares`
+- Campo `cod` visivel em edicao e visualizacao de Pessoas (v6.23.3)
+- Filtro `cod` na tela de pessoas usa input type="number" (v6.21.4)
 
 ---
 
@@ -591,6 +607,13 @@ Uma pessoa pode ter multiplos: Telefones, Enderecos, Emails, Documentos (CPF, CN
 - Status automatico baseado em valor_pago vs valor_liquido
 - Nao permite editar/cancelar lancamentos pagos
 - Valor liquido = valor - desconto + juros + multa - INSS - ISS
+- Contas a pagar nao exigem banco na criacao — so na baixa
+- Baixa de lancamento: opcoes Dinheiro, Cheque, Debito em Conta, Transferencia (removidos Credito e Boleto em v6.29.0)
+
+**Coluna "Historico" e Flag Contas Proprias (v6.29.0):**
+- Index de lancamentos exibe coluna "Historico"
+- Formulario inclui flag "Incluir contas de proprietarios" na aba Vinculos
+- Filtro `?apenas=almasa` no endpoint de contas bancarias para mostrar so contas da Almasa
 
 ### 7.3 Informe de Rendimentos / DIMOB
 
@@ -729,6 +752,15 @@ O sistema possui DUAS tabelas financeiras distintas. Confundir as duas causa ret
 `getDespesas()`, `getReceitas()` e `getInadimplentes()` usam `setMaxResults(500)`.
 Totais (`getTotalDespesas()`, `getTotalReceitas()`) usam SQL nativo sem limite para garantir exatidao.
 
+#### Autocomplete nos Filtros de Relatorios (v6.29.0)
+
+Todos os selects nos templates de relatorios foram convertidos para autocomplete AJAX:
+proprietarios, plano de contas, contas bancarias, inquilinos, pagadores, fornecedores, imoveis, locatarios, fiadores.
+
+#### Relatorios Almasa — Tabela Correta (v6.29.0)
+
+Relatorios Almasa de despesas/receitas agora buscam na tabela `lancamentos` (tipo=pagar/receber) em vez de `almasa_lancamentos`. Relatorios historicos continuam usando `lancamentos_financeiros`.
+
 ### 9.2 Prestacao de Contas aos Proprietarios
 
 **Status:** Completo (v6.15.0)
@@ -786,6 +818,14 @@ Todos com status Completo:
 | Tipo Carteira | TipoCarteiraController |
 | Tipo Remessa | TipoRemessaController |
 | Tipo Atendimento | TipoAtendimentoController |
+
+### Contas Bancarias — Detalhes (v6.29.0)
+
+- Formulario inclui campos `descricao` e `titular`
+- Busca por `codigo`, `descricao` e `titular` (OR) no filtro de titular
+- Filtro `?apenas=almasa` no autocomplete para retornar so contas da Almasa (sem contas de proprietarios)
+- Campos boolean (`principal`, `ativo`, `registrada`, `aceitaMultipag`, `usaEnderecoCobranca`, `cobrancaCompartilhada`) possuem default `false` na entity para evitar not-null violation
+- 12 contas proprias da Almasa receberam titular "Almasa Administradora"
 
 ### Commands Disponiveis
 
@@ -1269,6 +1309,8 @@ php bin/console doctrine:schema:update --dump-sql
 
 **Divergencias NAO aceitaveis:** ALTER TYPE, ALTER SET NOT NULL, DROP/ADD COLUMN
 
+**Regra de boolean NOT NULL (v6.29.0):** Campos boolean NOT NULL em entities Doctrine DEVEM ter valor default (`= false` ou `= true` na propriedade PHP), caso contrario INSERT falha com not-null violation no PostgreSQL.
+
 ### Script de Migracao MySQL -> PostgreSQL
 
 **Repositório separado:** https://github.com/marciomartins83/almasa-migration (privado)
@@ -1640,6 +1682,30 @@ Menu horizontal global exibido abaixo da navbar principal, com acesso rapido a t
 - `.almasa-dropdown-item` — Item do dropdown
 - `.almasa-divider` — Divisor estilizado
 
+### Sistema de Autocomplete Global (v6.27.0–v6.29.0)
+
+**AutocompleteController** (`src/Controller/AutocompleteController.php`) — 17 endpoints centralizados de busca AJAX:
+`/autocomplete/pessoas`, `/autocomplete/bancos`, `/autocomplete/agencias`, `/autocomplete/contas-bancarias`, `/autocomplete/imoveis`, `/autocomplete/contratos`, `/autocomplete/nacionalidades`, `/autocomplete/naturalidades`, `/autocomplete/logradouros`, `/autocomplete/enderecos`, `/autocomplete/bairros`, `/autocomplete/condominios`, `/autocomplete/plano-contas`, `/autocomplete/almasa-plano-contas`, `/autocomplete/cidades`, `/autocomplete/ufs`, `/autocomplete/users`
+
+**generic_autocomplete.js** (`assets/js/generic_autocomplete.js`) — Modulo JS reutilizavel:
+- Busca typeahead com debounce
+- Navegacao por teclado (setas + Enter + Escape)
+- Preload de valores existentes em modo edicao
+- Inicializa mesmo se DOM ja carregou (fix DOMContentLoaded)
+
+**autocomplete_field.html.twig** (`templates/_partials/autocomplete_field.html.twig`) — Partial generico para renderizar campos autocomplete em qualquer formulario.
+
+**30+ campos EntityType convertidos para autocomplete** em 15+ FormTypes:
+ImovelFormType, ContaBancariaType, PessoaFormType, LancamentosType, BoletoType, PessoaPretendenteType, PessoaLocadorType, PessoaCorretorType, PessoaFiadorCombinedType, LogradouroType, AlmasaLancamentoType, AlmasaVinculoBancarioType, PrestacaoContasFiltroType, PrestacaoContasRepasseType, ConfiguracaoApiBancoType, AlmasaPlanoContasType, AgenciaType, BairroType, PessoaAdvogadoType
+
+**Criterio de conversao:** Todo select com mais de ~15 opcoes foi convertido para autocomplete AJAX.
+
+**pessoa_tipos.js** — `inicializarComponentesTipo()` inicializa autocompletes em sub-forms carregados via AJAX; `preencherDadosTipo()` preenche display de autocompletes.
+
+### PaginationRedirectTrait no Frontend (v6.29.0)
+
+Apos editar ou excluir um registro, o usuario e redirecionado de volta para a mesma pagina da listagem, mantendo filtros e ordenacao. Implementado em 25 Controllers via `PaginationRedirectTrait`. Alternativa superior a passar page/sort nos parametros GET — usa session para armazenar a URL.
+
 ### Máscaras de Documentos (v6.22.0)
 
 **Funções utilitárias em `public/js/pessoa/pessoa.js`:**
@@ -1729,6 +1795,24 @@ find src -type f -perm 600 -exec chmod 644 {} \;
 php bin/console cache:clear && nginx -t && systemctl reload nginx
 ```
 **Último checkpoint estável:** `v6.23.4-stable` (commit `e2ecb9c`, 2026-03-04)
+
+### 12. Doctrine DQL CONCAT Aceita Apenas 2 Argumentos
+`CONCAT(a, b, c)` nao funciona em DQL. Para buscas multi-campo, usar `OR` no `WHERE` em vez de concatenar.
+
+### 13. Webpack Encore Precisa Recompilar Apos Alterar Assets
+O browser carrega o build compilado (`public/build/`), nao o source de `assets/js/`. Sempre rodar `npx encore production` apos alterar JS.
+
+### 14. Campos Boolean NOT NULL Precisam de Default
+Entities Doctrine com campos boolean NOT NULL DEVEM ter `= false` ou `= true` na propriedade PHP, senao INSERT falha com not-null violation no PostgreSQL.
+
+### 15. PaginationService com Session e Melhor que Params GET
+Salvar URL de retorno na session (PaginationRedirectTrait) e mais robusto que passar page/sort nos parametros — solucao centralizada que funciona em todos os CRUDs.
+
+### 16. Unique Constraints em Migrations Doctrine
+Devem ser declaradas como `uniqueConstraints` na Entity ORM, nao como indices. PostgreSQL requer remocao de constraint antes de remover indice dependente.
+
+### 17. Toda Pessoa DEVE Ter Tipo em pessoas_tipos
+O script de migracao DEVE validar 100% no final e falhar explicitamente se qualquer pessoa ficar sem tipo. Nao existe fallback — cada pessoa vem de uma tabela MySQL e o tipo e deterministico.
 
 ---
 
@@ -1883,12 +1967,49 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
+### [6.29.0] - 2026-04-07
+
+#### Adicionado
+- **AutocompleteController** — 17 endpoints centralizados de busca AJAX (`/autocomplete/pessoas`, `/autocomplete/bancos`, `/autocomplete/agencias`, `/autocomplete/contas-bancarias`, `/autocomplete/imoveis`, `/autocomplete/contratos`, `/autocomplete/nacionalidades`, `/autocomplete/naturalidades`, `/autocomplete/logradouros`, `/autocomplete/enderecos`, `/autocomplete/bairros`, `/autocomplete/condominios`, `/autocomplete/plano-contas`, `/autocomplete/almasa-plano-contas`, `/autocomplete/cidades`, `/autocomplete/ufs`, `/autocomplete/users`)
+- **generic_autocomplete.js** — Modulo JS reutilizavel com busca typeahead, navegacao por teclado, debounce e preload
+- **autocomplete_field.html.twig** — Partial Twig generico para campos autocomplete
+- **PaginationRedirectTrait** — Trait que preserva pagina, ordenacao e filtros apos editar/excluir em qualquer CRUD
+- Campo `descricao` e `titular` no formulario de ContaBancaria
+- Flag "Incluir contas de proprietarios" na aba Vinculos do lancamento
+- Coluna "Historico" no index de lancamentos
+- Filtro `?apenas=almasa` no endpoint `/autocomplete/contas-bancarias`
+- Busca por campo `codigo` alem de `descricao`/`titular` nas contas bancarias
+
+#### Alterado
+- **30+ campos EntityType convertidos para autocomplete** em 15 FormTypes: ImovelFormType, ContaBancariaType, PessoaFormType, LancamentosType, BoletoType, PessoaPretendenteType, PessoaLocadorType, PessoaCorretorType, PessoaFiadorCombinedType, LogradouroType, AlmasaLancamentoType, AlmasaVinculoBancarioType, PrestacaoContasFiltroType, PrestacaoContasRepasseType, ConfiguracaoApiBancoType, AlmasaPlanoContasType, AgenciaType, BairroType, PessoaAdvogadoType
+- **25 Controllers** com PaginationRedirectTrait para preservar paginacao
+- Selects em templates de relatorios (proprietarios, plano contas, contas bancarias, inquilinos, pagadores, fornecedores, imoveis, locatarios, fiadores) convertidos para autocomplete
+- Relatorios Almasa despesas/receitas agora buscam na tabela `lancamentos` (tipo=pagar/receber) em vez de `almasa_lancamentos`
+- Baixa de lancamento: removidas opcoes Credito e Boleto, Debito renomeado para "Debito em Conta"
+- Busca de pessoa (searchPessoaAdvanced) agora retorna campo `cod`
+- Filtro titular em contas bancarias busca em pessoa.nome, titular e descricao (OR)
+
+#### Corrigido
+- Plano de contas preserva pagina apos editar/excluir
+- Contas a pagar nao exigem banco na criacao — so na baixa
+- ContasBancarias: default false para campos boolean (principal, ativo, registrada, aceitaMultipag, usaEnderecoCobranca, cobrancaCompartilhada)
+- generic_autocomplete.js inicializa mesmo se DOM ja carregou (fix DOMContentLoaded)
+- Contas proprias Almasa receberam titular "Almasa Administradora" (12 contas)
+
+#### Licao Aprendida
+- Doctrine DQL `CONCAT` aceita apenas 2 argumentos, nao varios. Para buscas multi-campo, usar OR no WHERE em vez de CONCAT
+- Webpack Encore precisa ser recompilado (`npx encore production`) apos alterar assets/js — o browser carrega o build compilado, nao o source
+- Campos boolean NOT NULL em entities Doctrine DEVEM ter valor default, senao INSERT falha com not-null violation
+- PaginationService salvar URL na session e melhor que passar page/sort nos params — solucao centralizada
+
+---
+
 ### [6.28.0] - 2026-03-27
 
 #### Adicionado
 - **Novos endpoints de autocomplete:**
   - `/autocomplete/cidades` — busca cidades com UF do estado
-  - `/autocomplete/ufs` — busca estática de 27 UFs brasileiras
+  - `/autocomplete/ufs` — busca estatica de 27 UFs brasileiras
   - `/autocomplete/almasa-plano-contas` agora aceita filtro `?nivel=N` para filtrar por nivel hierarquico
 
 #### Alterado
@@ -1922,969 +2043,8 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
   - Preloads implementados para edit e resubmit apos erro
   - Service: adicionados metodos `buscarPlanoContaLegado()`, `buscarContrato()`, `buscarImovel()`
 
----
-
-### [6.26.1] - 2026-03-05
-
-#### Corrigido
-- **Migracao completa v6 — Importacao 100% dos dados financeiros do MySQL**
-  - **Causa raiz:** config.py apontava para dump compacto (36MB, ~10% dados) em vez do completo (272MB)
-  - **Correcao dump:** Alterado para `bkpjpw_20260220_121003.sql` (dump completo)
-  - **Correcao imovel_map:** Formato `IM0005` agora parseado com `REGEXP_REPLACE` (antes usava regex `^[0-9]+$` que nao casava)
-  - **Correcao Phase 12:** Removido INSERT em `imoveis_propriedades` (tabela de caracteristicas, nao proprietarios). Proprietario agora em `imoveis.id_pessoa_proprietario`
-  - **Correcao migrate_lancamentos.sql v3:** valor_total direto (nao soma), plano_conta por tipo, credor/pagador corretos
-  - **Correcao corretores:** `fisica_juridica` usa `'fisica'`/`'juridica'` (nao `'F'`/`'J'`), inclui `tipo_pessoa`
-
-#### Numeros finais da migracao
-| Tabela | Registros | Completude |
-|--------|-----------|------------|
-| lancamentos_financeiros | 506.704 | 100% do dump MySQL |
-| lancamentos | 506.704 | espelhado de lancamentos_financeiros |
-| prestacoes_contas | 42.844 | 100% de locrepasse |
-| pessoas | 4.933 | 100% (locadores+inquilinos+fiadores+contratantes+corretores) |
-| imoveis | 3.236 | 100% de locimoveis |
-| imoveis_contratos | 2.130 | 211 ativos, 1.919 encerrados |
-| fiadores_inquilinos | 92 | 92 de 265 (173 sem mapeamento no MySQL) |
-| FK integrity | 0 erros | todas as FKs validadas cross-table |
-
----
-
-### [6.26.0] - 2026-03-04
-
-#### Corrigido (v6.26.0 — 7 problemas criticos)
-- Situacao imoveis: 211 `vendido` → `locado` (contratos ativos)
-- Show pessoa: cards completos (tipos, profissoes, telefones, enderecos, emails, PIX, contas bancarias)
-- Filtro imoveis: removido alugado/reservado/em_reforma, adicionado locado
-- Mascara CPF/CNPJ no show pessoa
-- Endereco numero 0 exibe S/N
-
----
-
-### [6.25.1] - 2026-03-04
-
-#### Code Review Completo
-
-##### Thin Controllers (17 refatorados)
-- **Batch 1 (13 controllers):** Banco, Agencia, ContaBancaria, Telefone, Email, EstadoCivil, Estado, Bairro, Cidade, Nacionalidade, Naturalidade, TipoTelefone, TipoRemessa
-- **Batch 2 (4 controllers):** Theme, Logradouro, Contrato, Pessoa
-- **Services criados:** BancoService, AgenciaService, ContaBancariaService, TelefoneService, EstadoCivilService, EstadoService, BairroService, CidadeService, LogradouroService
-- **Services atualizados:** EmailService, NacionalidadeService, NaturalidadeService, GenericTipoService, ThemeService, PessoaService
-
-##### Inline JS
-- `base.html.twig`: JavaScript de toggle de tema movido para `assets/js/theme.js`
-- Demais templates críticos já estavam corretos (apenas variáveis globais)
-
-##### Schema Doctrine
-- Validado: `[OK] The mapping files are correct`
-- Validado: `[OK] The database schema is in sync with the mapping files`
-
-### [6.25.0] - 2026-03-04
-
-#### Adicionado
-- **Tema escuro completo** — 40+ componentes Almasa com dark mode via `[data-bs-theme="dark"]`
-  - `public/css/app.css`: override de variáveis CSS + overrides para body, navbar, cards, forms, tabelas, sidebar, stats-cards, property-cards, alertas, modais, border-gradient, stimulus components, botões, dropdown, footer
-  - `dashboard/index.html.twig`: removidas 5 classes `text-dark` hardcoded que ficavam invisíveis no dark mode
-  - `base.html.twig`: botões toggle/dropdown alterados de `btn-light` para `btn-outline-secondary` (adaptam a ambos os temas)
-
----
-
-### [6.23.3] - 2026-03-03
-
-#### Alterado
-- **Campo `cod` visível em edição e visualização de Pessoas**
-  - `PessoaFormType.php`: adicionado campo `cod` (IntegerType, opcional, label 'COD')
-  - `pessoa_form.html.twig`: campo COD renderizado no card "Dados da Pessoa Principal"
-  - `show.html.twig`: linha COD exibida na tabela de dados pessoais (após ID, antes de Nome)
-
----
-
-### [6.23.2] - 2026-03-03
-
-#### Adicionado
-- **Fase 21 de Migração: Auditoria e Autocorreção Automática de Qualidade**
-  - Classe `Phase21AuditAndRepairCadastroQualidade` em `migrate.py`
-  - Pipeline sequencial idempotente: higienização → deduplicação → backfill → auditoria
-  - **A) Higienização:** trim em nomes, remove registros vazios (NULL/blank)
-  - **B) Deduplicação:** case-insensitive em `nacionalidades` e `profissoes`, mantém menor id, remapeia FKs
-  - **C) Deduplicação vínculos:** remove duplicatas em `pessoas_profissoes` por `(id_pessoa, id_profissao)`
-  - **D) Backfill:** extrai `Profissao: ...` de `pessoas.observacoes` e vincula automaticamente
-  - **E) Auditoria final:** detecta duplicidade, inválidos, órfãos; loga métricas de cobertura por tipo
-  - **Critérios de falha explícita:** falha se duplicados > 0 OR inválidos > 0 OR órfãos > 0
-  - Integração automática: `--phase all` inclui Fase 21; compatível com `--phase 21` individual
-
-#### Alterado
-- `config.py`: adicionada fase 21 na lista `PHASES`
-- `migrate.py`: registrada fase 21 no `PHASE_REGISTRY`
-
----
-
-### [6.23.1] - 2026-03-03
-
-#### Corrigido
-- **Fase 20 de Migração: Correções críticas de SQL e cobertura**
-  - `nacionalidades`: removida coluna `ativo` do INSERT (tabela só possui `id, nome`)
-  - `pessoas_profissoes`: removida coluna `created_at` do INSERT (não existe na tabela)
-  - Atualização de vínculo existente: preenche `empresa`/`renda` quando NULL e há valor de origem
-  - Cobertura completa: adicionado `nacionalidade` para `locinquilino` e `estado_civil` para `loclocadores`
-  - Busca normalizada: usa `UPPER(nome) = UPPER(%s)` com fallback `ILIKE` (sem cadeia de REPLACE)
-  - Idempotência garantida: não duplica vínculos nem gera erro em re-execuções
-
----
-
-### [6.23.0] - 2026-03-03
-
-#### Adicionado
-- **Fase 20 de Migração: Sincronização de Estado Civil, Nacionalidade e Profissão**
-  - Classe `Phase20SyncCadastroCivilProfissaoNacionalidade` em `migrate.py`
-  - Processa fontes do legado: `loclocadores`, `locfiadores`, `loccontratantes`, `locinquilino`
-  - Resolve `id_pessoa` via `StateManager` (namespaces existentes) ou fallback por `pessoas.cod`
-  - **Estado Civil:** mapeia código antigo usando `cfg.ESTADO_CIVIL_MAP`, atualiza apenas quando NULL, loga conflitos
-  - **Nacionalidade:** `get_or_create` em `nacionalidades`, atualiza apenas quando NULL
-  - **Profissão:** `get_or_create` em `profissoes`, vincula em `pessoas_profissoes` sem duplicar
-  - Relatório completo: pessoas processadas, estado civil atualizados, nacionalidades atualizadas, profissões vinculadas, conflitos, não encontradas
-
-#### Alterado
-- `config.py`: adicionada fase 20 na lista `PHASES`
-- `migrate.py`: registrada fase 20 no `PHASE_REGISTRY`
-
----
-
-### [6.22.0] - 2026-03-03
-
-#### Adicionado
-- **Máscaras de CPF e RG em todos os formulários de pessoa**
-  - Funções utilitárias em `pessoa.js`: `formatarCPF()`, `formatarRG()`, `formatarCNPJ()`, `aplicarMascaraDocumento()`, `detectarTipoDocumentoPorTexto()`
-  - `pessoa_form.js`: máscara em tempo real nos campos de busca (#searchValue para CPF/CNPJ, #additionalDocumentValue)
-  - `pessoa_documentos.js`: máscara dinâmica baseada no tipo de documento selecionado (CPF=1, RG=2 ou detecção por texto)
-  - `conjuge_documentos.js`: máscara para documentos do cônjuge seguindo mesma lógica
-  - `pessoa_conjuge.js`: máscara no campo de busca de cônjuge e exibição formatada nos resultados
-  - Documentos carregados da API são exibidos já formatados
-  - Sincronização entre `public/js/pessoa/` e `assets/js/pessoa/` mantida
-
-#### Alterado
-- Capítulo 12 (Frontend): adicionada seção "Máscaras de Documentos (v6.22.0)" documentando as funções utilitárias.
-
-### [6.21.4] - 2026-03-03
-
-#### Adicionado
-- Suporte a filtros `type='number'` no componente reutilizável `search_panel.html.twig`.
-- Filtro `cod` na tela de pessoas agora usa input type="number" para melhor UX em dispositivos móveis.
-
-#### Alterado
-- `PessoaController`: filtro 'cod' alterado de 'text' para 'number'.
-- Capítulo 12 (Frontend): documentação atualizada com novo tipo de filtro suportado.
-
-### [6.21.3] - 2026-03-03
-
-#### Adicionado
-- **Campo `cod` legado em TODOS os tipos de pessoa** — Completada a cobertura do código legado para todos os 9 tipos de pessoa
-  - Entidades atualizadas: `PessoasCorretores`, `PessoasCorretoras`, `PessoasPretendentes`, `PessoasSocios`, `PessoasAdvogados`
-  - Migration Doctrine: `Version20260303_AddCodToPessoasTipos` com colunas `cod` e SQL de backfill
-  - Fase 19 de migração (`Phase19SyncCodPessoasTipos`) sincroniza `cod` em todas as tabelas de tipos via UPDATE
-  - Tipos cobertos: fiador(1), corretor(2), corretora(3), locador(4), pretendente(5), contratante(6), sócio(7), advogado(8), inquilino(12)
-
-### [6.21.1] - 2026-03-03
-
-#### Corrigido
-- **Menu Superior pos-deploy** — Ajustado `templates/_partials/top_navigation.html.twig` para refletir fielmente os cards navegaveis do sistema
-  - Removidos links de CRUDs legados: Locadores (`app_pessoa_locador_index`) e Corretores (`app_pessoa_corretor_index`)
-  - Nova estrutura de categorias: Dashboard, Cadastros, Pessoas, Imobiliario, Financeiro, Relatorios
-  - Dashboard expandido com submenus completos: Enderecos (5 itens) e Tipos (14 itens)
-  - Cadastros: Emails e Telefones (movidos de Pessoas)
-  - Pessoas: apenas link unico para Todas as Pessoas
-  - Imobiliario: Imoveis e Contratos
-  - Financeiro: Ficha Financeira, Bancos, Agencias, Contas Bancarias, Boletos, API Bancaria, Informe de Rendimentos
-  - Relatorios: Central + 6 relatorios especificos (Inadimplentes, Despesas, Receitas, Despesas x Receitas, Contas Bancarias, Plano de Contas)
-- Documentacao atualizada no Cap 12 (estrutura completa do menu)
-
-### [6.21.0] - 2026-03-03
-
-#### Adicionado
-- **Menu de Navegacao Superior horizontal** — Novo partial `templates/_partials/top_navigation.html.twig` com acesso organizado por categorias (Dashboard, Pessoas, Imobiliario, Financeiro, Relatorios)
-- Dropdowns com icones FontAwesome, headers de secao e divisores logicos
-- Estilos responsivos em `public/css/app.css` com suporte mobile (colapso) e temas claro/escuro
-- Integracao no `templates/base.html.twig` abaixo da navbar principal
-- Documentacao completa no Cap 12 do livro
-
-### [6.20.10] - 2026-03-03
-
-#### Adicionado
-- **Fluxo Operacional do Assistente de IA formalizado** — Documentação explícita no Cap 2 da metodologia de trabalho: assistente atua como arquiteto/planejador/revisor (sem escrever código de produção, sem deploy), subagente `@agent/kimi` executa implementação, ciclo de code review com prompts corretivos quando necessário.
-
-### [6.20.9] - 2026-02-27
-
-#### Corrigido
-- **ContactController — transacoes atomicas:** `addTelefone` e `addEmail` agora usam `beginTransaction/commit/rollback` para evitar registros orfaos em caso de falha no segundo `flush()`.
-- **ContactController — guard tipoEndereco:** Fallback para id=1 agora tem validacao final; retorna 422 se tipo nao encontrado em vez de estourar `flush()` com null em coluna obrigatoria.
-
-#### Validado (Rodada 4 — Consistencia de Dados)
-- **Report baseado no dump Neon antigo — banco de producao atual OK:**
-  - 389 contratos fiador sem id_pessoa_fiador → **0 no banco atual** (corrigido pela migracao v5.0)
-  - 3236/3236 imoveis com proprietario OK
-  - id_contrato NULL em lancamentos → **esperado** (legado JPW vincula por id_imovel, nao contrato)
-  - boletos/contratos_cobrancas vazias → **esperado** (funcionalidade futura Santander)
-  - 11 inquilinos orfaos → dados reais do sistema legado, nao bug de migracao
-
-### [6.20.8] - 2026-02-27
-
-#### Corrigido
-- **ContactController reescrito (API entidades incompativeis):** Todos os 5 endpoints POST (`/telefone`, `/email`, `/endereco`, `/conta`, `/pix`) chamavam metodos inexistentes. Telefone/Email agora criam registro base + junction. Endereco usa objetos Doctrine (`setPessoa`, `setLogradouro`, `setTipo`, `setEndNumero`). ContaBancaria recebe entidades (nao ints). ChavesPix usa nomes corretos (`setIdTipoChave`, `setChavePix`).
-- **ContratoService checkboxes:** `gera_boleto`, `envia_email`, `ativo` agora gravam `false` quando desmarcados (trocado `isset()` por `!empty()`).
-
-### [6.20.7] - 2026-02-27
-
-#### Corrigido
-- **Templates pessoa_corretor/edit e _delete_form:** Continham codigo PHP de controller em vez de Twig. Reescritos com templates validos.
-- **Templates email/show e pessoa_corretor/show:** Usavam `block body` (correto: `block content`). Conteudo nao aparecia na pagina.
-- **email.idTipo e pessoa_corretor.idPessoa:** Campos inexistentes nas entidades. Corrigidos para `email.tipo.tipo` e `pessoa_corretor.pessoa.nome`.
-- **PessoaCorretorType e PessoaLocadorType:** Campo obrigatorio `pessoa` (EntityType) adicionado aos formularios. Sem ele, `flush()` falhava com constraint violation.
-
-### [6.20.6] - 2026-02-27
-
-#### Alterado
-- **Migracao v5.0 — 10 correcoes obrigatorias aplicadas (correcoesMigrate.md):**
-  - P0.1: Resolver canonico de pessoa (`resolve_or_create_pessoa`) com dedup por CPF/CNPJ/RG+nome+nascimento
-  - P0.2: Vinculo fiador-inquilino corrigido via `locfiador_inq` (nao mais `row.get("fiador")`)
-  - P0.3: Multiplos proprietarios preservados (maior percentual, co-owners em observacoes)
-  - P0.4: Fallback 3-tier para endereco de inquilino (proprio → imovel mapeado → dump MySQL)
-  - P0.5: PhaseStats com contadores e bloqueio de fase com erros criticos
-  - P1.6: Validacao de distribuicao de estado civil (heuristica conjuge vs mapping)
-  - P1.7: Conjuge de fiador com nacionalidade e admissao persistidas
-  - P1.8: Junction de telefones com chave composta (numero, tipo_id)
-  - P1.9: Normalizacao de agencia (remove pontuacao, zero-padding)
-  - Fix extra: `_insert_endereco` defensivo contra int vs string (bug TypeError em re.sub)
-- **Banco re-importado do zero:** Limpeza total + re-execucao no VPS (nao mais via tunnel SSH)
-- **Validacao pos-migracao 100% limpa:** 0 duplicatas CPF/CNPJ, 0 locatarios sem endereco, 0 fiadores sem pessoa, 0 imoveis sem proprietario
-
-#### Corrigido
-- **Bug critico: fallback endereco imovel→inquilino com TypeError** — `end_numero` (INT do PostgreSQL) passado para `re.sub()` que espera string. Causava 2.088 inquilinos sem endereco. Corrigido com cast defensivo.
-- **Tabela nacionalidades sem registro id=1** — Causava FK violation em fases 09 e 13. Inserido "Brasileira" id=1.
-- **Tabela tipos_telefones sem Fax(4) e Outros(5)** — Causava FK violation em fase 13. Inseridos registros faltantes.
-- **id_map com entradas stale apos rollback** — set_mapping gravava no id_map antes do commit, rollback deixava IDs fantasma. Corrigido limpando entries de fases falhadas.
-
-### [6.20.5] - 2026-02-27
-
-#### Alterado
-- **Banco de dados re-importado com dados completos** — Limpeza total (cleanup_db.sql preservando admin) + re-execucao da migracao v4.0 com dump compacto (bkpjpw_compacto_2025.sql)
-- **Migracao v4.0 — 7 fixes em migrate.py:** naturalidade_id para locadores (fase 08), nacionalidade_id para fiadores/contratantes/inquilinos (fases 09/10/13), telefones fax/outros/telcom (fases 08/13), fallback data nascimento 1900-01-01
-
-#### Corrigido
-- **Campos faltantes na migracao:** naturalidade (427 pessoas), nacionalidade (2.260 pessoas), telefones extras (fax/outros/telcom agora extraidos)
-- **INSERT em naturalidades/nacionalidades sem coluna `ativo`** — Tabelas so tem (id, nome), corrigido o INSERT
-- **User duplicado pos-migracao** — Admin id=13 criado pela migracao removido, mantido original id=1
-- **Password PostgreSQL com `!`** — Caracter especial causava falha no psycopg2 DSN, senha resetada sem `!`
-- **phases_done.json como dict `{}`** — Inicializado como lista `[]` para compatibilidade com `.append()`
-
-### [6.20.2] - 2026-02-22
-
-#### Corrigido
-- **Issue #1: Conjugue não carregava na busca avançada** — Implementado `buscarConjugePessoa()` completo, retorna dados via `relacionamentos_familiares`
-- **10 Controllers Thin Controller refatorados** — Movido persist/flush/remove para Services (8 Tipo* + ContratoController + GenericTipoService base)
-- **64 registros de teste removidos do banco** — Estados, cidades, bairros, pessoas, documentos (limpeza completa de E2E test data)
-
-### [6.20.4] - 2026-02-23
-
-#### Corrigido
-- **RelatorioService — Inadimplentes:** `getInadimplentes()` consultava LancamentosFinanceiros sem eager loading, causando N+1 queries e resposta de 2.3MB (2462 entidades). Adicionado eager loading (`addSelect` para inquilino/imovel/prop/contrato) e `setMaxResults(500)`. Banner de aviso no template quando 500+ registros.
-- **RelatorioService — Despesas:** `getDespesas()` e `getTotalDespesas()` consultavam tabela `lancamentos` (vazia). Migrados para `lancamentos_financeiros` com filtro `tipoLancamento = 'despesa'`. `getDespesas()` retorna arrays normalizados. `getTotalDespesas()` usa SQL nativo com COUNT/SUM/CASE WHEN por situacao.
-- **RelatorioService — Receitas:** `getReceitas()` e `getTotalReceitas()` consultavam tabela `lancamentos` (vazia). Migrados para `lancamentos_financeiros` com filtro `tipoLancamento IN ('receita', 'aluguel')`. Mesmo padrao de arrays normalizados e SQL nativo.
-- **RelatorioService — Contas Bancarias:** `getMovimentosContaBancaria()` consultava `Lancamentos` (vazia) e usava `isReceber()` e `dataPagamento` inexistentes em LancamentosFinanceiros. Migrado para `LancamentosFinanceiros` com `contaBancaria IS NOT NULL` e `situacao = 'pago'`. Retorna arrays normalizados com `dataPagamento` (alias de dataVencimento), `receber` (bool), `historico`, `numeroDocumento`, `valorFloat`. `getSaldoInicialConta()` reescrito com SQL nativo (CASE WHEN por tipoLancamento). `getResumoContas()` adaptado para consumir arrays normalizados.
-- **VPS — APP_ENV:** Estava em `dev` em producao, causando log de todas as queries e overhead massivo. Corrigido para `APP_ENV=prod / APP_DEBUG=false`.
-
-#### Adicionado
-- **Metodo `agruparDespesas()`** — Agrupa arrays normalizados de despesas por plano_conta/fornecedor/imovel/mes.
-- **Metodo `getSituacaoBadge()`** — Mapeia situacao (pago/cancelado/aberto) para classe Bootstrap badge.
-
-### [6.20.3] - 2026-02-22
-
-#### Removido
-- **CRUD orfao PessoaFiador eliminado** — Controller, Service, Form, Repository, templates, JS e testes deletados. Nunca tinha entrada no dashboard. Entity PessoasFiadores preservada (288 registros).
-- **6 arquivos .md de planejamento** — Violavam Regra 4
-
-#### Alterado
-- **Banco de dados migrado de Neon Cloud para PostgreSQL local na VPS** — pg_dump do Neon (14 MB), pg_restore na VPS, DATABASE_URL atualizado para localhost
-- **PessoaCorretorController e PessoaLocadorController abandonados** — Código existente mas não utilizado (não fazem parte do fluxo ativo)
-- **GenericTipoService expandido** — 7 novos metodos de criacao de tipos
-- **Permissoes VPS corrigidas** — chown www-data, chmod 644/755 em todo o projeto
-
-#### Pendente (Próxima Fase)
-- 1 PessoaController ainda viola Thin Controller (PessoaCorretorController e PessoaLocadorController abandonados, código existente mas não utilizado)
-
----
-
-### [6.20.1] - 2026-02-22
-
-#### Adicionado
-- **4 novos Repositories** — TiposAtendimentoRepository, TiposCarteirasRepository, TipoPessoaRepository, TipoRemessaRepository
-- **Validacao em 13 FormTypes** — NotBlank + Length(min=2, max=255) adicionados em: TipoAtendimentoType, TipoCarteiraType, TipoChavePixType, TipoContaBancariaType, TipoDocumentoType, TipoEmailType, TipoEnderecoType, TipoTelefoneType, EstadoCivilType, NaturalidadeType, TipoPessoaType, TipoRemessaType, TipoImovelType
-- **Handler JS `data-confirm-delete`** — `assets/js/crud_filters.js` agora intercepta forms com atributo `data-confirm-delete` e exibe confirmacao antes de submeter
-- **Templates show.html.twig faltantes** — Criados para tipo_carteira e pessoa_locador (antes davam Error 500)
-
-#### Alterado
-- **12 templates index.html.twig** — Removido `onsubmit="return confirm(...)"` e `onclick="return confirm(...)"` inline, substituido por `data-confirm-delete` (Regra 8)
-- **4 Entities com repositoryClass** — TiposAtendimento, TiposCarteiras, TiposPessoas, TiposRemessa agora referenciam seus repositorios
-- **2 Entities com repositoryClass** — TiposDocumentos, TiposEmails agora referenciam seus repositorios
-- **TipoEnderecoType.php** — Adicionado `'attr' => ['class' => 'form-control']` no campo tipo
-
-#### Corrigido
-- **CobrancaController: Warning Array to string conversion** — `$request->query->all()` passava array `status[]` pro Twig `path()`. Fix: `array_filter(..., fn($v) => !is_array($v))`
-- **Templates _delete_form.html.twig corrompidos** — `pessoa_locador/_delete_form.html.twig` e `tipo_telefone/_delete_form.html.twig` continham codigo PHP do Controller em vez de Twig. Substituidos por Twig valido
-- **TiposImoveis: createdAt/updatedAt como string** — Entity declarava `type: 'string'` em vez de `type: 'datetime'`. Corrigido + migration executada (ALTER TYPE VARCHAR→TIMESTAMP)
-- **TipoEmailFixtures.php** — Referenciava `App\Entity\TipoEmail` (nao existe). Corrigido para `TiposEmails`
-- **TipoImovelFixtures.php** — Referenciava `App\Entity\TipoImovel` (nao existe). Corrigido para `TiposImoveis`
-- **EstadoCivilControllerTest.php** — Testava classe errada `RegimesCasamento`. Corrigido para `EstadoCivil`
-- **Templates tipo_imovel** — Usavam `{% block body %}` em vez de `{% block content %}`. Breadcrumb vazio corrigido
-
----
-
-### [6.20.0] - 2026-02-21
-
-#### Adicionado
-- **Busca Avancada padronizada em 33 CRUDs** — card colapsavel no topo com filtros dinamicos por tipo (text, number, select, date, month, boolean)
-- **Ordenacao padronizada em 33 CRUDs** — barra de botoes abaixo da busca, clique alterna ASC/DESC, botao ativo destacado
-- **Paginacao unificada** — preserva todos os GET params (filtros + sort) nos links de navegacao
-- `src/DTO/SearchFilterDTO.php` — DTO para definicao de filtros de busca
-- `src/DTO/SortOptionDTO.php` — DTO para definicao de opcoes de ordenacao
-- `templates/_partials/search_panel.html.twig` — Partial de busca avancada colapsavel
-- `templates/_partials/sort_panel.html.twig` — Partial de barra de ordenacao
-- `assets/js/crud/crud_filters.js` — JS modular para toggle collapse, Enter submit, webpack entry
-- `{% block javascripts %}` no `base.html.twig` para scripts de pagina
-
-#### Alterado
-- `src/Service/PaginationService.php` — Suporte a SearchFilterDTO[], SortOptionDTO[], defaultSort, retrocompativel
-- `templates/_partials/pagination.html.twig` — Preserva GET params, variavel showSearch para retrocompat
-- 33 Controllers atualizados com filtros e ordenacao via PaginationService
-- 33 Templates atualizados com search_panel + sort_panel + pagination padronizado
-- 4 Repositories (Boletos, Lancamentos, LancamentosFinanceiros, PrestacoesContas) — novo metodo `createBaseQueryBuilder()`
-- Boletos, Lancamentos, FichaFinanceira, PrestacaoContas migrados de filtro custom para PaginationService
-- LogradouroController migrado de findAll() para PaginationService
-
-#### Corrigido
-- **Bug Contratos: filtros nao aplicados** — `$filtros` eram coletados mas nunca passados ao QueryBuilder. Corrigido via SearchFilterDTO no PaginationService
-
----
-
-### [6.19.10] - 2026-02-21
-
-#### Corrigido
-- **Dashboard: links quebrados dos cards Bancos e Relatórios** — apontavam para `#` em vez das rotas corretas (`app_banco_index`, `app_relatorios_index`)
-- **VPS: permissões de arquivos** — 9 controllers, templates, services e assets tinham permissão `600` (só dono), PHP-FPM (`www-data`) não conseguia ler → erro 500 em `/contrato/`, `/boleto/`, `/financeiro/`, etc.
-- **VPS: cache Twig sem permissão de escrita** — diretório `var/cache/prod/` pertencia a `deployer`, alterado para `www-data:www-data` com `775`
-
----
-
-### [6.19.9] - 2026-02-21
-
-#### Corrigido
-- **Valores de boletos/recibos corrigidos — 100% consistência com sistema antigo**
-  - `valor_principal` estava duplicado em 62.742 recibos: continha o total (aluguel+verbas) e as verbas (condomínio, IPTU, água) foram adicionadas separadamente nos campos próprios
-  - Causa: Phase 15 setava verbas nos campos separados mas NÃO subtraía do `valor_principal` quando a conta 1001 (aluguel puro) não existia no `locrechist`
-  - Correção: `valor_principal = dump.valor - (condomínio + IPTU + água + luz + gás + outros)`
-  - `valor_total` recalculado: `principal + verbas + multa + juros`
-  - Verificação 100%: 80.009/80.009 recibos com soma_verbas = dump.valor, valor_pago e situação OK
-  - `migrate.py` Phase 15 atualizada para corrigir automaticamente em futuras execuções
-
----
-
-### [6.19.8] - 2026-02-21
-
-#### Corrigido
-- **Cadeia financeira inquilino→proprietário completada**
-  - `lancamentos_financeiros.id_proprietario` preenchido para 367.686 lancamentos (era NULL em 100%)
-  - 80.009 recibos (migracao_mysql): proprietário derivado via contrato → imóvel → proprietário
-  - 287.677 extrato CC com imóvel: proprietário derivado via imóvel → proprietário
-  - 139.018 restantes são despesas/receitas administrativas da imobiliária (sem proprietário — correto)
-  - `prestacoes_contas.id_imovel` preenchido para 14.882 registros (proprietários com 1 imóvel)
-  - 27.962 prestações restantes: proprietários com múltiplos imóveis, dump sem campo `imovel` (100% zerado)
-  - `migrate.py` Phases 14, 16, 18 atualizadas para preencher id_proprietario em futuras execuções
-
-#### Verificação da cadeia completa
-- **100% contratos** têm imóvel válido (0 quebras)
-- **100% imóveis** têm proprietário válido (0 quebras)
-- **100% recibos** (migracao_mysql) têm id_proprietario preenchido
-- **100% proprietários** de imóveis locados ativos têm prestações de contas (139/139)
-- **6 contratos ativos sem lançamento**: são contratos novos criados em 20/fev/2026 (ainda não geraram boleto)
-- **13 contratos encerrados sem lançamento**: dados antigos do sistema (imovel=0, contratos de 2004-2024)
-
----
-
-### [6.19.7] - 2026-02-21
-
-#### Adicionado
-- **Migracao de conjuges (relacionamentos familiares)**
-  - 165 conjuges de fiadores criados como Pessoa independente (com CPF, RG, profissao, telefone)
-  - `pessoas_fiadores.id_conjuge` vinculado para todos os 165 fiadores casados
-  - `pessoas_fiadores.conjuge_trabalha` preenchido a partir de `locfiadores.conjtrabalha`
-  - 11 conjuges de inquilinos criados (apenas nome disponivel em `locinquilino.nomecjg`)
-  - Total: 176 novas Pessoas criadas, 319 documentos, 9 profissoes, 1 telefone
-  - Script `migrate.py` Phase 09 e Phase 13 atualizados para contemplar conjuges em futuras execucoes
-  - Script `hotfix_conjuges.py` idempotente criado para correcoes ad-hoc
-
-#### Dados de conjuges migrados (locfiadores -> pessoas)
-- **nomeconj** -> pessoas.nome
-- **cpfconj** -> pessoas_documentos (tipo=CPF)
-- **rgconj** -> pessoas_documentos (tipo=RG)
-- **dtnascconj** -> pessoas.data_nascimento
-- **rendaconj** -> pessoas.renda + pessoas_profissoes.renda
-- **conjpaif/conjmaef** -> pessoas.nome_pai/nome_mae
-- **atividadeconj** -> profissoes + pessoas_profissoes
-- **conjempresaf** -> pessoas_profissoes.empresa
-- **conjtelemp** -> telefones + pessoas_telefones
-- **conjtrabalha** -> pessoas_fiadores.conjuge_trabalha
-
----
-
-### [6.19.6] - 2026-02-21
-
-#### Corrigido
-- **Inquilinos sem endereco proprio agora recebem endereco do imovel locado**
-  - No sistema antigo, inquilinos sem campo `endac` tinham como endereco implicito o imovel que alugavam
-  - Script Phase 13 atualizado: se `endac` vazio, copia endereco do imovel vinculado via `locinquilino.imovel`
-  - 2.088 enderecos copiados do imovel para o inquilino + 42 enderecos proprios = 2.130 total
-  - Apenas 2 inquilinos ficaram sem endereco (sem imovel vinculado no dump)
-
----
-
-### [6.19.5] - 2026-02-21
-
-#### Corrigido
-- **Enderecos proprios de inquilinos (campo endac) nao eram migrados na Fase 13**
-  - 42 inquilinos com endereco proprio no dump MySQL — inseridos no banco
-
-#### Relacoes Inquilino-Imovel-Proprietario (verificadas)
-- **Cadeia completa**: `ImoveisContratos.id_pessoa_locatario` -> `Pessoas` (inquilino)
-- **Imovel**: `ImoveisContratos.id_imovel` -> `Imoveis.id_pessoa_proprietario` -> `Pessoas` (dono)
-- **Fiador**: `ImoveisContratos.id_pessoa_fiador` -> `Pessoas` (fiador)
-- 2.130 contratos migrados, todos com inquilino e imovel vinculados
-
----
-
-### [6.19.4] - 2026-02-21
-
-#### Corrigido
-- **Tipo Inquilino (e outros) nao aparecia na tela de edicao de pessoa**
-  - `PessoaRepository::findTiposComDados()` so buscava em tabelas dedicadas (PessoasLocadores, PessoasFiadores, etc.)
-  - Nao existia `PessoasInquilinos` entity, entao inquilinos nunca eram detectados
-  - Corrigido: agora le da tabela `pessoas_tipos` como fonte de verdade para TODOS os tipos
-  - Tambem mantem busca nas tabelas dedicadas para consistencia
-- **Select de tipos no template faltava opcoes: Socio, Advogado, Inquilino**
-  - Adicionadas 3 opcoes no select do template `pessoa_form.html.twig`
-- **JS `pessoa_tipos.js` nao tinha configuracao para Inquilino**
-  - Adicionado `inquilino` no `tiposConfig` com icone `fas fa-home`
-- **Controller `tipoParaId` faltava socio, advogado, inquilino**
-  - Adicionados mapeamentos: socio=7, advogado=8, inquilino=12
-
----
-
-### [6.19.3] - 2026-02-21
-
-#### Corrigido
-- **Assets JS nao compilados no VPS — Symfony AssetMapper retornava 404 para todos os 19 JS de pessoa**
-  - O Symfony AssetMapper versiona arquivos de `assets/` para `public/assets/` com hashes (ex: `pessoa_form-3XJfXni.js`)
-  - O comando `php bin/console asset-map:compile` nunca havia sido executado no VPS
-  - Template renderizava `<script src="/almasa/assets/js/pessoa/pessoa_form-3XJfXni.js">` → HTTP 404
-  - Sem JS, nenhum AJAX de carregamento de dados era executado — todas as secoes ficavam vazias
-  - Corrigido: executado `asset-map:compile --env=prod` no VPS, 19 arquivos compilados
-- **Arquivos .md proibidos removidos (Regra 4 do CLAUDE.md)**
-  - Removido `CHANGELOG.md` (avulso, redundante com o Changelog do livro)
-  - Removido `src/DataFixtures/README.md` (documento avulso proibido)
-  - Removido `docs/.UPDATE_PENDING` (arquivo temporario)
-
-#### Importante — Deploy no VPS
-- Apos qualquer alteracao em `assets/js/`, executar no VPS:
-  ```bash
-  php bin/console asset-map:compile --env=prod
-  php bin/console cache:clear --env=prod
-  ```
-
----
-
-### [6.19.2] - 2026-02-21
-
-#### Corrigido
-- **Arquivos JS de pessoa NAO existiam em public/ — UI ficava 100% vazia**
-  - Template `pessoa_form.html.twig` usa `asset('js/pessoa/...')` que resolve para `public/js/pessoa/`
-  - A pasta `public/js/pessoa/` NAO existia — 19 arquivos JS estavam apenas em `assets/js/pessoa/`
-  - Sem o JS, nenhum AJAX rodava e todas as secoes (telefones, emails, docs, etc.) ficavam vazias
-  - Corrigido: 19 arquivos copiados para `public/js/pessoa/` local e VPS
-- **Tabela `pessoas_tipos` estava VAZIA (0 registros)**
-  - Secao "Tipos de Pessoa" da UI le de `pessoas_tipos` para saber os papeis (locador, fiador, etc.)
-  - Script de migracao nunca inseriu nessa tabela — apenas nas tabelas de dados especificos
-  - Corrigido: 4.921 registros inseridos (2.498 locadores + 288 fiadores + 3 contratantes + 2.132 inquilinos)
-  - Script `migrate.py` atualizado com `INSERT INTO pessoas_tipos` em todas as 4 fases de pessoas
-
-#### Alterado
-- Script de migracao atualizado para v3.2 no repo almasa-migration
-
----
-
-### [6.19.1] - 2026-02-21
-
-#### Adicionado
-- **Migracao v3.1 — associacoes de tipo, profissoes, chaves PIX completas**
-  - `pessoas_locadores`: 2.498 registros com 19 campos financeiros (forma_retirada, dependentes, multa, etc.)
-  - `pessoas_fiadores`: 288 registros com motivo_fianca, conjuge_trabalha, etc.
-  - `pessoas_contratantes`: 3 registros
-  - `pessoas_profissoes`: 2.311 vinculos pessoa-profissao com empresa e renda
-  - `profissoes`: 1.453 profissoes unicas extraidas dos dados MySQL
-  - `chaves_pix`: 22 chaves PIX importadas (CPF, CNPJ, Telefone, Email, Aleatoria)
-  - `formas_retirada`: 5 formas cadastradas (Transferencia, Credito, Cheque, Dinheiro, Outro)
-  - Pai/Mae e nacionalidade dos inquilinos importados
-
-#### Corrigido
-- **Enderecos de imoveis distribuidos corretamente**: Fase 12 agora atribui id_pessoa ao proprietario real (antes todos iam para placeholder)
-- **Profissoes nao eram importadas**: iam apenas como texto no campo observacoes — agora vao para tabela propria com vinculo
-- **Papeis nunca atribuidos**: pessoas_locadores/fiadores/contratantes estavam VAZIOS — agora populados
-
-#### Alterado
-- Script de migracao atualizado para v3.1 no repo almasa-migration
-- config.py: adicionados TIPO_CHAVE_PIX_MAP, FORMAS_RETIRADA_SEED, FORMA_RETIRADA_MYSQL_MAP, DEFAULT_NACIONALIDADE_ID
-
----
-
-### [6.19.0] - 2026-02-21
-
-#### Adicionado
-- **Script de migracao v2 com parametrizacao completa** (scripts/migration/migrate.py)
-  - Fase 00: Validacao automatica de TODAS tabelas de parametros antes de importar
-  - IDs carregados dinamicamente do banco (nunca mais hardcoded errado)
-  - Tipo "inquilino" adicionado a tabela tipos_pessoas (id=12)
-- **PaginationService** (src/Service/PaginationService.php) — paginacao 15/30/50/100 por pagina
-- **BancoController + CRUD completo** (src/Controller/BancoController.php) — antes nao existia
-- **Paginacao e busca em TODOS os 29 CRUDs** do sistema
-
-#### Corrigido
-- **tipos_pessoas INVERTIDOS na migracao anterior**: locador era id=1 (fiador!), fiador era id=4 (locador!)
-  - Corrigido: locador=4, fiador=1, contratante=6, inquilino=12
-- **Telefones TODOS como Celular**: script antigo usava DEFAULT_TIPO_TELEFONE_ID=6 para tudo
-  - Corrigido: campo "telefone"=Residencial(2), "celular"=Celular(6), "comercial"=Comercial(3)
-  - Resultado: 2450 Residencial + 3315 Celular + 298 Comercial (antes: 6063 todos Celular)
-- **23 imoveis falhavam por FK de bairro** (cache stale de transacao rollback)
-  - Corrigido: validacao de cache contra DB antes de usar ID cacheado
-  - Resultado: 3236/3236 imoveis migrados (100%, antes 99.3%)
-- **enderecos.id_pessoa de imoveis apontava para placeholder**
-  - Corrigido: Fase 12 agora atualiza enderecos.id_pessoa para proprietario real (2997 corrigidos)
-- **Memory error em /almasa/imovel/** — carregava todos 3236 registros sem paginacao
-- **Agencia template RuntimeError** — `agencia.idBanco` nao existia como propriedade
-- **Tipo imovel sem botao "Novo"**
-
-#### Alterado
-- config.py: IDs de parametrizacao documentados e confirmados contra banco real
-- Migracao completa: 702.174 registros em 19 fases, 0 erros, 0 warnings
-- Script de migracao movido para repo separado: https://github.com/marciomartins83/almasa-migration
-  - Removido de `scripts/migration/` do AlmasaStudio
-  - Repo privado, independente, não vai para VPS
-
-#### Registros Migrados (2026-02-21)
-
-| Fase | Tabela Origem | Destino | Registros |
-|------|--------------|---------|-----------|
-| 00 | — | Validacao | 13 IDs |
-| 01 | banco | bancos | 15 |
-| 02 | agencia | agencias | 16 |
-| 03 | conta | contas_bancarias | 14 |
-| 04 | locplano | plano_contas | 159 |
-| 05 | p_estado | estados | 18 |
-| 06 | p_cidade | cidades | 9.627 |
-| 07 | p_bairro | bairros | 51.603 |
-| 08 | loclocadores | pessoas (locador) | 2.498 |
-| 09 | locfiadores | pessoas (fiador) | 288 |
-| 10 | loccontratantes | pessoas (contratante) | 3 |
-| 11 | locimoveis | imoveis | 3.236 |
-| 12 | locimovelprop | vinculos proprietario | 2.998 + 2.997 end |
-| 13 | locinquilino | pessoas + contratos | 2.132 + 2.130 |
-| 14 | locrecibo | lancamentos_financeiros | 80.009 |
-| 15 | locrechist | verbas lancamentos | 80.002 |
-| 16 | loclanctocc | lancamentos CC | 426.695 |
-| 17 | locacordo | acordos_financeiros | 4 |
-| 18 | locrepasse | prestacoes_contas | 42.844 |
-| 19 | — | sync_cod_pessoas | — |
-| 20 | loclocadores/locfiadores/loccontratantes/locinquilino | sync estado_civil/nacionalidade/profissao | variável |
-| **TOTAL** | | | **702.174+** |
-
----
-
-### [6.17.1] - 2026-02-20
-
-#### Corrigido
-- **Assets em producao quebrados** — Webpack publicPath apontava `/build` mas site roda em `/almasa`
-  - webpack.config.js: `setPublicPath` agora usa env var `PUBLIC_PATH` + `setManifestKeyPrefix`
-  - Build producao com `PUBLIC_PATH=/almasa/build` gera manifest e entrypoints corretos
-  - Nginx config: corrigido regex location com capture group para alias funcionar
-- **Login quebrado em producao** — `dump()` no UserAuthenticator enviava output antes dos headers HTTP
-  - Removidos todos os `dump()` de debug do metodo `authenticate()`
-- **Dados de teste no banco** — Limpeza de dados com marcacao "(Fake)" e profissao "Teste Migration"
-  - Removida profissao "Teste Migration"
-  - Limpados complementos "(Fake)" dos enderecos
-  - Corrigida empresa e observacoes das profissoes
-
----
-
-### [6.17.0] - 2026-02-19
-
-#### Adicionado
-- Deploy em produção: https://www.liviago.com.br/almasa
-- Config Nginx subfolder /almasa (deploy/nginx-almasa.conf)
-- Banco PostgreSQL local na VPS (migrado do Neon Cloud em 2026-02-22)
-- MetodologiaAPI v1.1.0 criada e deployada em /apiCode
-- API coercitiva que injeta regras no CLAUDE.md dos projetos
-
----
-
-### [6.16.1] - 2026-02-19
-
-#### Corrigido
-- **Testes PHPUnit em tests/Service/** — Corrigidas 3 suites de testes com 44 testes
-  - **ImovelServiceTest.php** (2 erros):
-    - Linha 70 e 151: `getEndereco()` retornava `null` mas tipo de retorno é `Enderecos` (não-nulável)
-    - Solução: Criar mock de `Enderecos` e `Pessoas` e retornar no lugar de `null`
-    - 12 testes agora passam com 31 assertions
-  - **InformeRendimentoServiceTest.php** (1 erro):
-    - Linha 92: Tentava chamar `setId()` que não existe em `InformesRendimentos` (ID é auto-gerado)
-    - Solução: Usar Reflection para definir propriedade `id` privada
-    - 16 testes agora passam com 48 assertions
-  - **RelatorioServiceTest.php** (múltiplas chamadas):
-    - Múltiplos testes com `expects($this->once())` em `getResult()` que era chamado mais de uma vez
-    - Solução: Alterar para `expects($this->any())` em 5 métodos (getDespesas, getTotalDespesas, getTotalReceitas, getPlanoContas, getMovimentosContaBancaria)
-    - 16 testes agora passam com 40 assertions
-  - **Schema Doctrine:** Validado e sincronizado (`[OK]`)
-  - **Total:** 44 testes, 119 assertions, 0 falhas
-
----
-
-### [6.16.0] - 2025-12-08
-
-#### Adicionado
-- **Modulo Relatorios PDF** — 6 relatorios com preview AJAX e geracao PDF via DomPDF
-  - Inadimplentes, Despesas, Receitas, Despesas x Receitas, Contas Bancarias, Plano de Contas
-  - RelatorioService.php (~800 linhas), RelatorioController.php (~490 linhas)
-  - 19 rotas, 20+ templates, 2 modulos JS
-  - webpack.config.js atualizado
-
-### [6.15.0] - 2025-12-08
-
-#### Adicionado
-- **Modulo Prestacao de Contas aos Proprietarios**
-  - Migration com tabelas `prestacoes_contas` e `prestacoes_contas_itens`
-  - PrestacoesContas.php (580+ linhas), PrestacoesContasItens.php (300+ linhas)
-  - PrestacaoContasService.php (600+ linhas), PrestacaoContasController.php (350+ linhas)
-  - 13 rotas, 6 templates, 2 modulos JS, 2 FormTypes
-
-### [6.14.0] - 2025-12-07
-
-#### Adicionado
-- **Modulo Lancamentos (Contas a Pagar/Receber)** — CRUD completo
-  - Migration expansao tabela `lancamentos`
-  - Lancamentos.php (860+ linhas), LancamentosService.php (550+ linhas)
-  - 12 rotas, 5 templates, 2 modulos JS
-
-### [6.13.0] - 2025-12-07
-
-#### Adicionado
-- **Sistema Completo de Cobranca Automatica**
-  - 4 tabelas: contratos_itens_cobranca, contratos_cobrancas, emails_enviados
-  - CobrancaContratoService.php (450+ linhas), EmailService.php (343 linhas)
-  - Command `app:enviar-boletos-automatico`, 8 rotas AJAX
-
-### [6.12.0] - 2025-12-07
-
-#### Adicionado
-- **CRUD Completo de Boletos Bancarios**
-  - BoletoController (400 linhas), BoletoType (270 linhas), 12 rotas, JS modular
-
-### [6.11.1] - 2025-12-07
-
-#### Alterado
-- Regra 0 Schema Doctrine no CLAUDE.md
-
-#### Corrigido
-- Sincronizacao completa de Schema Doctrine (tipos, nullability, campos, indices)
-
-### [6.11.0] - 2025-12-07
-
-#### Adicionado
-- **Integracao API Santander** — Auth OAuth 2.0 + mTLS, Boletos + BoletosLogApi entities, 2 services
-
-### [6.10.0] - 2025-12-07
-
-#### Adicionado
-- **Configuracao API Bancaria** — CRUD, upload certificado A1, validacao OpenSSL
-
-### [6.9.0] - 2025-12-05
-
-#### Adicionado
-- **Ficha Financeira / Contas a Receber** — 3 tabelas, FichaFinanceiraService (600+ linhas), 14 metodos
-
-### [6.8.0] - 2025-12-05
-
-#### Adicionado
-- **Contratos de Locacao** — 11 campos novos, ContratoService (615 linhas), renovacao/encerramento
-
-### [6.23.4] - 2026-03-03
-
-#### Corrigido
-- **CSRF Login quebrado (Symfony 7.2)** — SecurityController injetava `CsrfTokenManagerInterface` (session-based) mas o `CsrfProtectionListener` validava via `SameOriginCsrfTokenManager` (double-submit/origin). Token gerado por um manager, validado por outro = sempre inválido. Fix: removida injeção manual, template usa `{{ csrf_token('authenticate') }}` do Twig.
-- **Permissões de arquivo 600 nos controllers** — BoletoController, CobrancaController, ConfiguracaoApiBancoController, ContratoController tinham permissão `600` (só owner lê). PHP-FPM (www-data) não conseguia ler → 500 Internal Server Error. Fix: `chmod 644` em todos os arquivos do projeto.
-- **Password hash corrompido no banco** — Hash do admin estava com apenas 33 chars (sem prefixo `$2y$`), impedindo login. Fix: regenerado hash bcrypt válido (60 chars).
-- **APP_DEBUG=true deixado em produção** — Restaurado para `false`.
-- **Logs não eram gravados** — Em modo `prod`, monolog envia para `php://stderr` (PHP-FPM log), não para arquivo. Identificado e documentado.
-- **Schema TiposImoveis desincronizado** — Entity tinha `created_at`/`updated_at` como `nullable: true` mas banco tinha `NOT NULL`. Fix: entity alinhada com banco (NOT NULL). Schema agora 100% sincronizado local + VPS.
-- **2.132 inquilinos SEM tipo em pessoas_tipos** — Fase 18.5 do script de migração filtrava `tipo_pessoa IN (1..8)` mas inquilino é `tipo_pessoa=12`. TIPO_MAPPING também não incluía 12. Fix: adicionado inquilino no TIPO_MAPPING e no filtro SQL. SQL direto aplicado no banco local + VPS para corrigir dados existentes. Validação 100% adicionada ao final da fase (raise RuntimeError se qualquer pessoa ficar sem tipo).
-
-#### Lição Aprendida
-- Symfony 7.2 introduziu `SameOriginCsrfTokenManager` como padrão para o security listener. Ele valida CSRF por Origin header (browsers enviam automaticamente) ou double-submit cookie. Não usar `CsrfTokenManagerInterface` diretamente no controller de login — usar `{{ csrf_token('id') }}` no Twig.
-- **TODA pessoa DEVE ter pelo menos 1 tipo em pessoas_tipos.** O script de migração DEVE validar 100% no final e falhar explicitamente se qualquer pessoa ficar sem tipo. Não existe fallback — cada pessoa vem de uma tabela MySQL (loclocadores, locfiadores, loccontratantes, locinquilino) e o tipo é determinístico.
-
-### [6.29.0] - 2026-04-07
-
-#### Adicionado
-- **AutocompleteController** — 17 endpoints centralizados de busca AJAX (`/autocomplete/pessoas`, `/autocomplete/bancos`, `/autocomplete/agencias`, `/autocomplete/contas-bancarias`, `/autocomplete/imoveis`, `/autocomplete/contratos`, `/autocomplete/nacionalidades`, `/autocomplete/naturalidades`, `/autocomplete/logradouros`, `/autocomplete/enderecos`, `/autocomplete/bairros`, `/autocomplete/condominios`, `/autocomplete/plano-contas`, `/autocomplete/almasa-plano-contas`, `/autocomplete/cidades`, `/autocomplete/ufs`, `/autocomplete/users`)
-- **generic_autocomplete.js** — Modulo JS reutilizavel com busca typeahead, navegacao por teclado, debounce e preload
-- **autocomplete_field.html.twig** — Partial Twig generico para campos autocomplete
-- **PaginationRedirectTrait** — Trait que preserva pagina, ordenacao e filtros apos editar/excluir em qualquer CRUD
-- Campo `descricao` e `titular` no formulario de ContaBancaria
-- Flag "Incluir contas de proprietarios" na aba Vinculos do lancamento
-- Coluna "Historico" no index de lancamentos
-- Filtro `?apenas=almasa` no endpoint `/autocomplete/contas-bancarias`
-- Busca por campo `codigo` alem de `descricao`/`titular` nas contas bancarias
-
-#### Alterado
-- **30+ campos EntityType convertidos para autocomplete** em 15 FormTypes: ImovelFormType, ContaBancariaType, PessoaFormType, LancamentosType, BoletoType, PessoaPretendenteType, PessoaLocadorType, PessoaCorretorType, PessoaFiadorCombinedType, LogradouroType, AlmasaLancamentoType, AlmasaVinculoBancarioType, PrestacaoContasFiltroType, PrestacaoContasRepasseType, ConfiguracaoApiBancoType, AlmasaPlanoContasType, AgenciaType, BairroType, PessoaAdvogadoType
-- **25 Controllers** com PaginationRedirectTrait para preservar paginacao
-- Selects em templates de relatorios (proprietarios, plano contas, contas bancarias, inquilinos, pagadores, fornecedores, imoveis, locatarios, fiadores) convertidos para autocomplete
-- Metodologia multi-agente removida do CLAUDE.md
-- Relatorios Almasa despesas/receitas agora buscam na tabela `lancamentos` (tipo=pagar/receber) em vez de `almasa_lancamentos`
-- Baixa de lancamento: removidas opcoes Credito e Boleto, Debito renomeado para "Debito em Conta"
-- Busca de pessoa (searchPessoaAdvanced) agora retorna campo `cod`
-- Filtro titular em contas bancarias busca em pessoa.nome, titular e descricao (OR)
-
-#### Corrigido
-- Plano de contas preserva pagina apos editar/excluir
-- Contas a pagar nao exigem banco na criacao — so na baixa
-- ContasBancarias: default false para campos boolean (principal, ativo, registrada, aceitaMultipag, usaEnderecoCobranca, cobrancaCompartilhada)
-- generic_autocomplete.js inicializa mesmo se DOM ja carregou (fix DOMContentLoaded)
-- Contas proprias Almasa receberam titular "Almasa Administradora" (12 contas)
-
-#### Licao Aprendida
-- Doctrine DQL `CONCAT` aceita apenas 2 argumentos, nao varios. Para buscas multi-campo, usar OR no WHERE em vez de CONCAT
-- Webpack Encore precisa ser recompilado (`npx encore production`) apos alterar assets/js — o browser carrega o build compilado, nao o source
-- Campos boolean NOT NULL em entities Doctrine DEVEM ter valor default, senao INSERT falha com not-null violation
-- PaginationService salvar URL na session e melhor que passar page/sort nos params — solucao centralizada
-
----
-
-### [6.24.4] - 2026-03-04
-
-#### Adicionado
-- Card "Lançamentos" no dashboard (Financeiro e Documentos)
-- Item "Lançamentos" no menu Financeiro
-- Template: `templates/dashboard/index.html.twig` - card adicionado após Bancos
-- Template: `templates/_partials/top_navigation.html.twig` - item adicionado após Ficha Financeira
-
-### [6.24.3] - 2026-03-04
-
-#### Adicionado
-- ThemeService para gerenciar tema global do usuário logado
-- ThemeExtension para expor variáveis de tema no Twig
-- Tema escuro agora funciona em todas as páginas (não só no form de pessoa)
-
-#### Alterado
-- `templates/base.html.twig` - usa variável global `{{ theme }}` ao invés de verificação condicional
-- `config/services.yaml` - registro do ThemeService
-
-### [6.24.2] - 2026-03-04
-
-#### Alterado
-- Filtro Twig `format_documento` corrigido para RG brasileiro
-- RG com dígito verificador (número ou X): `43.820.141-3`
-- Suporta 7, 8, 9 e 10+ dígitos
-- Arquivo: `src/Twig/DocumentoFormatExtension.php`
-- Função JavaScript `formatarRG` corrigida em `assets/js/pessoa/pessoa.js`
-
-### [6.24.1] - 2026-03-04
-
-#### Alterado
-- Campo CPF/CNPJ (searchTerm) removido do card "Dados da Pessoa Principal" no modo edição
-- Template: `templates/pessoa/pessoa_form.html.twig` - adicionado condição `{% if not isEditMode %}`
-- CPF/CNPJ agora aparece apenas na seção Documentos
-
-### [6.24.0] - 2026-03-04
-
-#### Adicionado
-- Filtro Twig `mask_documento` para mascarar CPF, RG e CNPJ
-- Mascara CPF: `***.123.456-**`
-- Mascara CNPJ: `**.123.456/0001-**`
-- Mascara RG: `*.123.456-*` (detecção automática por qtd dígitos)
-- Arquivo: `src/Twig/DocumentoMaskExtension.php`
-
-#### Alterado
-- Templates atualizados com filtro `mask_documento`:
-  - `templates/pessoa/show.html.twig`
-  - `templates/relatorios/pdf/contas_bancarias.html.twig`
-  - `templates/relatorios/pdf/despesas_receitas.html.twig`
-  - `templates/relatorios/pdf/receitas.html.twig`
-  - `templates/relatorios/pdf/despesas.html.twig`
-  - `templates/relatorios/preview/contas_bancarias.html.twig`
-  - `templates/relatorios/preview/despesas.html.twig`
-  - `templates/financeiro/lancamento_show.html.twig`
-
-### [6.28.0] - 2026-03-10
-
-#### Adicionado
-- **Modulo Almasa Plano de Contas v2 — Refactor e Expansão**
-  - 5 grupos contábeis (Ativo, Passivo, Receita, Despesa, Patrimônio)
-  - 5 níveis hierárquicos de lançamentos
-  - Busca avançada, ordenação por grupo/código, paginação
-  - Relatório Plano de Contas Almasa com preview AJAX e PDF
-  - Seção "Almasa Empresa" adicionada ao dashboard
-  - 15 rotas, 8 templates, 3 modulos JS, FormType com validações
-- **Modulo Vinculos Bancarios — Integração Contas/Plano de Contas**
-  - CRUD completo de vinculos entre contas bancárias e plano de contas
-  - Busca de pessoa no formulário (autocomplete)
-  - Unique constraint: (conta_bancaria, plano_conta)
-  - 6 rotas, 4 templates, 2 modulos JS
-- **Partidas Dobradas — Débito/Crédito no Plano**
-  - Sistema de débito/crédito integrado ao formulário
-  - Validação de saldo na edição
-  - DRE (Demonstrativo de Resultado) gerado dinamicamente
-
-#### Alterado
-- Plano de Contas: código auto-sugerido com prefixo travado (2.1.01.XXX, etc.)
-- Script PHP `gerar_contas_proprietarios.php` — cria contas individuais por proprietário
-- UX do formulário Plano de Contas: redesenhado com grupos visiveis
-- IDs do JavaScript corrigidos no formulário (seletores jQuery)
-- Remover filtro Twig inexistente 'repeat' (erro em template)
-
-#### Corrigido
-- Prefixo "Conta Corrente de" removido das contas de proprietários (apenas nome agora)
-
-#### Lição Aprendida
-- Unique constraints em migrations devem ser declaradas como `uniqueConstraints` na Entity ORM, não como índices
-- PostgreSQL requer remoção de constraint antes de remover índice dependente
-- Plano de Contas Almasa é o centro da contabilidade — todas as contas bancárias devem vincular aqui
-
----
-
-### [6.27.0] - 2026-03-08
-
-#### Adicionado
-- **Documentação de Banco de Dados** — Mapa completo com 85 tabelas, ~630k registros
-  - Módulos: Pessoas, Imóveis, Contratos, Financeiro, Contas Bancárias, Plano de Contas
-  - Hierarquias de FK: pessoas → enderecos → logradouros → bairros → cidades → estados
-  - Tabelas históricas: `lancamentos_financeiros` (506.704 migrados), `lancamentos` (CRUD novo)
-- **Documentação de Tipos de Lançamentos** — 99 tipos catalogados (50 receitas, 49 despesas)
-  - Códigos 1001-1049 (receitas), 2001-2055 (despesas)
-  - Mapeamento legado: IDs 1313-1466 migrados para códigos 1001-1049
-
----
-
-### [6.21.2] - 2026-03-03
-
-#### Adicionado
-- Campo `cod` em `pessoas` para manter código legado da migração MySQL
-- Campo `cod` em `pessoas_tipos` para herança de código por tipo (locador, fiador, contratante, inquilino)
-- Campo `cod` em `pessoas_locadores`, `pessoas_fiadores`, `pessoas_contratantes`
-- Campo `flg_proprietario` em `pessoas_locadores` para identificar locadores que são proprietários de imóveis
-- Filtro no index de pessoas para filtrar locadores por perfil: todos, proprietários, não-proprietários
-- Coluna COD exibida no grid de pessoas
-
-#### Alterado
-- Migration Python atualizada para persistir `cod` em todas as tabelas de tipo
-- Migration Python Fase 08 agora identifica proprietários via `locimovelprop.proprietario`
-- PessoaController::index() com lógica de filtro customizado para locadores
-- Template pessoa/index.html.twig com coluna COD e filtro de locador
-
-### [6.7.1] - 2025-12-04
-
-#### Adicionado
-- **Tipos Socio e Advogado** — 2 tabelas, entities, repositories, FormTypes, templates
-
-### [6.7.0] - 2025-12-01
-
-#### Adicionado
-- **Informe de Rendimentos / DIMOB** — 5 tabelas, InformeRendimentoService (500+ linhas)
-
-### [6.6.6] - 2025-11-30
-
-#### Corrigido
-- Codigo corrompido em ImovelController, atributos snake_case para camelCase
-
-### [6.6.5] - 2025-11-29
-
-#### Adicionado
-- **Modulo Completo de Imoveis** — 9 tabelas, 8 entidades, ImovelService (540 linhas)
-
-### [6.6.4] - 2025-11-27
-
-#### Removido
-- Arquivos .md temporarios (README.md, MIGRATION_*.md, CORRECAO_*.md)
-
-#### Adicionado
-- Regras no CLAUDE.md sobre uso exclusivo do CHANGELOG.md
-
-### [6.6.3] ate [6.5.5] - 2025-11-24 ate 2025-11-16
-
-#### Corrigido
-- Persistencia data admissao conjuge
-- NonUniqueResultException (registros duplicados)
-- PRIMARY KEYs faltantes
-- Select tipo documento conjuge
-- Validacoes CSRF adicionadas
-- Enriquecimento de dados
-
-### [6.5.4] ate [6.5.0] - 2025-11-16
-
-#### Adicionado
-- `buscarConjugePessoa()` — busca completa dados do conjuge
-- Carregamento automatico modo edicao
-- Melhorias listagem (CPF/CNPJ, tipos por extenso)
-
-### [6.4.1] - 2025-11-16
-
-#### Adicionado
-- CLAUDE.md com diretrizes completas
-
-#### Alterado
-- Template renomeado new.html.twig para pessoa_form.html.twig
-
-### [6.4.0] - 2025-11-16
-
-#### Corrigido
-- Carregamento de tipos de pessoa ao buscar pessoa existente
-- Metodos de busca de documentos
-
-### [6.3.0] - 2025-11-09
-
-#### Adicionado
-- PessoaService (Fat Service), PessoaController refatorado (Thin Controller)
-
-### [6.2.0] - 2025-11-08
-
-#### Adicionado
-- Modulos JS para dados multiplos do conjuge, pessoa_conjuge.js, pessoa_modals.js
-
-### [6.1.0] - 2025-11-07
-
-#### Adicionado
-- Rotas DELETE para dados multiplos, modulos JS, token CSRF padronizado
-
-### [6.0.0] - 2025-11-06
-
-#### Adicionado
-- Busca inteligente, sistema de tipos multiplos, FormTypes por tipo
-
-### [5.0.0] - 2025-11-05
-
-#### Adicionado
-- Implementacao inicial Modulo Pessoas — 13 entidades, PostgreSQL + Webpack Encore + Bootstrap 5
-
----
-
-### Migracoes Criticas (Referencia)
-
-- **User -> Users:** Entity singular para tabela plural
-- **Pessoa -> Pessoas:** 15 arquivos atualizados
-- **isThemeLight():** Controle de tema integrado
+> **Nota:** Entradas anteriores a [6.27.0] foram consolidadas nos capitulos relevantes do livro.
+> Para historico detalhado, consulte Cap 1 (Linha do Tempo) e Cap 11 (Script de Migracao).
 
 ---
 
