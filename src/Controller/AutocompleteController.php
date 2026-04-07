@@ -156,12 +156,13 @@ class AutocompleteController extends AbstractController
         }
 
         $rows = $this->conn->fetchAllAssociative(
-            "SELECT cb.id, CONCAT(cb.descricao, COALESCE(' — ' || cb.titular, '')) AS label
+            "SELECT cb.id, CONCAT(COALESCE(cb.descricao, cb.codigo, ''), COALESCE(' — ' || cb.titular, '')) AS label
              FROM contas_bancarias cb
              WHERE cb.ativo = true{$filtroProprietario}
-               AND (unaccent(LOWER(cb.descricao)) LIKE unaccent(LOWER(:q))
-                 OR unaccent(LOWER(COALESCE(cb.titular, ''))) LIKE unaccent(LOWER(:q)))
-             ORDER BY cb.descricao ASC LIMIT 20",
+               AND (unaccent(LOWER(COALESCE(cb.descricao, ''))) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(cb.titular, ''))) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(cb.codigo, ''))) LIKE unaccent(LOWER(:q)))
+             ORDER BY COALESCE(cb.descricao, cb.codigo) ASC LIMIT 20",
             ['q' => '%' . $q . '%']
         );
 

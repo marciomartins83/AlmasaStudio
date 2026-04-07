@@ -520,12 +520,13 @@ class LancamentosController extends AbstractController
             $filtroProprietario = ' AND id_pessoa IS NULL';
         }
         $rows = $conn->fetchAllAssociative(
-            'SELECT id, descricao, titular
+            'SELECT id, COALESCE(descricao, codigo) as descricao, titular
              FROM contas_bancarias
              WHERE ativo = true' . $filtroProprietario . '
-               AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
-                 OR unaccent(LOWER(COALESCE(titular, \'\'))) LIKE unaccent(LOWER(:q)))
-             ORDER BY descricao ASC
+               AND (unaccent(LOWER(COALESCE(descricao, \'\'))) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(titular, \'\'))) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(codigo, \'\'))) LIKE unaccent(LOWER(:q)))
+             ORDER BY COALESCE(descricao, codigo) ASC
              LIMIT 20',
             ['q' => '%' . $q . '%']
         );
