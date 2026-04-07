@@ -60,6 +60,16 @@ Apos QUALQUER mudanca no codigo:
 Formato changelog: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
 Categorias: Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
 
+### Manutencao do livro (OBRIGATORIO)
+
+O livro DEVE ser mantido enxuto. Livro grande = nao leio = nao entendo = faco merda.
+
+1. **Changelog e temporario.** Mantenha no maximo 3-5 versoes recentes no changelog.
+2. **Consolidar periodicamente.** Entradas antigas do changelog DEVEM ser incorporadas nos capitulos relevantes e removidas do changelog.
+3. **Capitulos sao a verdade permanente.** Toda informacao util do changelog vira conteudo de capitulo.
+4. **Indice atualizado.** Se criar subsecao nova num capitulo, atualizar o indice.
+5. **Conciso.** Capitulos descrevem o estado atual, nao historico detalhado. Uma frase clara > paragrafo longo.
+
 ---
 
 ## Regra 4 — Nao criar documentos avulsos
@@ -151,6 +161,50 @@ Para detalhes e exemplos completos, ver **Cap 12** do livro.
 
 ---
 
+## Regra 11 — Selects com mais de 15 itens DEVEM ser autocomplete
+
+**PROIBIDO:** EntityType ou `<select>` com `{% for %}` que possa ter mais de 15 opcoes.
+
+**OBRIGATORIO:** Usar autocomplete (typeahead/search-as-you-type) com:
+- Endpoint em `AutocompleteController.php` (SQL direto, LIMIT 20)
+- `public/js/generic_autocomplete.js` (JS generico reutilizavel)
+- `templates/_partials/autocomplete_field.html.twig` (partial Twig)
+- HiddenType no FormType (`mapped: false`)
+
+**Filtro `?apenas=almasa`:** Para contas bancarias proprias (id_pessoa IS NULL).
+
+---
+
+## Regra 12 — Deploy completo = commit + push + VPS + webpack
+
+Apos QUALQUER mudanca:
+1. `php -l` nos arquivos PHP alterados
+2. `git add` + `git commit` + `git push`
+3. Deploy VPS: `git pull` + `php bin/console cache:clear --env=prod`
+4. Se alterou `assets/js/`: rodar `npx encore production` na VPS (browser carrega o build, nao o source)
+5. Atualizar capitulo relevante do livro
+
+**NUNCA entregar sem deploy completo.**
+
+---
+
+## Regra 13 — Entities boolean NOT NULL DEVEM ter default
+
+Todo campo `#[ORM\Column(type: 'boolean')]` DEVE ter valor default na propriedade:
+```php
+private bool $campo = false;  // CORRETO
+private bool $campo;          // ERRADO — causa not-null violation no INSERT
+```
+
+---
+
+## Regra 14 — Nao perguntar o obvio
+
+Se a acao e claramente necessaria (instalar pacote, corrigir bug, fazer deploy), faz direto.
+Nao perguntar "quer que eu faca X?" quando X e a unica opcao logica.
+
+---
+
 ## Comandos Essenciais
 
 ```bash
@@ -197,7 +251,5 @@ AlmasaStudio/
 
 ---
 
-**Ultima atualizacao:** 2026-02-22 (v6.20.2)
-**Issue #1 Status:** ✅ RESOLVIDA (Conjugue na busca)
-**Thin Controller Status:** ✅ 11/11 corrigidos
+**Ultima atualizacao:** 2026-04-07 (v6.29.0)
 **Mantenedor:** Marcio Martins
