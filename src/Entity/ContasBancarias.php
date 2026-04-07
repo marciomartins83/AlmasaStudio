@@ -72,9 +72,6 @@ class ContasBancarias
     #[ORM\Column(nullable: true)]
     private ?string $descricao = null;
 
-    #[ORM\Column(type: 'decimal', precision: 15, scale: 2, options: ['default' => '0.00'])]
-    private string $saldoAnterior = '0.00';
-
     public function getId(): ?int
     {
         return $this->id;
@@ -341,22 +338,6 @@ class ContasBancarias
     public function setDescricao(?string $descricao): self
     {
         $this->descricao = $descricao;
-        return $this;
-    }
-
-    public function getSaldoAnterior(): string
-    {
-        return $this->saldoAnterior;
-    }
-
-    public function getSaldoAnteriorFloat(): float
-    {
-        return (float) $this->saldoAnterior;
-    }
-
-    public function setSaldoAnterior(string $saldoAnterior): self
-    {
-        $this->saldoAnterior = $saldoAnterior;
         return $this;
     }
 

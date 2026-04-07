@@ -9,6 +9,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -76,6 +77,17 @@ class AlmasaPlanoContasType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-check-input'],
                 'label_attr' => ['class' => 'form-check-label'],
+            ])
+            ->add('saldoAnterior', NumberType::class, [
+                'label' => 'Saldo Anterior (R$)',
+                'scale' => 2,
+                'html5' => true,
+                'required' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'step' => '0.01',
+                    'placeholder' => '0,00',
+                ],
             ]);
     }
 

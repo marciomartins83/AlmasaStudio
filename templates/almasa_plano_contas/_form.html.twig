@@ -93,6 +93,9 @@
                 <small class="text-muted" id="aceita-help"></small>
             </div>
             <div class="col-md-3">
+                {{ form_row(form.saldoAnterior) }}
+            </div>
+            <div class="col-md-3">
                 <div class="form-check mt-1">
                     {{ form_widget(form.ativo) }}
                     {{ form_label(form.ativo) }}

@@ -68,6 +68,9 @@ class AlmasaPlanoContas
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $ativo = true;
 
+    #[ORM\Column(type: Types::DECIMAL, precision: 15, scale: 2, options: ['default' => '0.00'])]
+    private string $saldoAnterior = '0.00';
+
     /**
      * @var Collection<int, AlmasaLancamento>
      */
@@ -316,6 +319,22 @@ class AlmasaPlanoContas
             self::NIVEL_SUBCONTA => 'Subconta',
             default => 'Desconhecido',
         };
+    }
+
+    public function getSaldoAnterior(): string
+    {
+        return $this->saldoAnterior;
+    }
+
+    public function getSaldoAnteriorFloat(): float
+    {
+        return (float) $this->saldoAnterior;
+    }
+
+    public function setSaldoAnterior(string $saldoAnterior): self
+    {
+        $this->saldoAnterior = $saldoAnterior;
+        return $this;
     }
 
     public function __toString(): string
