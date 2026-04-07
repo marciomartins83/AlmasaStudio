@@ -127,9 +127,10 @@ class ContaBancariaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $pessoaId  = $form->get('idPessoa')->getData();
-                $bancoId   = $form->get('idBanco')->getData();
-                $agenciaId = $form->get('idAgencia')->getData();
+                // Só altera relação se o campo veio preenchido; vazio = mantém existente
+                $pessoaId  = $form->get('idPessoa')->getData() ?: ($contaBancaria->getIdPessoa()?->getIdpessoa() ? (string) $contaBancaria->getIdPessoa()->getIdpessoa() : null);
+                $bancoId   = $form->get('idBanco')->getData() ?: ($contaBancaria->getIdBanco()?->getId() ? (string) $contaBancaria->getIdBanco()->getId() : null);
+                $agenciaId = $form->get('idAgencia')->getData() ?: ($contaBancaria->getIdAgencia()?->getId() ? (string) $contaBancaria->getIdAgencia()->getId() : null);
 
                 $this->contaBancariaService->resolverAutocompletes($contaBancaria, $pessoaId, $bancoId, $agenciaId);
                 $this->contaBancariaService->atualizar();

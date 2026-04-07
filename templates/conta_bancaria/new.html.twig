@@ -146,6 +146,9 @@
                                 </a>
                             </div>
                         </div>
+                    {% do form.idPessoa.setRendered %}
+                    {% do form.idBanco.setRendered %}
+                    {% do form.idAgencia.setRendered %}
                     {{ form_end(form) }}
                 </div>
             </div>
