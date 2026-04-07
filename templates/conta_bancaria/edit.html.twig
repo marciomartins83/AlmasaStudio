@@ -28,16 +28,25 @@
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
                         <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form_row(form.descricao) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.titular) }}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
                             <div class="col-md-12">
                                 {% include '_partials/autocomplete_field.html.twig' with {
                                     id: 'conta_bancaria_idPessoa',
                                     name: 'conta_bancaria[idPessoa]',
-                                    label: 'Titular da Conta',
+                                    label: 'Pessoa (Proprietário)',
                                     url: path('app_autocomplete_pessoas'),
-                                    value: form.idPessoa.vars.value|default(conta_bancaria.idPessoa ? conta_bancaria.idPessoa.idpessoa : ''),
+                                    value: conta_bancaria.idPessoa ? conta_bancaria.idPessoa.idpessoa : '',
                                     display: preloads.pessoa|default(''),
                                     required: false,
-                                    placeholder: 'Digite o nome do titular...',
+                                    placeholder: 'Digite o nome do proprietário...',
                                     icon: 'fa-user'
                                 } %}
                             </div>
@@ -52,7 +61,7 @@
                                             name: 'conta_bancaria[idBanco]',
                                             label: 'Banco',
                                             url: path('app_autocomplete_bancos'),
-                                            value: form.idBanco.vars.value|default(conta_bancaria.idBanco ? conta_bancaria.idBanco.id : ''),
+                                            value: conta_bancaria.idBanco ? conta_bancaria.idBanco.id : '',
                                             display: preloads.banco|default(''),
                                             required: true,
                                             placeholder: 'Digite o nome do banco...',
@@ -72,7 +81,7 @@
                                             name: 'conta_bancaria[idAgencia]',
                                             label: 'Agencia',
                                             url: path('app_autocomplete_agencias'),
-                                            value: form.idAgencia.vars.value|default(conta_bancaria.idAgencia ? conta_bancaria.idAgencia.id : ''),
+                                            value: conta_bancaria.idAgencia ? conta_bancaria.idAgencia.id : '',
                                             display: preloads.agencia|default(''),
                                             required: true,
                                             placeholder: 'Digite o codigo da agencia...',

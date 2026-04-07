@@ -20,6 +20,16 @@ class ContaBancariaType extends AbstractType
                 'mapped' => false,
                 'required' => false,
             ])
+            ->add('descricao', TextType::class, [
+                'label' => 'Descrição',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Bradesco - 29-9']
+            ])
+            ->add('titular', TextType::class, [
+                'label' => 'Titular',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Nome do titular']
+            ])
             ->add('codigo', TextType::class, [
                 'label' => 'Número da Conta',
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Digite o número da conta']
