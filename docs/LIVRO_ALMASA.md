@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.28.0 |
-| **Data Ultima Atualizacao** | 2026-03-10 (Plano de Contas Almasa v2 + Vinculos Bancarios + DRE + Schema sincronizado) |
-| **Status Geral** | Em producao — Migracao 100% completa, schema validado (Doctrine OK), FK integrity 0 erros, 13 novos commits integrados. |
+| **Versao Atual** | 6.29.0 |
+| **Data Ultima Atualizacao** | 2026-04-07 (Autocomplete global, PaginationRedirectTrait, fixes lancamentos/contas bancarias/relatorios) |
+| **Status Geral** | Em producao — Todos selects >15 itens convertidos para autocomplete, paginacao persistente em 25 CRUDs, relatorios Almasa corrigidos. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
-| **Desenvolvedor Ativo** | Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via KIMI |
+| **Desenvolvedor Ativo** | Claude Code (Haiku 4.5 / Opus 4.6) |
 | **Mantenedor** | Marcio Martins |
-| **Proxima Tarefa** | Deploy v6.28.0 na VPS + testes E2E Plano de Contas |
+| **Proxima Tarefa** | Testes E2E completos — validar autocompletes, relatorios, lancamentos |
 | **Issue Aberta** | — |
 | **Migracao MySQL->PostgreSQL** | v6.0 — 21 fases + hotfix completo. 506.704 lancamentos, 42.844 repasses, 4.933 pessoas, 3.236 imoveis. FK integrity 0 erros. |
 | **Repo Migracao** | https://github.com/marciomartins83/almasa-migration (privado, separado) |
@@ -2635,6 +2635,44 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 - Symfony 7.2 introduziu `SameOriginCsrfTokenManager` como padrão para o security listener. Ele valida CSRF por Origin header (browsers enviam automaticamente) ou double-submit cookie. Não usar `CsrfTokenManagerInterface` diretamente no controller de login — usar `{{ csrf_token('id') }}` no Twig.
 - **TODA pessoa DEVE ter pelo menos 1 tipo em pessoas_tipos.** O script de migração DEVE validar 100% no final e falhar explicitamente se qualquer pessoa ficar sem tipo. Não existe fallback — cada pessoa vem de uma tabela MySQL (loclocadores, locfiadores, loccontratantes, locinquilino) e o tipo é determinístico.
 
+### [6.29.0] - 2026-04-07
+
+#### Adicionado
+- **AutocompleteController** — 17 endpoints centralizados de busca AJAX (`/autocomplete/pessoas`, `/autocomplete/bancos`, `/autocomplete/agencias`, `/autocomplete/contas-bancarias`, `/autocomplete/imoveis`, `/autocomplete/contratos`, `/autocomplete/nacionalidades`, `/autocomplete/naturalidades`, `/autocomplete/logradouros`, `/autocomplete/enderecos`, `/autocomplete/bairros`, `/autocomplete/condominios`, `/autocomplete/plano-contas`, `/autocomplete/almasa-plano-contas`, `/autocomplete/cidades`, `/autocomplete/ufs`, `/autocomplete/users`)
+- **generic_autocomplete.js** — Modulo JS reutilizavel com busca typeahead, navegacao por teclado, debounce e preload
+- **autocomplete_field.html.twig** — Partial Twig generico para campos autocomplete
+- **PaginationRedirectTrait** — Trait que preserva pagina, ordenacao e filtros apos editar/excluir em qualquer CRUD
+- Campo `descricao` e `titular` no formulario de ContaBancaria
+- Flag "Incluir contas de proprietarios" na aba Vinculos do lancamento
+- Coluna "Historico" no index de lancamentos
+- Filtro `?apenas=almasa` no endpoint `/autocomplete/contas-bancarias`
+- Busca por campo `codigo` alem de `descricao`/`titular` nas contas bancarias
+
+#### Alterado
+- **30+ campos EntityType convertidos para autocomplete** em 15 FormTypes: ImovelFormType, ContaBancariaType, PessoaFormType, LancamentosType, BoletoType, PessoaPretendenteType, PessoaLocadorType, PessoaCorretorType, PessoaFiadorCombinedType, LogradouroType, AlmasaLancamentoType, AlmasaVinculoBancarioType, PrestacaoContasFiltroType, PrestacaoContasRepasseType, ConfiguracaoApiBancoType, AlmasaPlanoContasType, AgenciaType, BairroType, PessoaAdvogadoType
+- **25 Controllers** com PaginationRedirectTrait para preservar paginacao
+- Selects em templates de relatorios (proprietarios, plano contas, contas bancarias, inquilinos, pagadores, fornecedores, imoveis, locatarios, fiadores) convertidos para autocomplete
+- Metodologia multi-agente removida do CLAUDE.md
+- Relatorios Almasa despesas/receitas agora buscam na tabela `lancamentos` (tipo=pagar/receber) em vez de `almasa_lancamentos`
+- Baixa de lancamento: removidas opcoes Credito e Boleto, Debito renomeado para "Debito em Conta"
+- Busca de pessoa (searchPessoaAdvanced) agora retorna campo `cod`
+- Filtro titular em contas bancarias busca em pessoa.nome, titular e descricao (OR)
+
+#### Corrigido
+- Plano de contas preserva pagina apos editar/excluir
+- Contas a pagar nao exigem banco na criacao — so na baixa
+- ContasBancarias: default false para campos boolean (principal, ativo, registrada, aceitaMultipag, usaEnderecoCobranca, cobrancaCompartilhada)
+- generic_autocomplete.js inicializa mesmo se DOM ja carregou (fix DOMContentLoaded)
+- Contas proprias Almasa receberam titular "Almasa Administradora" (12 contas)
+
+#### Licao Aprendida
+- Doctrine DQL `CONCAT` aceita apenas 2 argumentos, nao varios. Para buscas multi-campo, usar OR no WHERE em vez de CONCAT
+- Webpack Encore precisa ser recompilado (`npx encore production`) apos alterar assets/js — o browser carrega o build compilado, nao o source
+- Campos boolean NOT NULL em entities Doctrine DEVEM ter valor default, senao INSERT falha com not-null violation
+- PaginationService salvar URL na session e melhor que passar page/sort nos params — solucao centralizada
+
+---
+
 ### [6.24.4] - 2026-03-04
 
 #### Adicionado
@@ -2850,6 +2888,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-03-14 (v6.28.0 — Plano de Contas Almasa v2 + Vinculos Bancarios + Partidas Dobradas + Documentação DB integrada)
+**Ultima atualizacao:** 2026-04-07 (v6.29.0 — Autocomplete global, PaginationRedirectTrait, fixes lancamentos/contas bancarias/relatorios)
 **Mantenedor:** Marcio Martins
-**Desenvolvedor Ativo:** Claude Opus 4.6 (via Claude Code) — Arquiteto/Planejador; Implementação via @agent/kimi
+**Desenvolvedor Ativo:** Claude Code (Haiku 4.5 / Opus 4.6)
