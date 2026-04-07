@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Agencias;
 use App\Entity\Bancos;
 use App\Entity\ContasBancarias;
+use App\Entity\Lancamentos;
 use App\Entity\Pessoas;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -76,6 +77,9 @@ class ContaBancariaService
             $this->entityManager->persist($contaBancaria);
             $this->entityManager->flush();
 
+            // Lançamento de saldo anterior (se > 0)
+            $this->criarLancamentoSaldoAnterior($contaBancaria);
+
             $this->logger->info('Conta Bancaria criada com sucesso', [
                 'id' => $contaBancaria->getId(),
                 'conta' => $contaBancaria->getCodigo()
@@ -115,5 +119,42 @@ class ContaBancariaService
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Cria lancamento de saldo anterior (saldo inicial da conta).
+     * Gera um lancamento do tipo "receber" ja pago na data atual.
+     */
+    private function criarLancamentoSaldoAnterior(ContasBancarias $contaBancaria): void
+    {
+        $saldo = $contaBancaria->getSaldoAnteriorFloat();
+        if ($saldo <= 0) {
+            return;
+        }
+
+        $hoje = new \DateTime();
+        $descricao = 'Saldo anterior — ' . ($contaBancaria->getDescricao() ?? $contaBancaria->getCodigo());
+
+        $lancamento = new Lancamentos();
+        $lancamento->setTipo(Lancamentos::TIPO_RECEBER);
+        $lancamento->setDataMovimento($hoje);
+        $lancamento->setDataVencimento($hoje);
+        $lancamento->setDataPagamento($hoje);
+        $lancamento->setCompetencia($hoje->format('Y-m'));
+        $lancamento->setValor(number_format($saldo, 2, '.', ''));
+        $lancamento->setValorPago(number_format($saldo, 2, '.', ''));
+        $lancamento->setStatus(Lancamentos::STATUS_PAGO);
+        $lancamento->setHistorico($descricao);
+        $lancamento->setContaBancaria($contaBancaria);
+        $lancamento->setFormaPagamento('debito');
+
+        $this->entityManager->persist($lancamento);
+        $this->entityManager->flush();
+
+        $this->logger->info('Lancamento saldo anterior criado', [
+            'conta_id' => $contaBancaria->getId(),
+            'valor' => $saldo,
+            'lancamento_id' => $lancamento->getId(),
+        ]);
     }
 }
