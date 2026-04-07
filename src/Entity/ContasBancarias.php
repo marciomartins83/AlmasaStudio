@@ -66,9 +66,9 @@ class ContasBancarias
     #[ORM\Column(type: 'bigint', nullable: true)]
     private ?int $idLayoutRemessa = null;
     #[ORM\Column(type: 'boolean')]
-    private bool $usaEnderecoCobranca;
+    private bool $usaEnderecoCobranca = false;
     #[ORM\Column(type: 'boolean')]
-    private bool $cobrancaCompartilhada;
+    private bool $cobrancaCompartilhada = false;
     #[ORM\Column(nullable: true)]
     private ?string $descricao = null;
 
