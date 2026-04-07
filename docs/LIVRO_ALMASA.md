@@ -826,6 +826,7 @@ Todos com status Completo:
 - Filtro `?apenas=almasa` no autocomplete para retornar so contas da Almasa (sem contas de proprietarios)
 - Campos boolean (`principal`, `ativo`, `registrada`, `aceitaMultipag`, `usaEnderecoCobranca`, `cobrancaCompartilhada`) possuem default `false` na entity para evitar not-null violation
 - 12 contas proprias da Almasa receberam titular "Almasa Administradora"
+- Campo `saldoAnterior` (decimal 15,2, default 0.00) — saldo inicial da conta. Ao criar conta com saldo > 0, gera lancamento tipo receber ja pago automaticamente na data da criacao
 
 ### Commands Disponiveis
 
