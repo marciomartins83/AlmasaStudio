@@ -35,6 +35,10 @@ class AlmasaPlanoContasService
     {
         try {
             $this->entityManager->flush();
+
+            $this->atualizarLancamentoSaldoAnterior($conta);
+
+            $this->logger->info('AlmasaPlanoContas atualizado', ['id' => $conta->getId(), 'codigo' => $conta->getCodigo()]);
         } catch (\Exception $e) {
             $this->logger->error('Erro ao atualizar AlmasaPlanoContas', ['erro' => $e->getMessage()]);
             throw $e;
@@ -58,6 +62,60 @@ class AlmasaPlanoContasService
             $this->logger->error('Erro ao deletar AlmasaPlanoContas', ['erro' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    /**
+     * Atualiza lancamento de saldo anterior ao editar conta no plano.
+     * Cria se nao existe e saldo > 0, atualiza se mudou, remove se zerou.
+     */
+    private function atualizarLancamentoSaldoAnterior(AlmasaPlanoContas $conta): void
+    {
+        $saldo = $conta->getSaldoAnteriorFloat();
+        $lancamento = $this->buscarLancamentoSaldoAnterior($conta);
+
+        if ($saldo <= 0 && $lancamento) {
+            $this->entityManager->remove($lancamento);
+            $this->entityManager->flush();
+            $this->logger->info('Lancamento saldo anterior removido', ['plano_id' => $conta->getId()]);
+            return;
+        }
+
+        if ($saldo <= 0) {
+            return;
+        }
+
+        if (!$lancamento) {
+            $this->criarLancamentoSaldoAnterior($conta);
+            return;
+        }
+
+        $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
+        $lancamento->setValor(number_format($saldo, 2, '.', ''));
+        $lancamento->setValorPago(number_format($saldo, 2, '.', ''));
+        $lancamento->setHistorico($historico);
+        $this->entityManager->flush();
+
+        $this->logger->info('Lancamento saldo anterior atualizado', [
+            'plano_id' => $conta->getId(),
+            'valor' => $saldo,
+            'lancamento_id' => $lancamento->getId(),
+        ]);
+    }
+
+    /**
+     * Busca lancamento de saldo anterior existente para uma conta do plano.
+     */
+    private function buscarLancamentoSaldoAnterior(AlmasaPlanoContas $conta): ?Lancamentos
+    {
+        return $this->entityManager->getRepository(Lancamentos::class)
+            ->createQueryBuilder('l')
+            ->where('l.planoContaCredito = :conta')
+            ->andWhere('l.historico LIKE :prefixo')
+            ->setParameter('conta', $conta)
+            ->setParameter('prefixo', 'Saldo anterior%')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**
