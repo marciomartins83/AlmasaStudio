@@ -36,6 +36,17 @@
             periodo: periodo_texto
         } %}
 
+        {% if saldo_anterior is defined %}
+        <table>
+            <tr style="background: #d1ecf1;">
+                <td style="border: 1px solid #bee5eb; padding: 6px;"><strong>Saldo Anterior:</strong></td>
+                <td style="border: 1px solid #bee5eb; padding: 6px; text-align: right;" class="{% if saldo_anterior >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <strong>R$ {{ saldo_anterior|number_format(2, ',', '.') }}</strong>
+                </td>
+            </tr>
+        </table>
+        {% endif %}
+
         <table>
             <thead>
                 <tr>
@@ -106,6 +117,17 @@
             </tfoot>
             {% endif %}
         </table>
+
+        {% if saldo_atual is defined %}
+        <table>
+            <tr style="background: #cfe2ff;">
+                <td style="border: 1px solid #b6d4fe; padding: 6px;"><strong>Saldo Atual:</strong></td>
+                <td style="border: 1px solid #b6d4fe; padding: 6px; text-align: right;" class="{% if saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <strong>R$ {{ saldo_atual|number_format(2, ',', '.') }}</strong>
+                </td>
+            </tr>
+        </table>
+        {% endif %}
 
         {% include 'relatorios/pdf/_footer.html.twig' %}
     </div>

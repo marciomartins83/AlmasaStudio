@@ -197,6 +197,55 @@ class AlmasaRelatorioService
     }
 
     // =========================================================================
+    // SALDO ANTERIOR / SALDO ATUAL
+    // =========================================================================
+
+    /**
+     * Calcula saldo anterior: soma de (receitas - despesas) antes da data_inicio.
+     * Se filtro id_plano_conta, filtra pela conta especifica.
+     */
+    public function calcularSaldoAnterior(array $filtros): float
+    {
+        $conn = $this->em->getConnection();
+
+        if (empty($filtros['data_inicio'])) {
+            return 0.0;
+        }
+
+        $dataInicio = $filtros['data_inicio'] instanceof \DateTimeInterface
+            ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+
+        $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
+            'vencimento' => 'data_vencimento',
+            'pagamento' => 'data_pagamento',
+            default => "TO_DATE(competencia, 'YYYY-MM')",
+        };
+
+        $where = ["$campoData < :data_inicio"];
+        $params = ['data_inicio' => $dataInicio];
+
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where[] = 'status = :status';
+            $params['status'] = $filtros['status'];
+        }
+        if (!empty($filtros['id_plano_conta'])) {
+            $where[] = '(id_plano_conta_debito = :id_pc OR id_plano_conta_credito = :id_pc)';
+            $params['id_pc'] = (int) $filtros['id_plano_conta'];
+        }
+
+        $whereClause = implode(' AND ', $where);
+        $sql = "SELECT
+                    COALESCE(SUM(CASE WHEN tipo = 'receber' THEN valor::numeric ELSE 0 END), 0)
+                    - COALESCE(SUM(CASE WHEN tipo = 'pagar' THEN valor::numeric ELSE 0 END), 0)
+                    AS saldo
+                FROM lancamentos WHERE {$whereClause}";
+
+        $result = $conn->executeQuery($sql, $params)->fetchAssociative();
+
+        return round((float) ($result['saldo'] ?? 0), 2);
+    }
+
+    // =========================================================================
     // METODOS AUXILIARES
     // =========================================================================
 

@@ -1,4 +1,12 @@
 {# Preview Despesas x Receitas Almasa #}
+{% if saldo_anterior is defined %}
+<div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+    <strong><i class="fas fa-balance-scale"></i> Saldo Anterior:</strong>
+    <span class="fs-5 fw-bold {% if saldo_anterior >= 0 %}text-success{% else %}text-danger{% endif %}">
+        R$ {{ saldo_anterior|number_format(2, ',', '.') }}
+    </span>
+</div>
+{% endif %}
 {% if filtros.visualizacao == 'sintetico' %}
     {# Visao Sintetica (DRE) #}
     <div class="table-responsive">
@@ -142,3 +150,11 @@
         </div>
     </div>
 </div>
+{% if saldo_atual is defined %}
+<div class="alert alert-primary d-flex justify-content-between align-items-center mt-3">
+    <strong><i class="fas fa-balance-scale"></i> Saldo Atual:</strong>
+    <span class="fs-5 fw-bold {% if saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}">
+        R$ {{ saldo_atual|number_format(2, ',', '.') }}
+    </span>
+</div>
+{% endif %}
