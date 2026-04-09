@@ -128,11 +128,15 @@ class RelatorioController extends AbstractController
 
         $dados = $this->relatorioService->getDespesas($filtros);
         $totais = $this->relatorioService->getTotalDespesas($filtros);
+        $saldoAnterior = $this->relatorioService->calcularSaldoAnterior($filtros);
+        $saldoAtual = round($saldoAnterior - $totais['total_geral'], 2);
 
         $html = $this->renderView('relatorios/preview/despesas.html.twig', [
             'dados' => $dados,
             'totais' => $totais,
             'filtros' => $filtros,
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_atual' => $saldoAtual,
         ]);
 
         return new JsonResponse([
@@ -150,10 +154,14 @@ class RelatorioController extends AbstractController
 
         $dados = $this->relatorioService->getDespesas($filtros);
         $totais = $this->relatorioService->getTotalDespesas($filtros);
+        $saldoAnterior = $this->relatorioService->calcularSaldoAnterior($filtros);
+        $saldoAtual = round($saldoAnterior - $totais['total_geral'], 2);
 
         $pdf = $this->relatorioService->gerarPdf('despesas', [
             'dados' => $dados,
             'totais' => $totais,
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_atual' => $saldoAtual,
         ], $filtros);
 
         return new Response($pdf, 200, [
@@ -188,11 +196,15 @@ class RelatorioController extends AbstractController
 
         $dados = $this->relatorioService->getReceitas($filtros);
         $totais = $this->relatorioService->getTotalReceitas($filtros);
+        $saldoAnterior = $this->relatorioService->calcularSaldoAnterior($filtros);
+        $saldoAtual = round($saldoAnterior + $totais['total_geral'], 2);
 
         $html = $this->renderView('relatorios/preview/receitas.html.twig', [
             'dados' => $dados,
             'totais' => $totais,
             'filtros' => $filtros,
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_atual' => $saldoAtual,
         ]);
 
         return new JsonResponse([
@@ -210,10 +222,14 @@ class RelatorioController extends AbstractController
 
         $dados = $this->relatorioService->getReceitas($filtros);
         $totais = $this->relatorioService->getTotalReceitas($filtros);
+        $saldoAnterior = $this->relatorioService->calcularSaldoAnterior($filtros);
+        $saldoAtual = round($saldoAnterior + $totais['total_geral'], 2);
 
         $pdf = $this->relatorioService->gerarPdf('receitas', [
             'dados' => $dados,
             'totais' => $totais,
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_atual' => $saldoAtual,
         ], $filtros);
 
         return new Response($pdf, 200, [
@@ -248,6 +264,8 @@ class RelatorioController extends AbstractController
         $saldo = $this->relatorioService->getSaldoPeriodo($filtros);
         $totaisReceitas = $this->relatorioService->getTotalReceitas($filtros);
         $totaisDespesas = $this->relatorioService->getTotalDespesas($filtros);
+        $saldoAnterior = $this->relatorioService->calcularSaldoAnterior($filtros);
+        $saldoAtual = round($saldoAnterior + $saldo, 2);
 
         $html = $this->renderView('relatorios/preview/despesas_receitas.html.twig', [
             'dados' => $dados,
@@ -255,6 +273,8 @@ class RelatorioController extends AbstractController
             'totais_despesas' => $totaisDespesas,
             'saldo' => $saldo,
             'filtros' => $filtros,
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_atual' => $saldoAtual,
         ]);
 
         return new JsonResponse([
@@ -274,12 +294,16 @@ class RelatorioController extends AbstractController
         $saldo = $this->relatorioService->getSaldoPeriodo($filtros);
         $totaisReceitas = $this->relatorioService->getTotalReceitas($filtros);
         $totaisDespesas = $this->relatorioService->getTotalDespesas($filtros);
+        $saldoAnterior = $this->relatorioService->calcularSaldoAnterior($filtros);
+        $saldoAtual = round($saldoAnterior + $saldo, 2);
 
         $pdf = $this->relatorioService->gerarPdf('despesas_receitas', [
             'dados' => $dados,
             'totais_receitas' => $totaisReceitas,
             'totais_despesas' => $totaisDespesas,
             'saldo' => $saldo,
+            'saldo_anterior' => $saldoAnterior,
+            'saldo_atual' => $saldoAtual,
         ], $filtros);
 
         return new Response($pdf, 200, [

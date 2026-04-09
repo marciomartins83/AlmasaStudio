@@ -661,6 +661,69 @@ class RelatorioService
         return round($totaisReceitas['total_geral'] - $totaisDespesas['total_geral'], 2);
     }
 
+    /**
+     * Calcula saldo anterior: soma de (receitas - despesas) antes da data_inicio.
+     * Usa lancamentos_financeiros (historico migrado) + lancamentos (CRUD novo).
+     * Respeita filtros de imovel e situacao.
+     */
+    public function calcularSaldoAnterior(array $filtros): float
+    {
+        if (empty($filtros['data_inicio'])) {
+            return 0.0;
+        }
+
+        $conn = $this->em->getConnection();
+        $dataInicio = $filtros['data_inicio'] instanceof \DateTimeInterface
+            ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+
+        // 1. lancamentos_financeiros (histórico migrado)
+        $where1 = ['data_vencimento < :data_inicio'];
+        $params1 = ['data_inicio' => $dataInicio];
+
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $situacao = in_array($filtros['status'], ['efetivado', 'pago']) ? 'pago' : 'aberto';
+            $where1[] = 'situacao = :situacao';
+            $params1['situacao'] = $situacao;
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where1[] = 'id_imovel = :id_imovel';
+            $params1['id_imovel'] = (int) $filtros['id_imovel'];
+        }
+
+        $whereClause1 = implode(' AND ', $where1);
+        $sql1 = "SELECT
+                    COALESCE(SUM(CASE WHEN tipo_lancamento IN ('receita','aluguel') THEN valor_total::numeric ELSE 0 END), 0)
+                    - COALESCE(SUM(CASE WHEN tipo_lancamento = 'despesa' THEN valor_total::numeric ELSE 0 END), 0)
+                    AS saldo
+                FROM lancamentos_financeiros WHERE {$whereClause1}";
+
+        $saldo1 = (float) ($conn->executeQuery($sql1, $params1)->fetchAssociative()['saldo'] ?? 0);
+
+        // 2. lancamentos (CRUD novo)
+        $where2 = ['data_vencimento < :data_inicio'];
+        $params2 = ['data_inicio' => $dataInicio];
+
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where2[] = 'status = :status';
+            $params2['status'] = $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'];
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where2[] = 'id_imovel = :id_imovel';
+            $params2['id_imovel'] = (int) $filtros['id_imovel'];
+        }
+
+        $whereClause2 = implode(' AND ', $where2);
+        $sql2 = "SELECT
+                    COALESCE(SUM(CASE WHEN tipo = 'receber' THEN valor::numeric ELSE 0 END), 0)
+                    - COALESCE(SUM(CASE WHEN tipo = 'pagar' THEN valor::numeric ELSE 0 END), 0)
+                    AS saldo
+                FROM lancamentos WHERE {$whereClause2}";
+
+        $saldo2 = (float) ($conn->executeQuery($sql2, $params2)->fetchAssociative()['saldo'] ?? 0);
+
+        return round($saldo1 + $saldo2, 2);
+    }
+
     // =========================================================================
     // RELATÓRIO DE CONTAS BANCÁRIAS
     // =========================================================================
