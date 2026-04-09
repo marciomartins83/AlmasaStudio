@@ -21,9 +21,16 @@
             <div class="card-header bg-info text-white">
                 <strong>
                     <i class="fas fa-university"></i>
-                    {{ conta.conta.idBanco.nome|default('Banco') }} -
-                    Ag {{ conta.conta.idAgencia.codigo|default('') }} /
-                    Conta {{ conta.conta.codigo }}
+                    {% if conta.conta.descricao %}
+                        {{ conta.conta.descricao }}
+                    {% elseif conta.conta.idBanco %}
+                        {{ conta.conta.idBanco.nome }}{% if conta.conta.idAgencia %} - Ag {{ conta.conta.idAgencia.codigo }}{% endif %} / Conta {{ conta.conta.codigo }}
+                    {% else %}
+                        Conta {{ conta.conta.codigo }}
+                    {% endif %}
+                    {% if conta.conta.titular %}
+                        — {{ conta.conta.titular }}
+                    {% endif %}
                 </strong>
             </div>
             <div class="card-body">
