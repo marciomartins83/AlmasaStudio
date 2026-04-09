@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\AlmasaPlanoContas;
+use App\Entity\AlmasaVinculoBancario;
+use App\Entity\ContasBancarias;
 use App\Entity\Lancamentos;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -93,6 +95,7 @@ class AlmasaPlanoContasService
         $lancamento->setValor(number_format($saldo, 2, '.', ''));
         $lancamento->setValorPago(number_format($saldo, 2, '.', ''));
         $lancamento->setHistorico($historico);
+        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
         $this->entityManager->flush();
 
         $this->logger->info('Lancamento saldo anterior atualizado', [
@@ -100,6 +103,20 @@ class AlmasaPlanoContasService
             'valor' => $saldo,
             'lancamento_id' => $lancamento->getId(),
         ]);
+    }
+
+    /**
+     * Busca a conta bancaria vinculada (padrao=true) ao plano de contas, se existir.
+     */
+    private function buscarContaBancariaVinculada(AlmasaPlanoContas $conta): ?ContasBancarias
+    {
+        $vinculo = $this->entityManager->getRepository(AlmasaVinculoBancario::class)
+            ->findOneBy(
+                ['almasaPlanoConta' => $conta, 'ativo' => true],
+                ['padrao' => 'DESC']
+            );
+
+        return $vinculo?->getContaBancaria();
     }
 
     /**
@@ -144,6 +161,7 @@ class AlmasaPlanoContasService
         $lancamento->setHistorico($historico);
         $lancamento->setFormaPagamento('debito');
         $lancamento->setPlanoContaCredito($conta);
+        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
 
         $this->entityManager->persist($lancamento);
         $this->entityManager->flush();
