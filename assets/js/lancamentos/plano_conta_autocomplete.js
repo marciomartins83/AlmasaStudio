@@ -81,7 +81,11 @@ function initPlanoContaAutocomplete(cfg, url) {
 
     async function buscar(q) {
         try {
-            const resp = await fetch(`${url}?q=${encodeURIComponent(q)}`);
+            let fullUrl = `${url}?q=${encodeURIComponent(q)}`;
+            if (cfg.natureza) {
+                fullUrl += `&natureza=${encodeURIComponent(cfg.natureza)}`;
+            }
+            const resp = await fetch(fullUrl);
             if (!resp.ok) return;
             const contas = await resp.json();
             renderizar(contas);

@@ -158,19 +158,41 @@ class AlmasaPlanoContasController extends AbstractController
             return new JsonResponse([]);
         }
 
+        // Filtro por natureza contabil:
+        //   debito  -> contas de natureza devedora (ativo, despesa)
+        //   credito -> contas de natureza credora (passivo, patrimonio_liquido, receita)
+        $natureza = $request->query->get('natureza', '');
+        $tiposPermitidos = match ($natureza) {
+            'debito'  => ['ativo', 'despesa'],
+            'credito' => ['passivo', 'patrimonio_liquido', 'receita'],
+            default   => null,
+        };
+
         $conn = $this->repository->createQueryBuilder('a')
             ->getEntityManager()
             ->getConnection();
 
+        $where = "ativo = true
+                  AND aceita_lancamentos = true
+                  AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
+                    OR LOWER(codigo) LIKE LOWER(:q))";
+        $params = ['q' => '%' . $q . '%'];
+        $types  = [];
+
+        if ($tiposPermitidos !== null) {
+            $where .= ' AND tipo IN (:tipos)';
+            $params['tipos'] = $tiposPermitidos;
+            $types['tipos']  = \Doctrine\DBAL\ArrayParameterType::STRING;
+        }
+
         $rows = $conn->fetchAllAssociative(
-            'SELECT id, codigo, descricao
+            "SELECT id, codigo, descricao, tipo
              FROM almasa_plano_contas
-             WHERE ativo = true
-               AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
-                 OR LOWER(codigo) LIKE LOWER(:q))
-             ORDER BY descricao ASC
-             LIMIT 20',
-            ['q' => '%' . $q . '%']
+             WHERE {$where}
+             ORDER BY codigo ASC
+             LIMIT 20",
+            $params,
+            $types
         );
 
         return new JsonResponse($rows);

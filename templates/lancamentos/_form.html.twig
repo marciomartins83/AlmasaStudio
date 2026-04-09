@@ -458,6 +458,7 @@ window.LANCAMENTOS_PLANO_CONTA = {
         hiddenId:   '{{ form.planoContaDebito.vars.id }}',
         resultsId:  'plano_debito_results',
         clearId:    'plano_debito_clear',
+        natureza:   'debito',
         preloadId:  '{{ planoDebitoPreload ? planoDebitoPreload.id : '' }}',
         preloadLabel: '{{ planoDebitoPreload ? (planoDebitoPreload.codigo ~ ' - ' ~ planoDebitoPreload.descricao)|e('js') : '' }}'
     },
@@ -466,6 +467,7 @@ window.LANCAMENTOS_PLANO_CONTA = {
         hiddenId:   '{{ form.planoContaCredito.vars.id }}',
         resultsId:  'plano_credito_results',
         clearId:    'plano_credito_clear',
+        natureza:   'credito',
         preloadId:  '{{ planoCreditoPreload ? planoCreditoPreload.id : '' }}',
         preloadLabel: '{{ planoCreditoPreload ? (planoCreditoPreload.codigo ~ ' - ' ~ planoCreditoPreload.descricao)|e('js') : '' }}'
     }
