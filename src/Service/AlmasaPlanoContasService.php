@@ -146,15 +146,17 @@ class AlmasaPlanoContasService
             return;
         }
 
-        $hoje = new \DateTime();
+        // Data sentinel "1900-01-01" para garantir que o lancamento de saldo
+        // anterior caia sempre antes de qualquer filtro de data nos relatorios.
+        $dataSentinel = new \DateTime('1900-01-01');
         $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
 
         $lancamento = new Lancamentos();
         $lancamento->setTipo(Lancamentos::TIPO_RECEBER);
-        $lancamento->setDataMovimento($hoje);
-        $lancamento->setDataVencimento($hoje);
-        $lancamento->setDataPagamento($hoje);
-        $lancamento->setCompetencia($hoje->format('Y-m'));
+        $lancamento->setDataMovimento($dataSentinel);
+        $lancamento->setDataVencimento($dataSentinel);
+        $lancamento->setDataPagamento($dataSentinel);
+        $lancamento->setCompetencia($dataSentinel->format('Y-m'));
         $lancamento->setValor(number_format($saldo, 2, '.', ''));
         $lancamento->setValorPago(number_format($saldo, 2, '.', ''));
         $lancamento->setStatus(Lancamentos::STATUS_PAGO);
