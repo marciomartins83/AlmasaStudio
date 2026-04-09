@@ -218,7 +218,7 @@ class AlmasaRelatorioService
         $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
             'vencimento' => 'data_vencimento',
             'pagamento' => 'data_pagamento',
-            default => "TO_DATE(competencia, 'YYYY-MM')",
+            default => "(CASE WHEN competencia ~ '^[0-9]{4}-[0-9]{2}\$' THEN TO_DATE(competencia, 'YYYY-MM') ELSE NULL END)",
         };
 
         $where = ["$campoData < :data_inicio"];
@@ -259,7 +259,7 @@ class AlmasaRelatorioService
         $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
             'vencimento' => 'l.data_vencimento',
             'pagamento' => 'l.data_pagamento',
-            default => "TO_DATE(l.competencia, 'YYYY-MM')",
+            default => "(CASE WHEN l.competencia ~ '^[0-9]{4}-[0-9]{2}\$' THEN TO_DATE(l.competencia, 'YYYY-MM') ELSE NULL END)",
         };
 
         if (!empty($filtros['data_inicio'])) {
@@ -379,7 +379,7 @@ class AlmasaRelatorioService
         $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
             'vencimento' => 'data_vencimento',
             'pagamento' => 'data_pagamento',
-            default => "TO_DATE(competencia, 'YYYY-MM')",
+            default => "(CASE WHEN competencia ~ '^[0-9]{4}-[0-9]{2}\$' THEN TO_DATE(competencia, 'YYYY-MM') ELSE NULL END)",
         };
 
         if (!empty($filtros['data_inicio'])) {
