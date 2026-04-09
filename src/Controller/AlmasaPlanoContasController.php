@@ -154,9 +154,6 @@ class AlmasaPlanoContasController extends AbstractController
     public function apiBusca(Request $request): JsonResponse
     {
         $q = trim($request->query->get('q', ''));
-        if (strlen($q) < 2) {
-            return new JsonResponse([]);
-        }
 
         // Filtro por natureza contabil:
         //   debito  -> contas de natureza devedora (ativo, despesa)
@@ -172,12 +169,15 @@ class AlmasaPlanoContasController extends AbstractController
             ->getEntityManager()
             ->getConnection();
 
-        $where = "ativo = true
-                  AND aceita_lancamentos = true
-                  AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
-                    OR LOWER(codigo) LIKE LOWER(:q))";
-        $params = ['q' => '%' . $q . '%'];
+        $where = "ativo = true AND aceita_lancamentos = true";
+        $params = [];
         $types  = [];
+
+        if ($q !== '') {
+            $where .= " AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
+                          OR LOWER(codigo) LIKE LOWER(:q))";
+            $params['q'] = '%' . $q . '%';
+        }
 
         if ($tiposPermitidos !== null) {
             $where .= ' AND tipo IN (:tipos)';
@@ -185,12 +185,15 @@ class AlmasaPlanoContasController extends AbstractController
             $types['tipos']  = \Doctrine\DBAL\ArrayParameterType::STRING;
         }
 
+        // Sem busca: retorna ate 200 (lupa "mostrar todas"); com busca: 20
+        $limit = $q === '' ? 200 : 20;
+
         $rows = $conn->fetchAllAssociative(
             "SELECT id, codigo, descricao, tipo
              FROM almasa_plano_contas
              WHERE {$where}
              ORDER BY codigo ASC
-             LIMIT 20",
+             LIMIT {$limit}",
             $params,
             $types
         );

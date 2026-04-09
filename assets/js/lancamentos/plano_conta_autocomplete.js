@@ -8,6 +8,7 @@ function initPlanoContaAutocomplete(cfg, url) {
     const hiddenInput  = document.getElementById(cfg.hiddenId);
     const resultsList  = document.getElementById(cfg.resultsId);
     const clearBtn     = document.getElementById(cfg.clearId);
+    const lupaBtn      = cfg.lupaId ? document.getElementById(cfg.lupaId) : null;
 
     if (!displayInput || !hiddenInput || !resultsList) return;
 
@@ -70,6 +71,14 @@ function initPlanoContaAutocomplete(cfg, url) {
             clearBtn.style.display = 'none';
             displayInput.focus();
             hiddenInput.dispatchEvent(new CustomEvent('plano-conta-limpo', { bubbles: true }));
+        });
+    }
+
+    if (lupaBtn) {
+        lupaBtn.addEventListener('click', () => {
+            // Mostrar todas (busca com q vazio)
+            buscar('');
+            displayInput.focus();
         });
     }
 
