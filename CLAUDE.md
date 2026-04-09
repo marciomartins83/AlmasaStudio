@@ -251,5 +251,5 @@ AlmasaStudio/
 
 ---
 
-**Ultima atualizacao:** 2026-04-07 (v6.29.0)
+**Ultima atualizacao:** 2026-04-09 (v6.30.0)
 **Mantenedor:** Marcio Martins

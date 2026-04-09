@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.29.0 |
-| **Data Ultima Atualizacao** | 2026-04-07 (Autocomplete global, PaginationRedirectTrait, fixes lancamentos/contas bancarias/relatorios) |
-| **Status Geral** | Em producao — Todos selects >15 itens convertidos para autocomplete, paginacao persistente em 25 CRUDs, relatorios Almasa corrigidos. |
+| **Versao Atual** | 6.30.0 |
+| **Data Ultima Atualizacao** | 2026-04-09 (Saldo anterior/atual em todos relatorios financeiros Almasa, lancamento automatico de saldo anterior no plano de contas) |
+| **Status Geral** | Em producao — Relatorios financeiros com saldo anterior e atual, AlmasaPlanoContas com saldo_anterior sincronizando lancamento automaticamente. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
@@ -761,6 +761,17 @@ proprietarios, plano de contas, contas bancarias, inquilinos, pagadores, fornece
 
 Relatorios Almasa de despesas/receitas agora buscam na tabela `lancamentos` (tipo=pagar/receber) em vez de `almasa_lancamentos`. Relatorios historicos continuam usando `lancamentos_financeiros`.
 
+#### Saldo Anterior e Saldo Atual (v6.30.0)
+
+Todos os relatorios financeiros Almasa (despesas, receitas, despesas x receitas) exibem:
+
+- **Saldo Anterior** no topo do relatorio — calculado pelo metodo `AlmasaRelatorioService::calcularSaldoAnterior($filtros)`. SQL: `SUM(receber) - SUM(pagar)` para todos os lancamentos com data anterior a `data_inicio`. Respeita os filtros `tipo_data` (competencia/vencimento/pagamento), `status` e `id_plano_conta`.
+- **Saldo Atual** no rodape — `saldo_anterior +/- movimentacao_periodo`:
+  - Despesas: `saldo_anterior - total_despesas`
+  - Receitas: `saldo_anterior + total_receitas`
+  - Despesas x Receitas: `saldo_anterior + saldo_periodo`
+- Implementado em preview AJAX e PDF (DomPDF) — chave `saldo_anterior is defined` no Twig.
+
 ### 9.2 Prestacao de Contas aos Proprietarios
 
 **Status:** Completo (v6.15.0)
@@ -826,7 +837,16 @@ Todos com status Completo:
 - Filtro `?apenas=almasa` no autocomplete para retornar so contas da Almasa (sem contas de proprietarios)
 - Campos boolean (`principal`, `ativo`, `registrada`, `aceitaMultipag`, `usaEnderecoCobranca`, `cobrancaCompartilhada`) possuem default `false` na entity para evitar not-null violation
 - 12 contas proprias da Almasa receberam titular "Almasa Administradora"
-- Campo `saldoAnterior` (decimal 15,2, default 0.00) — saldo inicial da conta. Ao criar conta com saldo > 0, gera lancamento tipo receber ja pago automaticamente na data da criacao
+
+### Plano de Contas Almasa — Saldo Anterior (v6.30.0)
+
+- Campo `saldoAnterior` (decimal 15,2, default 0.00) na entity `AlmasaPlanoContas` — saldo inicial da conta contabil
+- Ao **criar** uma conta com saldo > 0, `AlmasaPlanoContasService::criarLancamentoSaldoAnterior()` gera lancamento tipo `receber` ja pago, vinculado via `planoContaCredito`, com historico `Saldo anterior — {codigo} {descricao}`
+- Ao **editar** o saldo, `atualizarLancamentoSaldoAnterior()` mantem o lancamento sincronizado:
+  - Saldo zerou e existia lancamento → remove
+  - Saldo > 0 e nao existia → cria
+  - Saldo > 0 e ja existia → atualiza valor e historico
+- Lancamento existente e localizado por `planoContaCredito = conta AND historico LIKE 'Saldo anterior%'`
 
 ### Commands Disponiveis
 
@@ -1125,7 +1145,7 @@ almasa_plano_contas (2.103)
 | `ativo` | boolean | YES | Default true |
 | + 9 colunas de configuração | — | — | Multa, carência, boleto, email, etc. |
 
-**Tabela `almasa_plano_contas` (10 colunas) — NOVO v6.28.0**
+**Tabela `almasa_plano_contas` (11 colunas) — NOVO v6.28.0, saldo_anterior em v6.30.0**
 
 | Coluna | Tipo | NULL | Descrição |
 |--------|------|------|-----------|
@@ -1137,6 +1157,7 @@ almasa_plano_contas (2.103)
 | `nivel` | smallint | NO | 1 a 5 |
 | `aceita_lancamentos` | boolean | NO | Só contas analíticas (nível 4-5) |
 | `ativo` | boolean | NO | — |
+| `saldo_anterior` | numeric(15,2) | NO | Default 0.00 — saldo inicial; gera/atualiza lancamento automatico via Service |
 | `created_at` | timestamp | NO | — |
 | `updated_at` | timestamp | NO | — |
 
@@ -1968,6 +1989,23 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
+### [6.30.0] - 2026-04-09
+
+#### Adicionado
+- **Saldo Anterior e Saldo Atual nos relatorios financeiros Almasa** — despesas, receitas e despesas x receitas exibem saldo anterior no topo (soma de receber - pagar antes da data inicio) e saldo atual no rodape (saldo anterior +/- movimentacao do periodo). Implementado em preview AJAX e PDF.
+- **Metodo `AlmasaRelatorioService::calcularSaldoAnterior($filtros)`** — SQL nativo respeitando filtros `tipo_data`, `status` e `id_plano_conta`
+- **Campo `saldoAnterior`** (decimal 15,2, default 0.00) na entity `AlmasaPlanoContas` e coluna `saldo_anterior` na tabela `almasa_plano_contas`
+- **`AlmasaPlanoContasService::criarLancamentoSaldoAnterior()`** — ao criar conta com saldo > 0, gera lancamento tipo `receber` ja pago, vinculado via `planoContaCredito`
+- **`AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()`** — ao editar conta, sincroniza lancamento (cria se nao existia, atualiza se mudou, remove se zerou)
+
+#### Corrigido
+- 8 contas de plano que tinham `saldo_anterior > 0` mas nao possuiam lancamento correspondente — lancamentos criados via SQL direto na VPS
+
+#### Removido
+- Campo `saldoAnterior` foi removido erroneamente de `ContasBancarias` (havia sido colocado por engano) e migrado para `AlmasaPlanoContas`
+
+---
+
 ### [6.29.0] - 2026-04-07
 
 #### Adicionado
@@ -2032,23 +2070,11 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-### [6.27.0] - 2026-03-27
-
-#### Alterado
-- **Lancamentos: Conversao de EntityType selects para autocomplete AJAX**
-  - `planoConta` (PlanoContas) convertido de EntityType para HiddenType unmapped com autocomplete via `generic_autocomplete.js`
-  - `contrato` (ImoveisContratos) convertido de EntityType para HiddenType unmapped com autocomplete
-  - `imovel` (Imoveis) convertido de EntityType para HiddenType unmapped com autocomplete
-  - Endpoints usados: `/autocomplete/plano-contas`, `/autocomplete/contratos`, `/autocomplete/imoveis`
-  - Controller atualizado: `extrairDadosFormulario()` agora le IDs dos campos unmapped
-  - Preloads implementados para edit e resubmit apos erro
-  - Service: adicionados metodos `buscarPlanoContaLegado()`, `buscarContrato()`, `buscarImovel()`
-
-> **Nota:** Entradas anteriores a [6.27.0] foram consolidadas nos capitulos relevantes do livro.
-> Para historico detalhado, consulte Cap 1 (Linha do Tempo) e Cap 11 (Script de Migracao).
+> **Nota:** Entradas anteriores a [6.28.0] foram consolidadas nos capitulos relevantes do livro.
+> Para historico detalhado, consulte Cap 1 (Linha do Tempo), Cap 9 (Relatorios), Cap 10 (Cadastros) e Cap 11 (Banco de Dados).
 
 ---
 
-**Ultima atualizacao:** 2026-04-07 (v6.29.0 — Autocomplete global, PaginationRedirectTrait, fixes lancamentos/contas bancarias/relatorios)
+**Ultima atualizacao:** 2026-04-09 (v6.30.0 — Saldo anterior/atual nos relatorios, lancamento automatico de saldo anterior no plano de contas)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Code (Haiku 4.5 / Opus 4.6)
