@@ -1202,213 +1202,104 @@ class RelatorioService
         return $id ? (int)$id : null;
     }
 
+    /**
+     * Saldo anterior do proprietario: usa APENAS a tabela `lancamentos` (CRUD novo)
+     * via plano de contas analitico do proprietario. O historico migrado
+     * (lancamentos_financeiros) e ignorado porque os repasses antigos nao foram
+     * trazidos da migracao MySQL, gerando saldos absurdos.
+     *
+     * CREDITO no plano = entrada na conta corrente do prop
+     * DEBITO no plano  = saida (despesa do prop)
+     */
     private function calcularSaldoAnteriorExtrato(int $idProprietario, \DateTimeInterface $dataInicio, ?int $planoIdProp = null): float
     {
+        if (!$planoIdProp) {
+            return 0.0;
+        }
+
         $conn = $this->em->getConnection();
         $data = $dataInicio instanceof \DateTimeInterface ? $dataInicio->format('Y-m-d') : $dataInicio;
 
-        // Dados históricos (lancamentos_financeiros)
-        $sql1 = "SELECT
-            COALESCE(SUM(CASE WHEN tipo_lancamento IN ('aluguel','receita') THEN valor_total::numeric ELSE 0 END), 0)
-            - COALESCE(SUM(CASE WHEN tipo_lancamento = 'despesa' THEN valor_total::numeric ELSE 0 END), 0)
+        $sql = "SELECT
+            COALESCE(SUM(CASE WHEN id_plano_conta_credito = :plano THEN COALESCE(valor_pago, valor)::numeric ELSE 0 END), 0)
+            - COALESCE(SUM(CASE WHEN id_plano_conta_debito = :plano THEN COALESCE(valor_pago, valor)::numeric ELSE 0 END), 0)
             AS saldo
-        FROM lancamentos_financeiros
-        WHERE id_proprietario = :id AND situacao = 'pago' AND data_vencimento < :data";
-        $saldo1 = (float)($conn->executeQuery($sql1, ['id' => $idProprietario, 'data' => $data])->fetchOne() ?? 0);
+        FROM lancamentos
+        WHERE (id_plano_conta_credito = :plano OR id_plano_conta_debito = :plano)
+          AND status IN ('pago','pago_parcial')
+          AND data_vencimento < :data";
 
-        // Dados do CRUD (lancamentos) — receita: receber como credor/proprietário OU credor em pagar (transferência)
-        //                              — despesa: pagar como pagador/proprietário
-        $sql2 = "SELECT
-            COALESCE(SUM(CASE
-                WHEN tipo = 'receber' AND (l.id_proprietario = :id OR l.id_pessoa_credor = :id OR im.id_pessoa_proprietario = :id)
-                    THEN COALESCE(valor_pago::numeric, valor::numeric)
-                WHEN tipo = 'pagar' AND l.id_pessoa_credor = :id
-                    THEN COALESCE(valor_pago::numeric, valor::numeric)
-                ELSE 0 END), 0)
-            - COALESCE(SUM(CASE
-                WHEN tipo = 'pagar' AND (l.id_proprietario = :id OR l.id_pessoa_pagador = :id OR im.id_pessoa_proprietario = :id) AND (l.id_pessoa_credor IS NULL OR l.id_pessoa_credor != :id)
-                    THEN COALESCE(valor_pago::numeric, valor::numeric)
-                ELSE 0 END), 0)
-            AS saldo
-        FROM lancamentos l
-        LEFT JOIN imoveis im ON im.id = l.id_imovel
-        WHERE (l.id_proprietario = :id OR l.id_pessoa_credor = :id OR l.id_pessoa_pagador = :id OR im.id_pessoa_proprietario = :id)
-          AND l.status IN ('pago','pago_parcial')
-          AND l.data_vencimento < :data";
-        $saldo2 = (float)($conn->executeQuery($sql2, ['id' => $idProprietario, 'data' => $data])->fetchOne() ?? 0);
-
-        // 3. Lancamentos via plano de contas do proprietario (CRUD novo)
-        // CREDITO no plano = entrada para o prop, DEBITO no plano = saida
-        $saldo3 = 0.0;
-        if ($planoIdProp) {
-            $sql3 = "SELECT
-                COALESCE(SUM(CASE WHEN id_plano_conta_credito = :plano THEN COALESCE(valor_pago, valor)::numeric ELSE 0 END), 0)
-                - COALESCE(SUM(CASE WHEN id_plano_conta_debito = :plano THEN COALESCE(valor_pago, valor)::numeric ELSE 0 END), 0)
-                AS saldo
-            FROM lancamentos
-            WHERE (id_plano_conta_credito = :plano OR id_plano_conta_debito = :plano)
-              AND status IN ('pago','pago_parcial')
-              AND data_vencimento < :data";
-            $saldo3 = (float)($conn->executeQuery($sql3, ['plano' => $planoIdProp, 'data' => $data])->fetchOne() ?? 0);
-        }
-
-        return round($saldo1 + $saldo2 + $saldo3, 2);
+        return round((float)($conn->executeQuery($sql, ['plano' => $planoIdProp, 'data' => $data])->fetchOne() ?? 0), 2);
     }
 
+    /**
+     * Pagamentos do extrato: lancamentos onde planoContaDebito = plano do proprietario
+     * (saida da conta corrente dele). Usa APENAS tabela `lancamentos` (CRUD novo).
+     */
     private function getPagamentosExtrato(int $idProprietario, \DateTimeInterface $inicio, \DateTimeInterface $fim, string $status, ?int $planoIdProp = null): array
     {
-        // Históricos (lancamentos_financeiros)
-        $qb = $this->em->createQueryBuilder();
-        $qb->select('lf')
-            ->from(LancamentosFinanceiros::class, 'lf')
-            ->where('lf.tipoLancamento = :tipo')
-            ->andWhere('lf.proprietario = :prop')
-            ->andWhere('lf.dataVencimento >= :inicio')
-            ->andWhere('lf.dataVencimento <= :fim')
-            ->setParameter('tipo', 'despesa')
-            ->setParameter('prop', $idProprietario)
-            ->setParameter('inicio', $inicio)
-            ->setParameter('fim', $fim)
-            ->orderBy('lf.dataVencimento', 'ASC');
-        if ($status !== 'todos') {
-            $sit = $status === 'efetivado' ? 'pago' : $status;
-            $qb->andWhere('lf.situacao = :sit')->setParameter('sit', $sit);
+        if (!$planoIdProp) {
+            return [];
         }
-        $pagamentos = array_map(fn(LancamentosFinanceiros $lf) => [
-            'data'      => $lf->getDataVencimento(),
-            'historico' => $lf->getHistorico() ?? $lf->getDescricao() ?? '-',
-            'valor'     => (float)$lf->getValorTotal(),
-        ], $qb->getQuery()->getResult());
 
-        // CRUD novo (lancamentos — tipo=pagar onde prop é pagador ou imóvel pertence ao prop)
-        $qb2 = $this->em->createQueryBuilder();
-        $qb2->select('l')
+        $qb = $this->em->createQueryBuilder();
+        $qb->select('l')
             ->from(Lancamentos::class, 'l')
-            ->leftJoin('l.imovel', 'im')
-            ->where('l.tipo = :tipo')
-            ->andWhere('(l.proprietario = :prop OR l.pessoaPagador = :prop OR im.pessoaProprietario = :prop)')
+            ->where('l.planoContaDebito = :plano')
             ->andWhere('l.dataVencimento >= :inicio')
             ->andWhere('l.dataVencimento <= :fim')
-            ->setParameter('tipo', 'pagar')
-            ->setParameter('prop', $idProprietario)
+            ->setParameter('plano', $planoIdProp)
             ->setParameter('inicio', $inicio)
             ->setParameter('fim', $fim)
             ->orderBy('l.dataVencimento', 'ASC');
         if ($status !== 'todos') {
             $sit = $status === 'efetivado' ? 'pago' : $status;
-            $qb2->andWhere('l.status = :sit')->setParameter('sit', $sit);
+            $qb->andWhere('l.status = :sit')->setParameter('sit', $sit);
         }
-        foreach ($qb2->getQuery()->getResult() as $l) {
+
+        $pagamentos = [];
+        foreach ($qb->getQuery()->getResult() as $l) {
             $pagamentos[] = [
                 'data'      => $l->getDataVencimento(),
                 'historico' => $l->getHistorico() ?? '-',
-                'valor'     => (float)$l->getValorPagoFloat() ?: (float)$l->getValor(),
+                'valor'     => (float)($l->getValorPagoFloat() ?: $l->getValor()),
             ];
         }
 
-        // Lancamentos via plano de contas do proprietario (DEBITO no plano = saida)
-        if ($planoIdProp) {
-            $qb3 = $this->em->createQueryBuilder();
-            $qb3->select('l')
-                ->from(Lancamentos::class, 'l')
-                ->where('l.planoContaDebito = :plano')
-                ->andWhere('l.dataVencimento >= :inicio')
-                ->andWhere('l.dataVencimento <= :fim')
-                ->setParameter('plano', $planoIdProp)
-                ->setParameter('inicio', $inicio)
-                ->setParameter('fim', $fim)
-                ->orderBy('l.dataVencimento', 'ASC');
-            if ($status !== 'todos') {
-                $sit = $status === 'efetivado' ? 'pago' : $status;
-                $qb3->andWhere('l.status = :sit')->setParameter('sit', $sit);
-            }
-            foreach ($qb3->getQuery()->getResult() as $l) {
-                $pagamentos[] = [
-                    'data'      => $l->getDataVencimento(),
-                    'historico' => $l->getHistorico() ?? '-',
-                    'valor'     => (float)($l->getValorPagoFloat() ?: $l->getValor()),
-                ];
-            }
-        }
-
-        usort($pagamentos, fn($a, $b) => $a['data'] <=> $b['data']);
         return $pagamentos;
     }
 
+    /**
+     * Movimentacao do extrato: lancamentos onde planoContaCredito = plano do proprietario
+     * (entrada na conta corrente dele). Usa APENAS tabela `lancamentos` (CRUD novo).
+     */
     private function getMovimentacaoExtrato(int $idProprietario, \DateTimeInterface $inicio, \DateTimeInterface $fim, string $status, ?int $planoIdProp = null): array
     {
+        $grupos = [];
+
+        if (!$planoIdProp) {
+            return [];
+        }
+
         $qb = $this->em->createQueryBuilder();
-        $qb->select('lf', 'im', 'inq')
-            ->from(LancamentosFinanceiros::class, 'lf')
-            ->leftJoin('lf.imovel', 'im')
-            ->leftJoin('lf.inquilino', 'inq')
-            ->where('lf.tipoLancamento IN (:tipos)')
-            ->andWhere('lf.proprietario = :prop')
-            ->andWhere('lf.dataVencimento >= :inicio')
-            ->andWhere('lf.dataVencimento <= :fim')
-            ->setParameter('tipos', ['aluguel', 'receita'])
-            ->setParameter('prop', $idProprietario)
+        $qb->select('l')
+            ->from(Lancamentos::class, 'l')
+            ->leftJoin('l.imovel', 'im')
+            ->where('l.planoContaCredito = :plano')
+            ->andWhere('l.dataVencimento >= :inicio')
+            ->andWhere('l.dataVencimento <= :fim')
+            ->setParameter('plano', $planoIdProp)
             ->setParameter('inicio', $inicio)
             ->setParameter('fim', $fim)
             ->orderBy('im.id', 'ASC')
-            ->addOrderBy('lf.dataVencimento', 'ASC');
-
+            ->addOrderBy('l.dataVencimento', 'ASC');
         if ($status !== 'todos') {
             $sit = $status === 'efetivado' ? 'pago' : $status;
-            $qb->andWhere('lf.situacao = :sit')->setParameter('sit', $sit);
+            $qb->andWhere('l.status = :sit')->setParameter('sit', $sit);
         }
-
-        $grupos = [];
-        foreach ($qb->getQuery()->getResult() as $lf) {
-            $imovel   = $lf->getImovel();
-            $imovelId = $imovel?->getId() ?? 0;
-
-            if (!isset($grupos[$imovelId])) {
-                $contrato = $imovel ? $this->getContratoAtivoImovel($imovel->getId()) : null;
-                $grupos[$imovelId] = [
-                    'imovel_cod'       => $imovel?->getCodigoInterno() ?? (string)$imovelId,
-                    'imovel_endereco'  => $imovel ? $this->buildEnderecoImovel($imovel) : '-',
-                    'inquilino_nome'   => $lf->getInquilino()?->getNome() ?? '-',
-                    'proximo_reajuste' => $contrato?->getDataProximoReajuste(),
-                    'lancamentos'      => [],
-                    'subtotal'         => 0.0,
-                ];
-            }
-
-            $valor = (float)$lf->getValorTotal();
-            $grupos[$imovelId]['lancamentos'][] = [
-                'data'      => $lf->getDataVencimento(),
-                'historico' => $lf->getHistorico() ?? $lf->getDescricao() ?? '-',
-                'valor'     => $valor,
-            ];
-            $grupos[$imovelId]['subtotal'] += $valor;
-        }
-
-        // CRUD novo (lancamentos — receitas: tipo=receber OU credor em tipo=pagar/transferência)
-        $qb2 = $this->em->createQueryBuilder();
-        $qb2->select('l')
-            ->from(Lancamentos::class, 'l')
-            ->leftJoin('l.imovel', 'im2')
-            ->where('(
-                (l.tipo = :tipoReceber AND (l.proprietario = :prop OR l.pessoaCredor = :prop OR im2.pessoaProprietario = :prop))
-                OR
-                (l.tipo = :tipoPagar AND l.pessoaCredor = :prop)
-            )')
-            ->andWhere('l.dataVencimento >= :inicio')
-            ->andWhere('l.dataVencimento <= :fim')
-            ->setParameter('tipoReceber', 'receber')
-            ->setParameter('tipoPagar', 'pagar')
-            ->setParameter('prop', $idProprietario)
-            ->setParameter('inicio', $inicio)
-            ->setParameter('fim', $fim)
-            ->orderBy('l.dataVencimento', 'ASC');
-        if ($status !== 'todos') {
-            $sit = $status === 'efetivado' ? 'pago' : $status;
-            $qb2->andWhere('l.status = :sit')->setParameter('sit', $sit);
-        }
-        foreach ($qb2->getQuery()->getResult() as $l) {
-            $imovel   = $l->getImovel();
-            $imovelId = $imovel?->getId() ?? 'crud_sem_imovel';
+        foreach ($qb->getQuery()->getResult() as $l) {
+            $imovel = $l->getImovel();
+            $imovelId = $imovel?->getId() ?? 'sem_imovel';
             if (!isset($grupos[$imovelId])) {
                 $contrato = $imovel ? $this->getContratoAtivoImovel($imovel->getId()) : null;
                 $grupos[$imovelId] = [
@@ -1420,54 +1311,13 @@ class RelatorioService
                     'subtotal'        => 0.0,
                 ];
             }
-            $valor = (float)$l->getValorPagoFloat() ?: (float)$l->getValor();
+            $valor = (float)($l->getValorPagoFloat() ?: $l->getValor());
             $grupos[$imovelId]['lancamentos'][] = [
                 'data'      => $l->getDataVencimento(),
                 'historico' => $l->getHistorico() ?? '-',
                 'valor'     => $valor,
             ];
             $grupos[$imovelId]['subtotal'] += $valor;
-        }
-
-        // Lancamentos via plano de contas do proprietario (CREDITO no plano = entrada)
-        if ($planoIdProp) {
-            $qb3 = $this->em->createQueryBuilder();
-            $qb3->select('l')
-                ->from(Lancamentos::class, 'l')
-                ->leftJoin('l.imovel', 'im3')
-                ->where('l.planoContaCredito = :plano')
-                ->andWhere('l.dataVencimento >= :inicio')
-                ->andWhere('l.dataVencimento <= :fim')
-                ->setParameter('plano', $planoIdProp)
-                ->setParameter('inicio', $inicio)
-                ->setParameter('fim', $fim)
-                ->orderBy('l.dataVencimento', 'ASC');
-            if ($status !== 'todos') {
-                $sit = $status === 'efetivado' ? 'pago' : $status;
-                $qb3->andWhere('l.status = :sit')->setParameter('sit', $sit);
-            }
-            foreach ($qb3->getQuery()->getResult() as $l) {
-                $imovel = $l->getImovel();
-                $imovelId = $imovel?->getId() ?? 'plano_sem_imovel';
-                if (!isset($grupos[$imovelId])) {
-                    $contrato = $imovel ? $this->getContratoAtivoImovel($imovel->getId()) : null;
-                    $grupos[$imovelId] = [
-                        'imovel_cod'      => $imovel?->getCodigoInterno() ?? 'S/N',
-                        'imovel_endereco' => $imovel ? $this->buildEnderecoImovel($imovel) : 'Sem imóvel vinculado',
-                        'inquilino_nome'  => '-',
-                        'proximo_reajuste'=> $contrato?->getDataProximoReajuste(),
-                        'lancamentos'     => [],
-                        'subtotal'        => 0.0,
-                    ];
-                }
-                $valor = (float)($l->getValorPagoFloat() ?: $l->getValor());
-                $grupos[$imovelId]['lancamentos'][] = [
-                    'data'      => $l->getDataVencimento(),
-                    'historico' => $l->getHistorico() ?? '-',
-                    'valor'     => $valor,
-                ];
-                $grupos[$imovelId]['subtotal'] += $valor;
-            }
         }
 
         return array_values($grupos);
