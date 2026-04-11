@@ -115,6 +115,30 @@
                                     <td class="text-end">R$ {{ lancamento.valorOutros|number_format(2, ',', '.') }}</td>
                                 </tr>
                                 {% endif %}
+                                {% if lancamento.valorMulta|default(0) > 0 %}
+                                <tr class="text-danger">
+                                    <th>Multa:</th>
+                                    <td class="text-end">R$ {{ lancamento.valorMulta|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if lancamento.valorJuros|default(0) > 0 %}
+                                <tr class="text-danger">
+                                    <th>Juros:</th>
+                                    <td class="text-end">R$ {{ lancamento.valorJuros|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if lancamento.valorHonorarios|default(0) > 0 %}
+                                <tr>
+                                    <th>Honorários:</th>
+                                    <td class="text-end">R$ {{ lancamento.valorHonorarios|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if lancamento.valorBonificacao|default(0) > 0 %}
+                                <tr class="text-success">
+                                    <th>Bonificação:</th>
+                                    <td class="text-end">- R$ {{ lancamento.valorBonificacao|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                {% endif %}
                                 {% if lancamento.valorDesconto|default(0) > 0 %}
                                 <tr class="text-success">
                                     <th>Desconto:</th>
