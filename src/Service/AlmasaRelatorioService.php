@@ -385,6 +385,10 @@ class AlmasaRelatorioService
             $where[] = 'l.status = :status';
             $params['status'] = $filtros['status'];
         }
+        if (!empty($filtros['id_plano_conta'])) {
+            $where[] = 'pc.id = :id_pc';
+            $params['id_pc'] = (int) $filtros['id_plano_conta'];
+        }
 
         $whereClause = $where ? 'AND ' . implode(' AND ', $where) : '';
 
