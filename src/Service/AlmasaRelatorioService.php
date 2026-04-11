@@ -216,14 +216,17 @@ class AlmasaRelatorioService
         $dataInicio = $filtros['data_inicio'] instanceof \DateTimeInterface
             ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
 
-        $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
+        $tipoDataSA = $filtros['tipo_data'] ?? 'competencia';
+        $usaCompSA = ($tipoDataSA === 'competencia');
+        $campoData = match ($tipoDataSA) {
             'vencimento' => 'data_vencimento',
             'pagamento' => 'data_pagamento',
-            default => "(CASE WHEN competencia ~ '^[0-9]{4}-[0-9]{2}\$' THEN TO_DATE(competencia, 'YYYY-MM') ELSE NULL END)",
+            default => 'competencia',
         };
 
+        $diSA = $usaCompSA ? substr($dataInicio, 0, 7) : $dataInicio;
         $where = ["$campoData < :data_inicio"];
-        $params = ['data_inicio' => $dataInicio];
+        $params = ['data_inicio' => $diSA];
 
         if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
             $where[] = 'status = :status';
@@ -257,23 +260,36 @@ class AlmasaRelatorioService
         $where = ['l.tipo = :tipo'];
         $params = ['tipo' => $tipo];
 
-        $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
+        $tipoData = $filtros['tipo_data'] ?? 'competencia';
+        $usaCompetencia = ($tipoData === 'competencia');
+        $campoData = match ($tipoData) {
             'vencimento' => 'l.data_vencimento',
             'pagamento' => 'l.data_pagamento',
-            default => "(CASE WHEN l.competencia ~ '^[0-9]{4}-[0-9]{2}\$' THEN TO_DATE(l.competencia, 'YYYY-MM') ELSE NULL END)",
+            default => 'l.competencia',
         };
 
         if (!empty($filtros['data_inicio'])) {
             $di = $filtros['data_inicio'] instanceof \DateTimeInterface
                 ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
-            $where[] = "$campoData >= :data_inicio";
-            $params['data_inicio'] = $di;
+            if ($usaCompetencia) {
+                // Competencia é YYYY-MM: comparar pelo mês da data informada
+                $where[] = "$campoData >= :data_inicio";
+                $params['data_inicio'] = substr($di, 0, 7); // '2026-04-10' → '2026-04'
+            } else {
+                $where[] = "$campoData >= :data_inicio";
+                $params['data_inicio'] = $di;
+            }
         }
         if (!empty($filtros['data_fim'])) {
             $df = $filtros['data_fim'] instanceof \DateTimeInterface
                 ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
-            $where[] = "$campoData <= :data_fim";
-            $params['data_fim'] = $df;
+            if ($usaCompetencia) {
+                $where[] = "$campoData <= :data_fim";
+                $params['data_fim'] = substr($df, 0, 7);
+            } else {
+                $where[] = "$campoData <= :data_fim";
+                $params['data_fim'] = $df;
+            }
         }
         if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
             $where[] = 'l.status = :status';
@@ -377,21 +393,25 @@ class AlmasaRelatorioService
         $where = ['tipo = :tipo'];
         $params = ['tipo' => $tipoLancamento];
 
-        $campoData = match ($filtros['tipo_data'] ?? 'competencia') {
+        $tipoData2 = $filtros['tipo_data'] ?? 'competencia';
+        $usaComp2 = ($tipoData2 === 'competencia');
+        $campoData = match ($tipoData2) {
             'vencimento' => 'data_vencimento',
             'pagamento' => 'data_pagamento',
-            default => "(CASE WHEN competencia ~ '^[0-9]{4}-[0-9]{2}\$' THEN TO_DATE(competencia, 'YYYY-MM') ELSE NULL END)",
+            default => 'competencia',
         };
 
         if (!empty($filtros['data_inicio'])) {
-            $where[] = "$campoData >= :data_inicio";
-            $params['data_inicio'] = $filtros['data_inicio'] instanceof \DateTimeInterface
+            $di = $filtros['data_inicio'] instanceof \DateTimeInterface
                 ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+            $where[] = "$campoData >= :data_inicio";
+            $params['data_inicio'] = $usaComp2 ? substr($di, 0, 7) : $di;
         }
         if (!empty($filtros['data_fim'])) {
-            $where[] = "$campoData <= :data_fim";
-            $params['data_fim'] = $filtros['data_fim'] instanceof \DateTimeInterface
+            $df = $filtros['data_fim'] instanceof \DateTimeInterface
                 ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+            $where[] = "$campoData <= :data_fim";
+            $params['data_fim'] = $usaComp2 ? substr($df, 0, 7) : $df;
         }
         if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
             $where[] = 'status = :status';
