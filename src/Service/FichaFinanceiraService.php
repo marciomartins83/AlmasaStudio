@@ -692,6 +692,14 @@ class FichaFinanceiraService
             $lancamento->setValorJuros($dados['valorJuros']);
         }
 
+        if (isset($dados['valorHonorarios'])) {
+            $lancamento->setValorHonorarios($dados['valorHonorarios']);
+        }
+
+        if (isset($dados['valorBonificacao'])) {
+            $lancamento->setValorBonificacao($dados['valorBonificacao']);
+        }
+
         if (isset($dados['valorDesconto'])) {
             $lancamento->setValorDesconto($dados['valorDesconto']);
         }

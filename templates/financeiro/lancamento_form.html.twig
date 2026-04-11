@@ -208,6 +208,38 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label">Multa</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorMulta" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorMulta|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Juros</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorJuros" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorJuros|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Honorários</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorHonorarios" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorHonorarios|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Bonificação</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="text" name="valorBonificacao" class="form-control valor-monetario"
+                                           value="{{ lancamento.valorBonificacao|default('0.00') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label">Desconto</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
