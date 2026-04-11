@@ -5,7 +5,9 @@ namespace App\Service;
 use App\Entity\LancamentosFinanceiros;
 use App\Entity\BaixasFinanceiras;
 use App\Entity\AcordosFinanceiros;
+use App\Entity\AlmasaPlanoContas;
 use App\Entity\ImoveisContratos;
+use App\Entity\Lancamentos;
 use App\Repository\LancamentosFinanceirosRepository;
 use App\Repository\BaixasFinanceirasRepository;
 use App\Repository\AcordosFinanceirosRepository;
@@ -250,6 +252,10 @@ class FichaFinanceiraService
 
             $this->em->persist($baixa);
             $this->em->flush();
+
+            // Gerar lançamentos contábeis no plano de contas
+            $this->gerarLancamentosContabeisBaixa($lancamento, $baixa);
+
             $this->em->commit();
 
             $this->logger->info('Baixa realizada', [
@@ -265,6 +271,91 @@ class FichaFinanceiraService
             $this->logger->error('Erro ao realizar baixa', ['lancamento' => $lancamentoId, 'error' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    /**
+     * Gera lançamentos contábeis no plano de contas ao registrar baixa:
+     * 1. Crédito na CC do proprietário (valor total pago pelo inquilino)
+     * 2. Débito na CC do proprietário + Crédito em Taxa de Adm Almasa (taxa% * valor_principal)
+     */
+    private function gerarLancamentosContabeisBaixa(LancamentosFinanceiros $lancamento, BaixasFinanceiras $baixa): void
+    {
+        $proprietarioId = $lancamento->getProprietario()?->getIdpessoa();
+        if (!$proprietarioId) return;
+
+        // Buscar plano do proprietário via cod
+        $conn = $this->em->getConnection();
+        $planoIdProp = $conn->fetchOne(
+            "SELECT pc.id FROM almasa_plano_contas pc
+             JOIN pessoas p ON pc.codigo = '2.1.01.' || p.cod::text
+             WHERE p.idpessoa = :id AND pc.ativo = true LIMIT 1",
+            ['id' => $proprietarioId]
+        );
+        if (!$planoIdProp) return;
+
+        $planoProprietario = $this->em->getRepository(AlmasaPlanoContas::class)->find($planoIdProp);
+        if (!$planoProprietario) return;
+
+        $valorPago = (float) $baixa->getValorTotalPago();
+        $dataPagamento = $baixa->getDataPagamento();
+        $imovel = $lancamento->getImovel();
+        $imovelCod = $imovel?->getCodigoInterno() ?? '';
+
+        // 1. Lançamento: entrada na CC do proprietário
+        $lancCC = new Lancamentos();
+        $lancCC->setTipo(Lancamentos::TIPO_RECEBER);
+        $lancCC->setDataMovimento($dataPagamento);
+        $lancCC->setDataVencimento($dataPagamento);
+        $lancCC->setDataPagamento($dataPagamento);
+        $lancCC->setCompetencia($dataPagamento->format('Y-m'));
+        $lancCC->setValor(number_format($valorPago, 2, '.', ''));
+        $lancCC->setValorPago(number_format($valorPago, 2, '.', ''));
+        $lancCC->setStatus(Lancamentos::STATUS_PAGO);
+        $lancCC->setHistorico("Recebimento — Imóvel {$imovelCod} — Recibo {$lancamento->getId()}");
+        $lancCC->setFormaPagamento($baixa->getFormaPagamento());
+        $lancCC->setPlanoContaCredito($planoProprietario);
+        if ($imovel) $lancCC->setImovel($imovel);
+        $this->em->persist($lancCC);
+
+        // 2. Taxa de administração sobre o valor_principal (aluguel)
+        $valorPrincipal = (float) $lancamento->getValorPrincipal();
+        $taxaPercent = $imovel ? (float) $imovel->getTaxaAdministracao() : 10.0;
+
+        if ($valorPrincipal > 0 && $taxaPercent > 0) {
+            $valorTaxa = round($valorPrincipal * $taxaPercent / 100, 2);
+
+            // Conta Almasa: 4.1.01.001 Taxa de Administração - Alugueis
+            $planoTaxaAdm = $this->em->getRepository(AlmasaPlanoContas::class)
+                ->findOneBy(['codigo' => '4.1.01.001', 'ativo' => true]);
+
+            if ($planoTaxaAdm) {
+                $lancTaxa = new Lancamentos();
+                $lancTaxa->setTipo(Lancamentos::TIPO_PAGAR);
+                $lancTaxa->setDataMovimento($dataPagamento);
+                $lancTaxa->setDataVencimento($dataPagamento);
+                $lancTaxa->setDataPagamento($dataPagamento);
+                $lancTaxa->setCompetencia($dataPagamento->format('Y-m'));
+                $lancTaxa->setValor(number_format($valorTaxa, 2, '.', ''));
+                $lancTaxa->setValorPago(number_format($valorTaxa, 2, '.', ''));
+                $lancTaxa->setStatus(Lancamentos::STATUS_PAGO);
+                $lancTaxa->setHistorico("Taxa Adm. {$taxaPercent}% s/ Rec. {$lancamento->getId()} — Imóvel {$imovelCod}");
+                $lancTaxa->setFormaPagamento('debito');
+                $lancTaxa->setPlanoContaDebito($planoProprietario);
+                $lancTaxa->setPlanoContaCredito($planoTaxaAdm);
+                if ($imovel) $lancTaxa->setImovel($imovel);
+                $this->em->persist($lancTaxa);
+            }
+        }
+
+        $this->em->flush();
+
+        $this->logger->info('Lançamentos contábeis da baixa gerados', [
+            'lancamento_financeiro' => $lancamento->getId(),
+            'proprietario_plano' => $planoIdProp,
+            'valor_pago' => $valorPago,
+            'valor_principal' => $valorPrincipal,
+            'taxa_percent' => $taxaPercent ?? 0,
+        ]);
     }
 
     /**
