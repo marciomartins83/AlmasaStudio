@@ -1,4 +1,4 @@
-{# Preview Extrato de Conta Corrente do Proprietário #}
+{# Preview Extrato Cliente #}
 {% if dados is empty %}
     <div class="alert alert-warning">Nenhum dado encontrado para os filtros selecionados.</div>
 {% else %}
@@ -7,7 +7,7 @@
 {# Identificação do proprietário #}
 <div class="card mb-1 border-secondary">
     <div class="card-body py-2" style="font-size:13px;">
-        <strong>Proprietário:</strong> {{ extrato.proprietario.cod }} - {{ extrato.proprietario.nome }}
+        <strong>Cliente:</strong> {{ extrato.proprietario.cod }} - {{ extrato.proprietario.nome }}
         {% if extrato.proprietario.cnpj %}
             &nbsp;&nbsp;<strong>CNPJ:</strong> {{ extrato.proprietario.cnpj }}
         {% elseif extrato.proprietario.cpf %}

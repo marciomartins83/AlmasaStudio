@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Extrato do Proprietário</title>
+    <title>Extrato Cliente</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
@@ -47,10 +47,10 @@
     {% if dados is not empty %}
 
     {% for extrato in dados %}
-    {# Bloco identificação do proprietário #}
+    {# Bloco identificação do cliente #}
     <div class="prop-block">
         <div class="prop-row bold">
-            Proprietário: {{ extrato.proprietario.cod }} - {{ extrato.proprietario.nome }}
+            Cliente: {{ extrato.proprietario.cod }} - {{ extrato.proprietario.nome }}
             {% if extrato.proprietario.cnpj %}
                 &nbsp;&nbsp;&nbsp; CNPJ: {{ extrato.proprietario.cnpj }}
             {% elseif extrato.proprietario.cpf %}
