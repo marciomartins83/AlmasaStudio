@@ -313,6 +313,64 @@ class RelatorioService
             ];
         }
 
+        // lancamentos CRUD via plano de contas: DEBITO em conta tipo passivo (saida da CC do proprietario)
+        $conn = $this->em->getConnection();
+        $where2 = ["pc.tipo = 'passivo'"];
+        $params2 = [];
+
+        if (!empty($filtros['data_inicio'])) {
+            $where2[] = 'l.data_vencimento >= :di2';
+            $params2['di2'] = $filtros['data_inicio'] instanceof \DateTimeInterface ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where2[] = 'l.data_vencimento <= :df2';
+            $params2['df2'] = $filtros['data_fim'] instanceof \DateTimeInterface ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where2[] = 'l.status = :st2';
+            $params2['st2'] = $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'];
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where2[] = 'l.id_imovel = :im2';
+            $params2['im2'] = (int) $filtros['id_imovel'];
+        }
+        if (!empty($filtros['id_proprietario'])) {
+            // Filtrar pelo plano do proprietario
+            $where2[] = "pc.codigo = '2.1.01.' || (SELECT cod::text FROM pessoas WHERE idpessoa = :pr2)";
+            $params2['pr2'] = (int) $filtros['id_proprietario'];
+        }
+
+        $wc2 = implode(' AND ', $where2);
+        $rows2 = $conn->fetchAllAssociative(
+            "SELECT l.id, l.data_vencimento, l.historico, l.valor, l.valor_pago, l.status,
+                    pc.id AS pc_id, pc.codigo AS pc_codigo, pc.descricao AS pc_descricao
+             FROM lancamentos l
+             JOIN almasa_plano_contas pc ON pc.id = l.id_plano_conta_debito
+             WHERE {$wc2}
+             ORDER BY l.data_vencimento ASC LIMIT 500", $params2
+        );
+
+        foreach ($rows2 as $r) {
+            $dados[] = [
+                'entidade' => null,
+                'dataVencimento' => new \DateTime($r['data_vencimento']),
+                'numeroDocumento' => null,
+                'pessoaCredor' => ['nome' => $r['pc_descricao']],
+                'historico' => $r['historico'] ?? '-',
+                'planoConta' => ['descricao' => $r['pc_codigo'] . ' - ' . $r['pc_descricao']],
+                'valorFloat' => (float) ($r['valor_pago'] ?: $r['valor']),
+                'statusBadgeClass' => $this->getSituacaoBadge($r['status'] ?? 'aberto'),
+                'statusLabel' => ucfirst($r['status'] ?? ''),
+                '_planoContaId' => (string) $r['pc_id'],
+                '_planoContaDescricao' => $r['pc_codigo'] . ' - ' . $r['pc_descricao'],
+                '_credorNome' => $r['pc_descricao'],
+                '_imovelId' => '0',
+                '_mes' => substr($r['data_vencimento'], 0, 7),
+            ];
+        }
+
+        usort($dados, fn($a, $b) => $a['dataVencimento'] <=> $b['dataVencimento']);
+
         if (!empty($filtros['agrupar_por']) && $filtros['agrupar_por'] !== 'nenhum') {
             return $this->agruparDespesas($dados, $filtros['agrupar_por']);
         }
@@ -321,48 +379,37 @@ class RelatorioService
     }
 
     /**
-     * Calcula totais das despesas via SQL nativo (sem limite de 500)
+     * Calcula totais das despesas (lancamentos_financeiros + CRUD via plano passivo)
      */
     public function getTotalDespesas(array $filtros): array
     {
         $conn = $this->em->getConnection();
 
-        $where = ["tipo_lancamento = 'despesa'"];
-        $params = [];
+        // 1. lancamentos_financeiros (historico)
+        $where1 = ["tipo_lancamento = 'despesa'"];
+        $params1 = [];
+        $this->buildFiltrosDataHistorico($where1, $params1, $filtros);
+        $wc1 = implode(' AND ', $where1);
+        $r1 = $conn->executeQuery("SELECT COUNT(*) as q, COALESCE(SUM(valor_total::numeric),0) as t,
+            COALESCE(SUM(CASE WHEN situacao='pago' THEN valor_total::numeric ELSE 0 END),0) as tp,
+            COALESCE(SUM(CASE WHEN situacao!='pago' THEN valor_total::numeric ELSE 0 END),0) as ta
+            FROM lancamentos_financeiros WHERE {$wc1}", $params1)->fetchAssociative();
 
-        if (!empty($filtros['data_inicio'])) {
-            $where[] = 'data_vencimento >= :data_inicio';
-            $params['data_inicio'] = $filtros['data_inicio'] instanceof \DateTimeInterface
-                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
-        }
-        if (!empty($filtros['data_fim'])) {
-            $where[] = 'data_vencimento <= :data_fim';
-            $params['data_fim'] = $filtros['data_fim'] instanceof \DateTimeInterface
-                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
-        }
-        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
-            $where[] = 'situacao = :situacao';
-            $params['situacao'] = $filtros['status'];
-        }
-        if (!empty($filtros['id_imovel'])) {
-            $where[] = 'id_imovel = :id_imovel';
-            $params['id_imovel'] = (int) $filtros['id_imovel'];
-        }
-
-        $whereClause = implode(' AND ', $where);
-        $sql = "SELECT COUNT(*) as quantidade,
-                       COALESCE(SUM(valor_total::numeric), 0) as total_geral,
-                       COALESCE(SUM(CASE WHEN situacao = 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_pago,
-                       COALESCE(SUM(CASE WHEN situacao != 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_aberto
-                FROM lancamentos_financeiros WHERE {$whereClause}";
-
-        $result = $conn->executeQuery($sql, $params)->fetchAssociative();
+        // 2. CRUD: debito em conta passivo
+        $where2 = ["pc.tipo = 'passivo'"];
+        $params2 = [];
+        $this->buildFiltrosDataCrud($where2, $params2, $filtros);
+        $wc2 = implode(' AND ', $where2);
+        $r2 = $conn->executeQuery("SELECT COUNT(*) as q, COALESCE(SUM(COALESCE(l.valor_pago,l.valor)::numeric),0) as t,
+            COALESCE(SUM(CASE WHEN l.status='pago' THEN COALESCE(l.valor_pago,l.valor)::numeric ELSE 0 END),0) as tp,
+            COALESCE(SUM(CASE WHEN l.status!='pago' THEN COALESCE(l.valor_pago,l.valor)::numeric ELSE 0 END),0) as ta
+            FROM lancamentos l JOIN almasa_plano_contas pc ON pc.id = l.id_plano_conta_debito WHERE {$wc2}", $params2)->fetchAssociative();
 
         return [
-            'quantidade' => (int) ($result['quantidade'] ?? 0),
-            'total_aberto' => round((float) ($result['total_aberto'] ?? 0), 2),
-            'total_pago' => round((float) ($result['total_pago'] ?? 0), 2),
-            'total_geral' => round((float) ($result['total_geral'] ?? 0), 2),
+            'quantidade' => (int)($r1['q']??0) + (int)($r2['q']??0),
+            'total_aberto' => round((float)($r1['ta']??0) + (float)($r2['ta']??0), 2),
+            'total_pago' => round((float)($r1['tp']??0) + (float)($r2['tp']??0), 2),
+            'total_geral' => round((float)($r1['t']??0) + (float)($r2['t']??0), 2),
         ];
     }
 
@@ -461,6 +508,59 @@ class RelatorioService
             ];
         }
 
+        // lancamentos CRUD via plano de contas: CREDITO em conta tipo passivo (entrada na CC do proprietario)
+        $conn = $this->em->getConnection();
+        $where2 = ["pc.tipo = 'passivo'"];
+        $params2 = [];
+
+        if (!empty($filtros['data_inicio'])) {
+            $where2[] = 'l.data_vencimento >= :di2';
+            $params2['di2'] = $filtros['data_inicio'] instanceof \DateTimeInterface ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where2[] = 'l.data_vencimento <= :df2';
+            $params2['df2'] = $filtros['data_fim'] instanceof \DateTimeInterface ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where2[] = 'l.status = :st2';
+            $params2['st2'] = $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'];
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where2[] = 'l.id_imovel = :im2';
+            $params2['im2'] = (int) $filtros['id_imovel'];
+        }
+        if (!empty($filtros['id_proprietario'])) {
+            $where2[] = "pc.codigo = '2.1.01.' || (SELECT cod::text FROM pessoas WHERE idpessoa = :pr2)";
+            $params2['pr2'] = (int) $filtros['id_proprietario'];
+        }
+
+        $wc2 = implode(' AND ', $where2);
+        $rows2 = $conn->fetchAllAssociative(
+            "SELECT l.id, l.data_vencimento, l.historico, l.valor, l.valor_pago, l.status,
+                    pc.id AS pc_id, pc.codigo AS pc_codigo, pc.descricao AS pc_descricao
+             FROM lancamentos l
+             JOIN almasa_plano_contas pc ON pc.id = l.id_plano_conta_credito
+             WHERE {$wc2}
+             ORDER BY l.data_vencimento ASC LIMIT 500", $params2
+        );
+
+        foreach ($rows2 as $r) {
+            $resultado[] = [
+                'tipo' => 'lancamento_crud',
+                'entidade' => null,
+                'data' => new \DateTime($r['data_vencimento']),
+                'documento' => null,
+                'pagador' => $r['pc_descricao'],
+                'historico' => $r['historico'] ?? '-',
+                'plano_conta' => $r['pc_codigo'] . ' - ' . $r['pc_descricao'],
+                'imovel' => null,
+                'valor' => (float) ($r['valor_pago'] ?: $r['valor']),
+                'status' => $r['status'],
+            ];
+        }
+
+        usort($resultado, fn($a, $b) => $a['data'] <=> $b['data']);
+
         if (!empty($filtros['agrupar_por']) && $filtros['agrupar_por'] !== 'nenhum') {
             return $this->agruparReceitas($resultado, $filtros['agrupar_por']);
         }
@@ -469,49 +569,37 @@ class RelatorioService
     }
 
     /**
-     * Calcula totais das receitas via SQL nativo (sem limite de 500)
+     * Calcula totais das receitas (lancamentos_financeiros + CRUD via plano passivo)
      */
     public function getTotalReceitas(array $filtros): array
     {
         $conn = $this->em->getConnection();
 
-        $where = ["tipo_lancamento IN ('receita', 'aluguel')"];
-        $params = [];
+        // 1. lancamentos_financeiros (historico)
+        $where1 = ["tipo_lancamento IN ('receita', 'aluguel')"];
+        $params1 = [];
+        $this->buildFiltrosDataHistorico($where1, $params1, $filtros);
+        $wc1 = implode(' AND ', $where1);
+        $r1 = $conn->executeQuery("SELECT COUNT(*) as q, COALESCE(SUM(valor_total::numeric),0) as t,
+            COALESCE(SUM(CASE WHEN situacao='pago' THEN valor_total::numeric ELSE 0 END),0) as tr,
+            COALESCE(SUM(CASE WHEN situacao!='pago' THEN valor_total::numeric ELSE 0 END),0) as ta
+            FROM lancamentos_financeiros WHERE {$wc1}", $params1)->fetchAssociative();
 
-        if (!empty($filtros['data_inicio'])) {
-            $where[] = 'data_vencimento >= :data_inicio';
-            $params['data_inicio'] = $filtros['data_inicio'] instanceof \DateTimeInterface
-                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
-        }
-        if (!empty($filtros['data_fim'])) {
-            $where[] = 'data_vencimento <= :data_fim';
-            $params['data_fim'] = $filtros['data_fim'] instanceof \DateTimeInterface
-                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
-        }
-        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
-            $situacao = in_array($filtros['status'], ['efetivado', 'pago']) ? 'pago' : 'aberto';
-            $where[] = 'situacao = :situacao';
-            $params['situacao'] = $situacao;
-        }
-        if (!empty($filtros['id_imovel'])) {
-            $where[] = 'id_imovel = :id_imovel';
-            $params['id_imovel'] = (int) $filtros['id_imovel'];
-        }
-
-        $whereClause = implode(' AND ', $where);
-        $sql = "SELECT COUNT(*) as quantidade,
-                       COALESCE(SUM(valor_total::numeric), 0) as total_geral,
-                       COALESCE(SUM(CASE WHEN situacao = 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_recebido,
-                       COALESCE(SUM(CASE WHEN situacao != 'pago' THEN valor_total::numeric ELSE 0 END), 0) as total_aberto
-                FROM lancamentos_financeiros WHERE {$whereClause}";
-
-        $result = $conn->executeQuery($sql, $params)->fetchAssociative();
+        // 2. CRUD: credito em conta passivo
+        $where2 = ["pc.tipo = 'passivo'"];
+        $params2 = [];
+        $this->buildFiltrosDataCrud($where2, $params2, $filtros);
+        $wc2 = implode(' AND ', $where2);
+        $r2 = $conn->executeQuery("SELECT COUNT(*) as q, COALESCE(SUM(COALESCE(l.valor_pago,l.valor)::numeric),0) as t,
+            COALESCE(SUM(CASE WHEN l.status='pago' THEN COALESCE(l.valor_pago,l.valor)::numeric ELSE 0 END),0) as tr,
+            COALESCE(SUM(CASE WHEN l.status!='pago' THEN COALESCE(l.valor_pago,l.valor)::numeric ELSE 0 END),0) as ta
+            FROM lancamentos l JOIN almasa_plano_contas pc ON pc.id = l.id_plano_conta_credito WHERE {$wc2}", $params2)->fetchAssociative();
 
         return [
-            'quantidade' => (int) ($result['quantidade'] ?? 0),
-            'total_aberto' => round((float) ($result['total_aberto'] ?? 0), 2),
-            'total_recebido' => round((float) ($result['total_recebido'] ?? 0), 2),
-            'total_geral' => round((float) ($result['total_geral'] ?? 0), 2),
+            'quantidade' => (int)($r1['q']??0) + (int)($r2['q']??0),
+            'total_aberto' => round((float)($r1['ta']??0) + (float)($r2['ta']??0), 2),
+            'total_recebido' => round((float)($r1['tr']??0) + (float)($r2['tr']??0), 2),
+            'total_geral' => round((float)($r1['t']??0) + (float)($r2['t']??0), 2),
         ];
     }
 
@@ -1348,6 +1436,60 @@ class RelatorioService
         if (!empty($filtros['data_fim'])) {
             $qb->andWhere("$alias.$campo <= :dataFim")
                 ->setParameter('dataFim', $filtros['data_fim']);
+        }
+    }
+
+    /**
+     * Build filtros de data e proprietario para SQL nativo em lancamentos_financeiros
+     */
+    private function buildFiltrosDataHistorico(array &$where, array &$params, array $filtros): void
+    {
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = 'data_vencimento >= :di';
+            $params['di'] = $filtros['data_inicio'] instanceof \DateTimeInterface ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where[] = 'data_vencimento <= :df';
+            $params['df'] = $filtros['data_fim'] instanceof \DateTimeInterface ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where[] = 'situacao = :sit';
+            $params['sit'] = in_array($filtros['status'], ['efetivado', 'pago']) ? 'pago' : $filtros['status'];
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where[] = 'id_imovel = :imv';
+            $params['imv'] = (int) $filtros['id_imovel'];
+        }
+        if (!empty($filtros['id_proprietario'])) {
+            $where[] = 'id_proprietario = :prop';
+            $params['prop'] = (int) $filtros['id_proprietario'];
+        }
+    }
+
+    /**
+     * Build filtros de data e proprietario para SQL nativo em lancamentos (CRUD) via plano
+     */
+    private function buildFiltrosDataCrud(array &$where, array &$params, array $filtros): void
+    {
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = 'l.data_vencimento >= :dic';
+            $params['dic'] = $filtros['data_inicio'] instanceof \DateTimeInterface ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where[] = 'l.data_vencimento <= :dfc';
+            $params['dfc'] = $filtros['data_fim'] instanceof \DateTimeInterface ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where[] = 'l.status = :stc';
+            $params['stc'] = $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'];
+        }
+        if (!empty($filtros['id_imovel'])) {
+            $where[] = 'l.id_imovel = :imc';
+            $params['imc'] = (int) $filtros['id_imovel'];
+        }
+        if (!empty($filtros['id_proprietario'])) {
+            $where[] = "pc.codigo = '2.1.01.' || (SELECT cod::text FROM pessoas WHERE idpessoa = :prc)";
+            $params['prc'] = (int) $filtros['id_proprietario'];
         }
     }
 
