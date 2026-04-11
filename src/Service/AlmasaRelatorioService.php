@@ -32,7 +32,8 @@ class AlmasaRelatorioService
 
     public function getDespesas(array $filtros): array
     {
-        $dados = $this->buscarLancamentos('pagar', $filtros);
+        // Despesas Almasa = lancamentos onde a conta DEBITADA é tipo 'despesa'
+        $dados = $this->buscarLancamentosPorTipoConta('despesa', $filtros);
 
         if (!empty($filtros['agrupar_por']) && $filtros['agrupar_por'] !== 'nenhum') {
             return $this->agrupar($dados, $filtros['agrupar_por']);
@@ -43,7 +44,7 @@ class AlmasaRelatorioService
 
     public function getTotalDespesas(array $filtros): array
     {
-        return $this->getTotaisPorTipo('despesa', $filtros);
+        return $this->getTotaisPorTipoConta('despesa', $filtros);
     }
 
     // =========================================================================
@@ -52,7 +53,8 @@ class AlmasaRelatorioService
 
     public function getReceitas(array $filtros): array
     {
-        $dados = $this->buscarLancamentos('receber', $filtros);
+        // Receitas Almasa = lancamentos onde a conta CREDITADA é tipo 'receita'
+        $dados = $this->buscarLancamentosPorTipoConta('receita', $filtros);
 
         if (!empty($filtros['agrupar_por']) && $filtros['agrupar_por'] !== 'nenhum') {
             return $this->agrupar($dados, $filtros['agrupar_por']);
@@ -63,7 +65,7 @@ class AlmasaRelatorioService
 
     public function getTotalReceitas(array $filtros): array
     {
-        return $this->getTotaisPorTipo('receita', $filtros);
+        return $this->getTotaisPorTipoConta('receita', $filtros);
     }
 
     // =========================================================================
@@ -250,7 +252,162 @@ class AlmasaRelatorioService
     }
 
     // =========================================================================
-    // METODOS AUXILIARES
+    // BUSCA POR TIPO DE CONTA (receita/despesa da Almasa)
+    // =========================================================================
+
+    /**
+     * Busca lancamentos onde a conta contábil envolvida é do tipo especificado.
+     * - 'receita': conta CREDITADA é tipo 'receita' (ex: Taxa de Administração)
+     * - 'despesa': conta DEBITADA é tipo 'despesa' (ex: Contas de Água, Luz, etc.)
+     */
+    private function buscarLancamentosPorTipoConta(string $tipoConta, array $filtros): array
+    {
+        $conn = $this->em->getConnection();
+
+        // Receita Almasa = crédito em conta tipo 'receita'
+        // Despesa Almasa = débito em conta tipo 'despesa'
+        $joinConta = $tipoConta === 'receita'
+            ? "JOIN almasa_plano_contas pc_filtro ON pc_filtro.id = l.id_plano_conta_credito AND pc_filtro.tipo = 'receita'"
+            : "JOIN almasa_plano_contas pc_filtro ON pc_filtro.id = l.id_plano_conta_debito AND pc_filtro.tipo = 'despesa'";
+
+        $where = [];
+        $params = [];
+
+        $tipoData = $filtros['tipo_data'] ?? 'competencia';
+        $usaCompetencia = ($tipoData === 'competencia');
+        $campoData = match ($tipoData) {
+            'vencimento' => 'l.data_vencimento',
+            'pagamento' => 'l.data_pagamento',
+            default => 'l.competencia',
+        };
+
+        if (!empty($filtros['data_inicio'])) {
+            $di = $filtros['data_inicio'] instanceof \DateTimeInterface
+                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+            $where[] = "$campoData >= :data_inicio";
+            $params['data_inicio'] = $usaCompetencia ? substr($di, 0, 7) : $di;
+        }
+        if (!empty($filtros['data_fim'])) {
+            $df = $filtros['data_fim'] instanceof \DateTimeInterface
+                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+            $where[] = "$campoData <= :data_fim";
+            $params['data_fim'] = $usaCompetencia ? substr($df, 0, 7) : $df;
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where[] = 'l.status = :status';
+            $params['status'] = $filtros['status'];
+        }
+        if (!empty($filtros['id_plano_conta'])) {
+            $where[] = 'pc_filtro.id = :id_pc';
+            $params['id_pc'] = (int) $filtros['id_plano_conta'];
+        }
+
+        $whereClause = $where ? 'AND ' . implode(' AND ', $where) : '';
+
+        $sql = "SELECT l.id, l.data_vencimento, l.data_pagamento, l.competencia,
+                       l.historico, l.valor, l.status, l.tipo,
+                       pc_filtro.codigo AS pc_codigo, pc_filtro.descricao AS pc_descricao,
+                       pcpai.descricao AS pc_grupo
+                FROM lancamentos l
+                {$joinConta}
+                LEFT JOIN almasa_plano_contas pcpai ON pcpai.id = pc_filtro.id_pai
+                WHERE 1=1 {$whereClause}
+                ORDER BY l.data_vencimento ASC";
+
+        $rows = $conn->fetchAllAssociative($sql, $params);
+
+        $dados = [];
+        foreach ($rows as $r) {
+            $dados[] = [
+                'id' => $r['id'],
+                'dataCompetencia' => $r['competencia'] ? new \DateTime($r['competencia'] . '-01') : null,
+                'dataVencimento' => $r['data_vencimento'] ? new \DateTime($r['data_vencimento']) : null,
+                'dataPagamento' => $r['data_pagamento'] ? new \DateTime($r['data_pagamento']) : null,
+                'descricao' => $r['historico'] ?? '-',
+                'planoConta' => ($r['pc_codigo'] ?? '-') . ' - ' . ($r['pc_descricao'] ?? '-'),
+                'planoContaCodigo' => $r['pc_codigo'] ?? '-',
+                'planoContaDescricao' => $r['pc_descricao'] ?? '-',
+                'planoContaGrupo' => $r['pc_grupo'] ?? ($r['pc_descricao'] ?? '-'),
+                'valor' => round((float) ($r['valor'] ?? 0), 2),
+                'status' => $r['status'],
+                'statusLabel' => ucfirst($r['status'] ?? ''),
+                'statusBadgeClass' => match ($r['status'] ?? '') {
+                    'pago' => 'success',
+                    'aberto' => 'warning',
+                    'cancelado' => 'danger',
+                    default => 'secondary',
+                },
+                'tipo' => $r['tipo'],
+                '_planoContaId' => $r['pc_codigo'] ?? '0',
+                '_planoContaGrupoId' => $r['pc_grupo'] ?? ($r['pc_codigo'] ?? '0'),
+                '_mes' => $r['competencia'] ?? ($r['data_vencimento'] ? substr($r['data_vencimento'], 0, 7) : ''),
+            ];
+        }
+
+        return $dados;
+    }
+
+    /**
+     * Totais por tipo de conta (receita/despesa da Almasa).
+     */
+    private function getTotaisPorTipoConta(string $tipoConta, array $filtros): array
+    {
+        $conn = $this->em->getConnection();
+
+        $joinConta = $tipoConta === 'receita'
+            ? "JOIN almasa_plano_contas pc ON pc.id = l.id_plano_conta_credito AND pc.tipo = 'receita'"
+            : "JOIN almasa_plano_contas pc ON pc.id = l.id_plano_conta_debito AND pc.tipo = 'despesa'";
+
+        $where = [];
+        $params = [];
+
+        $tipoData = $filtros['tipo_data'] ?? 'competencia';
+        $usaComp = ($tipoData === 'competencia');
+        $campoData = match ($tipoData) {
+            'vencimento' => 'l.data_vencimento',
+            'pagamento' => 'l.data_pagamento',
+            default => 'l.competencia',
+        };
+
+        if (!empty($filtros['data_inicio'])) {
+            $di = $filtros['data_inicio'] instanceof \DateTimeInterface
+                ? $filtros['data_inicio']->format('Y-m-d') : $filtros['data_inicio'];
+            $where[] = "$campoData >= :data_inicio";
+            $params['data_inicio'] = $usaComp ? substr($di, 0, 7) : $di;
+        }
+        if (!empty($filtros['data_fim'])) {
+            $df = $filtros['data_fim'] instanceof \DateTimeInterface
+                ? $filtros['data_fim']->format('Y-m-d') : $filtros['data_fim'];
+            $where[] = "$campoData <= :data_fim";
+            $params['data_fim'] = $usaComp ? substr($df, 0, 7) : $df;
+        }
+        if (!empty($filtros['status']) && $filtros['status'] !== 'todos') {
+            $where[] = 'l.status = :status';
+            $params['status'] = $filtros['status'];
+        }
+
+        $whereClause = $where ? 'AND ' . implode(' AND ', $where) : '';
+
+        $sql = "SELECT COUNT(*) as quantidade,
+                       COALESCE(SUM(l.valor::numeric), 0) as total_geral,
+                       COALESCE(SUM(CASE WHEN l.status = 'pago' THEN l.valor::numeric ELSE 0 END), 0) as total_pago,
+                       COALESCE(SUM(CASE WHEN l.status != 'pago' THEN l.valor::numeric ELSE 0 END), 0) as total_aberto
+                FROM lancamentos l
+                {$joinConta}
+                WHERE 1=1 {$whereClause}";
+
+        $result = $conn->executeQuery($sql, $params)->fetchAssociative();
+
+        return [
+            'quantidade' => (int) ($result['quantidade'] ?? 0),
+            'total_aberto' => round((float) ($result['total_aberto'] ?? 0), 2),
+            'total_pago' => round((float) ($result['total_pago'] ?? 0), 2),
+            'total_geral' => round((float) ($result['total_geral'] ?? 0), 2),
+        ];
+    }
+
+    // =========================================================================
+    // METODOS AUXILIARES (legados — mantidos para compatibilidade)
     // =========================================================================
 
     private function buscarLancamentos(string $tipo, array $filtros): array
