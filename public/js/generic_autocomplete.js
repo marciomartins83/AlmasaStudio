@@ -55,6 +55,15 @@ function initAutocomplete(wrapper) {
         if (!wrapper.contains(e.target)) fechar();
     });
 
+    // Lupa clicavel: busca com q vazio (lista todas)
+    var lupaBtn = wrapper.querySelector('.autocomplete-lupa');
+    if (lupaBtn) {
+        lupaBtn.addEventListener('click', function () {
+            buscar('');
+            display.focus();
+        });
+    }
+
     function buscar(q) {
         fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + 'q=' + encodeURIComponent(q))
             .then(function (r) { return r.ok ? r.json() : []; })

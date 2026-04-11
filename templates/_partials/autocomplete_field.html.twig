@@ -28,7 +28,7 @@
      data-min="{{ _min }}"
      {% if display|default('') %}data-preload-label="{{ display }}"{% endif %}>
     <div class="input-group">
-        <span class="input-group-text"><i class="fas {{ _icon }}"></i></span>
+        <button type="button" class="btn btn-outline-secondary autocomplete-lupa" title="Mostrar todas"><i class="fas {{ _icon }}"></i></button>
         <input type="text"
                id="{{ _id }}_display"
                class="form-control autocomplete-display"

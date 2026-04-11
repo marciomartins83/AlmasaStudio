@@ -145,7 +145,6 @@ class AutocompleteController extends AbstractController
     public function contasBancarias(Request $request): JsonResponse
     {
         $q = trim($request->query->get('q', ''));
-        if (strlen($q) < 1) return new JsonResponse([]);
 
         $filtroProprietario = '';
         $apenas = $request->query->get('apenas', '');
@@ -155,15 +154,24 @@ class AutocompleteController extends AbstractController
             $filtroProprietario = ' AND cb.id_pessoa IS NOT NULL';
         }
 
+        $where = "cb.ativo = true{$filtroProprietario}";
+        $params = [];
+
+        if ($q !== '') {
+            $where .= " AND (unaccent(LOWER(COALESCE(cb.descricao, ''))) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(cb.titular, ''))) LIKE unaccent(LOWER(:q))
+                 OR unaccent(LOWER(COALESCE(cb.codigo, ''))) LIKE unaccent(LOWER(:q)))";
+            $params['q'] = '%' . $q . '%';
+        }
+
+        $limit = $q === '' ? 200 : 20;
+
         $rows = $this->conn->fetchAllAssociative(
             "SELECT cb.id, CONCAT(COALESCE(cb.descricao, cb.codigo, ''), COALESCE(' — ' || cb.titular, '')) AS label
              FROM contas_bancarias cb
-             WHERE cb.ativo = true{$filtroProprietario}
-               AND (unaccent(LOWER(COALESCE(cb.descricao, ''))) LIKE unaccent(LOWER(:q))
-                 OR unaccent(LOWER(COALESCE(cb.titular, ''))) LIKE unaccent(LOWER(:q))
-                 OR unaccent(LOWER(COALESCE(cb.codigo, ''))) LIKE unaccent(LOWER(:q)))
-             ORDER BY COALESCE(cb.descricao, cb.codigo) ASC LIMIT 20",
-            ['q' => '%' . $q . '%']
+             WHERE {$where}
+             ORDER BY COALESCE(cb.descricao, cb.codigo) ASC LIMIT {$limit}",
+            $params
         );
 
         return new JsonResponse($rows);
