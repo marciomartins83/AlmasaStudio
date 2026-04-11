@@ -80,6 +80,19 @@
                             } %}
                         </div>
 
+                        <div class="mb-3">
+                            {% include '_partials/autocomplete_field.html.twig' with {
+                                id: 'id_proprietario',
+                                name: 'id_proprietario',
+                                label: 'Proprietário',
+                                url: path('app_autocomplete_pessoas'),
+                                value: '',
+                                display: '',
+                                placeholder: 'Todos — digite para buscar...',
+                                icon: 'fa-user-tie'
+                            } %}
+                        </div>
+
                         {% include '_partials/imovel_autocomplete_field.html.twig' with {
                             fieldId: 'id_imovel',
                             label: 'Imóvel',
