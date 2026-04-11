@@ -335,10 +335,14 @@ class RelatorioService
             $params2['im2'] = (int) $filtros['id_imovel'];
         }
         if (!empty($filtros['id_proprietario'])) {
-            // Filtrar pelo plano do proprietario
             $where2[] = "pc.codigo = '2.1.01.' || (SELECT cod::text FROM pessoas WHERE idpessoa = :pr2)";
             $params2['pr2'] = (int) $filtros['id_proprietario'];
         }
+
+        // Excluir transferencias passivo→passivo (entre proprietarios)
+        $where2[] = "(l.id_plano_conta_credito IS NULL OR NOT EXISTS (
+            SELECT 1 FROM almasa_plano_contas pcr WHERE pcr.id = l.id_plano_conta_credito AND pcr.tipo = 'passivo'
+        ))";
 
         $wc2 = implode(' AND ', $where2);
         $rows2 = $conn->fetchAllAssociative(
@@ -395,8 +399,9 @@ class RelatorioService
             COALESCE(SUM(CASE WHEN situacao!='pago' THEN valor_total::numeric ELSE 0 END),0) as ta
             FROM lancamentos_financeiros WHERE {$wc1}", $params1)->fetchAssociative();
 
-        // 2. CRUD: debito em conta passivo
-        $where2 = ["pc.tipo = 'passivo'"];
+        // 2. CRUD: debito em conta passivo (excluindo passivo→passivo)
+        $where2 = ["pc.tipo = 'passivo'",
+            "(l.id_plano_conta_credito IS NULL OR NOT EXISTS (SELECT 1 FROM almasa_plano_contas pcr WHERE pcr.id = l.id_plano_conta_credito AND pcr.tipo = 'passivo'))"];
         $params2 = [];
         $this->buildFiltrosDataCrud($where2, $params2, $filtros);
         $wc2 = implode(' AND ', $where2);
@@ -534,6 +539,11 @@ class RelatorioService
             $params2['pr2'] = (int) $filtros['id_proprietario'];
         }
 
+        // Excluir transferencias passivo→passivo (entre proprietarios)
+        $where2[] = "(l.id_plano_conta_debito IS NULL OR NOT EXISTS (
+            SELECT 1 FROM almasa_plano_contas pd WHERE pd.id = l.id_plano_conta_debito AND pd.tipo = 'passivo'
+        ))";
+
         $wc2 = implode(' AND ', $where2);
         $rows2 = $conn->fetchAllAssociative(
             "SELECT l.id, l.data_vencimento, l.historico, l.valor, l.valor_pago, l.status,
@@ -585,8 +595,9 @@ class RelatorioService
             COALESCE(SUM(CASE WHEN situacao!='pago' THEN valor_total::numeric ELSE 0 END),0) as ta
             FROM lancamentos_financeiros WHERE {$wc1}", $params1)->fetchAssociative();
 
-        // 2. CRUD: credito em conta passivo
-        $where2 = ["pc.tipo = 'passivo'"];
+        // 2. CRUD: credito em conta passivo (excluindo passivo→passivo)
+        $where2 = ["pc.tipo = 'passivo'",
+            "(l.id_plano_conta_debito IS NULL OR NOT EXISTS (SELECT 1 FROM almasa_plano_contas pd WHERE pd.id = l.id_plano_conta_debito AND pd.tipo = 'passivo'))"];
         $params2 = [];
         $this->buildFiltrosDataCrud($where2, $params2, $filtros);
         $wc2 = implode(' AND ', $where2);
