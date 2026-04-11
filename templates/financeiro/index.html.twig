@@ -88,9 +88,47 @@
         </div>
     </div>
 
+    {# Painel Inadimplentes — colapsável, fechado por default #}
+    {% if inadimplentes|length > 0 %}
+    <div class="card mb-3">
+        <div class="card-header bg-danger text-white" style="cursor:pointer" data-bs-toggle="collapse" data-bs-target="#inadimplentes-body" aria-expanded="false">
+            <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user-times"></i> Inadimplentes</span>
+                <span>
+                    <span class="badge bg-light text-danger">{{ inadimplentes|length }}</span>
+                    <i class="fas fa-chevron-down ms-2"></i>
+                </span>
+            </h5>
+        </div>
+        <div id="inadimplentes-body" class="collapse">
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for inadimplente in inadimplentes %}
+                    <a href="{{ path('app_financeiro_ficha', {inquilinoId: inadimplente.id}) }}"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ inadimplente.nome }}</strong>
+                            <br><small class="text-muted">{{ inadimplente.qtd_lancamentos }} lançamento(s)</small>
+                        </div>
+                        <span class="badge bg-danger">
+                            R$ {{ inadimplente.valor_total|number_format(2, ',', '.') }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ path('app_financeiro_atraso') }}" class="btn btn-outline-danger w-100">
+                    <i class="fas fa-list"></i> Ver todos em atraso
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row">
-        {# Coluna principal - Lançamentos #}
-        <div class="col-lg-8">
+        {# Coluna principal - Lançamentos (largura total) #}
+        <div class="col-lg-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1><i class="fas fa-file-invoice-dollar"></i> Ficha Financeira</h1>
                 <div>
@@ -223,52 +261,6 @@
             } %}
         </div>
 
-        {# Coluna lateral - Inadimplentes (colapsável) #}
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header bg-danger text-white" style="cursor:pointer" data-bs-toggle="collapse" data-bs-target="#inadimplentes-body" aria-expanded="false">
-                    <h5 class="mb-0 d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-user-times"></i> Inadimplentes</span>
-                        <span>
-                            {% if inadimplentes|length > 0 %}
-                                <span class="badge bg-light text-danger">{{ inadimplentes|length }}</span>
-                            {% endif %}
-                            <i class="fas fa-chevron-down ms-2"></i>
-                        </span>
-                    </h5>
-                </div>
-                <div id="inadimplentes-body" class="collapse">
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            {% for inadimplente in inadimplentes %}
-                            <a href="{{ path('app_financeiro_ficha', {inquilinoId: inadimplente.id}) }}"
-                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ inadimplente.nome }}</strong>
-                                    <br><small class="text-muted">{{ inadimplente.qtd_lancamentos }} lançamento(s)</small>
-                                </div>
-                                <span class="badge bg-danger">
-                                    R$ {{ inadimplente.valor_total|number_format(2, ',', '.') }}
-                                </span>
-                            </a>
-                            {% else %}
-                            <div class="list-group-item text-center text-muted py-3">
-                                <i class="fas fa-check-circle fa-2x text-success mb-2 d-block"></i>
-                                <span>Nenhum inadimplente</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% if inadimplentes|length > 0 %}
-                    <div class="card-footer">
-                        <a href="{{ path('app_financeiro_atraso') }}" class="btn btn-outline-danger w-100">
-                            <i class="fas fa-list"></i> Ver todos em atraso
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
