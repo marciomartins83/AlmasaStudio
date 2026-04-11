@@ -301,6 +301,9 @@ class FichaFinanceiraService
         $imovel = $lancamento->getImovel();
         $imovelCod = $imovel?->getCodigoInterno() ?? '';
 
+        $proprietario = $lancamento->getProprietario();
+        $inquilino = $lancamento->getInquilino();
+
         // 1. Lançamento: entrada na CC do proprietário
         $lancCC = new Lancamentos();
         $lancCC->setTipo(Lancamentos::TIPO_RECEBER);
@@ -315,6 +318,8 @@ class FichaFinanceiraService
         $lancCC->setFormaPagamento($baixa->getFormaPagamento());
         $lancCC->setPlanoContaCredito($planoProprietario);
         if ($imovel) $lancCC->setImovel($imovel);
+        if ($proprietario) $lancCC->setProprietario($proprietario);
+        if ($inquilino) $lancCC->setInquilino($inquilino);
         $this->em->persist($lancCC);
 
         // 2. Taxa de administração sobre o valor_principal (aluguel)
@@ -342,6 +347,8 @@ class FichaFinanceiraService
                 $lancTaxa->setFormaPagamento('debito');
                 $lancTaxa->setPlanoContaDebito($planoProprietario);
                 $lancTaxa->setPlanoContaCredito($planoTaxaAdm);
+                if ($proprietario) $lancTaxa->setProprietario($proprietario);
+                if ($inquilino) $lancTaxa->setInquilino($inquilino);
                 if ($imovel) $lancTaxa->setImovel($imovel);
                 $this->em->persist($lancTaxa);
             }
