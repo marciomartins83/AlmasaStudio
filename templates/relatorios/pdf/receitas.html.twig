@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Relatório de Receitas</title>
+    <title>Relatório de Entradas</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
@@ -38,7 +38,7 @@
         {% endif %}
 
         {% include 'relatorios/pdf/_header.html.twig' with {
-            titulo: 'RELATÓRIO DE RECEITAS',
+            titulo: 'RELATÓRIO DE ENTRADAS',
             periodo: periodo_texto
         } %}
 
@@ -126,7 +126,7 @@
                     {% endif %}
                 {% else %}
                     <tr>
-                        <td colspan="8" class="text-center">Nenhuma receita encontrada no periodo.</td>
+                        <td colspan="8" class="text-center">Nenhuma entrada encontrada no periodo.</td>
                     </tr>
                 {% endif %}
             </tbody>

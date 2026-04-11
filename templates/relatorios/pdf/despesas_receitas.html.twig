@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Relatório Comparativo Despesas x Receitas</title>
+    <title>Relatório Comparativo Saídas x Entradas</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; line-height: 1.4; color: #333; }
@@ -59,7 +59,7 @@
         {% endif %}
 
         {# SEÇÃO RECEITAS #}
-        <div class="secao-titulo secao-receitas">RECEITAS</div>
+        <div class="secao-titulo secao-receitas">ENTRADAS</div>
         <table>
             <thead>
                 <tr>
@@ -85,14 +85,14 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" class="text-center">Nenhuma receita no periodo.</td>
+                        <td colspan="6" class="text-center">Nenhuma entrada no periodo.</td>
                     </tr>
                 {% endif %}
             </tbody>
             {% if totais_receitas is defined %}
             <tfoot>
                 <tr class="total-row-receitas">
-                    <td colspan="5" class="text-right">TOTAL RECEITAS ({{ totais_receitas.quantidade }} registros):</td>
+                    <td colspan="5" class="text-right">TOTAL ENTRADAS ({{ totais_receitas.quantidade }} registros):</td>
                     <td class="text-right">R$ {{ totais_receitas.total|number_format(2, ',', '.') }}</td>
                 </tr>
             </tfoot>
@@ -100,7 +100,7 @@
         </table>
 
         {# SEÇÃO DESPESAS #}
-        <div class="secao-titulo secao-despesas">DESPESAS</div>
+        <div class="secao-titulo secao-despesas">SAÍDAS</div>
         <table>
             <thead>
                 <tr>
@@ -126,14 +126,14 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" class="text-center">Nenhuma despesa no periodo.</td>
+                        <td colspan="6" class="text-center">Nenhuma saída no periodo.</td>
                     </tr>
                 {% endif %}
             </tbody>
             {% if totais_despesas is defined %}
             <tfoot>
                 <tr class="total-row-despesas">
-                    <td colspan="5" class="text-right">TOTAL DESPESAS ({{ totais_despesas.quantidade }} registros):</td>
+                    <td colspan="5" class="text-right">TOTAL SAÍDAS ({{ totais_despesas.quantidade }} registros):</td>
                     <td class="text-right">R$ {{ totais_despesas.total|number_format(2, ',', '.') }}</td>
                 </tr>
             </tfoot>
@@ -145,13 +145,13 @@
             <table style="border: none;">
                 <tr>
                     <td style="border: none; width: 33%; text-align: center;">
-                        <strong>Total Receitas</strong><br>
+                        <strong>Total Entradas</strong><br>
                         <span class="text-success" style="font-size: 14px; font-weight: bold;">
                             R$ {{ totais_receitas.total|default(0)|number_format(2, ',', '.') }}
                         </span>
                     </td>
                     <td style="border: none; width: 33%; text-align: center;">
-                        <strong>Total Despesas</strong><br>
+                        <strong>Total Saídas</strong><br>
                         <span class="text-danger" style="font-size: 14px; font-weight: bold;">
                             R$ {{ totais_despesas.total|default(0)|number_format(2, ',', '.') }}
                         </span>

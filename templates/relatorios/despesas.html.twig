@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Relatório de Despesas - {{ parent() }}{% endblock %}
+{% block title %}Relatório de Saídas - {{ parent() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,7 +9,7 @@
             {'label': 'Dashboard', 'url': path('app_dashboard')},
             {'label': 'Relatórios', 'url': path('app_relatorios_index')}
         ],
-        'current': 'Despesas'
+        'current': 'Saídas'
     } %}
 
     <div class="row">

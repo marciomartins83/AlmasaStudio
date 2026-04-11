@@ -1,4 +1,4 @@
-{# Preview Despesas x Receitas #}
+{# Preview Saidas x Entradas #}
 {% if saldo_anterior is defined %}
 <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
     <strong><i class="fas fa-balance-scale"></i> Saldo Anterior:</strong>
@@ -14,9 +14,9 @@
             <thead class="table-dark">
                 <tr>
                     <th>Categoria/Grupo</th>
-                    <th class="text-end">Receitas</th>
+                    <th class="text-end">Entradas</th>
                     <th class="text-end">%</th>
-                    <th class="text-end">Despesas</th>
+                    <th class="text-end">Saídas</th>
                     <th class="text-end">%</th>
                     <th class="text-end">Saldo</th>
                 </tr>
@@ -68,8 +68,8 @@
                     <th class="text-center">Tipo</th>
                     <th>Histórico</th>
                     <th>Tipo de Lançamento</th>
-                    <th class="text-end">Receita</th>
-                    <th class="text-end">Despesa</th>
+                    <th class="text-end">Entrada</th>
+                    <th class="text-end">Saída</th>
                     <th class="text-end">Saldo Acum.</th>
                 </tr>
             </thead>
@@ -126,7 +126,7 @@
     <div class="col-md-4">
         <div class="card border-success">
             <div class="card-body text-center">
-                <h6 class="text-muted">Total Receitas</h6>
+                <h6 class="text-muted">Total Entradas</h6>
                 <h4 class="text-success">R$ {{ totais_receitas.total_geral|number_format(2, ',', '.') }}</h4>
             </div>
         </div>
@@ -134,7 +134,7 @@
     <div class="col-md-4">
         <div class="card border-danger">
             <div class="card-body text-center">
-                <h6 class="text-muted">Total Despesas</h6>
+                <h6 class="text-muted">Total Saídas</h6>
                 <h4 class="text-danger">R$ {{ totais_despesas.total_geral|number_format(2, ',', '.') }}</h4>
             </div>
         </div>
