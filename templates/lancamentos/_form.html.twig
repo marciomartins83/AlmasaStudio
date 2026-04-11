@@ -75,6 +75,14 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Conta Débito <small class="text-muted">(opcional)</small></label>
+                                <select class="form-select form-select-sm mb-1" id="plano_debito_tipo">
+                                    <option value="despesa" selected>Despesa</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="passivo">Passivo</option>
+                                    <option value="receita">Receita</option>
+                                    <option value="patrimonio_liquido">Patrimônio Líquido</option>
+                                    <option value="">Todos</option>
+                                </select>
                                 <div class="plano-conta-autocomplete-wrapper position-relative">
                                     <div class="input-group">
                                         <button type="button" class="btn btn-outline-secondary" id="plano_debito_lupa" title="Mostrar todas">
@@ -92,6 +100,14 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Conta Crédito <small class="text-muted">(opcional)</small></label>
+                                <select class="form-select form-select-sm mb-1" id="plano_credito_tipo">
+                                    <option value="receita" selected>Receita</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="passivo">Passivo</option>
+                                    <option value="despesa">Despesa</option>
+                                    <option value="patrimonio_liquido">Patrimônio Líquido</option>
+                                    <option value="">Todos</option>
+                                </select>
                                 <div class="plano-conta-autocomplete-wrapper position-relative">
                                     <div class="input-group">
                                         <button type="button" class="btn btn-outline-secondary" id="plano_credito_lupa" title="Mostrar todas">
@@ -463,7 +479,7 @@ window.LANCAMENTOS_PLANO_CONTA = {
         resultsId:  'plano_debito_results',
         clearId:    'plano_debito_clear',
         lupaId:     'plano_debito_lupa',
-        natureza:   'debito',
+        tipoSelectId: 'plano_debito_tipo',
         preloadId:  '{{ planoDebitoPreload ? planoDebitoPreload.id : '' }}',
         preloadLabel: '{{ planoDebitoPreload ? (planoDebitoPreload.codigo ~ ' - ' ~ planoDebitoPreload.descricao)|e('js') : '' }}'
     },
@@ -473,7 +489,7 @@ window.LANCAMENTOS_PLANO_CONTA = {
         resultsId:  'plano_credito_results',
         clearId:    'plano_credito_clear',
         lupaId:     'plano_credito_lupa',
-        natureza:   'credito',
+        tipoSelectId: 'plano_credito_tipo',
         preloadId:  '{{ planoCreditoPreload ? planoCreditoPreload.id : '' }}',
         preloadLabel: '{{ planoCreditoPreload ? (planoCreditoPreload.codigo ~ ' - ' ~ planoCreditoPreload.descricao)|e('js') : '' }}'
     }

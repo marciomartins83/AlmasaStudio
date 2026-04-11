@@ -9,6 +9,7 @@ function initPlanoContaAutocomplete(cfg, url) {
     const resultsList  = document.getElementById(cfg.resultsId);
     const clearBtn     = document.getElementById(cfg.clearId);
     const lupaBtn      = cfg.lupaId ? document.getElementById(cfg.lupaId) : null;
+    const tipoSelect   = cfg.tipoSelectId ? document.getElementById(cfg.tipoSelectId) : null;
 
     if (!displayInput || !hiddenInput || !resultsList) return;
 
@@ -76,9 +77,17 @@ function initPlanoContaAutocomplete(cfg, url) {
 
     if (lupaBtn) {
         lupaBtn.addEventListener('click', () => {
-            // Mostrar todas (busca com q vazio)
             buscar('');
             displayInput.focus();
+        });
+    }
+
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', () => {
+            displayInput.value = '';
+            hiddenInput.value  = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            fechar();
         });
     }
 
@@ -91,8 +100,9 @@ function initPlanoContaAutocomplete(cfg, url) {
     async function buscar(q) {
         try {
             let fullUrl = `${url}?q=${encodeURIComponent(q)}`;
-            if (cfg.natureza) {
-                fullUrl += `&natureza=${encodeURIComponent(cfg.natureza)}`;
+            const tipo = tipoSelect ? tipoSelect.value : '';
+            if (tipo) {
+                fullUrl += `&tipo=${encodeURIComponent(tipo)}`;
             }
             const resp = await fetch(fullUrl);
             if (!resp.ok) return;

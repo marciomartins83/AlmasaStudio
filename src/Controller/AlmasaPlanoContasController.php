@@ -155,15 +155,20 @@ class AlmasaPlanoContasController extends AbstractController
     {
         $q = trim($request->query->get('q', ''));
 
-        // Filtro por natureza contabil:
-        //   debito  -> somente contas tipo despesa
-        //   credito -> somente contas tipo receita
+        // Filtro por tipo direto (ex: ?tipo=despesa) ou natureza (debito/credito)
+        $tipo = trim($request->query->get('tipo', ''));
         $natureza = $request->query->get('natureza', '');
-        $tiposPermitidos = match ($natureza) {
-            'debito'  => ['despesa'],
-            'credito' => ['receita'],
-            default   => null,
-        };
+
+        $tiposPermitidos = null;
+        if ($tipo !== '') {
+            $tiposPermitidos = [$tipo];
+        } elseif ($natureza !== '') {
+            $tiposPermitidos = match ($natureza) {
+                'debito'  => ['despesa'],
+                'credito' => ['receita'],
+                default   => null,
+            };
+        }
 
         $conn = $this->repository->createQueryBuilder('a')
             ->getEntityManager()
