@@ -156,12 +156,12 @@ class AlmasaPlanoContasController extends AbstractController
         $q = trim($request->query->get('q', ''));
 
         // Filtro por natureza contabil:
-        //   debito  -> contas de natureza devedora (ativo, despesa)
-        //   credito -> contas de natureza credora (passivo, patrimonio_liquido, receita)
+        //   debito  -> somente contas tipo despesa
+        //   credito -> somente contas tipo receita
         $natureza = $request->query->get('natureza', '');
         $tiposPermitidos = match ($natureza) {
-            'debito'  => ['ativo', 'despesa'],
-            'credito' => ['passivo', 'patrimonio_liquido', 'receita'],
+            'debito'  => ['despesa'],
+            'credito' => ['receita'],
             default   => null,
         };
 
