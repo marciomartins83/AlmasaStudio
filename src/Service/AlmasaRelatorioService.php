@@ -74,18 +74,19 @@ class AlmasaRelatorioService
     {
         $visualizacao = $filtros['visualizacao'] ?? 'sintetico';
 
-        $filtrosSemAgrupamento = $filtros;
-        if ($visualizacao === 'analitico') {
-            $filtrosSemAgrupamento['agrupar_por'] = null;
-        }
+        // SEMPRE buscar dados flat (sem agrupamento previo) — o agrupamento
+        // e feito internamente por gerarComparativoSintetico quando necessario
+        $filtrosFlat = $filtros;
+        $filtrosFlat['agrupar_por'] = null;
 
-        $despesas = $this->getDespesas($filtrosSemAgrupamento);
-        $receitas = $this->getReceitas($filtrosSemAgrupamento);
+        $despesas = $this->getDespesas($filtrosFlat);
+        $receitas = $this->getReceitas($filtrosFlat);
 
         if ($visualizacao === 'sintetico') {
             return $this->gerarComparativoSintetico($despesas, $receitas, $filtros);
         }
 
+        // Analitico: sempre flat, sem agrupamento
         return $this->gerarComparativoAnalitico($despesas, $receitas);
     }
 
@@ -424,9 +425,9 @@ class AlmasaRelatorioService
 
         foreach ($dados as $item) {
             [$chave, $nome] = match ($criterio) {
-                'plano_conta' => [$item['_planoContaId'], $item['planoConta']],
-                'grupo' => [$item['_planoContaGrupoId'], $item['planoContaGrupo']],
-                'mes' => [$item['_mes'], \DateTime::createFromFormat('Y-m', $item['_mes'])->format('m/Y')],
+                'plano_conta' => [$item['_planoContaId'] ?? '0', $item['planoConta'] ?? '-'],
+                'grupo' => [$item['_planoContaGrupoId'] ?? '0', $item['planoContaGrupo'] ?? '-'],
+                'mes' => $this->extrairChaveMes($item),
                 default => ['0', 'Todos'],
             };
 
@@ -435,10 +436,19 @@ class AlmasaRelatorioService
             }
 
             $grupos[$chave]['itens'][] = $item;
-            $grupos[$chave]['total'] += $item['valor'];
+            $grupos[$chave]['total'] += $item['valor'] ?? 0;
         }
 
         return $grupos;
+    }
+
+    private function extrairChaveMes(array $item): array
+    {
+        $mes = $item['_mes'] ?? '';
+        if ($mes && preg_match('/^\d{4}-\d{2}$/', $mes)) {
+            return [$mes, \DateTime::createFromFormat('Y-m', $mes)->format('m/Y')];
+        }
+        return ['sem_data', 'Sem data'];
     }
 
     private function gerarComparativoSintetico(array $despesas, array $receitas, array $filtros): array
@@ -447,43 +457,31 @@ class AlmasaRelatorioService
         $grupos = [];
 
         foreach ($despesas as $item) {
-            $chave = match ($agruparPor) {
-                'plano_conta' => $item['_planoContaId'],
-                'grupo' => $item['_planoContaGrupoId'],
-                'mes' => $item['_mes'],
-                default => '0',
-            };
-            $nome = match ($agruparPor) {
-                'plano_conta' => $item['planoConta'],
-                'grupo' => $item['planoContaGrupo'],
-                'mes' => \DateTime::createFromFormat('Y-m', $item['_mes'])->format('m/Y'),
-                default => 'Todos',
+            [$chave, $nome] = match ($agruparPor) {
+                'plano_conta' => [$item['_planoContaId'] ?? '0', $item['planoConta'] ?? '-'],
+                'grupo' => [$item['_planoContaGrupoId'] ?? '0', $item['planoContaGrupo'] ?? '-'],
+                'mes' => $this->extrairChaveMes($item),
+                default => ['0', 'Todos'],
             };
 
             if (!isset($grupos[$chave])) {
                 $grupos[$chave] = ['nome' => $nome, 'receitas' => 0, 'despesas' => 0];
             }
-            $grupos[$chave]['despesas'] += $item['valor'];
+            $grupos[$chave]['despesas'] += $item['valor'] ?? 0;
         }
 
         foreach ($receitas as $item) {
-            $chave = match ($agruparPor) {
-                'plano_conta' => $item['_planoContaId'],
-                'grupo' => $item['_planoContaGrupoId'],
-                'mes' => $item['_mes'],
-                default => '0',
-            };
-            $nome = match ($agruparPor) {
-                'plano_conta' => $item['planoConta'],
-                'grupo' => $item['planoContaGrupo'],
-                'mes' => \DateTime::createFromFormat('Y-m', $item['_mes'])->format('m/Y'),
-                default => 'Todos',
+            [$chave, $nome] = match ($agruparPor) {
+                'plano_conta' => [$item['_planoContaId'] ?? '0', $item['planoConta'] ?? '-'],
+                'grupo' => [$item['_planoContaGrupoId'] ?? '0', $item['planoContaGrupo'] ?? '-'],
+                'mes' => $this->extrairChaveMes($item),
+                default => ['0', 'Todos'],
             };
 
             if (!isset($grupos[$chave])) {
                 $grupos[$chave] = ['nome' => $nome, 'receitas' => 0, 'despesas' => 0];
             }
-            $grupos[$chave]['receitas'] += $item['valor'];
+            $grupos[$chave]['receitas'] += $item['valor'] ?? 0;
         }
 
         $totalReceitas = array_sum(array_column($grupos, 'receitas'));

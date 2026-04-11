@@ -59,12 +59,13 @@
                             </select>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3" id="agrupar_wrapper">
                             <label for="agrupar_por" class="form-label">Agrupar por</label>
                             <select class="form-select" id="agrupar_por" name="agrupar_por">
                                 <option value="plano_conta">Plano de Contas</option>
                                 <option value="grupo">Grupo</option>
-                                <option value="mes">Mes</option>
+                                <option value="mes">Mês</option>
+                                <option value="nenhum">Sem agrupamento</option>
                             </select>
                         </div>
 
@@ -110,6 +111,17 @@
         pdf: '{{ path('app_relatorios_almasa_despesas_receitas_pdf') }}'
     };
     window.RELATORIO_TIPO = 'almasa_despesas_receitas';
+
+    // Esconder agrupamento quando analitico
+    document.addEventListener('DOMContentLoaded', function() {
+        var vis = document.getElementById('visualizacao');
+        var wrap = document.getElementById('agrupar_wrapper');
+        if (vis && wrap) {
+            vis.addEventListener('change', function() {
+                wrap.style.display = vis.value === 'analitico' ? 'none' : '';
+            });
+        }
+    });
 </script>
 {{ encore_entry_script_tags('relatorios') }}
 {% endblock %}
