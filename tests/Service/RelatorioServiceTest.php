@@ -14,6 +14,7 @@ use App\Repository\PlanoContasRepository;
 use App\Service\RelatorioService;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Result;
+use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -461,12 +462,16 @@ class RelatorioServiceTest extends TestCase
             ->method('createQueryBuilder')
             ->willReturnOnConsecutiveCalls($qbLf, $qbCrud, $qbTransferencia);
 
-        $vinculoRepo = new class {
-            public function findBy(array $criteria, ?array $orderBy = null, $limit = null): array
-            {
-                return [];
-            }
-        };
+        $vinculoRepo = $this->createMock(EntityRepository::class);
+        $vinculoRepo
+            ->expects($this->once())
+            ->method('findBy')
+            ->with(
+                $this->callback(static fn(array $criteria): bool => isset($criteria['almasaPlanoConta']) && ($criteria['ativo'] ?? null) === true),
+                ['padrao' => 'DESC'],
+                1
+            )
+            ->willReturn([]);
 
         $this->em
             ->expects($this->once())
