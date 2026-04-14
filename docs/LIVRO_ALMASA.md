@@ -9,8 +9,8 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.31.1 |
-| **Data Ultima Atualizacao** | 2026-04-14 (Consolidacao do historico recente em capitulo proprio) |
+| **Versao Atual** | 6.32.0 |
+| **Data Ultima Atualizacao** | 2026-04-14 (Fix PHP 8.4 DataTransformer) |
 | **Status Geral** | Em producao — saldo anterior do plano de contas sincroniza lancamento, vinculo bancario e formatacao monetaria BR com consistencia; historico recente consolidado no Cap 15. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
@@ -852,7 +852,7 @@ Todos com status Completo:
   - Saldo > 0 e ja existia → atualiza valor, historico e conta bancaria vinculada
 - Se o vinculo bancario padrao for removido, o lancamento de saldo anterior limpa `contaBancaria` para nao manter referencia orfa
 - Lancamento existente e localizado por `planoContaCredito = conta AND historico LIKE 'Saldo anterior%'`
-- `AlmasaPlanoContasType` usa DataTransformer para exibir `saldoAnterior` sempre com 2 casas no formato BR e aceitar entrada com milhar (`1.234,56`) sem corromper o valor salvo
+- `AlmasaPlanoContasType` usa DataTransformer (assinatura `mixed`/`mixed` para compatibilidade PHP 8.4) para exibir `saldoAnterior` sempre com 2 casas no formato BR e aceitar entrada com milhar (`1.234,56`) sem corromper o valor salvo
 - `AlmasaPlanoContasService::atualizar()` abre transacao; os `flush()` internos do sincronismo sao intencionais e permanecem na mesma transacao Doctrine
 
 ### Commands Disponiveis
@@ -1988,6 +1988,10 @@ SCREENSHOT: [caminho]
 
 ## Cap 15 — Historico de Mudancas Recentes
 
+### 6.32.0 — Fix PHP 8.4 compatibilidade
+
+- **6.32.0 (2026-04-14)** — `AlmasaPlanoContasType::createSaldoTransformer()` usava tipo `?string`/`string` nos metodos `transform`/`reverseTransform` da classe anonima que implementa `DataTransformerInterface`. No PHP 8.4 (VPS), isso causava Fatal Error por incompatibilidade com a assinatura `mixed`/`mixed` da interface. Corrigido para usar `mixed` com cast `(string)` interno. O erro impedia abrir qualquer pagina de edicao do plano de contas (HTTP 500).
+
 ### 6.31.x — Saldo anterior do plano de contas
 
 - **6.31.1 (2026-04-14)** — ajuste de regressao no vinculo bancario do saldo anterior; `contaBancaria` agora e limpa quando o vinculo some, o transformer aceita milhar BR (`1.234,56`) e os testes de form/servico cobrem a regressao.
@@ -2028,6 +2032,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-04-14 (v6.31.1 — consolidacao do historico recente em Cap 15)
+**Ultima atualizacao:** 2026-04-14 (v6.32.0 — fix PHP 8.4 DataTransformer)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Code + Qwen3.5 27b (Qwen Code)
