@@ -11,6 +11,8 @@ use App\Repository\LancamentosRepository;
 use App\Repository\LancamentosFinanceirosRepository;
 use App\Repository\PlanoContasRepository;
 use App\Service\RelatorioService;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Result;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -210,7 +212,7 @@ class RelatorioServiceTest extends TestCase
             'agrupar_por' => 'mes',
         ]);
 
-        $this->assertSame([
+        $this->assertEquals([
             '2026-04' => [
                 'nome' => '04/2026',
                 'receitas' => 0.0,
@@ -411,22 +413,26 @@ class RelatorioServiceTest extends TestCase
 
     public function testGetSaldoInicialConta(): void
     {
-        $mockQb = $this->createMock(\Doctrine\ORM\QueryBuilder::class);
-        $mockQb->expects($this->any())->method('select')->willReturnSelf();
-        $mockQb->expects($this->any())->method('from')->willReturnSelf();
-        $mockQb->expects($this->any())->method('where')->willReturnSelf();
-        $mockQb->expects($this->any())->method('andWhere')->willReturnSelf();
-        $mockQb->expects($this->any())->method('setParameter')->willReturnSelf();
-
-        $mockQuery = $this->createMock(\Doctrine\ORM\Query::class);
-        $mockQuery->expects($this->once())->method('getSingleScalarResult')->willReturn(5000.00);
-
-        $mockQb->expects($this->any())->method('getQuery')->willReturn($mockQuery);
+        $connection = $this->createMock(Connection::class);
+        $result1 = $this->createMock(Result::class);
+        $result2 = $this->createMock(Result::class);
+        $result3 = $this->createMock(Result::class);
+        $result4 = $this->createMock(Result::class);
 
         $this->em
-            ->expects($this->any())
-            ->method('createQueryBuilder')
-            ->willReturn($mockQb);
+            ->expects($this->once())
+            ->method('getConnection')
+            ->willReturn($connection);
+
+        $connection
+            ->expects($this->exactly(4))
+            ->method('executeQuery')
+            ->willReturnOnConsecutiveCalls($result1, $result2, $result3, $result4);
+
+        $result1->expects($this->once())->method('fetchOne')->willReturn('4000');
+        $result2->expects($this->once())->method('fetchOne')->willReturn('1500');
+        $result3->expects($this->once())->method('fetchOne')->willReturn('700');
+        $result4->expects($this->once())->method('fetchOne')->willReturn('200');
 
         $resultado = $this->service->getSaldoInicialConta(1, new \DateTime());
 
