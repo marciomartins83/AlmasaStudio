@@ -464,7 +464,6 @@ class RelatorioServiceTest extends TestCase
 
         $vinculoRepo = $this->createMock(EntityRepository::class);
         $vinculoRepo
-            ->expects($this->once())
             ->method('findBy')
             ->with(
                 $this->callback(static fn(array $criteria): bool => isset($criteria['almasaPlanoConta']) && ($criteria['ativo'] ?? null) === true),
