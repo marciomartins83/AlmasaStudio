@@ -23,22 +23,22 @@ class AlmasaPlanoContasType extends AbstractType
     private function createSaldoTransformer(): DataTransformerInterface
     {
         return new class implements DataTransformerInterface {
-            public function transform(?string $value): string
+            public function transform(mixed $value): mixed
             {
                 if ($value === null || $value === '') {
                     return '0,00';
                 }
 
-                return number_format($this->normalizeToFloat($value), 2, ',', '');
+                return number_format($this->normalizeToFloat((string) $value), 2, ',', '');
             }
 
-            public function reverseTransform(?string $value): string
+            public function reverseTransform(mixed $value): mixed
             {
-                if ($value === null || trim($value) === '') {
+                if ($value === null || trim((string) $value) === '') {
                     return '0.00';
                 }
 
-                return sprintf('%.2F', $this->normalizeToFloat($value));
+                return sprintf('%.2F', $this->normalizeToFloat((string) $value));
             }
 
             private function normalizeToFloat(string $value): float
