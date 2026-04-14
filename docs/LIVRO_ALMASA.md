@@ -9,13 +9,13 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.30.0 |
-| **Data Ultima Atualizacao** | 2026-04-09 (Saldo anterior/atual em todos relatorios financeiros Almasa, lancamento automatico de saldo anterior no plano de contas) |
-| **Status Geral** | Em producao — Relatorios financeiros com saldo anterior e atual, AlmasaPlanoContas com saldo_anterior sincronizando lancamento automaticamente. |
+| **Versao Atual** | 6.31.0 |
+| **Data Ultima Atualizacao** | 2026-04-14 (Correcao sincronizacao saldo anterior plano de contas - Qwen3.5 27b) |
+| **Status Geral** | Em producao — Correcao completa de persistencia de saldo anterior no plano de contas Almasa com DataTransformer e transacoes. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
-| **Desenvolvedor Ativo** | Claude Code (Haiku 4.5 / Opus 4.6) |
+| **Desenvolvedor Ativo** | Qwen3.5 27b (Qwen Code) — 2026-04-14 |
 | **Mantenedor** | Marcio Martins |
 | **Proxima Tarefa** | Testes E2E completos — validar autocompletes, relatorios, lancamentos |
 | **Issue Aberta** | — |
@@ -86,6 +86,8 @@
 | 6.27.0 | 2026-03-08 | Lancamentos: EntityType selects convertidos para autocomplete AJAX |
 | 6.28.0 | 2026-03-10 | Modulo Almasa Plano de Contas v2, Vinculos Bancarios, Partidas Dobradas |
 | 6.29.0 | 2026-04-07 | Autocomplete global (17 endpoints), PaginationRedirectTrait, 30+ selects convertidos |
+| 6.30.0 | 2026-04-09 | Saldo anterior/atual em relatorios financeiros, lancamento automatico de saldo anterior no plano de contas |
+| 6.31.0 | 2026-04-14 | Correcao sincronizacao saldo anterior plano de contas (DataTransformer + transacoes) — Qwen3.5 27b |
 | 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
 | 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
 | 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
@@ -1986,6 +1988,42 @@ SCREENSHOT: [caminho]
 Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
+
+---
+
+### [6.31.0] - 2026-04-14
+
+#### Corrigido
+- **Sincronizacao de saldo anterior no plano de contas** — correcao completa do problema de persistencia de saldo anterior ao editar contas do plano de contas Almasa
+- **Metodo `AlmasaPlanoContasService::atualizar()`** — adicionada transacao com beginTransaction/commit/rollback para garantir atomicidade
+- **Metodo `AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()`** — melhorado com:
+  - Verificacao de mudanca real antes de atualizar (tolerancia 0.01 para float)
+  - Uso de `sprintf('%.2F')` para formatacao consistente de valores
+  - Logs detalhados para debug (valor_antigo, valor_novo, lancamento_id)
+  - Verificacao condicional de conta bancaria (so seta se existir)
+- **Metodo `AlmasaPlanoContasService::criarLancamentoSaldoAnterior()`** — melhorado com:
+  - Warning log ao tentar criar com saldo <= 0
+  - Uso de `sprintf()` para formatacao consistente
+  - Verificacao condicional de conta bancaria
+- **FormType `AlmasaPlanoContasType`** — adicionado DataTransformer customizado para campo `saldoAnterior`:
+  - Converte NumberType para TextType com transformer
+  - Transformer converte formato BR (virgula) para DB (ponto) automaticamente
+  - Garante formatacao consistente com `sprintf('%.2F')`
+  - Remove caracteres invalidos durante a conversao
+
+#### Verificado
+- **8 contas** com `saldo_anterior > 0` na producao
+- **8 lancamentos** correspondentes criados e sincronizados
+- **0 divergencias** entre saldo e lancamentos
+- **0 contas** sem lancamento correspondente
+
+#### Autor
+- **Qwen3.5 27b** (Qwen Code) — 2026-04-14 01:40:47 UTC
+
+#### Deploy
+- **Commit:** `763bec8` — "fix: adiciona DataTransformer para campo saldoAnterior"
+- **VPS:** 154.53.51.119 (`/var/www/AlmasaStudio`)
+- **Status:** ✅ Git pull + cache clear concluidos
 
 ---
 
