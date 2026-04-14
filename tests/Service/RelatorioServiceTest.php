@@ -6,6 +6,7 @@ namespace App\Tests\Service;
 
 use App\Entity\Lancamentos;
 use App\Entity\LancamentosFinanceiros;
+use App\Entity\ContasBancarias;
 use App\Entity\PlanoContas;
 use App\Repository\LancamentosRepository;
 use App\Repository\LancamentosFinanceirosRepository;
@@ -411,6 +412,78 @@ class RelatorioServiceTest extends TestCase
         $this->assertIsArray($resultado);
     }
 
+    public function testGetMovimentosContaBancariaUsaDataPagamentoDoCrudQuandoDisponivel(): void
+    {
+        $queryLf = $this->createMock(\Doctrine\ORM\Query::class);
+        $queryLf->expects($this->once())->method('getResult')->willReturn([]);
+
+        $queryCrud = $this->createMock(\Doctrine\ORM\Query::class);
+
+        $contaBancaria = $this->createMock(ContasBancarias::class);
+        $contaBancaria->expects($this->any())->method('getId')->willReturn(803);
+
+        $lancamento = (new Lancamentos())
+            ->setContaBancaria($contaBancaria)
+            ->setTipo(Lancamentos::TIPO_RECEBER)
+            ->setStatus(Lancamentos::STATUS_PAGO)
+            ->setValor('120.00')
+            ->setValorPago('120.00')
+            ->setHistorico('Taxa de Administracao')
+            ->setNumeroDocumento('123')
+            ->setDataVencimento(new \DateTime('2026-03-27'))
+            ->setDataPagamento(new \DateTime('2026-04-07'));
+
+        $queryCrud->expects($this->once())->method('getResult')->willReturn([$lancamento]);
+
+        $queryTransferencia = $this->createMock(\Doctrine\ORM\Query::class);
+        $queryTransferencia->expects($this->once())->method('getResult')->willReturn([]);
+
+        $qbLf = $this->createMock(\Doctrine\ORM\QueryBuilder::class);
+        $qbCrud = $this->createMock(\Doctrine\ORM\QueryBuilder::class);
+        $qbTransferencia = $this->createMock(\Doctrine\ORM\QueryBuilder::class);
+
+        foreach ([$qbLf, $qbCrud, $qbTransferencia] as $qb) {
+            $qb->expects($this->any())->method('select')->willReturnSelf();
+            $qb->expects($this->any())->method('from')->willReturnSelf();
+            $qb->expects($this->any())->method('leftJoin')->willReturnSelf();
+            $qb->expects($this->any())->method('where')->willReturnSelf();
+            $qb->expects($this->any())->method('andWhere')->willReturnSelf();
+            $qb->expects($this->any())->method('setParameter')->willReturnSelf();
+            $qb->expects($this->any())->method('orderBy')->willReturnSelf();
+        }
+
+        $qbLf->expects($this->any())->method('getQuery')->willReturn($queryLf);
+        $qbCrud->expects($this->any())->method('getQuery')->willReturn($queryCrud);
+        $qbTransferencia->expects($this->any())->method('getQuery')->willReturn($queryTransferencia);
+
+        $this->em
+            ->expects($this->exactly(3))
+            ->method('createQueryBuilder')
+            ->willReturnOnConsecutiveCalls($qbLf, $qbCrud, $qbTransferencia);
+
+        $vinculoRepo = new class {
+            public function findBy(array $criteria, ?array $orderBy = null, $limit = null): array
+            {
+                return [];
+            }
+        };
+
+        $this->em
+            ->expects($this->once())
+            ->method('getRepository')
+            ->with(\App\Entity\AlmasaVinculoBancario::class)
+            ->willReturn($vinculoRepo);
+
+        $resultado = $this->service->getMovimentosContaBancaria([
+            'data_inicio' => new \DateTime('2026-04-01'),
+            'data_fim' => new \DateTime('2026-04-30'),
+        ]);
+
+        $this->assertCount(1, $resultado);
+        $this->assertEquals(new \DateTime('2026-04-07'), $resultado[0]['dataPagamento']);
+        $this->assertTrue($resultado[0]['receber']);
+    }
+
     public function testGetSaldoInicialConta(): void
     {
         $connection = $this->createMock(Connection::class);
@@ -418,6 +491,7 @@ class RelatorioServiceTest extends TestCase
         $result2 = $this->createMock(Result::class);
         $result3 = $this->createMock(Result::class);
         $result4 = $this->createMock(Result::class);
+        $sqlExecutado = [];
 
         $this->em
             ->expects($this->once())
@@ -427,7 +501,16 @@ class RelatorioServiceTest extends TestCase
         $connection
             ->expects($this->exactly(4))
             ->method('executeQuery')
-            ->willReturnOnConsecutiveCalls($result1, $result2, $result3, $result4);
+            ->willReturnCallback(function (string $sql) use (&$sqlExecutado, $result1, $result2, $result3, $result4) {
+                $sqlExecutado[] = $sql;
+
+                return match (count($sqlExecutado)) {
+                    1 => $result1,
+                    2 => $result2,
+                    3 => $result3,
+                    default => $result4,
+                };
+            });
 
         $result1->expects($this->once())->method('fetchOne')->willReturn('4000');
         $result2->expects($this->once())->method('fetchOne')->willReturn('1500');
@@ -437,6 +520,9 @@ class RelatorioServiceTest extends TestCase
         $resultado = $this->service->getSaldoInicialConta(1, new \DateTime());
 
         $this->assertEquals(5000.00, $resultado);
+        $this->assertStringContainsString('COALESCE(data_pagamento, data_vencimento) < :data', $sqlExecutado[1]);
+        $this->assertStringContainsString('COALESCE(data_pagamento, data_vencimento) < :data', $sqlExecutado[2]);
+        $this->assertStringContainsString('COALESCE(l.data_pagamento, l.data_vencimento) < :data', $sqlExecutado[3]);
     }
 
     public function testGetResumoContas(): void

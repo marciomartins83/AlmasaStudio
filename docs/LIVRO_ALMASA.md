@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.32.1 |
-| **Data Ultima Atualizacao** | 2026-04-14 (Auditoria financeira: plano de contas, lancamentos e relatorios) |
-| **Status Geral** | Em producao — saldo anterior do plano de contas re-sincroniza historico/vinculo mesmo sem mudar valor, formularios de lancamentos preservam conta bancaria/autocompletes e o comparativo sintetico de relatorios voltou a agrupar despesas e receitas corretamente. |
+| **Versao Atual** | 6.32.2 |
+| **Data Ultima Atualizacao** | 2026-04-14 (Correcao extrato de contas bancarias por data de pagamento) |
+| **Status Geral** | Em producao — saldo anterior do plano de contas re-sincroniza historico/vinculo mesmo sem mudar valor, formularios de lancamentos preservam conta bancaria/autocompletes, o comparativo sintetico de relatorios usa dados flat e o extrato de contas bancarias do CRUD voltou a respeitar a data efetiva de pagamento. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
@@ -95,6 +95,7 @@
 | 6.31.1 | 2026-04-14 | Follow-up de code review: desvinculo bancario correto e normalizacao monetaria BR robusta |
 | 6.32.0 | 2026-04-14 | Fix PHP 8.4: DataTransformer de saldo anterior compativel com assinatura mixed/mixed |
 | 6.32.1 | 2026-04-14 | Auditoria financeira: saldo anterior sincroniza metadata, lancamentos preservam/limpam vinculos corretamente e comparativo sintetico de relatorios usa dados flat |
+| 6.32.2 | 2026-04-14 | Relatorio de contas bancarias do CRUD usa data de pagamento (fallback vencimento) para filtros, saldo inicial e exibicao |
 
 ### Migracoes Criticas (Referencia Historica)
 
@@ -751,14 +752,20 @@ O sistema possui DUAS tabelas financeiras distintas. Confundir as duas causa ret
 | `getTotalDespesas()` | SQL nativo LF | array totais sem limite |
 | `getReceitas()` | LancamentosFinanceiros tipo IN(receita,aluguel) | array normalizado (max 500) |
 | `getTotalReceitas()` | SQL nativo LF | array totais sem limite |
-| `getMovimentosContaBancaria()` | LancamentosFinanceiros conta IS NOT NULL | array normalizado |
-| `getSaldoInicialConta()` | SQL nativo LF | float |
+| `getMovimentosContaBancaria()` | LF + Lancamentos CRUD pagos | array normalizado |
+| `getSaldoInicialConta()` | SQL nativo LF + CRUD | float |
 | `getResumoContas()` | Usa getMovimentosContaBancaria() | array agrupado por conta |
 
 #### Preview AJAX — limite de 500 registros
 
 `getDespesas()`, `getReceitas()` e `getInadimplentes()` usam `setMaxResults(500)`.
 Totais (`getTotalDespesas()`, `getTotalReceitas()`) usam SQL nativo sem limite para garantir exatidao.
+
+#### Relatorio de Contas Bancarias — Data do Movimento (v6.32.2)
+
+- `lancamentos_financeiros` continuam usando `data_vencimento`, pois o legado nao possui `data_pagamento` na entity.
+- `lancamentos` (CRUD novo) usam `COALESCE(data_pagamento, data_vencimento)` nos filtros do preview/PDF, na ordenacao dos movimentos e no calculo de `getSaldoInicialConta()`.
+- Motivo: extrato bancario deve refletir a data em que o dinheiro entrou/saiu da conta. Usar apenas `data_vencimento` escondia pagamentos liquidados no mes corrente mas vencidos no mes anterior.
 
 #### Autocomplete nos Filtros de Relatorios (v6.29.0)
 
@@ -1995,6 +2002,10 @@ SCREENSHOT: [caminho]
 
 ## Cap 15 — Historico de Mudancas Recentes
 
+### 6.32.2 — Extrato de contas bancarias
+
+- **6.32.2 (2026-04-14)** — `RelatorioService::getMovimentosContaBancaria()` e `getSaldoInicialConta()` passaram a usar `data_pagamento` (com fallback para `data_vencimento`) nos lancamentos do CRUD. Isso corrige o extrato `/relatorios/contas-bancarias`, que estava omitindo pagamentos liquidados em abril mas com vencimento em marco; os movimentos tambem voltaram a ser ordenados cronologicamente por conta.
+
 ### 6.32.1 — Auditoria financeira
 
 - **6.32.1 (2026-04-14)** — `AlmasaPlanoContasService` passou a re-sincronizar o lancamento automatico de saldo anterior tambem quando so mudam historico ou conta bancaria, e a exclusao da conta agora remove apenas os lancamentos sinteticos de saldo anterior antes de bloquear referencias reais.
@@ -2045,6 +2056,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-04-14 (v6.32.1 — auditoria financeira)
+**Ultima atualizacao:** 2026-04-14 (v6.32.2 — extrato de contas bancarias)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Code + Qwen3.5 27b (Qwen Code)

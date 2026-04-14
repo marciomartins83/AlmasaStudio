@@ -908,15 +908,16 @@ class RelatorioService
             $qb2->andWhere('l.contaBancaria = :idConta2')
                 ->setParameter('idConta2', $filtros['id_conta_bancaria']);
         }
+        $campoDataCrudDql = $this->getCampoDataMovimentoContaBancariaCrudDql('l');
         if (!empty($filtros['data_inicio'])) {
-            $qb2->andWhere('l.dataVencimento >= :dataInicio2')
+            $qb2->andWhere($campoDataCrudDql . ' >= :dataInicio2')
                 ->setParameter('dataInicio2', $filtros['data_inicio']);
         }
         if (!empty($filtros['data_fim'])) {
-            $qb2->andWhere('l.dataVencimento <= :dataFim2')
+            $qb2->andWhere($campoDataCrudDql . ' <= :dataFim2')
                 ->setParameter('dataFim2', $filtros['data_fim']);
         }
-        $qb2->orderBy('l.dataVencimento', 'ASC');
+        $qb2->orderBy($campoDataCrudDql, 'ASC');
 
         $movimentosCrud = array_map(function(Lancamentos $l) {
             // Transferência (débito+crédito): contaBancaria é a do débito = SAÍDA
@@ -924,7 +925,7 @@ class RelatorioService
             $isReceber = $isTransferencia ? false : ($l->getTipo() === 'receber');
 
             return [
-                'dataPagamento'   => $l->getDataVencimento(),
+                'dataPagamento'   => $this->getDataMovimentoContaBancariaCrud($l),
                 'receber'         => $isReceber,
                 'historico'       => $l->getHistorico(),
                 'numeroDocumento' => $l->getNumeroDocumento(),
@@ -945,11 +946,12 @@ class RelatorioService
             ->andWhere('l.status IN (:st3)')
             ->setParameter('st3', ['pago', 'pago_parcial']);
         if (!empty($filtros['data_inicio'])) {
-            $qb3->andWhere('l.dataVencimento >= :di3')->setParameter('di3', $filtros['data_inicio']);
+            $qb3->andWhere($campoDataCrudDql . ' >= :di3')->setParameter('di3', $filtros['data_inicio']);
         }
         if (!empty($filtros['data_fim'])) {
-            $qb3->andWhere('l.dataVencimento <= :df3')->setParameter('df3', $filtros['data_fim']);
+            $qb3->andWhere($campoDataCrudDql . ' <= :df3')->setParameter('df3', $filtros['data_fim']);
         }
+        $qb3->orderBy($campoDataCrudDql, 'ASC');
 
         $vinculoRepo = $this->em->getRepository(\App\Entity\AlmasaVinculoBancario::class);
         foreach ($qb3->getQuery()->getResult() as $l) {
@@ -971,7 +973,7 @@ class RelatorioService
 
             $valor = (float) ($l->getValorPago() ?: $l->getValor());
             $movimentosCrud[] = [
-                'dataPagamento'   => $l->getDataVencimento(),
+                'dataPagamento'   => $this->getDataMovimentoContaBancariaCrud($l),
                 'receber'         => true, // entrada na conta crédito
                 'historico'       => $l->getHistorico() . ' (transferência)',
                 'numeroDocumento' => $l->getNumeroDocumento(),
@@ -984,6 +986,16 @@ class RelatorioService
         }
 
         return array_merge($movimentos, $movimentosCrud);
+    }
+
+    private function getDataMovimentoContaBancariaCrud(Lancamentos $lancamento): \DateTimeInterface
+    {
+        return $lancamento->getDataPagamento() ?? $lancamento->getDataVencimento();
+    }
+
+    private function getCampoDataMovimentoContaBancariaCrudDql(string $alias): string
+    {
+        return sprintf('COALESCE(%s.dataPagamento, %s.dataVencimento)', $alias, $alias);
     }
 
     /**
@@ -1017,7 +1029,7 @@ class RelatorioService
                 FROM lancamentos
                 WHERE id_conta_bancaria = :contaId
                   AND status IN ('pago', 'pago_parcial')
-                  AND data_vencimento < :data
+                  AND COALESCE(data_pagamento, data_vencimento) < :data
                   AND (id_plano_conta_debito IS NULL OR id_plano_conta_credito IS NULL)";
         $saldo2 = (float) $conn->executeQuery($sql2, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
 
@@ -1028,7 +1040,7 @@ class RelatorioService
                   AND id_plano_conta_debito IS NOT NULL
                   AND id_plano_conta_credito IS NOT NULL
                   AND status IN ('pago', 'pago_parcial')
-                  AND data_vencimento < :data";
+                  AND COALESCE(data_pagamento, data_vencimento) < :data";
         $saldoTransfSaida = (float) $conn->executeQuery($sql3, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
 
         // 4. Transferências — entrada (conta vinculada ao plano crédito)
@@ -1039,7 +1051,7 @@ class RelatorioService
                   AND l.id_plano_conta_debito IS NOT NULL
                   AND l.id_plano_conta_credito IS NOT NULL
                   AND l.status IN ('pago', 'pago_parcial')
-                  AND l.data_vencimento < :data
+                  AND COALESCE(l.data_pagamento, l.data_vencimento) < :data
                   AND (l.id_conta_bancaria IS NULL OR l.id_conta_bancaria != :contaId)";
         $saldoTransfEntrada = (float) $conn->executeQuery($sql4, ['contaId' => $contaId, 'data' => $dataStr])->fetchOne();
 
@@ -1084,6 +1096,10 @@ class RelatorioService
         }
 
         foreach ($contas as &$conta) {
+            usort(
+                $conta['movimentos'],
+                static fn(array $a, array $b): int => $a['dataPagamento'] <=> $b['dataPagamento']
+            );
             $conta['saldo_final'] = $conta['saldo_inicial'] + $conta['entradas'] - $conta['saidas'];
         }
 
