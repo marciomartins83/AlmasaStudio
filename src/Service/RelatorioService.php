@@ -15,6 +15,7 @@ use App\Repository\LancamentosRepository;
 use App\Repository\LancamentosFinanceirosRepository;
 use App\Repository\PlanoContasRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -908,16 +909,7 @@ class RelatorioService
             $qb2->andWhere('l.contaBancaria = :idConta2')
                 ->setParameter('idConta2', $filtros['id_conta_bancaria']);
         }
-        $campoDataCrudDql = $this->getCampoDataMovimentoContaBancariaCrudDql('l');
-        if (!empty($filtros['data_inicio'])) {
-            $qb2->andWhere($campoDataCrudDql . ' >= :dataInicio2')
-                ->setParameter('dataInicio2', $filtros['data_inicio']);
-        }
-        if (!empty($filtros['data_fim'])) {
-            $qb2->andWhere($campoDataCrudDql . ' <= :dataFim2')
-                ->setParameter('dataFim2', $filtros['data_fim']);
-        }
-        $qb2->orderBy($campoDataCrudDql, 'ASC');
+        $this->aplicarFiltroDataMovimentoContaBancariaCrud($qb2, 'l', 'dataInicio2', 'dataFim2', $filtros);
 
         $movimentosCrud = array_map(function(Lancamentos $l) {
             // Transferência (débito+crédito): contaBancaria é a do débito = SAÍDA
@@ -945,13 +937,7 @@ class RelatorioService
             ->andWhere('l.planoContaCredito IS NOT NULL')
             ->andWhere('l.status IN (:st3)')
             ->setParameter('st3', ['pago', 'pago_parcial']);
-        if (!empty($filtros['data_inicio'])) {
-            $qb3->andWhere($campoDataCrudDql . ' >= :di3')->setParameter('di3', $filtros['data_inicio']);
-        }
-        if (!empty($filtros['data_fim'])) {
-            $qb3->andWhere($campoDataCrudDql . ' <= :df3')->setParameter('df3', $filtros['data_fim']);
-        }
-        $qb3->orderBy($campoDataCrudDql, 'ASC');
+        $this->aplicarFiltroDataMovimentoContaBancariaCrud($qb3, 'l', 'di3', 'df3', $filtros);
 
         $vinculoRepo = $this->em->getRepository(\App\Entity\AlmasaVinculoBancario::class);
         foreach ($qb3->getQuery()->getResult() as $l) {
@@ -993,9 +979,29 @@ class RelatorioService
         return $lancamento->getDataPagamento() ?? $lancamento->getDataVencimento();
     }
 
-    private function getCampoDataMovimentoContaBancariaCrudDql(string $alias): string
+    private function aplicarFiltroDataMovimentoContaBancariaCrud(
+        QueryBuilder $qb,
+        string $alias,
+        string $paramInicio,
+        string $paramFim,
+        array $filtros
+    ): void
     {
-        return sprintf('COALESCE(%s.dataPagamento, %s.dataVencimento)', $alias, $alias);
+        if (!empty($filtros['data_inicio'])) {
+            $qb->andWhere(sprintf(
+                '((%1$s.dataPagamento IS NOT NULL AND %1$s.dataPagamento >= :%2$s) OR (%1$s.dataPagamento IS NULL AND %1$s.dataVencimento >= :%2$s))',
+                $alias,
+                $paramInicio
+            ))->setParameter($paramInicio, $filtros['data_inicio']);
+        }
+
+        if (!empty($filtros['data_fim'])) {
+            $qb->andWhere(sprintf(
+                '((%1$s.dataPagamento IS NOT NULL AND %1$s.dataPagamento <= :%2$s) OR (%1$s.dataPagamento IS NULL AND %1$s.dataVencimento <= :%2$s))',
+                $alias,
+                $paramFim
+            ))->setParameter($paramFim, $filtros['data_fim']);
+        }
     }
 
     /**
