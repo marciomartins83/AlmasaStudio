@@ -5,6 +5,8 @@ namespace App\Tests\Service;
 use App\Entity\Lancamentos;
 use App\Entity\PlanoContas;
 use App\Entity\ContasBancarias;
+use App\Repository\AlmasaPlanoContasRepository;
+use App\Repository\AlmasaVinculoBancarioRepository;
 use App\Repository\LancamentosRepository;
 use App\Repository\PlanoContasRepository;
 use App\Repository\PessoaRepository;
@@ -22,10 +24,12 @@ class LancamentosServiceTest extends TestCase
     private EntityManagerInterface $em;
     private LancamentosRepository $lancamentoRepo;
     private PlanoContasRepository $planoContaRepo;
+    private AlmasaPlanoContasRepository $almasaPlanoContaRepo;
     private PessoaRepository $pessoaRepo;
     private ImoveisContratosRepository $contratoRepo;
     private ImoveisRepository $imovelRepo;
     private ContasBancariasRepository $contaBancariaRepo;
+    private AlmasaVinculoBancarioRepository $vinculoBancarioRepo;
     private Security $security;
 
     protected function setUp(): void
@@ -33,22 +37,43 @@ class LancamentosServiceTest extends TestCase
         $this->em = $this->createMock(EntityManagerInterface::class);
         $this->lancamentoRepo = $this->createMock(LancamentosRepository::class);
         $this->planoContaRepo = $this->createMock(PlanoContasRepository::class);
+        $this->almasaPlanoContaRepo = $this->createMock(AlmasaPlanoContasRepository::class);
         $this->pessoaRepo = $this->createMock(PessoaRepository::class);
         $this->contratoRepo = $this->createMock(ImoveisContratosRepository::class);
         $this->imovelRepo = $this->createMock(ImoveisRepository::class);
         $this->contaBancariaRepo = $this->createMock(ContasBancariasRepository::class);
+        $this->vinculoBancarioRepo = $this->createMock(AlmasaVinculoBancarioRepository::class);
         $this->security = $this->createMock(Security::class);
 
         $this->service = new LancamentosService(
             $this->em,
             $this->lancamentoRepo,
             $this->planoContaRepo,
+            $this->almasaPlanoContaRepo,
             $this->pessoaRepo,
             $this->contratoRepo,
             $this->imovelRepo,
             $this->contaBancariaRepo,
+            $this->vinculoBancarioRepo,
             $this->security
         );
+    }
+
+    public function testPreencherLancamentoLimpaPlanoLegadoEContaBancariaQuandoIdsSaoRemovidos(): void
+    {
+        $lancamento = (new Lancamentos())
+            ->setPlanoConta(new PlanoContas())
+            ->setContaBancaria(new ContasBancarias());
+
+        $reflectionMethod = new \ReflectionMethod($this->service, 'preencherLancamento');
+        $reflectionMethod->setAccessible(true);
+        $reflectionMethod->invoke($this->service, $lancamento, [
+            'id_plano_conta' => null,
+            'id_conta_bancaria' => null,
+        ]);
+
+        $this->assertNull($lancamento->getPlanoConta());
+        $this->assertNull($lancamento->getContaBancaria());
     }
 
     /**

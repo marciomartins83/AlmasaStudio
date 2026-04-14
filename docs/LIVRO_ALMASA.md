@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.32.0 |
-| **Data Ultima Atualizacao** | 2026-04-14 (Fix PHP 8.4 DataTransformer) |
-| **Status Geral** | Em producao — saldo anterior do plano de contas sincroniza lancamento, vinculo bancario e formatacao monetaria BR com consistencia; historico recente consolidado no Cap 15. |
+| **Versao Atual** | 6.32.1 |
+| **Data Ultima Atualizacao** | 2026-04-14 (Auditoria financeira: plano de contas, lancamentos e relatorios) |
+| **Status Geral** | Em producao — saldo anterior do plano de contas re-sincroniza historico/vinculo mesmo sem mudar valor, formularios de lancamentos preservam conta bancaria/autocompletes e o comparativo sintetico de relatorios voltou a agrupar despesas e receitas corretamente. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
@@ -93,6 +93,8 @@
 | 6.30.0 | 2026-04-09 | Saldo anterior/atual em relatorios financeiros, lancamento automatico de saldo anterior no plano de contas |
 | 6.31.0 | 2026-04-14 | Correcao sincronizacao saldo anterior plano de contas (DataTransformer + transacoes) — Qwen3.5 27b |
 | 6.31.1 | 2026-04-14 | Follow-up de code review: desvinculo bancario correto e normalizacao monetaria BR robusta |
+| 6.32.0 | 2026-04-14 | Fix PHP 8.4: DataTransformer de saldo anterior compativel com assinatura mixed/mixed |
+| 6.32.1 | 2026-04-14 | Auditoria financeira: saldo anterior sincroniza metadata, lancamentos preservam/limpam vinculos corretamente e comparativo sintetico de relatorios usa dados flat |
 
 ### Migracoes Criticas (Referencia Historica)
 
@@ -604,6 +606,7 @@ A busca avancada (`searchPessoaAdvanced`) retorna campo `cod` legado alem dos da
 - Usa `generic_autocomplete.js` para contrato, imovel e planoConta (legado)
 - Autocomplete customizado para pessoa e plano de contas Almasa (debito/credito)
 - Endpoints: `/autocomplete/contratos`, `/autocomplete/imoveis`, `/autocomplete/plano-contas`
+- `LancamentosController` recompõe os preloads desses HiddenType em `new` e `edit`, inclusive apos erro de validacao, para nao perder conta bancaria, contrato, imovel, pessoas ou plano de contas selecionados
 
 **Regras de Negocio:**
 - Numero sequencial automatico por tipo
@@ -613,6 +616,7 @@ A busca avancada (`searchPessoaAdvanced`) retorna campo `cod` legado alem dos da
 - Valor liquido = valor - desconto + juros + multa - INSS - ISS
 - Contas a pagar nao exigem banco na criacao — so na baixa
 - Baixa de lancamento: opcoes Dinheiro, Cheque, Debito em Conta, Transferencia (removidos Credito e Boleto em v6.29.0)
+- Limpar `planoContaId` legado ou `contaBancariaId` no formulario remove o vinculo persistido na entity; edicao nao reaproveita referencia antiga por acidente
 
 **Coluna "Historico" e Flag Contas Proprias (v6.29.0):**
 - Index de lancamentos exibe coluna "Historico"
@@ -775,6 +779,7 @@ Todos os relatorios financeiros Almasa (despesas, receitas, despesas x receitas)
   - Receitas: `saldo_anterior + total_receitas`
   - Despesas x Receitas: `saldo_anterior + saldo_periodo`
 - Implementado em preview AJAX e PDF (DomPDF) — chave `saldo_anterior is defined` no Twig.
+- `RelatorioService::getDespesasReceitas()` sempre desabilita o pre-agrupamento das queries e o sintetico agrupa internamente os arrays normalizados de despesas e receitas por `plano_conta`, `mes` ou `imovel`, evitando perder despesas no comparativo.
 
 ### 9.2 Prestacao de Contas aos Proprietarios
 
@@ -850,8 +855,10 @@ Todos com status Completo:
   - Saldo zerou e existia lancamento → remove
   - Saldo > 0 e nao existia → cria
   - Saldo > 0 e ja existia → atualiza valor, historico e conta bancaria vinculada
+- Mesmo quando o valor nao muda, alteracoes de codigo, descricao ou vinculo bancario continuam propagadas para o lancamento automatico de saldo anterior
 - Se o vinculo bancario padrao for removido, o lancamento de saldo anterior limpa `contaBancaria` para nao manter referencia orfa
 - Lancamento existente e localizado por `planoContaCredito = conta AND historico LIKE 'Saldo anterior%'`
+- Ao excluir uma conta, lancamentos automaticos de saldo anterior (`historico LIKE 'Saldo anterior%'`, vencimento `1900-01-01`) sao removidos junto; outros lancamentos continuam bloqueando a exclusao
 - `AlmasaPlanoContasType` usa DataTransformer (assinatura `mixed`/`mixed` para compatibilidade PHP 8.4) para exibir `saldoAnterior` sempre com 2 casas no formato BR e aceitar entrada com milhar (`1.234,56`) sem corromper o valor salvo
 - `AlmasaPlanoContasService::atualizar()` abre transacao; os `flush()` internos do sincronismo sao intencionais e permanecem na mesma transacao Doctrine
 
@@ -1988,6 +1995,12 @@ SCREENSHOT: [caminho]
 
 ## Cap 15 — Historico de Mudancas Recentes
 
+### 6.32.1 — Auditoria financeira
+
+- **6.32.1 (2026-04-14)** — `AlmasaPlanoContasService` passou a re-sincronizar o lancamento automatico de saldo anterior tambem quando so mudam historico ou conta bancaria, e a exclusao da conta agora remove apenas os lancamentos sinteticos de saldo anterior antes de bloquear referencias reais.
+- **6.32.1 (2026-04-14)** — `LancamentosService::preencherLancamento()` limpa `planoConta` legado e `contaBancaria` quando o usuario remove os campos no form; `LancamentosController` recompõe preloads dos autocompletes em `new`/`edit`, evitando perda de selecao apos erro de validacao e impedindo remocao involuntaria de conta bancaria em edicao.
+- **6.32.1 (2026-04-14)** — `RelatorioService::getDespesasReceitas()` passou a trabalhar sempre com dados flat e `gerarComparativoSintetico()` voltou a somar despesas/receitas normalizadas corretamente por plano, mes e imovel.
+
 ### 6.32.0 — Fix PHP 8.4 compatibilidade
 
 - **6.32.0 (2026-04-14)** — `AlmasaPlanoContasType::createSaldoTransformer()` usava tipo `?string`/`string` nos metodos `transform`/`reverseTransform` da classe anonima que implementa `DataTransformerInterface`. No PHP 8.4 (VPS), isso causava Fatal Error por incompatibilidade com a assinatura `mixed`/`mixed` da interface. Corrigido para usar `mixed` com cast `(string)` interno. O erro impedia abrir qualquer pagina de edicao do plano de contas (HTTP 500).
@@ -2032,6 +2045,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-04-14 (v6.32.0 — fix PHP 8.4 DataTransformer)
+**Ultima atualizacao:** 2026-04-14 (v6.32.1 — auditoria financeira)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Code + Qwen3.5 27b (Qwen Code)

@@ -471,6 +471,12 @@
 window.LANCAMENTOS_CONTA_BANCARIA_URL = '{{ path("app_lancamentos_conta_bancaria_autocomplete") }}';
 window.LANCAMENTOS_VINCULOS_URL = '{{ path("app_lancamentos_contas_bancarias_por_plano", {"planoId": "__PLANO_ID__"}) }}';
 window.LANCAMENTOS_CRIAR_VINCULO_URL = '{{ path("app_lancamentos_criar_vinculo") }}';
+window.LANCAMENTOS_CONTA_BANCARIA = {
+    geral: {
+        preloadId: '{{ contaBancariaPreload ? contaBancariaPreload.id : '' }}',
+        preloadLabel: '{{ contaBancariaPreload ? contaBancariaPreload.label|e('js') : '' }}'
+    }
+};
 window.LANCAMENTOS_PLANO_CONTA = {
     url: '{{ path("app_almasa_plano_contas_api_busca") }}',
     debito: {

@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\DTO\SearchFilterDTO;
 use App\DTO\SortOptionDTO;
+use App\Entity\ContasBancarias;
 use App\Entity\Lancamentos;
 use App\Form\LancamentosType;
 use App\Repository\AlmasaVinculoBancarioRepository;
@@ -135,64 +136,10 @@ class LancamentosController extends AbstractController
             }
         }
 
-        // Preservar preloads dos campos unmapped (para não perder dados após erro)
-        $credorPreload = null;
-        $pagadorPreload = null;
-        $planoDebitoPreload = null;
-        $planoCreditoPreload = null;
-        $planoContaPreload = null;
-        $contratoPreload = null;
-        $imovelPreload = null;
-
-        if ($form->isSubmitted()) {
-            $credorId = $form->get('pessoaCredorId')->getData();
-            $pagadorId = $form->get('pessoaPagadorId')->getData();
-            $debId = $form->get('planoContaDebito')->getData();
-            $credId = $form->get('planoContaCredito')->getData();
-            $planoContaIdVal = $form->get('planoContaId')->getData();
-            $contratoIdVal = $form->get('contratoId')->getData();
-            $imovelIdVal = $form->get('imovelId')->getData();
-
-            if ($credorId) {
-                $p = $this->lancamentosService->buscarPessoa((int)$credorId);
-                if ($p) $credorPreload = ['id' => $p->getIdpessoa(), 'nome' => $p->getNome()];
-            }
-            if ($pagadorId) {
-                $p = $this->lancamentosService->buscarPessoa((int)$pagadorId);
-                if ($p) $pagadorPreload = ['id' => $p->getIdpessoa(), 'nome' => $p->getNome()];
-            }
-            if ($debId) {
-                $pc = $this->lancamentosService->buscarPlanoConta((int)$debId);
-                if ($pc) $planoDebitoPreload = ['id' => $pc->getId(), 'codigo' => $pc->getCodigo(), 'descricao' => $pc->getDescricao()];
-            }
-            if ($credId) {
-                $pc = $this->lancamentosService->buscarPlanoConta((int)$credId);
-                if ($pc) $planoCreditoPreload = ['id' => $pc->getId(), 'codigo' => $pc->getCodigo(), 'descricao' => $pc->getDescricao()];
-            }
-            if ($planoContaIdVal) {
-                $pcLeg = $this->lancamentosService->buscarPlanoContaLegado((int)$planoContaIdVal);
-                if ($pcLeg) $planoContaPreload = ['id' => $pcLeg->getId(), 'label' => $pcLeg->getCodigo() . ' - ' . $pcLeg->getDescricao()];
-            }
-            if ($contratoIdVal) {
-                $ctr = $this->lancamentosService->buscarContrato((int)$contratoIdVal);
-                if ($ctr) $contratoPreload = ['id' => $ctr->getId(), 'label' => '#' . $ctr->getId() . ' - ' . ($ctr->getImovel() ? $ctr->getImovel()->getCodigoInterno() : 'S/N') . ' (' . ($ctr->getPessoaLocatario() ? $ctr->getPessoaLocatario()->getNome() : 'S/I') . ')'];
-            }
-            if ($imovelIdVal) {
-                $imv = $this->lancamentosService->buscarImovel((int)$imovelIdVal);
-                if ($imv) $imovelPreload = ['id' => $imv->getId(), 'label' => $imv->getCodigoInterno()];
-            }
-        }
-
         return $this->render('lancamentos/new.html.twig', [
             'form' => $form,
             'lancamento' => $lancamento,
-            'credorPreload' => $credorPreload,
-            'pagadorPreload' => $pagadorPreload,
-            'planoDebitoPreload' => $planoDebitoPreload,
-            'planoCreditoPreload' => $planoCreditoPreload,
-            'planoContaPreload' => $planoContaPreload,
-            'contratoPreload' => $contratoPreload,
-            'imovelPreload' => $imovelPreload,
+            ...$this->montarPreloadsFormulario($form, null),
         ]);
     }
 
@@ -225,24 +172,10 @@ class LancamentosController extends AbstractController
             }
         }
 
-        $credor  = $lancamento->getPessoaCredor();
-        $pagador = $lancamento->getPessoaPagador();
-        $pcDeb   = $lancamento->getPlanoContaDebito();
-        $pcCred  = $lancamento->getPlanoContaCredito();
-        $pcLegado = $lancamento->getPlanoConta();
-        $contrato = $lancamento->getContrato();
-        $imovel   = $lancamento->getImovel();
-
         return $this->render('lancamentos/edit.html.twig', [
             'form' => $form,
             'lancamento' => $lancamento,
-            'credorPreload'  => $credor  ? ['id' => $credor->getIdpessoa(),  'nome' => $credor->getNome()]  : null,
-            'pagadorPreload' => $pagador ? ['id' => $pagador->getIdpessoa(), 'nome' => $pagador->getNome()] : null,
-            'planoDebitoPreload'  => $pcDeb  ? ['id' => $pcDeb->getId(),  'codigo' => $pcDeb->getCodigo(),  'descricao' => $pcDeb->getDescricao()]  : null,
-            'planoCreditoPreload' => $pcCred ? ['id' => $pcCred->getId(), 'codigo' => $pcCred->getCodigo(), 'descricao' => $pcCred->getDescricao()] : null,
-            'planoContaPreload' => $pcLegado ? ['id' => $pcLegado->getId(), 'label' => $pcLegado->getCodigo() . ' - ' . $pcLegado->getDescricao()] : null,
-            'contratoPreload' => $contrato ? ['id' => $contrato->getId(), 'label' => '#' . $contrato->getId() . ' - ' . ($contrato->getImovel() ? $contrato->getImovel()->getCodigoInterno() : 'S/N') . ' (' . ($contrato->getPessoaLocatario() ? $contrato->getPessoaLocatario()->getNome() : 'S/I') . ')'] : null,
-            'imovelPreload' => $imovel ? ['id' => $imovel->getId(), 'label' => $imovel->getCodigoInterno()] : null,
+            ...$this->montarPreloadsFormulario($form, $lancamento),
         ]);
     }
 
@@ -632,5 +565,56 @@ class LancamentosController extends AbstractController
             'forma_pagamento' => $lancamento->getFormaPagamento(),
             'observacoes' => $lancamento->getObservacoes(),
         ];
+    }
+
+    private function montarPreloadsFormulario($form, ?Lancamentos $lancamento): array
+    {
+        if ($form->isSubmitted()) {
+            $credorId = $form->get('pessoaCredorId')->getData();
+            $pagadorId = $form->get('pessoaPagadorId')->getData();
+            $debId = $form->get('planoContaDebito')->getData();
+            $credId = $form->get('planoContaCredito')->getData();
+            $planoContaId = $form->get('planoContaId')->getData();
+            $contratoId = $form->get('contratoId')->getData();
+            $imovelId = $form->get('imovelId')->getData();
+            $contaBancariaId = $form->get('contaBancariaId')->getData();
+
+            $credor = $credorId ? $this->lancamentosService->buscarPessoa((int) $credorId) : null;
+            $pagador = $pagadorId ? $this->lancamentosService->buscarPessoa((int) $pagadorId) : null;
+            $pcDeb = $debId ? $this->lancamentosService->buscarPlanoConta((int) $debId) : null;
+            $pcCred = $credId ? $this->lancamentosService->buscarPlanoConta((int) $credId) : null;
+            $pcLegado = $planoContaId ? $this->lancamentosService->buscarPlanoContaLegado((int) $planoContaId) : null;
+            $contrato = $contratoId ? $this->lancamentosService->buscarContrato((int) $contratoId) : null;
+            $imovel = $imovelId ? $this->lancamentosService->buscarImovel((int) $imovelId) : null;
+            $contaBancaria = $contaBancariaId ? $this->lancamentosService->buscarContaBancaria((int) $contaBancariaId) : null;
+        } else {
+            $credor = $lancamento?->getPessoaCredor();
+            $pagador = $lancamento?->getPessoaPagador();
+            $pcDeb = $lancamento?->getPlanoContaDebito();
+            $pcCred = $lancamento?->getPlanoContaCredito();
+            $pcLegado = $lancamento?->getPlanoConta();
+            $contrato = $lancamento?->getContrato();
+            $imovel = $lancamento?->getImovel();
+            $contaBancaria = $lancamento?->getContaBancaria();
+        }
+
+        return [
+            'credorPreload' => $credor ? ['id' => $credor->getIdpessoa(), 'nome' => $credor->getNome()] : null,
+            'pagadorPreload' => $pagador ? ['id' => $pagador->getIdpessoa(), 'nome' => $pagador->getNome()] : null,
+            'planoDebitoPreload' => $pcDeb ? ['id' => $pcDeb->getId(), 'codigo' => $pcDeb->getCodigo(), 'descricao' => $pcDeb->getDescricao()] : null,
+            'planoCreditoPreload' => $pcCred ? ['id' => $pcCred->getId(), 'codigo' => $pcCred->getCodigo(), 'descricao' => $pcCred->getDescricao()] : null,
+            'planoContaPreload' => $pcLegado ? ['id' => $pcLegado->getId(), 'label' => $pcLegado->getCodigo() . ' - ' . $pcLegado->getDescricao()] : null,
+            'contratoPreload' => $contrato ? ['id' => $contrato->getId(), 'label' => '#' . $contrato->getId() . ' - ' . ($contrato->getImovel() ? $contrato->getImovel()->getCodigoInterno() : 'S/N') . ' (' . ($contrato->getPessoaLocatario() ? $contrato->getPessoaLocatario()->getNome() : 'S/I') . ')'] : null,
+            'imovelPreload' => $imovel ? ['id' => $imovel->getId(), 'label' => $imovel->getCodigoInterno()] : null,
+            'contaBancariaPreload' => $contaBancaria ? ['id' => $contaBancaria->getId(), 'label' => $this->formatarContaBancariaLabel($contaBancaria)] : null,
+        ];
+    }
+
+    private function formatarContaBancariaLabel(ContasBancarias $contaBancaria): string
+    {
+        $descricao = $contaBancaria->getDescricao() ?: $contaBancaria->getCodigo();
+        $titular = $contaBancaria->getTitular();
+
+        return $titular ? $descricao . ' — ' . $titular : $descricao;
     }
 }

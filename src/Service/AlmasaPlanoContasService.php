@@ -65,6 +65,15 @@ class AlmasaPlanoContasService
         }
 
         try {
+            foreach ($this->buscarLancamentosVinculados($conta) as $lancamento) {
+                if ($this->isLancamentoSaldoAnteriorGerado($lancamento, $conta)) {
+                    $this->entityManager->remove($lancamento);
+                    continue;
+                }
+
+                throw new \RuntimeException('Não é possível excluir: esta conta possui lançamentos vinculados.');
+            }
+
             $this->entityManager->remove($conta);
             $this->entityManager->flush();
             $this->logger->info('AlmasaPlanoContas deletado', ['id' => $conta->getId()]);
@@ -107,23 +116,28 @@ class AlmasaPlanoContasService
         // Caso 4: Lancamento existe -> atualizar
         $valorAtual = $lancamento->getValorFloat();
         $valorNovo = $saldo;
+        $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
+        $valorFormatado = sprintf('%.2f', $valorNovo);
+        $contaBancaria = $this->buscarContaBancariaVinculada($conta);
 
-        // Verifica se realmente houve mudanca (tolerancia de 0.01 para float)
-        if (abs($valorAtual - $valorNovo) < 0.01) {
-            $this->logger->debug('Valor do lancamento ja esta atualizado', ['plano_id' => $conta->getId(), 'valor' => $valorAtual]);
+        $valorMudou = abs($valorAtual - $valorNovo) >= 0.01;
+        $historicoMudou = $lancamento->getHistorico() !== $historico;
+        $contaBancariaMudou = $lancamento->getContaBancaria()?->getId() !== $contaBancaria?->getId();
+
+        if (!$valorMudou && !$historicoMudou && !$contaBancariaMudou) {
+            $this->logger->debug('Lancamento de saldo anterior ja esta sincronizado', [
+                'plano_id' => $conta->getId(),
+                'valor' => $valorAtual,
+            ]);
             return;
         }
-
-        // Atualiza o lancamento
-        $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
-        $valorFormatado = sprintf('%.2F', $valorNovo); // Usa sprintf para garantir formato correto
 
         $lancamento->setValor($valorFormatado);
         $lancamento->setValorPago($valorFormatado);
         $lancamento->setHistorico($historico);
 
         // Atualiza conta bancaria vinculada; null remove vinculo antigo.
-        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
+        $lancamento->setContaBancaria($contaBancaria);
 
         // Persiste imediatamente, ainda dentro da transacao aberta em atualizar().
         $this->entityManager->flush();
@@ -133,6 +147,8 @@ class AlmasaPlanoContasService
             'valor_antigo' => $valorAtual,
             'valor_novo' => $valorNovo,
             'lancamento_id' => $lancamento->getId(),
+            'historico_atualizado' => $historicoMudou,
+            'conta_bancaria_atualizada' => $contaBancariaMudou,
         ]);
     }
 
@@ -182,7 +198,7 @@ class AlmasaPlanoContasService
         // anterior caia sempre antes de qualquer filtro de data nos relatorios.
         $dataSentinel = new \DateTime('1900-01-01');
         $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
-        $valorFormatado = sprintf('%.2F', $saldo); // Usa sprintf para garantir formato correto
+        $valorFormatado = sprintf('%.2f', $saldo);
 
         $lancamento = new Lancamentos();
         $lancamento->setTipo(Lancamentos::TIPO_RECEBER);
@@ -207,5 +223,25 @@ class AlmasaPlanoContasService
             'valor' => $saldo,
             'lancamento_id' => $lancamento->getId(),
         ]);
+    }
+
+    /**
+     * @return Lancamentos[]
+     */
+    private function buscarLancamentosVinculados(AlmasaPlanoContas $conta): array
+    {
+        return $this->entityManager->getRepository(Lancamentos::class)
+            ->createQueryBuilder('l')
+            ->where('l.planoContaDebito = :conta OR l.planoContaCredito = :conta')
+            ->setParameter('conta', $conta)
+            ->getQuery()
+            ->getResult();
+    }
+
+    private function isLancamentoSaldoAnteriorGerado(Lancamentos $lancamento, AlmasaPlanoContas $conta): bool
+    {
+        return $lancamento->getPlanoContaCredito() === $conta
+            && str_starts_with((string) $lancamento->getHistorico(), 'Saldo anterior')
+            && $lancamento->getDataVencimento()?->format('Y-m-d') === '1900-01-01';
     }
 }

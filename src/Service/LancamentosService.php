@@ -88,6 +88,11 @@ class LancamentosService
         return $this->imovelRepo->find($id);
     }
 
+    public function buscarContaBancaria(int $id): ?ContasBancarias
+    {
+        return $this->contaBancariaRepo->find($id);
+    }
+
     /**
      * Salva novo lançamento
      *
@@ -602,6 +607,8 @@ class LancamentosService
             if ($planoConta) {
                 $lancamento->setPlanoConta($planoConta);
             }
+        } else {
+            $lancamento->setPlanoConta(null);
         }
 
         // Partidas Dobradas — Plano de Contas Almasa
@@ -662,6 +669,8 @@ class LancamentosService
         if (!empty($dados['id_conta_bancaria'])) {
             $conta = $this->contaBancariaRepo->find($dados['id_conta_bancaria']);
             $lancamento->setContaBancaria($conta);
+        } else {
+            $lancamento->setContaBancaria(null);
         }
 
         // Valores

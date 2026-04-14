@@ -94,4 +94,78 @@ class AlmasaPlanoContasServiceTest extends TestCase
         $this->assertSame('250.00', $lancamento->getValorPago());
         $this->assertSame('Saldo anterior — 1.01.001 Conta Caixa', $lancamento->getHistorico());
     }
+
+    public function testAtualizarLancamentoSaldoAnteriorMantemValorMasSincronizaHistoricoEContaBancaria(): void
+    {
+        $conta = (new AlmasaPlanoContas())
+            ->setCodigo('1.01.001')
+            ->setDescricao('Conta Corrigida')
+            ->setSaldoAnterior('250.00');
+
+        $contaBancariaAntiga = new ContasBancarias();
+        $contaBancariaNova = new ContasBancarias();
+
+        $lancamento = (new Lancamentos())
+            ->setValor('250.00')
+            ->setValorPago('250.00')
+            ->setHistorico('Saldo anterior — 1.01.001 Conta Antiga')
+            ->setContaBancaria($contaBancariaAntiga);
+
+        $vinculo = (new AlmasaVinculoBancario())
+            ->setAlmasaPlanoConta($conta)
+            ->setContaBancaria($contaBancariaNova)
+            ->setAtivo(true)
+            ->setPadrao(true);
+
+        $lancamentosRepository = $this->createMock(LancamentosRepository::class);
+        $vinculoRepository = $this->createMock(AlmasaVinculoBancarioRepository::class);
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $query = $this->createMock(Query::class);
+
+        $this->entityManager
+            ->method('getRepository')
+            ->willReturnMap([
+                [Lancamentos::class, $lancamentosRepository],
+                [AlmasaVinculoBancario::class, $vinculoRepository],
+            ]);
+
+        $lancamentosRepository
+            ->expects($this->once())
+            ->method('createQueryBuilder')
+            ->with('l')
+            ->willReturn($queryBuilder);
+
+        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
+        $queryBuilder->method('setParameter')->willReturnSelf();
+        $queryBuilder->method('setMaxResults')->willReturnSelf();
+        $queryBuilder->expects($this->once())->method('getQuery')->willReturn($query);
+
+        $query
+            ->expects($this->once())
+            ->method('getOneOrNullResult')
+            ->willReturn($lancamento);
+
+        $vinculoRepository
+            ->expects($this->once())
+            ->method('findOneBy')
+            ->with(
+                ['almasaPlanoConta' => $conta, 'ativo' => true],
+                ['padrao' => 'DESC']
+            )
+            ->willReturn($vinculo);
+
+        $this->entityManager
+            ->expects($this->once())
+            ->method('flush');
+
+        $reflectionMethod = new \ReflectionMethod($this->service, 'atualizarLancamentoSaldoAnterior');
+        $reflectionMethod->setAccessible(true);
+        $reflectionMethod->invoke($this->service, $conta);
+
+        $this->assertSame('250.00', $lancamento->getValor());
+        $this->assertSame('250.00', $lancamento->getValorPago());
+        $this->assertSame('Saldo anterior — 1.01.001 Conta Corrigida', $lancamento->getHistorico());
+        $this->assertSame($contaBancariaNova, $lancamento->getContaBancaria());
+    }
 }

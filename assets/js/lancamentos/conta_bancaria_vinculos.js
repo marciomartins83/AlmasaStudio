@@ -1,5 +1,6 @@
 export function initContaBancariaVinculos() {
   const cfg = window.LANCAMENTOS_PLANO_CONTA;
+  const contaCfg = window.LANCAMENTOS_CONTA_BANCARIA || {};
   const url = window.LANCAMENTOS_VINCULOS_URL;
   const cbUrl = window.LANCAMENTOS_CONTA_BANCARIA_URL;
 
@@ -110,6 +111,10 @@ export function initContaBancariaVinculos() {
   const acModalDeb = initBuscaConta('modal_cb_deb');
   const acModalCred = initBuscaConta('modal_cb_cred');
 
+  if (contaCfg.geral?.preloadId && contaCfg.geral?.preloadLabel) {
+    acVincGeral?.preload(contaCfg.geral.preloadLabel, contaCfg.geral.preloadId);
+  }
+
   function atualizarHidden() {
     // Prioridade: débito > crédito > geral
     const v1 = acVincDeb?.hidden?.value || '';
@@ -117,6 +122,8 @@ export function initContaBancariaVinculos() {
     const v3 = acVincGeral?.hidden?.value || '';
     contaBancariaIdHidden.value = v1 || v2 || v3 || '';
   }
+
+  atualizarHidden();
 
   // === Mostrar/ocultar wrappers conforme plano selecionado ===
   function onPlanoSelecionado(planoId, lado) {

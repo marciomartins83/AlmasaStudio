@@ -624,11 +624,12 @@ class RelatorioService
     public function getDespesasReceitas(array $filtros): array
     {
         $visualizacao = $filtros['visualizacao'] ?? 'sintetico';
+        $statusFiltro = $filtros['status'] ?? 'todos';
+        $statusNormalizado = $statusFiltro === 'efetivado' ? 'pago' : $statusFiltro;
 
-        $statusNormalizado = $filtros['status'] === 'efetivado' ? 'pago' : $filtros['status'];
-
-        // Analítico precisa de itens individuais — desabilitar pré-agrupamento nas queries
-        $semAgrupamento = $visualizacao === 'analitico' ? ['agrupar_por' => null] : [];
+        // O comparativo sempre precisa de dados flat; o agrupamento sintético é
+        // feito internamente para manter despesas e receitas no mesmo critério.
+        $semAgrupamento = ['agrupar_por' => null];
 
         // Buscar despesas
         $filtrosDespesas = array_merge($filtros, ['status' => $statusNormalizado], $semAgrupamento);
@@ -656,36 +657,36 @@ class RelatorioService
         $agruparPor = $filtros['agrupar_por'] ?? 'plano_conta';
         $grupos = [];
 
-        // Processar despesas
         foreach ($despesas as $item) {
-            $lancamento = $item instanceof Lancamentos ? $item : ($item['entidade'] ?? null);
-            if (!$lancamento) continue;
+            if (!is_array($item) || !isset($item['valorFloat'])) {
+                continue;
+            }
 
-            $chave = $this->getChaveAgrupamento($lancamento, $agruparPor);
+            [$chave, $nome] = $this->extrairAgrupamentoComparativoDespesa($item, $agruparPor);
             if (!isset($grupos[$chave])) {
                 $grupos[$chave] = [
-                    'nome' => $this->getNomeAgrupamento($lancamento, $agruparPor),
+                    'nome' => $nome,
                     'receitas' => 0,
                     'despesas' => 0,
                 ];
             }
-            $grupos[$chave]['despesas'] += (float) $lancamento->getValor();
+            $grupos[$chave]['despesas'] += (float) $item['valorFloat'];
         }
 
-        // Processar receitas
         foreach ($receitas as $item) {
-            $valor = is_array($item) ? $item['valor'] : (float) $item->getValor();
-            $entidade = is_array($item) ? $item['entidade'] : $item;
+            if (!is_array($item) || !isset($item['valor'])) {
+                continue;
+            }
 
-            $chave = $this->getChaveAgrupamentoReceita($entidade, $agruparPor);
+            [$chave, $nome] = $this->extrairAgrupamentoComparativoReceita($item, $agruparPor);
             if (!isset($grupos[$chave])) {
                 $grupos[$chave] = [
-                    'nome' => $this->getNomeAgrupamentoReceita($entidade, $agruparPor),
+                    'nome' => $nome,
                     'receitas' => 0,
                     'despesas' => 0,
                 ];
             }
-            $grupos[$chave]['receitas'] += $valor;
+            $grupos[$chave]['receitas'] += (float) $item['valor'];
         }
 
         // Calcular saldos e percentuais
@@ -699,6 +700,55 @@ class RelatorioService
         }
 
         return $grupos;
+    }
+
+    private function extrairAgrupamentoComparativoDespesa(array $item, string $agruparPor): array
+    {
+        return match ($agruparPor) {
+            'plano_conta' => [
+                (string) ($item['_planoContaId'] ?? '0'),
+                $item['planoConta']['descricao'] ?? '-',
+            ],
+            'imovel' => $this->extrairAgrupamentoComparativoImovel($item['_imovelId'] ?? null),
+            'mes' => $this->extrairAgrupamentoComparativoMes($item['_mes'] ?? null),
+            default => ['0', 'Todos'],
+        };
+    }
+
+    private function extrairAgrupamentoComparativoReceita(array $item, string $agruparPor): array
+    {
+        return match ($agruparPor) {
+            'plano_conta' => [
+                (string) ($item['plano_conta'] ?? '0'),
+                $item['plano_conta'] ?? '-',
+            ],
+            'imovel' => $this->extrairAgrupamentoComparativoImovel($item['imovel'] ?? null),
+            'mes' => $this->extrairAgrupamentoComparativoMes(
+                isset($item['data']) && $item['data'] instanceof \DateTimeInterface
+                    ? $item['data']->format('Y-m')
+                    : null
+            ),
+            default => ['0', 'Todos'],
+        };
+    }
+
+    private function extrairAgrupamentoComparativoImovel(mixed $imovelId): array
+    {
+        $id = (string) ($imovelId ?? '0');
+
+        return [
+            $id,
+            $id !== '0' && $id !== '' ? 'Imóvel ' . $id : 'Imóvel Sem Imóvel',
+        ];
+    }
+
+    private function extrairAgrupamentoComparativoMes(?string $mes): array
+    {
+        if ($mes && preg_match('/^\d{4}-\d{2}$/', $mes)) {
+            return [$mes, \DateTime::createFromFormat('Y-m', $mes)->format('m/Y')];
+        }
+
+        return ['sem_data', 'Sem data'];
     }
 
     /**

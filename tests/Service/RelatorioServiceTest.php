@@ -193,6 +193,35 @@ class RelatorioServiceTest extends TestCase
         $this->assertIsArray($resultado);
     }
 
+    public function testGerarComparativoSinteticoConsideraDespesasNormalizadas(): void
+    {
+        $reflectionMethod = new \ReflectionMethod($this->service, 'gerarComparativoSintetico');
+        $reflectionMethod->setAccessible(true);
+
+        $resultado = $reflectionMethod->invoke($this->service, [
+            [
+                'valorFloat' => 150.0,
+                'planoConta' => ['descricao' => 'Taxa Administrativa'],
+                '_planoContaId' => '10',
+                '_imovelId' => '5',
+                '_mes' => '2026-04',
+            ],
+        ], [], [
+            'agrupar_por' => 'mes',
+        ]);
+
+        $this->assertSame([
+            '2026-04' => [
+                'nome' => '04/2026',
+                'receitas' => 0.0,
+                'despesas' => 150.0,
+                'saldo' => -150.0,
+                'percentual_receitas' => 0,
+                'percentual_despesas' => 100.0,
+            ],
+        ], $resultado);
+    }
+
     public function testGetDespesas(): void
     {
         $mockQb = $this->createMock(\Doctrine\ORM\QueryBuilder::class);
