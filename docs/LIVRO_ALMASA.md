@@ -10,8 +10,8 @@
 | Campo | Valor |
 |-------|-------|
 | **Versao Atual** | 6.31.1 |
-| **Data Ultima Atualizacao** | 2026-04-14 (Follow-up de code review no saldo anterior do plano de contas) |
-| **Status Geral** | Em producao — saldo anterior do plano de contas sincroniza lancamento, vinculo bancario e formatacao monetaria BR com consistencia. |
+| **Data Ultima Atualizacao** | 2026-04-14 (Consolidacao do historico recente em capitulo proprio) |
+| **Status Geral** | Em producao — saldo anterior do plano de contas sincroniza lancamento, vinculo bancario e formatacao monetaria BR com consistencia; historico recente consolidado no Cap 15. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
@@ -41,6 +41,7 @@
 - [Cap 12 — Frontend](#cap-12--frontend)
 - [Cap 13 — Licoes Aprendidas](#cap-13--licoes-aprendidas)
 - [Cap 14 — Plano de Testes](#cap-14--plano-de-testes)
+- [Cap 15 — Historico de Mudancas Recentes](#cap-15--historico-de-mudancas-recentes)
 - [Changelog](#changelog)
 
 ---
@@ -1985,6 +1986,32 @@ SCREENSHOT: [caminho]
 
 ---
 
+## Cap 15 — Historico de Mudancas Recentes
+
+### 6.31.x — Saldo anterior do plano de contas
+
+- **6.31.1 (2026-04-14)** — ajuste de regressao no vinculo bancario do saldo anterior; `contaBancaria` agora e limpa quando o vinculo some, o transformer aceita milhar BR (`1.234,56`) e os testes de form/servico cobrem a regressao.
+- **6.31.0 (2026-04-14)** — transacao em `AlmasaPlanoContasService::atualizar()`, sincronismo de saldo anterior e `DataTransformer` para formatacao monetaria BR no `AlmasaPlanoContasType`.
+
+### 6.30.0 — Relatorios financeiros
+
+- Saldo anterior e saldo atual nos relatorios financeiros Almasa.
+- `AlmasaPlanoContasService::criarLancamentoSaldoAnterior()` cria o lancamento inicial quando a conta nasce com saldo > 0.
+- `AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()` sincroniza criacao, atualizacao e remocao do lancamento.
+
+### 6.29.0 — Autocomplete e navegacao
+
+- Autocomplete global com 17 endpoints.
+- `PaginationRedirectTrait` preserva pagina, ordenacao e filtros apos editar/excluir.
+- Selects grandes passaram a usar autocomplete AJAX.
+
+### 6.28.0 — Plano de Contas v2
+
+- Plano de Contas Almasa v2, Vinculos Bancarios e Partidas Dobradas.
+- Conversao dos primeiros selects grandes para autocomplete e ajustes dos controllers correlatos.
+
+---
+
 ## Changelog
 
 ### Formato
@@ -1994,144 +2021,13 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 **Categorias:** Adicionado | Alterado | Descontinuado | Removido | Corrigido | Seguranca
 
 ---
+### Historico consolidado
 
-### [6.31.1] - 2026-04-14
-
-#### Corrigido
-- **Vinculo bancario do saldo anterior** — `AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()` agora atualiza `contaBancaria` mesmo quando o vinculo foi removido, limpando referencias antigas no lancamento
-- **Criacao do saldo anterior** — `criarLancamentoSaldoAnterior()` passou a aplicar o mesmo comportamento consistente de conta bancaria nullable
-- **DataTransformer de `saldoAnterior`** — normaliza formatos BR com separador de milhar (`1.234,56`) antes de persistir e sempre devolve 2 casas decimais no form
-- **Documentacao da transacao** — `AlmasaPlanoContasService::atualizar()` agora deixa explicito que os `flush()` internos do sincronismo fazem parte da mesma transacao
-- **Linha do tempo do livro** — entradas 6.20.x–6.31.x reorganizadas em ordem cronologica
-
-#### Cobertura adicionada
-- `tests/Form/AlmasaPlanoContasTypeTest.php` cobre transformacao DB → form e form → model
-- `tests/Service/AlmasaPlanoContasServiceTest.php` cobre a limpeza de `contaBancaria` quando nao existe vinculo ativo
+- As entradas antigas foram promovidas para o **Cap 15 — Historico de Mudancas Recentes**.
+- Mantenha aqui apenas registros muito recentes que ainda nao tenham sido consolidados no corpo do livro.
 
 ---
 
-### [6.31.0] - 2026-04-14
-
-#### Corrigido
-- **Sincronizacao de saldo anterior no plano de contas** — correcao completa do problema de persistencia de saldo anterior ao editar contas do plano de contas Almasa
-- **Metodo `AlmasaPlanoContasService::atualizar()`** — adicionada transacao com beginTransaction/commit/rollback para garantir atomicidade
-- **Metodo `AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()`** — melhorado com:
-  - Verificacao de mudanca real antes de atualizar (tolerancia 0.01 para float)
-  - Uso de `sprintf('%.2F')` para formatacao consistente de valores
-  - Logs detalhados para debug (valor_antigo, valor_novo, lancamento_id)
-  - Verificacao condicional de conta bancaria (so seta se existir)
-- **Metodo `AlmasaPlanoContasService::criarLancamentoSaldoAnterior()`** — melhorado com:
-  - Warning log ao tentar criar com saldo <= 0
-  - Uso de `sprintf()` para formatacao consistente
-  - Verificacao condicional de conta bancaria
-- **FormType `AlmasaPlanoContasType`** — adicionado DataTransformer customizado para campo `saldoAnterior`:
-  - Converte NumberType para TextType com transformer
-  - Transformer converte formato BR (virgula) para DB (ponto) automaticamente
-  - Garante formatacao consistente com `sprintf('%.2F')`
-  - Remove caracteres invalidos durante a conversao
-
-#### Verificado
-- **8 contas** com `saldo_anterior > 0` na producao
-- **8 lancamentos** correspondentes criados e sincronizados
-- **0 divergencias** entre saldo e lancamentos
-- **0 contas** sem lancamento correspondente
-
-#### Autor
-- **Qwen3.5 27b** (Qwen Code) — 2026-04-14 01:40:47 UTC
-
-#### Deploy
-- **Commit:** `763bec8` — "fix: adiciona DataTransformer para campo saldoAnterior"
-- **VPS:** 154.53.51.119 (`/var/www/AlmasaStudio`)
-- **Status:** ✅ Git pull + cache clear concluidos
-
----
-
-### [6.30.0] - 2026-04-09
-
-#### Adicionado
-- **Saldo Anterior e Saldo Atual nos relatorios financeiros Almasa** — despesas, receitas e despesas x receitas exibem saldo anterior no topo (soma de receber - pagar antes da data inicio) e saldo atual no rodape (saldo anterior +/- movimentacao do periodo). Implementado em preview AJAX e PDF.
-- **Metodo `AlmasaRelatorioService::calcularSaldoAnterior($filtros)`** — SQL nativo respeitando filtros `tipo_data`, `status` e `id_plano_conta`
-- **Campo `saldoAnterior`** (decimal 15,2, default 0.00) na entity `AlmasaPlanoContas` e coluna `saldo_anterior` na tabela `almasa_plano_contas`
-- **`AlmasaPlanoContasService::criarLancamentoSaldoAnterior()`** — ao criar conta com saldo > 0, gera lancamento tipo `receber` ja pago, vinculado via `planoContaCredito`
-- **`AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()`** — ao editar conta, sincroniza lancamento (cria se nao existia, atualiza se mudou, remove se zerou)
-
-#### Corrigido
-- 8 contas de plano que tinham `saldo_anterior > 0` mas nao possuiam lancamento correspondente — lancamentos criados via SQL direto na VPS
-
-#### Removido
-- Campo `saldoAnterior` foi removido erroneamente de `ContasBancarias` (havia sido colocado por engano) e migrado para `AlmasaPlanoContas`
-
----
-
-### [6.29.0] - 2026-04-07
-
-#### Adicionado
-- **AutocompleteController** — 17 endpoints centralizados de busca AJAX (`/autocomplete/pessoas`, `/autocomplete/bancos`, `/autocomplete/agencias`, `/autocomplete/contas-bancarias`, `/autocomplete/imoveis`, `/autocomplete/contratos`, `/autocomplete/nacionalidades`, `/autocomplete/naturalidades`, `/autocomplete/logradouros`, `/autocomplete/enderecos`, `/autocomplete/bairros`, `/autocomplete/condominios`, `/autocomplete/plano-contas`, `/autocomplete/almasa-plano-contas`, `/autocomplete/cidades`, `/autocomplete/ufs`, `/autocomplete/users`)
-- **generic_autocomplete.js** — Modulo JS reutilizavel com busca typeahead, navegacao por teclado, debounce e preload
-- **autocomplete_field.html.twig** — Partial Twig generico para campos autocomplete
-- **PaginationRedirectTrait** — Trait que preserva pagina, ordenacao e filtros apos editar/excluir em qualquer CRUD
-- Campo `descricao` e `titular` no formulario de ContaBancaria
-- Flag "Incluir contas de proprietarios" na aba Vinculos do lancamento
-- Coluna "Historico" no index de lancamentos
-- Filtro `?apenas=almasa` no endpoint `/autocomplete/contas-bancarias`
-- Busca por campo `codigo` alem de `descricao`/`titular` nas contas bancarias
-
-#### Alterado
-- **30+ campos EntityType convertidos para autocomplete** em 15 FormTypes: ImovelFormType, ContaBancariaType, PessoaFormType, LancamentosType, BoletoType, PessoaPretendenteType, PessoaLocadorType, PessoaCorretorType, PessoaFiadorCombinedType, LogradouroType, AlmasaLancamentoType, AlmasaVinculoBancarioType, PrestacaoContasFiltroType, PrestacaoContasRepasseType, ConfiguracaoApiBancoType, AlmasaPlanoContasType, AgenciaType, BairroType, PessoaAdvogadoType
-- **25 Controllers** com PaginationRedirectTrait para preservar paginacao
-- Selects em templates de relatorios (proprietarios, plano contas, contas bancarias, inquilinos, pagadores, fornecedores, imoveis, locatarios, fiadores) convertidos para autocomplete
-- Relatorios Almasa despesas/receitas agora buscam na tabela `lancamentos` (tipo=pagar/receber) em vez de `almasa_lancamentos`
-- Baixa de lancamento: removidas opcoes Credito e Boleto, Debito renomeado para "Debito em Conta"
-- Busca de pessoa (searchPessoaAdvanced) agora retorna campo `cod`
-- Filtro titular em contas bancarias busca em pessoa.nome, titular e descricao (OR)
-
-#### Corrigido
-- Plano de contas preserva pagina apos editar/excluir
-- Contas a pagar nao exigem banco na criacao — so na baixa
-- ContasBancarias: default false para campos boolean (principal, ativo, registrada, aceitaMultipag, usaEnderecoCobranca, cobrancaCompartilhada)
-- generic_autocomplete.js inicializa mesmo se DOM ja carregou (fix DOMContentLoaded)
-- Contas proprias Almasa receberam titular "Almasa Administradora" (12 contas)
-
-#### Licao Aprendida
-- Doctrine DQL `CONCAT` aceita apenas 2 argumentos, nao varios. Para buscas multi-campo, usar OR no WHERE em vez de CONCAT
-- Webpack Encore precisa ser recompilado (`npx encore production`) apos alterar assets/js — o browser carrega o build compilado, nao o source
-- Campos boolean NOT NULL em entities Doctrine DEVEM ter valor default, senao INSERT falha com not-null violation
-- PaginationService salvar URL na session e melhor que passar page/sort nos params — solucao centralizada
-
----
-
-### [6.28.0] - 2026-03-27
-
-#### Adicionado
-- **Novos endpoints de autocomplete:**
-  - `/autocomplete/cidades` — busca cidades com UF do estado
-  - `/autocomplete/ufs` — busca estatica de 27 UFs brasileiras
-  - `/autocomplete/almasa-plano-contas` agora aceita filtro `?nivel=N` para filtrar por nivel hierarquico
-
-#### Alterado
-- **Conversao de 4 EntityType/ChoiceType selects para autocomplete AJAX:**
-  - `AlmasaPlanoContasType.pai` (100+ itens) — EntityType para HiddenType unmapped com autocomplete customizado que filtra por nivel e herda tipo contabil
-  - `AgenciaType.banco` (200+ bancos) — EntityType para HiddenType unmapped com autocomplete generico
-  - `BairroType.cidade` (centenas de cidades) — EntityType para HiddenType unmapped com autocomplete generico; removida opcao `cidades` do FormType
-  - `PessoaAdvogadoType.seccionalOab` (27 UFs) — ChoiceType para HiddenType mapped com autocomplete generico
-- **Controllers atualizados:**
-  - `AlmasaPlanoContasController`: new/edit resolvem `pai` a partir do HiddenType; preloads para label
-  - `AgenciaController`: new/edit resolvem `banco` a partir do HiddenType; preloads para label
-  - `BairroController`: new/edit resolvem `cidade` a partir do HiddenType; removida carga de todas as cidades; preloads para label
-- **Templates atualizados:**
-  - `almasa_plano_contas/_form.html.twig` — reescrito JS para usar autocomplete com filtro por nivel e heranca de tipo
-  - `agencia/new.html.twig` e `edit.html.twig` — autocomplete para banco
-  - `bairro/new.html.twig` e `edit.html.twig` — autocomplete para cidade
-  - `pessoa/partials/advogado.html.twig` — autocomplete para seccionalOab
-- **pessoa_tipos.js:** `inicializarComponentesTipo()` agora inicializa autocompletes em sub-forms carregados via AJAX; `preencherDadosTipo()` preenche display de autocompletes
-
----
-
-> **Nota:** Entradas anteriores a [6.28.0] foram consolidadas nos capitulos relevantes do livro.
-> Para historico detalhado, consulte Cap 1 (Linha do Tempo), Cap 9 (Relatorios), Cap 10 (Cadastros) e Cap 11 (Banco de Dados).
-
----
-
-**Ultima atualizacao:** 2026-04-14 (v6.31.1 — follow-up de code review no saldo anterior do plano de contas)
+**Ultima atualizacao:** 2026-04-14 (v6.31.1 — consolidacao do historico recente em Cap 15)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Code + Qwen3.5 27b (Qwen Code)
