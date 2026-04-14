@@ -41,7 +41,8 @@ class AlmasaPlanoContasService
             // Flush alteracoes na conta do plano
             $this->entityManager->flush();
 
-            // Atualizar lancamento de saldo anterior
+            // Os flushes internos do sincronismo sao intencionais e continuam
+            // dentro desta mesma transacao Doctrine.
             $this->atualizarLancamentoSaldoAnterior($conta);
 
             $this->entityManager->commit();
@@ -121,13 +122,10 @@ class AlmasaPlanoContasService
         $lancamento->setValorPago($valorFormatado);
         $lancamento->setHistorico($historico);
 
-        // Atualiza conta bancaria se houver vinculacao
-        $contaBancaria = $this->buscarContaBancariaVinculada($conta);
-        if ($contaBancaria) {
-            $lancamento->setContaBancaria($contaBancaria);
-        }
+        // Atualiza conta bancaria vinculada; null remove vinculo antigo.
+        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
 
-        // Force Doctrine to detect changes
+        // Persiste imediatamente, ainda dentro da transacao aberta em atualizar().
         $this->entityManager->flush();
 
         $this->logger->info('Lancamento saldo anterior atualizado', [
@@ -199,11 +197,7 @@ class AlmasaPlanoContasService
         $lancamento->setFormaPagamento('debito');
         $lancamento->setPlanoContaCredito($conta);
         
-        // Vincula conta bancaria se houver
-        $contaBancaria = $this->buscarContaBancariaVinculada($conta);
-        if ($contaBancaria) {
-            $lancamento->setContaBancaria($contaBancaria);
-        }
+        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
 
         $this->entityManager->persist($lancamento);
         $this->entityManager->flush();

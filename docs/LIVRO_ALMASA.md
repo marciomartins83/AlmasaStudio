@@ -9,13 +9,13 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.31.0 |
-| **Data Ultima Atualizacao** | 2026-04-14 (Correcao sincronizacao saldo anterior plano de contas - Qwen3.5 27b) |
-| **Status Geral** | Em producao — Correcao completa de persistencia de saldo anterior no plano de contas Almasa com DataTransformer e transacoes. |
+| **Versao Atual** | 6.31.1 |
+| **Data Ultima Atualizacao** | 2026-04-14 (Follow-up de code review no saldo anterior do plano de contas) |
+| **Status Geral** | Em producao — saldo anterior do plano de contas sincroniza lancamento, vinculo bancario e formatacao monetaria BR com consistencia. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
-| **Desenvolvedor Ativo** | Qwen3.5 27b (Qwen Code) — 2026-04-14 |
+| **Desenvolvedor Ativo** | Claude Code + Qwen3.5 27b (Qwen Code) |
 | **Mantenedor** | Marcio Martins |
 | **Proxima Tarefa** | Testes E2E completos — validar autocompletes, relatorios, lancamentos |
 | **Issue Aberta** | — |
@@ -79,18 +79,19 @@
 | 6.19.4 | 2026-02-21 | Fix: Tipo Inquilino faltando — findTiposComDados agora le de pessoas_tipos |
 | 6.19.5 | 2026-02-21 | Fix: Enderecos proprios de 42 inquilinos migrados |
 | 6.19.6 | 2026-02-21 | Fix: 2.088 inquilinos recebem endereco do imovel locado, script Phase 13 completo |
-| 6.25.1 | 2026-03-04 | Code review completo — 17 Thin Controllers refatorados, inline JS corrigido, schema validado |
-| 6.25.0 | 2026-03-04 | Tema escuro completo — 40+ componentes CSS com dark mode, dashboard e base.html.twig adaptados |
+| 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
+| 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
+| 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
 | 6.24.x | 2026-03-04 | Card Lancamentos, tema escuro global, mascaras CPF/RG/CNPJ, filtro Twig mask_documento |
+| 6.25.0 | 2026-03-04 | Tema escuro completo — 40+ componentes CSS com dark mode, dashboard e base.html.twig adaptados |
+| 6.25.1 | 2026-03-04 | Code review completo — 17 Thin Controllers refatorados, inline JS corrigido, schema validado |
 | 6.26.x | 2026-03-04–05 | Migracao completa v6 — 506.704 lancamentos, 42.844 repasses, FK integrity 0 erros |
 | 6.27.0 | 2026-03-08 | Lancamentos: EntityType selects convertidos para autocomplete AJAX |
 | 6.28.0 | 2026-03-10 | Modulo Almasa Plano de Contas v2, Vinculos Bancarios, Partidas Dobradas |
 | 6.29.0 | 2026-04-07 | Autocomplete global (17 endpoints), PaginationRedirectTrait, 30+ selects convertidos |
 | 6.30.0 | 2026-04-09 | Saldo anterior/atual em relatorios financeiros, lancamento automatico de saldo anterior no plano de contas |
 | 6.31.0 | 2026-04-14 | Correcao sincronizacao saldo anterior plano de contas (DataTransformer + transacoes) — Qwen3.5 27b |
-| 6.20.3 | 2026-02-22 | Refactor: Remove CRUD orfao PessoaFiador, Thin Controller Corretor/Locador, banco migrado Neon→PostgreSQL local VPS |
-| 6.20.2 | 2026-02-22 | Fix: Thin Controller (10/14), Issue #1 Conjugue resolvida, banco Neon limpo (64 registros teste) |
-| 6.20.1 | 2026-02-22 | Fix: Code review 16 modulos — templates corrompidos, entities datetime, FormTypes constraints, inline JS removido, 4 repositories criados |
+| 6.31.1 | 2026-04-14 | Follow-up de code review: desvinculo bancario correto e normalizacao monetaria BR robusta |
 
 ### Migracoes Criticas (Referencia Historica)
 
@@ -840,15 +841,18 @@ Todos com status Completo:
 - Campos boolean (`principal`, `ativo`, `registrada`, `aceitaMultipag`, `usaEnderecoCobranca`, `cobrancaCompartilhada`) possuem default `false` na entity para evitar not-null violation
 - 12 contas proprias da Almasa receberam titular "Almasa Administradora"
 
-### Plano de Contas Almasa — Saldo Anterior (v6.30.0)
+### Plano de Contas Almasa — Saldo Anterior (v6.31.1)
 
 - Campo `saldoAnterior` (decimal 15,2, default 0.00) na entity `AlmasaPlanoContas` — saldo inicial da conta contabil
 - Ao **criar** uma conta com saldo > 0, `AlmasaPlanoContasService::criarLancamentoSaldoAnterior()` gera lancamento tipo `receber` ja pago, vinculado via `planoContaCredito`, com historico `Saldo anterior — {codigo} {descricao}`
 - Ao **editar** o saldo, `atualizarLancamentoSaldoAnterior()` mantem o lancamento sincronizado:
   - Saldo zerou e existia lancamento → remove
   - Saldo > 0 e nao existia → cria
-  - Saldo > 0 e ja existia → atualiza valor e historico
+  - Saldo > 0 e ja existia → atualiza valor, historico e conta bancaria vinculada
+- Se o vinculo bancario padrao for removido, o lancamento de saldo anterior limpa `contaBancaria` para nao manter referencia orfa
 - Lancamento existente e localizado por `planoContaCredito = conta AND historico LIKE 'Saldo anterior%'`
+- `AlmasaPlanoContasType` usa DataTransformer para exibir `saldoAnterior` sempre com 2 casas no formato BR e aceitar entrada com milhar (`1.234,56`) sem corromper o valor salvo
+- `AlmasaPlanoContasService::atualizar()` abre transacao; os `flush()` internos do sincronismo sao intencionais e permanecem na mesma transacao Doctrine
 
 ### Commands Disponiveis
 
@@ -1991,6 +1995,21 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
+### [6.31.1] - 2026-04-14
+
+#### Corrigido
+- **Vinculo bancario do saldo anterior** — `AlmasaPlanoContasService::atualizarLancamentoSaldoAnterior()` agora atualiza `contaBancaria` mesmo quando o vinculo foi removido, limpando referencias antigas no lancamento
+- **Criacao do saldo anterior** — `criarLancamentoSaldoAnterior()` passou a aplicar o mesmo comportamento consistente de conta bancaria nullable
+- **DataTransformer de `saldoAnterior`** — normaliza formatos BR com separador de milhar (`1.234,56`) antes de persistir e sempre devolve 2 casas decimais no form
+- **Documentacao da transacao** — `AlmasaPlanoContasService::atualizar()` agora deixa explicito que os `flush()` internos do sincronismo fazem parte da mesma transacao
+- **Linha do tempo do livro** — entradas 6.20.x–6.31.x reorganizadas em ordem cronologica
+
+#### Cobertura adicionada
+- `tests/Form/AlmasaPlanoContasTypeTest.php` cobre transformacao DB → form e form → model
+- `tests/Service/AlmasaPlanoContasServiceTest.php` cobre a limpeza de `contaBancaria` quando nao existe vinculo ativo
+
+---
+
 ### [6.31.0] - 2026-04-14
 
 #### Corrigido
@@ -2113,6 +2132,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-04-09 (v6.30.0 — Saldo anterior/atual nos relatorios, lancamento automatico de saldo anterior no plano de contas)
+**Ultima atualizacao:** 2026-04-14 (v6.31.1 — follow-up de code review no saldo anterior do plano de contas)
 **Mantenedor:** Marcio Martins
-**Desenvolvedor Ativo:** Claude Code (Haiku 4.5 / Opus 4.6)
+**Desenvolvedor Ativo:** Claude Code + Qwen3.5 27b (Qwen Code)

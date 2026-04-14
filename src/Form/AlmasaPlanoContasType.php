@@ -25,30 +25,52 @@ class AlmasaPlanoContasType extends AbstractType
         return new class implements DataTransformerInterface {
             public function transform(?string $value): string
             {
-                // Do model para o form: converte "1000.00" para "1000,00"
                 if ($value === null || $value === '') {
                     return '0,00';
                 }
-                // Se ja tem virgula, retorna como esta
-                if (str_contains($value, ',')) {
-                    return $value;
-                }
-                // Converte ponto para virgula
-                return str_replace('.', ',', $value);
+
+                return number_format($this->normalizeToFloat($value), 2, ',', '');
             }
 
             public function reverseTransform(?string $value): string
             {
-                // Do form para o model: converte "1000,00" para "1000.00"
-                if ($value === null || $value === '') {
+                if ($value === null || trim($value) === '') {
                     return '0.00';
                 }
-                // Remove caracteres invalidos (mantem apenas numeros, ponto e virgula)
-                $value = preg_replace('/[^0-9.,\-]/', '', $value);
-                // Converte virgula para ponto
-                $value = str_replace(',', '.', $value);
-                // Garante 2 casas decimais
-                return sprintf('%.2F', (float) $value);
+
+                return sprintf('%.2F', $this->normalizeToFloat($value));
+            }
+
+            private function normalizeToFloat(string $value): float
+            {
+                $normalized = preg_replace('/[^0-9,.\-]/', '', $value) ?? '';
+
+                if ($normalized === '' || $normalized === '-' || $normalized === ',' || $normalized === '.') {
+                    return 0.0;
+                }
+
+                $hasComma = str_contains($normalized, ',');
+                $hasDot = str_contains($normalized, '.');
+
+                if ($hasComma && $hasDot) {
+                    $normalized = str_replace('.', '', $normalized);
+                }
+
+                if ($hasComma) {
+                    $normalized = str_replace(',', '.', $normalized);
+                }
+
+                if (substr_count($normalized, '.') > 1) {
+                    $lastDotPosition = strrpos($normalized, '.');
+
+                    if ($lastDotPosition !== false) {
+                        $integerPart = str_replace('.', '', substr($normalized, 0, $lastDotPosition));
+                        $decimalPart = substr($normalized, $lastDotPosition + 1);
+                        $normalized = $integerPart . '.' . $decimalPart;
+                    }
+                }
+
+                return (float) $normalized;
             }
         };
     }
