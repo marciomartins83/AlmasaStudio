@@ -36,12 +36,19 @@ class AlmasaPlanoContasService
     public function atualizar(AlmasaPlanoContas $conta): void
     {
         try {
+            $this->entityManager->beginTransaction();
+
+            // Flush alteracoes na conta do plano
             $this->entityManager->flush();
 
+            // Atualizar lancamento de saldo anterior
             $this->atualizarLancamentoSaldoAnterior($conta);
+
+            $this->entityManager->commit();
 
             $this->logger->info('AlmasaPlanoContas atualizado', ['id' => $conta->getId(), 'codigo' => $conta->getCodigo()]);
         } catch (\Exception $e) {
+            $this->entityManager->rollBack();
             $this->logger->error('Erro ao atualizar AlmasaPlanoContas', ['erro' => $e->getMessage()]);
             throw $e;
         }
@@ -75,32 +82,58 @@ class AlmasaPlanoContasService
         $saldo = $conta->getSaldoAnteriorFloat();
         $lancamento = $this->buscarLancamentoSaldoAnterior($conta);
 
+        // Caso 1: Saldo zerou e existe lancamento -> remover
         if ($saldo <= 0 && $lancamento) {
             $this->entityManager->remove($lancamento);
             $this->entityManager->flush();
-            $this->logger->info('Lancamento saldo anterior removido', ['plano_id' => $conta->getId()]);
+            $this->logger->info('Lancamento saldo anterior removido', ['plano_id' => $conta->getId(), 'lancamento_id' => $lancamento->getId()]);
             return;
         }
 
+        // Caso 2: Saldo zerou e nao existe lancamento -> nada a fazer
         if ($saldo <= 0) {
+            $this->logger->debug('Nao ha saldo anterior para processar', ['plano_id' => $conta->getId()]);
             return;
         }
 
+        // Caso 3: Nao existe lancamento -> criar
         if (!$lancamento) {
+            $this->logger->info('Criando lancamento de saldo anterior (nao existia)', ['plano_id' => $conta->getId(), 'saldo' => $saldo]);
             $this->criarLancamentoSaldoAnterior($conta);
             return;
         }
 
+        // Caso 4: Lancamento existe -> atualizar
+        $valorAtual = $lancamento->getValorFloat();
+        $valorNovo = $saldo;
+
+        // Verifica se realmente houve mudanca (tolerancia de 0.01 para float)
+        if (abs($valorAtual - $valorNovo) < 0.01) {
+            $this->logger->debug('Valor do lancamento ja esta atualizado', ['plano_id' => $conta->getId(), 'valor' => $valorAtual]);
+            return;
+        }
+
+        // Atualiza o lancamento
         $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
-        $lancamento->setValor(number_format($saldo, 2, '.', ''));
-        $lancamento->setValorPago(number_format($saldo, 2, '.', ''));
+        $valorFormatado = sprintf('%.2F', $valorNovo); // Usa sprintf para garantir formato correto
+
+        $lancamento->setValor($valorFormatado);
+        $lancamento->setValorPago($valorFormatado);
         $lancamento->setHistorico($historico);
-        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
+
+        // Atualiza conta bancaria se houver vinculacao
+        $contaBancaria = $this->buscarContaBancariaVinculada($conta);
+        if ($contaBancaria) {
+            $lancamento->setContaBancaria($contaBancaria);
+        }
+
+        // Force Doctrine to detect changes
         $this->entityManager->flush();
 
         $this->logger->info('Lancamento saldo anterior atualizado', [
             'plano_id' => $conta->getId(),
-            'valor' => $saldo,
+            'valor_antigo' => $valorAtual,
+            'valor_novo' => $valorNovo,
             'lancamento_id' => $lancamento->getId(),
         ]);
     }
@@ -143,6 +176,7 @@ class AlmasaPlanoContasService
     {
         $saldo = $conta->getSaldoAnteriorFloat();
         if ($saldo <= 0) {
+            $this->logger->warning('Tentativa de criar lancamento com saldo <= 0', ['plano_id' => $conta->getId()]);
             return;
         }
 
@@ -150,6 +184,7 @@ class AlmasaPlanoContasService
         // anterior caia sempre antes de qualquer filtro de data nos relatorios.
         $dataSentinel = new \DateTime('1900-01-01');
         $historico = 'Saldo anterior — ' . $conta->getCodigo() . ' ' . $conta->getDescricao();
+        $valorFormatado = sprintf('%.2F', $saldo); // Usa sprintf para garantir formato correto
 
         $lancamento = new Lancamentos();
         $lancamento->setTipo(Lancamentos::TIPO_RECEBER);
@@ -157,13 +192,18 @@ class AlmasaPlanoContasService
         $lancamento->setDataVencimento($dataSentinel);
         $lancamento->setDataPagamento($dataSentinel);
         $lancamento->setCompetencia($dataSentinel->format('Y-m'));
-        $lancamento->setValor(number_format($saldo, 2, '.', ''));
-        $lancamento->setValorPago(number_format($saldo, 2, '.', ''));
+        $lancamento->setValor($valorFormatado);
+        $lancamento->setValorPago($valorFormatado);
         $lancamento->setStatus(Lancamentos::STATUS_PAGO);
         $lancamento->setHistorico($historico);
         $lancamento->setFormaPagamento('debito');
         $lancamento->setPlanoContaCredito($conta);
-        $lancamento->setContaBancaria($this->buscarContaBancariaVinculada($conta));
+        
+        // Vincula conta bancaria se houver
+        $contaBancaria = $this->buscarContaBancariaVinculada($conta);
+        if ($contaBancaria) {
+            $lancamento->setContaBancaria($contaBancaria);
+        }
 
         $this->entityManager->persist($lancamento);
         $this->entityManager->flush();
