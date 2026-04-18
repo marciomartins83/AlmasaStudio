@@ -42,6 +42,8 @@
 - [Cap 13 — Licoes Aprendidas](#cap-13--licoes-aprendidas)
 - [Cap 14 — Plano de Testes](#cap-14--plano-de-testes)
 - [Cap 15 — Historico de Mudancas Recentes](#cap-15--historico-de-mudancas-recentes)
+- [Cap 16 — 6.32.5 Correcoes Contratos / Financeiro](#cap-16--6325--correcoes-contratos--financeiro)
+- [Cap 17 — 6.32.4 Pseudo-telas Pessoas por Tipo](#cap-17--6324--pseudo-telas-pessoas-por-tipo)
 - [Changelog](#changelog)
 
 ---
@@ -2009,17 +2011,10 @@ SCREENSHOT: [caminho]
 ---
 
 ## Cap 15 — Historico de Mudancas Recentes
+### Movendo entradas consolidadas para capítulos dedicados
 
-### 6.32.5 — Correções Contratos / Financeiro
+As entradas abaixo foram promovidas para capítulos dedicados para evitar duplicação entre o Cap 15 e o Changelog. O Cap 15 agora funciona como índice rápido de mudanças recentes consolidadas.
 
-- **6.32.5 (2026-04-18)** — Correções de navegação e filtros a partir da ficha da pessoa:
-  - Botão "Contratos" na ficha da pessoa agora é filtrado corretamente: o controller `ContratoController::index()` passou a ler o parâmetro `?pessoa={id}` e filtra contratos onde a pessoa atua como locatário, fiador ou proprietário. Antes a listagem exibida era global.
-  - Botão "Financeiro" agora usa `?idInquilino={id}`; `FichaFinanceiraController::index()` passou a aceitar `idInquilino` e filtrar lançamentos financeiros pelo ID do inquilino (o filtro `inquilino` anterior buscava por nome).
-  - Commits, push e deploy realizados no VPS (154.53.51.119) em 2026-04-18.
-
-### 6.32.4 — Pseudo-telas Pessoas por Tipo
-
-- **6.32.4 (2026-04-18)** — Implementação de "pseudo-telas" no menu Cadastros para acessar listagens de Pessoas já filtradas por um `TipoPessoa` fixo (Fiador, Corretor, Locador, Pretendente, Contratante, Sócio, Advogado, Inquilino). A rota `/pessoa/tipo/{tipoPessoaId}` reutiliza o index de Pessoas com o filtro aplicado e invisível na UI; paginação, ordenação e partials foram adaptados para receber `routeParams` mantendo a navegação consistente.
 
 ### 6.32.3 — Preview do extrato bancario
 
@@ -2061,6 +2056,17 @@ SCREENSHOT: [caminho]
 - Plano de Contas Almasa v2, Vinculos Bancarios e Partidas Dobradas.
 - Conversao dos primeiros selects grandes para autocomplete e ajustes dos controllers correlatos.
 
+## Cap 16 — 6.32.5 Correcoes Contratos / Financeiro
+
+- **6.32.5 (2026-04-18)** — Correções de navegação e filtros a partir da ficha da pessoa:
+  - Botão "Contratos" na ficha agora filtra corretamente: `ContratoController::index()` lê `?pessoa={id}` e filtra contratos onde a pessoa atua como locatário, fiador ou proprietário. Antes a listagem era global.
+  - Botão "Financeiro" agora usa `?idInquilino={id}`; `FichaFinanceiraController::index()` filtra lançamentos pelo ID do inquilino (o filtro `inquilino` anterior buscava por nome).
+  - Commits `ac0c93a` e `a2bfe23`, deploy VPS 154.53.51.119.
+
+## Cap 17 — 6.32.4 Pseudo-telas Pessoas por Tipo
+
+- **6.32.4 (2026-04-18)** — "Pseudo-telas" no menu Cadastros para listagens de Pessoas filtradas por TipoPessoa fixo (Fiador, Corretor, Locador, Pretendente, Contratante, Sócio, Advogado, Inquilino). Rota `/pessoa/tipo/{tipoPessoaId}` reutiliza o index com filtro aplicado e invisível; paginação e partials adaptados com `routeParams`.
+
 ---
 
 ## Changelog
@@ -2079,6 +2085,6 @@ Baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) + [Semant
 
 ---
 
-**Ultima atualizacao:** 2026-04-14 (v6.32.3 — preview do extrato bancario)
+**Ultima atualizacao:** 2026-04-18 (v6.32.5 — correções Contratos/Financeiro)
 **Mantenedor:** Marcio Martins
 **Desenvolvedor Ativo:** Claude Code + Qwen3.5 27b (Qwen Code)
