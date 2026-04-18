@@ -52,6 +52,13 @@ class ContratoController extends AbstractController
             ->leftJoin('im.pessoaProprietario', 'prop')
             ->orderBy('c.id', 'DESC');
 
+        // Filtro por ID da pessoa (locatário, fiador ou proprietário)
+        $pessoaId = $request->query->get('pessoa');
+        if ($pessoaId) {
+            $qb->andWhere('c.pessoaLocatario = :pessoa OR c.pessoaFiador = :pessoa OR im.pessoaProprietario = :pessoa')
+                ->setParameter('pessoa', $pessoaId);
+        }
+
         // Filtro por nome de pessoa (locatário, fiador ou proprietário) — aplicado antes do paginator
         $nomePessoa = trim($request->query->get('nomePessoa', ''));
         if ($nomePessoa !== '') {
