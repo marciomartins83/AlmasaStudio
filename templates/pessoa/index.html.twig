@@ -1,15 +1,33 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Pessoas{% endblock %}
+{% set locked = lockedTipoPessoa is defined and lockedTipoPessoa is not empty %}
+{% set pageTitle = locked ? lockedTipoPessoa.nome ~ 's' : 'Pessoas' %}
+{% set routeName = locked ? 'app_pessoa_por_tipo' : 'app_pessoa_index' %}
+{% set routeParams = locked ? {'tipoPessoaId': lockedTipoPessoa.id} : {} %}
+
+{% block title %}{{ pageTitle }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    {% include '_partials/breadcrumb.html.twig' with {
-        'current': 'Lista de Pessoas'
-    } %}
-    
+    {% if locked %}
+        {% include '_partials/breadcrumb.html.twig' with {
+            'breadcrumbs': [{'label': 'Cadastros'}, {'label': 'Pessoas'}, {'label': pageTitle}],
+            'current': pageTitle
+        } %}
+    {% else %}
+        {% include '_partials/breadcrumb.html.twig' with {
+            'current': 'Lista de Pessoas'
+        } %}
+    {% endif %}
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-users"></i> Pessoas</h1>
+        <h1>
+            <i class="fas fa-users"></i>
+            {{ pageTitle }}
+            {% if locked %}
+                <span class="badge bg-secondary ms-2 fs-6">Filtro fixo</span>
+            {% endif %}
+        </h1>
         <a href="{{ path('app_pessoa_new') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Nova Pessoa
         </a>
@@ -18,7 +36,8 @@
     {% include '_partials/search_panel.html.twig' with {
         filterDefs: pagination.filterDefs,
         filters: pagination.filters,
-        routeName: 'app_pessoa_index',
+        routeName: routeName,
+        routeParams: routeParams,
         itemsPerPage: pagination.itemsPerPage,
         sortField: pagination.sortField,
         sortDir: pagination.sortDir
@@ -28,7 +47,8 @@
         sortOptions: pagination.sortOptions,
         sortField: pagination.sortField,
         sortDir: pagination.sortDir,
-        routeName: 'app_pessoa_index',
+        routeName: routeName,
+        routeParams: routeParams,
         filters: pagination.filters,
         itemsPerPage: pagination.itemsPerPage
     } %}
@@ -92,7 +112,8 @@
                 itemsPerPage: pagination.itemsPerPage,
                 totalPages: pagination.totalPages,
                 search: pagination.search,
-                routeName: 'app_pessoa_index',
+                routeName: routeName,
+                routeParams: routeParams,
                 filters: pagination.filters,
                 sortField: pagination.sortField,
                 sortDir: pagination.sortDir,

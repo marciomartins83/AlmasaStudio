@@ -132,6 +132,54 @@
                         <i class="fas fa-clipboard-list me-1"></i>Cadastros
                     </a>
                     <ul class="dropdown-menu almasa-dropdown-menu" aria-labelledby="dropdownCadastros">
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Pessoas por Tipo</h6></li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 1}) }}">
+                                <i class="fas fa-user-shield me-2"></i>Fiadores
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 2}) }}">
+                                <i class="fas fa-id-badge me-2"></i>Corretores
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 3}) }}">
+                                <i class="fas fa-building me-2"></i>Corretoras
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 4}) }}">
+                                <i class="fas fa-key me-2"></i>Locadores
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 5}) }}">
+                                <i class="fas fa-user-clock me-2"></i>Pretendentes
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 6}) }}">
+                                <i class="fas fa-handshake me-2"></i>Contratantes
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 7}) }}">
+                                <i class="fas fa-user-tie me-2"></i>Sócios
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 8}) }}">
+                                <i class="fas fa-balance-scale me-2"></i>Advogados
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_pessoa_por_tipo', {tipoPessoaId: 12}) }}">
+                                <i class="fas fa-home me-2"></i>Inquilinos
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider almasa-divider"></li>
+                        <li><h6 class="dropdown-header almasa-dropdown-header">Outros</h6></li>
                         <li>
                             <a class="dropdown-item almasa-dropdown-item" href="{{ path('app_email_index') }}">
                                 <i class="fas fa-envelope me-2"></i>Emails

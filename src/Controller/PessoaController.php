@@ -39,6 +39,62 @@ class PessoaController extends AbstractController
         $this->entityManager = $entityManager;
     }
 
+    private const TIPOS_PESSOA = [
+        1  => 'Fiador',
+        2  => 'Corretor',
+        3  => 'Corretora',
+        4  => 'Locador',
+        5  => 'Pretendente',
+        6  => 'Contratante',
+        7  => 'Sócio',
+        8  => 'Advogado',
+        12 => 'Inquilino',
+    ];
+
+    #[Route('/tipo/{tipoPessoaId}', name: 'por_tipo', methods: ['GET'], requirements: ['tipoPessoaId' => '\d+'])]
+    public function porTipo(int $tipoPessoaId, PessoaRepository $pessoaRepository, PaginationService $paginator, Request $request): Response
+    {
+        if (!isset(self::TIPOS_PESSOA[$tipoPessoaId])) {
+            throw $this->createNotFoundException('Tipo de pessoa não encontrado.');
+        }
+
+        $tipoPessoaNome = self::TIPOS_PESSOA[$tipoPessoaId];
+
+        $qb = $pessoaRepository->createQueryBuilder('p')
+            ->select('DISTINCT p')
+            ->leftJoin('App\Entity\PessoasTipos', 'pt', 'WITH', 'pt.idPessoa = p.idpessoa')
+            ->andWhere('pt.idTipoPessoa = :tipoPessoaId')
+            ->setParameter('tipoPessoaId', $tipoPessoaId)
+            ->orderBy('p.idpessoa', 'DESC');
+
+        $filters = [
+            new SearchFilterDTO('nome', 'Nome', 'text', 'p.nome', 'LIKE', [], 'Buscar por nome...', 4),
+            new SearchFilterDTO('cod', 'COD', 'number', 'p.cod', 'EXACT', [], 'Buscar por código...', 2),
+            new SearchFilterDTO('fisicaJuridica', 'Física/Jurídica', 'select', 'p.fisicaJuridica', 'EXACT', [
+                'fisica' => 'Física',
+                'juridica' => 'Jurídica',
+            ]),
+            new SearchFilterDTO('status', 'Status', 'select', 'p.status', 'BOOL', [
+                '1' => 'Ativo',
+                '0' => 'Inativo',
+            ]),
+        ];
+
+        $sortOptions = [
+            new SortOptionDTO('nome', 'Nome'),
+            new SortOptionDTO('cod', 'COD', 'ASC'),
+            new SortOptionDTO('idpessoa', 'ID', 'DESC'),
+            new SortOptionDTO('dtCadastro', 'Dt Cadastro', 'DESC'),
+        ];
+
+        $pagination = $paginator->paginate($qb, $request, null, ['p.nome'], 'p.idpessoa', $filters, $sortOptions, 'idpessoa', 'DESC');
+
+        return $this->render('pessoa/index.html.twig', [
+            'pagination'      => $pagination,
+            'lockedTipoPessoa' => ['id' => $tipoPessoaId, 'nome' => $tipoPessoaNome],
+        ]);
+    }
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(PessoaRepository $pessoaRepository, PaginationService $paginator, Request $request): Response
     {
