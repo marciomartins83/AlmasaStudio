@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| **Versao Atual** | 6.32.3 |
-| **Data Ultima Atualizacao** | 2026-04-14 (Correcao preview do extrato de contas bancarias) |
-| **Status Geral** | Em producao — saldo anterior do plano de contas re-sincroniza historico/vinculo mesmo sem mudar valor, formularios de lancamentos preservam conta bancaria/autocompletes, o comparativo sintetico de relatorios usa dados flat e o extrato de contas bancarias do CRUD respeita a data efetiva de pagamento sem quebrar o preview AJAX. |
+| **Versao Atual** | 6.32.5 |
+| **Data Ultima Atualizacao** | 2026-04-18 (Pseudo-telas Pessoas por Tipo; correções: Contratos e Financeiro) |
+| **Status Geral** | Em producao — saldo anterior do plano de contas re-sincroniza historico/vinculo mesmo sem mudar valor, formularios de lancamentos preservam conta bancaria/autocompletes, o comparativo sintetico de relatorios usa dados flat e o extrato de contas bancarias do CRUD respeita a data efetiva de pagamento sem quebrar o preview AJAX. Adicionado suporte a "pseudo-telas" por Tipo de Pessoa: atalhos no menu Cadastros apontam para /pessoa/tipo/{tipoPessoaId} e exibem o índice de Pessoas com o filtro de tipo fixo e invisível. |
 | **URL Produção** | https://www.liviago.com.br/almasa |
 | **Deploy** | VPS Contabo 154.53.51.119, Nginx subfolder /almasa |
 | **Banco de Dados** | PostgreSQL 16 local na VPS (almasa_prod). Neon Cloud ABANDONADO. 85 tabelas, ~630k registros. |
@@ -416,6 +416,7 @@ Pessoas, PessoasFiadores, PessoasLocadores, PessoasContratantes, PessoasCorretor
 | Metodo | Rota | Descricao |
 |--------|------|-----------|
 | GET | /pessoa/ | Listagem |
+| GET | /pessoa/tipo/{tipoPessoaId} | Listagem filtrada por tipo (pseudo-tela via menu Cadastros) |
 | GET/POST | /pessoa/new | Novo cadastro |
 | GET/POST | /pessoa/{id}/edit | Edicao |
 | GET | /pessoa/{id} | Visualizacao |
@@ -1691,7 +1692,7 @@ Menu horizontal global exibido abaixo da navbar principal, com acesso rapido a t
 1. **Dashboard** — Painel Principal
    - Submenu **Endereços**: Gerenciar, Estados, Cidades, Bairros, Logradouros
    - Submenu **Tipos**: Documento, Conta Bancária, Telefone, Email, Chave PIX, Atendimento, Carteira, Endereço, Imóvel, Pessoa, Remessa, Estado Civil, Nacionalidade, Naturalidade
-2. **Cadastros** — Emails, Telefones
+2. **Cadastros** — Emails, Telefones, Pessoas por Tipo (atalhos: Fiadores, Corretores, Corretoras, Locadores, Pretendentes, Contratantes, Sócios, Advogados, Inquilinos)
 3. **Pessoas** — Todas as Pessoas (único item, sem CRUDs legados)
 4. **Imobiliario** — Imoveis, Contratos
 5. **Financeiro** — Ficha Financeira, Bancos, Agencias, Contas Bancarias, Boletos, API Bancaria, Informe de Rendimentos
@@ -2008,6 +2009,17 @@ SCREENSHOT: [caminho]
 ---
 
 ## Cap 15 — Historico de Mudancas Recentes
+
+### 6.32.5 — Correções Contratos / Financeiro
+
+- **6.32.5 (2026-04-18)** — Correções de navegação e filtros a partir da ficha da pessoa:
+  - Botão "Contratos" na ficha da pessoa agora é filtrado corretamente: o controller `ContratoController::index()` passou a ler o parâmetro `?pessoa={id}` e filtra contratos onde a pessoa atua como locatário, fiador ou proprietário. Antes a listagem exibida era global.
+  - Botão "Financeiro" agora usa `?idInquilino={id}`; `FichaFinanceiraController::index()` passou a aceitar `idInquilino` e filtrar lançamentos financeiros pelo ID do inquilino (o filtro `inquilino` anterior buscava por nome).
+  - Commits, push e deploy realizados no VPS (154.53.51.119) em 2026-04-18.
+
+### 6.32.4 — Pseudo-telas Pessoas por Tipo
+
+- **6.32.4 (2026-04-18)** — Implementação de "pseudo-telas" no menu Cadastros para acessar listagens de Pessoas já filtradas por um `TipoPessoa` fixo (Fiador, Corretor, Locador, Pretendente, Contratante, Sócio, Advogado, Inquilino). A rota `/pessoa/tipo/{tipoPessoaId}` reutiliza o index de Pessoas com o filtro aplicado e invisível na UI; paginação, ordenação e partials foram adaptados para receber `routeParams` mantendo a navegação consistente.
 
 ### 6.32.3 — Preview do extrato bancario
 
