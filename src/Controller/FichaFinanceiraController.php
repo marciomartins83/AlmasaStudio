@@ -40,6 +40,13 @@ class FichaFinanceiraController extends AbstractController
     {
         $qb = $this->fichaRepository->createBaseQueryBuilder();
 
+        // Filtro por ID do inquilino (para links diretos da ficha da pessoa)
+        $idInquilino = $request->query->get('idInquilino');
+        if ($idInquilino) {
+            $qb->andWhere('l.inquilino = :idInquilino')
+                ->setParameter('idInquilino', $idInquilino);
+        }
+
         $filters = [
             new SearchFilterDTO('situacao', 'Situacao', 'select', 'l.situacao', 'EXACT', [
                 'aberto'    => 'Em Aberto',
