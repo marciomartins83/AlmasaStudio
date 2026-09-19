@@ -51,7 +51,7 @@ class ConfiguracoesApiBanco
     #[ORM\Column(type: 'date', nullable: true)]
     private ?\DateTimeInterface $certificadoValidade = null;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column(length: 60)]
     private string $convenio;
 
     #[ORM\Column(length: 10)]

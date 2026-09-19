@@ -35,14 +35,30 @@
             {# Filtros #}
             <div class="card mb-3">
                 <div class="card-body">
-                    <form method="GET" action="{{ path('app_cobranca_pendentes') }}" class="row g-3 align-items-end">
-                        <div class="col-md-3">
+                    <form method="GET" action="{{ path('app_cobranca_pendentes') }}" class="row g-3 align-items-end" id="form-filtro-cobranca">
+                        <div class="col-md-2">
                             <label for="data_vencimento" class="form-label">Data de Vencimento</label>
                             <input type="date"
                                    class="form-control"
                                    id="data_vencimento"
                                    name="data_vencimento"
-                                   value="{{ dataVencimento|date('Y-m-d') }}">
+                                   value="{{ dataVencimento is not null ? dataVencimento|date('Y-m-d') : '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="vencimento_inicio" class="form-label">Vencimento de</label>
+                            <input type="date"
+                                   class="form-control"
+                                   id="vencimento_inicio"
+                                   name="vencimento_inicio"
+                                   value="{{ vencimentoInicio is not null ? vencimentoInicio|date('Y-m-d') : '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="vencimento_fim" class="form-label">Vencimento até</label>
+                            <input type="date"
+                                   class="form-control"
+                                   id="vencimento_fim"
+                                   name="vencimento_fim"
+                                   value="{{ vencimentoFim is not null ? vencimentoFim|date('Y-m-d') : '' }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
@@ -67,6 +83,12 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="col-12">
+                            <span class="text-muted small me-2">Faixas do mês atual:</span>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-faixa-vencimento" data-inicio="1" data-fim="10">1 a 10</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-faixa-vencimento" data-inicio="11" data-fim="20">11 a 20</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-faixa-vencimento" data-inicio="21" data-fim="31">21 a 31</button>
+                        </div>
                         <div class="col-md-3">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i> Filtrar
@@ -84,7 +106,7 @@
                 <div class="col-md-3">
                     <div class="card bg-primary text-white">
                         <div class="card-body text-center">
-                            <h3 class="mb-0">{{ estatisticas.total|default(0) }}</h3>
+                            <h3 class="mb-0">{{ estatisticas.total.quantidade|default(0) }}</h3>
                             <small>Total de Cobranças</small>
                         </div>
                     </div>
@@ -92,7 +114,7 @@
                 <div class="col-md-3">
                     <div class="card bg-success text-white">
                         <div class="card-body text-center">
-                            <h3 class="mb-0">R$ {{ estatisticas.valor_total|default(0)|number_format(2, ',', '.') }}</h3>
+                            <h3 class="mb-0">R$ {{ estatisticas.total.valor|default(0)|number_format(2, ',', '.') }}</h3>
                             <small>Valor Total</small>
                         </div>
                     </div>
@@ -142,6 +164,7 @@
                                     <th width="100">Vencimento</th>
                                     <th width="120" class="text-end">Valor Total</th>
                                     <th width="100">Tipo</th>
+                                    <th width="110">Canal</th>
                                     <th width="120">Status</th>
                                     <th width="150">Ações</th>
                                 </tr>
@@ -158,7 +181,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ path('app_imoveis_contratos_edit', {id: cobranca.contrato.id}) }}">
+                                        <a href="{{ path('app_contrato_edit', {id: cobranca.contrato.id}) }}">
                                             #{{ cobranca.contrato.id }}
                                         </a>
                                     </td>
@@ -175,6 +198,11 @@
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
+                                        {% if inadimplentes[cobranca.id] is defined %}
+                                            <span class="badge bg-danger ms-1" title="Tem lançamento anterior vencido e não pago">
+                                                <i class="fas fa-triangle-exclamation"></i> Inadimplente
+                                            </span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ cobranca.competenciaFormatada }}</td>
                                     <td>{{ cobranca.dataVencimento|date('d/m/Y') }}</td>
@@ -189,6 +217,9 @@
                                         {% else %}
                                             <span class="badge bg-secondary">-</span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ cobranca.canalEnvioLabel }}</span>
                                     </td>
                                     <td>
                                         <span class="badge {{ cobranca.statusClass }}">
@@ -210,6 +241,14 @@
                                                 <i class="fas fa-paper-plane"></i>
                                             </button>
                                             {% endif %}
+                                            {% if cobranca.podeMarcarEntregue() %}
+                                            <button type="button"
+                                                    class="btn btn-primary btn-sm btn-marcar-entregue"
+                                                    data-id="{{ cobranca.id }}"
+                                                    title="Marcar como Entregue">
+                                                <i class="fas fa-hand-holding"></i>
+                                            </button>
+                                            {% endif %}
                                             {% if cobranca.isPendente() %}
                                             <button type="button"
                                                     class="btn btn-danger btn-sm btn-cancelar"
@@ -223,7 +262,7 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="10" class="text-center text-muted py-4">
+                                    <td colspan="11" class="text-center text-muted py-4">
                                         <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
                                         <span>Nenhuma cobrança encontrada</span><br>
                                         <small>Altere os filtros para ver mais resultados</small>
@@ -333,6 +372,7 @@
         enviar: '{{ path('app_cobranca_enviar', {id: '__ID__'}) }}',
         enviarLote: '{{ path('app_cobranca_enviar_lote') }}',
         cancelar: '{{ path('app_cobranca_cancelar', {id: '__ID__'}) }}',
+        marcarEntregue: '{{ path('app_cobranca_marcar_entregue', {id: '__ID__'}) }}',
         preview: '{{ path('app_cobranca_preview') }}'
     };
 </script>

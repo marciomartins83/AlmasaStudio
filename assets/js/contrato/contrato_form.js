@@ -197,7 +197,7 @@ function inicializarSubmit() {
 
         formData.forEach((valor, chave) => {
             // Converter checkboxes
-            if (chave === 'gera_boleto' || chave === 'envia_email' || chave === 'ativo') {
+            if (chave === 'gera_boleto' || chave === 'ativo') {
                 dados[chave] = true;
             } else {
                 dados[chave] = valor;
@@ -206,7 +206,6 @@ function inicializarSubmit() {
 
         // Adicionar checkboxes desmarcados como false
         if (!dados.gera_boleto) dados.gera_boleto = false;
-        if (!dados.envia_email) dados.envia_email = false;
         if (!dados.ativo) dados.ativo = false;
 
         // Desabilitar botão de submit

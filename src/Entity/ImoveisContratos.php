@@ -23,6 +23,11 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\HasLifecycleCallbacks]
 class ImoveisContratos
 {
+    // Canais de envio de boleto ao locatário
+    public const CANAL_ADMINISTRACAO = 'ADMINISTRACAO';
+    public const CANAL_CORREIO = 'CORREIO';
+    public const CANAL_EMAIL = 'EMAIL';
+
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     #[ORM\Column(type: Types::INTEGER)]
@@ -90,6 +95,9 @@ class ImoveisContratos
 
     #[ORM\Column(name: 'envia_email', type: Types::BOOLEAN, nullable: true, options: ['default' => 'true'])]
     private ?bool $enviaEmail = true;
+
+    #[ORM\Column(name: 'canal_envio', type: Types::STRING, length: 20, options: ['default' => self::CANAL_EMAIL])]
+    private string $canalEnvio = self::CANAL_EMAIL;
 
     #[ORM\Column(type: Types::BOOLEAN, nullable: true, options: ['default' => 'true'])]
     private ?bool $ativo = true;
@@ -368,6 +376,32 @@ class ImoveisContratos
     {
         $this->enviaEmail = $enviaEmail;
         return $this;
+    }
+
+    public function getCanalEnvio(): string
+    {
+        return $this->canalEnvio;
+    }
+
+    /**
+     * Mantém enviaEmail sincronizado por compatibilidade com código existente
+     * (ImoveisContratosRepository::findContratosParaEnvioAutomatico(), isEnvioAutomaticoAtivo()).
+     */
+    public function setCanalEnvio(string $canalEnvio): self
+    {
+        $this->canalEnvio = $canalEnvio;
+        $this->enviaEmail = ($canalEnvio === self::CANAL_EMAIL);
+        return $this;
+    }
+
+    public function getCanalEnvioLabel(): string
+    {
+        return match ($this->canalEnvio) {
+            self::CANAL_ADMINISTRACAO => 'Administração',
+            self::CANAL_CORREIO => 'Correio',
+            self::CANAL_EMAIL => 'E-mail',
+            default => $this->canalEnvio,
+        };
     }
 
     public function isAtivo(): ?bool

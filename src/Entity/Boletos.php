@@ -159,7 +159,7 @@ class Boletos
     #[ORM\Column(name: 'id_titulo_banco', type: Types::STRING, length: 50, nullable: true)]
     private ?string $idTituloBanco = null;
 
-    #[ORM\Column(name: 'convenio_banco', type: Types::STRING, length: 20, nullable: true)]
+    #[ORM\Column(name: 'convenio_banco', type: Types::STRING, length: 60, nullable: true)]
     private ?string $convenioBanco = null;
 
     // === MENSAGENS ===

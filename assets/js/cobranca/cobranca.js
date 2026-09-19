@@ -34,6 +34,12 @@ function initCobranca() {
     // Inicializar botões de cancelar
     initBotoesCancelar();
 
+    // Inicializar botões de marcar entregue (canal Administração/Correio)
+    initBotoesMarcarEntregue();
+
+    // Inicializar botões de faixa de vencimento (1-10/11-20/21-31 do mês atual)
+    initBotoesFaixaVencimento();
+
     // Inicializar preview
     initPreview();
 }
@@ -150,7 +156,7 @@ function confirmarEnvio(id) {
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (row) {
                 // Atualizar badge de status
-                const statusCell = row.querySelector('td:nth-child(9)');
+                const statusCell = row.querySelector('td:nth-child(10)');
                 if (statusCell && data.statusClass && data.statusLabel) {
                     statusCell.innerHTML = `<span class="badge ${data.statusClass}">${data.statusLabel}</span>`;
                 }
@@ -322,7 +328,7 @@ function confirmarCancelamento(id) {
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (row) {
                 // Atualizar badge de status
-                const statusCell = row.querySelector('td:nth-child(9)');
+                const statusCell = row.querySelector('td:nth-child(10)');
                 if (statusCell && data.statusClass && data.statusLabel) {
                     statusCell.innerHTML = `<span class="badge ${data.statusClass}">${data.statusLabel}</span>`;
                 }
@@ -353,6 +359,91 @@ function confirmarCancelamento(id) {
         showToast('danger', 'Erro de comunicação com o servidor');
         btn.disabled = false;
         btn.innerHTML = originalHtml;
+    });
+}
+
+/**
+ * Inicializa botões de marcar entregue (canal Administração/Correio)
+ */
+function initBotoesMarcarEntregue() {
+    document.querySelectorAll('.btn-marcar-entregue').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            confirmarMarcarEntregue(id);
+        });
+    });
+}
+
+/**
+ * Confirma e marca cobrança como entregue
+ */
+function confirmarMarcarEntregue(id) {
+    if (!confirm('Confirma que o boleto foi impresso e entregue/postado?')) {
+        return;
+    }
+
+    const btn = document.querySelector(`.btn-marcar-entregue[data-id="${id}"]`);
+    const originalHtml = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    const url = window.COBRANCA_ROUTES.marcarEntregue.replace('__ID__', id);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-Token': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', data.message || 'Cobrança marcada como entregue!');
+            location.reload();
+        } else {
+            showToast('danger', data.message || 'Erro ao marcar como entregue');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showToast('danger', 'Erro de comunicação com o servidor');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    });
+}
+
+/**
+ * Inicializa botões de atalho de faixa de vencimento (1-10/11-20/21-31 do mês atual)
+ */
+function initBotoesFaixaVencimento() {
+    document.querySelectorAll('.btn-faixa-vencimento').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = hoje.getMonth(); // 0-indexado
+            const ultimoDiaMes = new Date(ano, mes + 1, 0).getDate();
+
+            const diaInicio = parseInt(this.dataset.inicio, 10);
+            const diaFim = Math.min(parseInt(this.dataset.fim, 10), ultimoDiaMes);
+
+            const formatar = (ano, mesIndex, dia) => {
+                const mm = String(mesIndex + 1).padStart(2, '0');
+                const dd = String(dia).padStart(2, '0');
+                return `${ano}-${mm}-${dd}`;
+            };
+
+            document.getElementById('data_vencimento').value = '';
+            document.getElementById('vencimento_inicio').value = formatar(ano, mes, diaInicio);
+            document.getElementById('vencimento_fim').value = formatar(ano, mes, diaFim);
+
+            document.getElementById('form-filtro-cobranca').submit();
+        });
     });
 }
 

@@ -305,6 +305,20 @@ class ContratoController extends AbstractController
     }
 
     /**
+     * Tela de reajustes pendentes — lista contratos com data de reajuste vencida,
+     * permitindo simular e aplicar o reajuste por IGPM/TJ
+     */
+    #[Route('/reajustes', name: 'reajustes', methods: ['GET'])]
+    public function reajustes(): Response
+    {
+        $contratos = $this->contratoService->buscarContratosParaReajuste();
+
+        return $this->render('contrato/reajustes.html.twig', [
+            'contratos' => $contratos,
+        ]);
+    }
+
+    /**
      * Busca contratos que precisam de reajuste (AJAX)
      */
     #[Route('/para-reajuste', name: 'para_reajuste', methods: ['GET'])]
@@ -325,6 +339,74 @@ class ContratoController extends AbstractController
                 'message' => 'Erro interno ao processar a requisicao.',
             ], 500);
         }
+    }
+
+    /**
+     * Simula (sem persistir) o reajuste de um contrato pelo índice econômico configurado
+     */
+    #[Route('/{id}/simular-reajuste', name: 'simular_reajuste', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function simularReajuste(int $id): JsonResponse
+    {
+        try {
+            $preview = $this->contratoService->simularReajuste($id);
+
+            return new JsonResponse([
+                'success' => true,
+                'preview' => $this->formatarResultadoReajuste($preview),
+            ]);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao simular reajuste: ' . $e->getMessage(), ['exception' => $e]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro interno ao processar a requisicao.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Aplica o reajuste de um contrato: atualiza valor, avança próximo reajuste e registra histórico
+     */
+    #[Route('/{id}/aplicar-reajuste', name: 'aplicar_reajuste', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function aplicarReajuste(Request $request, int $id): JsonResponse
+    {
+        try {
+            if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+                return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido.'], 403);
+            }
+
+            $resultado = $this->contratoService->aplicarReajuste($id);
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Reajuste aplicado com sucesso.',
+                'resultado' => $this->formatarResultadoReajuste($resultado),
+            ]);
+        } catch (\RuntimeException $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao aplicar reajuste: ' . $e->getMessage(), ['exception' => $e]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erro interno ao processar a requisicao.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Formata datas do array de resultado de reajuste (simulação/aplicação) para JSON
+     */
+    private function formatarResultadoReajuste(array $resultado): array
+    {
+        if (isset($resultado['data_reajuste']) && $resultado['data_reajuste'] instanceof \DateTimeInterface) {
+            $resultado['data_reajuste'] = $resultado['data_reajuste']->format('Y-m-d');
+        }
+        if (isset($resultado['nova_data_proximo_reajuste']) && $resultado['nova_data_proximo_reajuste'] instanceof \DateTimeInterface) {
+            $resultado['nova_data_proximo_reajuste'] = $resultado['nova_data_proximo_reajuste']->format('Y-m-d');
+        }
+
+        return $resultado;
     }
 
     /**

@@ -162,15 +162,21 @@ class BoletoSantanderService
 
                 // Atualizar boleto com dados retornados
                 $boleto->setStatus(Boletos::STATUS_REGISTRADO);
-                $boleto->setCodigoBarras($data['barCode'] ?? null);
+                // API Santander v2 retorna 'barcode' (minusculo); mantemos fallbacks defensivos
+                $boleto->setCodigoBarras($data['barcode'] ?? $data['barCode'] ?? null);
                 $boleto->setLinhaDigitavel($data['digitableLine'] ?? null);
-                $boleto->setIdTituloBanco($data['id'] ?? null);
+                // A resposta de criacao nao traz 'id'; usamos o nsuCode (nosso numero) como identificador
+                $boleto->setIdTituloBanco($data['id'] ?? $data['nsuCode'] ?? null);
                 $boleto->setConvenioBanco($config->getConvenio());
 
-                // QR Code PIX (boleto híbrido)
-                if (!empty($data['qrCode'])) {
-                    $boleto->setTxidPix($data['qrCode']['txId'] ?? null);
-                    $boleto->setQrcodePix($data['qrCode']['emv'] ?? null);
+                // QR Code PIX (boleto hibrido): raiz txId / qrCodePix (emv)
+                $txidPix = $data['txId'] ?? ($data['qrCode']['txId'] ?? null);
+                $emvPix = $data['qrCodePix'] ?? ($data['qrCode']['emv'] ?? null);
+                if (!empty($txidPix)) {
+                    $boleto->setTxidPix($txidPix);
+                }
+                if (!empty($emvPix)) {
+                    $boleto->setQrcodePix($emvPix);
                 }
 
                 $boleto->setDataRegistro(new \DateTime());
@@ -424,9 +430,7 @@ class BoletoSantanderService
         $tipoPessoa = strlen($documentoLimpo) === 11 ? 'F' : 'J';
 
         $payload = [
-            'environment' => [
-                'type' => $config->getAmbiente() === 'producao' ? 'PRODUCAO' : 'SANDBOX'
-            ],
+            'environment' => $config->getAmbiente() === 'producao' ? 'PRODUCAO' : 'SANDBOX',
             'covenantCode' => $config->getConvenio(),
             'bankNumber' => '033',
             'clientNumber' => $config->getContaBancaria()->getCodigo(),
@@ -652,7 +656,7 @@ class BoletoSantanderService
 
         $estado = $endereco->getLogradouro()?->getBairro()?->getCidade()?->getEstado();
 
-        return $estado?->getSigla() ?? 'SP';
+        return $estado?->getUf() ?? 'SP';
     }
 
     /**

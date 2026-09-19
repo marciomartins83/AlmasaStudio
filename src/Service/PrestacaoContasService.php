@@ -48,6 +48,7 @@ class PrestacaoContasService
         private PessoaRepository $pessoaRepo,
         private ContasBancariasRepository $contaBancariaRepo,
         private Security $security,
+        private TabelaImpostoRendaService $tabelaImpostoRendaService,
         ParameterBagInterface $params
     ) {
         $this->projectDir = $params->get('kernel.project_dir');
@@ -520,11 +521,9 @@ class PrestacaoContasService
      */
     public function calcularRetencaoIR(float $valorReceita, int $idProprietario): float
     {
-        // Por padrão, não retém IR - implementar lógica conforme necessidade
-        // Verificar se proprietário tem retenção configurada
-        // Aplicar tabela progressiva se necessário
-
-        return 0;
+        // Aplica a tabela progressiva de IR vigente sobre o valor bruto da receita.
+        // idProprietario reservado para futura configuração de isenção por proprietário.
+        return $this->tabelaImpostoRendaService->calcularRetencao($valorReceita);
     }
 
     /**

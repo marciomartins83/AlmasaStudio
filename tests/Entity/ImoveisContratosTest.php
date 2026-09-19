@@ -202,6 +202,22 @@ class ImoveisContratosTest extends TestCase
         $this->assertCount(0, $this->contrato->getCobrancas());
     }
 
+    public function testCanalEnvioSincronizaEnviaEmail(): void
+    {
+        $this->contrato->setCanalEnvio(ImoveisContratos::CANAL_CORREIO);
+        $this->assertSame(ImoveisContratos::CANAL_CORREIO, $this->contrato->getCanalEnvio());
+        $this->assertFalse($this->contrato->isEnviaEmail());
+        $this->assertSame('Correio', $this->contrato->getCanalEnvioLabel());
+
+        $this->contrato->setCanalEnvio(ImoveisContratos::CANAL_ADMINISTRACAO);
+        $this->assertFalse($this->contrato->isEnviaEmail());
+        $this->assertSame('Administração', $this->contrato->getCanalEnvioLabel());
+
+        $this->contrato->setCanalEnvio(ImoveisContratos::CANAL_EMAIL);
+        $this->assertTrue($this->contrato->isEnviaEmail());
+        $this->assertSame('E-mail', $this->contrato->getCanalEnvioLabel());
+    }
+
     public function testPreUpdate(): void
     {
         $original = $this->contrato->getUpdatedAt();

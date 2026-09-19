@@ -37,6 +37,7 @@ class ContratosCobrancas
     // Status do ciclo
     public const STATUS_PENDENTE = 'PENDENTE';
     public const STATUS_BOLETO_GERADO = 'BOLETO_GERADO';
+    public const STATUS_AGUARDANDO_ENTREGA = 'AGUARDANDO_ENTREGA';
     public const STATUS_ENVIADO = 'ENVIADO';
     public const STATUS_PAGO = 'PAGO';
     public const STATUS_CANCELADO = 'CANCELADO';
@@ -96,6 +97,9 @@ class ContratosCobrancas
 
     #[ORM\Column(name: 'tipo_envio', type: Types::STRING, length: 20, nullable: true)]
     private ?string $tipoEnvio = null;
+
+    #[ORM\Column(name: 'canal_envio', type: Types::STRING, length: 20, options: ['default' => ImoveisContratos::CANAL_EMAIL])]
+    private string $canalEnvio = ImoveisContratos::CANAL_EMAIL;
 
     #[ORM\Column(name: 'enviado_em', type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $enviadoEm = null;
@@ -312,6 +316,17 @@ class ContratosCobrancas
         return $this;
     }
 
+    public function getCanalEnvio(): string
+    {
+        return $this->canalEnvio;
+    }
+
+    public function setCanalEnvio(string $canalEnvio): self
+    {
+        $this->canalEnvio = $canalEnvio;
+        return $this;
+    }
+
     public function getEnviadoEm(): ?\DateTimeInterface
     {
         return $this->enviadoEm;
@@ -390,6 +405,11 @@ class ContratosCobrancas
         return $this->status === self::STATUS_BOLETO_GERADO;
     }
 
+    public function isAguardandoEntrega(): bool
+    {
+        return $this->status === self::STATUS_AGUARDANDO_ENTREGA;
+    }
+
     public function isEnviado(): bool
     {
         return $this->status === self::STATUS_ENVIADO;
@@ -413,6 +433,11 @@ class ContratosCobrancas
         ]);
     }
 
+    public function podeMarcarEntregue(): bool
+    {
+        return $this->status === self::STATUS_AGUARDANDO_ENTREGA;
+    }
+
     public function podeGerarBoleto(): bool
     {
         return $this->status === self::STATUS_PENDENTE && $this->boleto === null;
@@ -434,6 +459,7 @@ class ContratosCobrancas
         return match ($this->status) {
             self::STATUS_PENDENTE => 'Pendente',
             self::STATUS_BOLETO_GERADO => 'Boleto Gerado',
+            self::STATUS_AGUARDANDO_ENTREGA => 'Aguardando Entrega',
             self::STATUS_ENVIADO => 'Enviado',
             self::STATUS_PAGO => 'Pago',
             self::STATUS_CANCELADO => 'Cancelado',
@@ -446,10 +472,21 @@ class ContratosCobrancas
         return match ($this->status) {
             self::STATUS_PENDENTE => 'warning',
             self::STATUS_BOLETO_GERADO => 'info',
+            self::STATUS_AGUARDANDO_ENTREGA => 'dark',
             self::STATUS_ENVIADO => 'primary',
             self::STATUS_PAGO => 'success',
             self::STATUS_CANCELADO => 'secondary',
             default => 'secondary',
+        };
+    }
+
+    public function getCanalEnvioLabel(): string
+    {
+        return match ($this->canalEnvio) {
+            ImoveisContratos::CANAL_ADMINISTRACAO => 'Administração',
+            ImoveisContratos::CANAL_CORREIO => 'Correio',
+            ImoveisContratos::CANAL_EMAIL => 'E-mail',
+            default => $this->canalEnvio,
         };
     }
 
@@ -509,6 +546,7 @@ class ContratosCobrancas
         return [
             self::STATUS_PENDENTE => 'Pendente',
             self::STATUS_BOLETO_GERADO => 'Boleto Gerado',
+            self::STATUS_AGUARDANDO_ENTREGA => 'Aguardando Entrega',
             self::STATUS_ENVIADO => 'Enviado',
             self::STATUS_PAGO => 'Pago',
             self::STATUS_CANCELADO => 'Cancelado',

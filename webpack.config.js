@@ -54,6 +54,9 @@ Encore
     // CRUD Filters — busca avancada, collapse, limpar
     .addEntry('crud_filters', './assets/js/crud/crud_filters.js')
 
+    // Reajustes de Contratos — simular/aplicar reajuste IGPM/TJ
+    .addEntry('reajustes', './assets/js/contrato/reajustes.js')
+
     // Divide os arquivos em pedaços otimizados
     .splitEntryChunks()
 

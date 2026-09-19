@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reajustes de Contratos - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Dashboard', 'url': path('app_dashboard')},
+            {'label': 'Contratos de Locação', 'url': path('app_contrato_index')}
+        ],
+        'current': 'Reajustes Pendentes'
+    } %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1><i class="fas fa-arrow-trend-up"></i> Reajustes Pendentes</h1>
+        <a href="{{ path('app_contrato_index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar para Contratos
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        Contratos com data de próximo reajuste vencida. Clique em <strong>Simular</strong> para
+        conferir o novo valor antes de aplicar — o reajuste só é gravado quando você confirmar.
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Imóvel</th>
+                            <th>Locatário</th>
+                            <th>Índice</th>
+                            <th>Valor Atual</th>
+                            <th>Próximo Reajuste</th>
+                            <th width="220">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-reajustes">
+                        {% for contrato in contratos %}
+                        <tr data-contrato-id="{{ contrato.id }}">
+                            <td>{{ contrato.id }}</td>
+                            <td>{{ contrato.imovel_codigo }}<br><small class="text-muted">{{ contrato.imovel_endereco }}</small></td>
+                            <td>{{ contrato.locatario_nome ?? '-' }}</td>
+                            <td>{{ contrato.indice_reajuste }}</td>
+                            <td class="valor-atual">R$ {{ contrato.valor_contrato|number_format(2, ',', '.') }}</td>
+                            <td>{{ contrato.data_proximo_reajuste ? contrato.data_proximo_reajuste|date('d/m/Y') : '-' }}</td>
+                            <td>
+                                <button type="button" class="btn btn-info btn-sm btn-simular" data-contrato-id="{{ contrato.id }}">
+                                    <i class="fas fa-calculator"></i> Simular
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                                <span>Nenhum contrato com reajuste pendente</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal de simulação/aplicação de reajuste #}
+<div class="modal fade" id="modalReajuste" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-calculator"></i> Simulação de Reajuste</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalReajusteBody">
+                <div class="text-center py-4" id="modalReajusteLoading">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <div id="modalReajusteConteudo" class="d-none">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Índice utilizado:</th>
+                            <td id="modalIndiceTipo"></td>
+                        </tr>
+                        <tr>
+                            <th>Competência base → atual:</th>
+                            <td id="modalCompetencias"></td>
+                        </tr>
+                        <tr>
+                            <th>Fator aplicado:</th>
+                            <td id="modalFator"></td>
+                        </tr>
+                        <tr>
+                            <th>Valor atual:</th>
+                            <td id="modalValorAnterior"></td>
+                        </tr>
+                        <tr>
+                            <th>Valor novo:</th>
+                            <td><strong class="text-success" id="modalValorNovo"></strong></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="alert alert-danger d-none" id="modalReajusteErro"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-success d-none" id="btnAplicarReajuste">
+                    <i class="fas fa-check"></i> Aplicar Reajuste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('reajustes') }}
+    <script>
+        window.ROUTES = window.ROUTES || {};
+        window.ROUTES.simularReajuste = '{{ path('app_contrato_simular_reajuste', {id: 999999}) }}'.replace('999999', '__ID__');
+        window.ROUTES.aplicarReajuste = '{{ path('app_contrato_aplicar_reajuste', {id: 999999}) }}'.replace('999999', '__ID__');
+    </script>
+{% endblock %}

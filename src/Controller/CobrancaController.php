@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\ContratosCobrancas;
 use App\Repository\ContratosCobrancasRepository;
+use App\Repository\LancamentosFinanceirosRepository;
 use App\Service\CobrancaContratoService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -30,6 +31,7 @@ class CobrancaController extends AbstractController
     public function __construct(
         private CobrancaContratoService $cobrancaService,
         private ContratosCobrancasRepository $cobrancasRepo,
+        private LancamentosFinanceirosRepository $lancamentosFinanceirosRepo,
         private \App\Service\EmailService $emailService
     ) {}
 
@@ -42,6 +44,8 @@ class CobrancaController extends AbstractController
     {
         // Filtros
         $dataVencimentoStr = $request->query->get('data_vencimento');
+        $vencimentoInicioStr = $request->query->get('vencimento_inicio');
+        $vencimentoFimStr = $request->query->get('vencimento_fim');
         $mostrarAutomaticos = $request->query->getBoolean('mostrar_automaticos', false);
         $status = $request->query->all('status');
 
@@ -52,8 +56,25 @@ class CobrancaController extends AbstractController
 
         // Montar filtros
         $filtros = [];
+        $vencimentoInicio = null;
+        $vencimentoFim = null;
 
-        if ($dataVencimentoStr) {
+        // Filtro por período de vencimento (ex: dia 1-10/11-20/21-31 do mês, como no
+        // sistema legado) tem prioridade sobre o filtro de data pontual, se informado.
+        if ($vencimentoInicioStr || $vencimentoFimStr) {
+            try {
+                if ($vencimentoInicioStr) {
+                    $vencimentoInicio = new \DateTime($vencimentoInicioStr);
+                    $filtros['vencimento_inicio'] = $vencimentoInicio;
+                }
+                if ($vencimentoFimStr) {
+                    $vencimentoFim = new \DateTime($vencimentoFimStr);
+                    $filtros['vencimento_fim'] = $vencimentoFim;
+                }
+            } catch (\Exception $e) {
+                // Ignora datas inválidas
+            }
+        } elseif ($dataVencimentoStr) {
             try {
                 $dataVencimento = new \DateTime($dataVencimentoStr);
                 $filtros['data_vencimento'] = $dataVencimento;
@@ -84,18 +105,26 @@ class CobrancaController extends AbstractController
         $cobrancas = $resultado['cobrancas'];
         $total = $resultado['total'];
 
-        // Estatísticas para o dia
-        $estatisticas = $this->cobrancaService->getEstatisticas(
-            $filtros['data_vencimento'] ?? null
-        );
+        // Estatísticas para o dia/período (usa a data de referência disponível)
+        $dataReferencia = $filtros['data_vencimento'] ?? $vencimentoInicio ?? null;
+        $estatisticas = $this->cobrancaService->getEstatisticas($dataReferencia);
 
         // Contagem por tipo de envio
         $contagemTipoEnvio = $this->cobrancasRepo->contarPorTipoEnvio(
-            $filtros['data_vencimento'] ?? new \DateTime()
+            $dataReferencia ?? new \DateTime()
         );
 
         // Status disponíveis para filtro
         $statusOptions = ContratosCobrancas::getStatusDisponiveis();
+
+        // Aviso de inadimplência (não bloqueia envio manual — só avisa visualmente)
+        $inadimplentes = [];
+        foreach ($cobrancas as $cobranca) {
+            $locatario = $cobranca->getContrato()->getPessoaLocatario();
+            if ($locatario && $this->lancamentosFinanceirosRepo->possuiLancamentoEmAbertoAntesDe($locatario->getIdpessoa(), $cobranca->getDataVencimento())) {
+                $inadimplentes[$cobranca->getId()] = true;
+            }
+        }
 
         return $this->render('cobranca/pendentes.html.twig', [
             'cobrancas' => $cobrancas,
@@ -107,7 +136,10 @@ class CobrancaController extends AbstractController
             'statusOptions' => $statusOptions,
             'filtros' => $filtros,
             'mostrarAutomaticos' => $mostrarAutomaticos,
-            'dataVencimento' => $filtros['data_vencimento'] ?? new \DateTime(),
+            'dataVencimento' => $filtros['data_vencimento'] ?? null,
+            'vencimentoInicio' => $vencimentoInicio,
+            'vencimentoFim' => $vencimentoFim,
+            'inadimplentes' => $inadimplentes,
             'queryParams' => array_filter($request->query->all(), fn($v) => !is_array($v)),
         ]);
     }
@@ -268,6 +300,33 @@ class CobrancaController extends AbstractController
         }
 
         $resultado = $this->cobrancaService->cancelarCobranca($cobranca);
+
+        return new JsonResponse([
+            'success' => $resultado['sucesso'],
+            'message' => $resultado['mensagem'],
+            'status' => $cobranca->getStatus(),
+            'statusLabel' => $cobranca->getStatusLabel(),
+            'statusClass' => $cobranca->getStatusClass(),
+        ]);
+    }
+
+    /**
+     * Marca cobrança com canal Administração/Correio como entregue manualmente.
+     */
+    #[Route('/{id}/marcar-entregue', name: 'app_cobranca_marcar_entregue', methods: ['POST'])]
+    public function marcarEntregue(Request $request, int $id): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $cobranca = $this->cobrancasRepo->find($id);
+
+        if (!$cobranca) {
+            return new JsonResponse(['success' => false, 'message' => 'Cobrança não encontrada'], 404);
+        }
+
+        $resultado = $this->cobrancaService->marcarEntregue($cobranca);
 
         return new JsonResponse([
             'success' => $resultado['sucesso'],

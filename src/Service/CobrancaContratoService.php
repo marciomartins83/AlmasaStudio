@@ -11,6 +11,7 @@ use App\Repository\ContratosCobrancasRepository;
 use App\Repository\ContratosItensCobrancaRepository;
 use App\Repository\ImoveisContratosRepository;
 use App\Repository\ConfiguracoesApiBancoRepository;
+use App\Repository\LancamentosFinanceirosRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -34,6 +35,7 @@ class CobrancaContratoService
         private ContratosItensCobrancaRepository $itensRepo,
         private ImoveisContratosRepository $contratosRepo,
         private ConfiguracoesApiBancoRepository $configApiBancoRepo,
+        private LancamentosFinanceirosRepository $lancamentosFinanceirosRepo,
         private LoggerInterface $logger,
         private string $projectDir
     ) {}
@@ -285,9 +287,9 @@ class CobrancaContratoService
 
         try {
             // 1. Criar boleto
-            $boleto = $this->boletoService->criarBoleto([
+            $boleto = $this->boletoService->criarBoletoFromArray([
                 'configuracao_api_id' => $configApi->getId(),
-                'pessoa_pagador_id' => $locatario->getId(),
+                'pessoa_pagador_id' => $locatario->getIdpessoa(),
                 'imovel_id' => $contrato->getImovel()->getId(),
                 'valor_nominal' => $cobranca->getValorTotalFloat(),
                 'data_vencimento' => $cobranca->getDataVencimento(),
@@ -308,6 +310,25 @@ class CobrancaContratoService
             // 3. Atualizar cobrança com boleto
             $cobranca->setBoleto($boleto);
             $cobranca->setStatus(ContratosCobrancas::STATUS_BOLETO_GERADO);
+            $canalEnvio = $contrato->getCanalEnvio();
+            $cobranca->setCanalEnvio($canalEnvio);
+
+            // Canais Administração/Correio: boleto fica pronto para impressão manual
+            // (templates/boleto/_imprimir.html.twig), sem disparar e-mail.
+            if ($canalEnvio !== ImoveisContratos::CANAL_EMAIL) {
+                $cobranca->setStatus(ContratosCobrancas::STATUS_AGUARDANDO_ENTREGA);
+                $cobranca->setTipoEnvio($tipoEnvio);
+
+                $this->em->persist($cobranca);
+                $this->em->flush();
+
+                return [
+                    'sucesso' => true,
+                    'cobranca' => $cobranca,
+                    'boleto' => $boleto,
+                    'mensagem' => sprintf('Boleto gerado, aguardando entrega via %s', $cobranca->getCanalEnvioLabel()),
+                ];
+            }
 
             // 4. Gerar PDF do boleto (simulado - usa template de impressão)
             $pdfPath = $this->gerarPdfBoleto($boleto);
@@ -428,6 +449,21 @@ class CobrancaContratoService
                     $cobranca = $this->criarCobranca($contrato, $competencia);
                 }
 
+                // Bloqueio de inadimplente: rotina automática não manda boleto novo
+                // pra quem já tem lançamento anterior vencido e não pago (senão o
+                // inquilino paga o mês atual e esquece o atrasado). Envio manual não
+                // é afetado por essa regra — só a rotina automática.
+                $locatario = $contrato->getPessoaLocatario();
+                if ($locatario && $this->lancamentosFinanceirosRepo->possuiLancamentoEmAbertoAntesDe($locatario->getIdpessoa(), $dataVencimento)) {
+                    $resultados['ignorados']++;
+                    $resultados['detalhes'][] = [
+                        'contrato_id' => $contrato->getId(),
+                        'status' => 'ignorado',
+                        'motivo' => 'Inquilino inadimplente (lançamento anterior em aberto)'
+                    ];
+                    continue;
+                }
+
                 // Gerar e enviar
                 $resultado = $this->gerarEEnviarBoleto(
                     $cobranca,
@@ -535,6 +571,30 @@ class CobrancaContratoService
         return [
             'sucesso' => true,
             'mensagem' => 'Cobrança cancelada com sucesso'
+        ];
+    }
+
+    /**
+     * Marca uma cobrança com canal Administração/Correio como entregue manualmente
+     * (impresso e entregue em mãos ou postado).
+     */
+    public function marcarEntregue(ContratosCobrancas $cobranca): array
+    {
+        if (!$cobranca->podeMarcarEntregue()) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Cobrança não está aguardando entrega'
+            ];
+        }
+
+        $cobranca->setStatus(ContratosCobrancas::STATUS_ENVIADO);
+        $cobranca->setEnviadoEm(new \DateTime());
+        $this->em->persist($cobranca);
+        $this->em->flush();
+
+        return [
+            'sucesso' => true,
+            'mensagem' => 'Cobrança marcada como entregue'
         ];
     }
 

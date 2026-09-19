@@ -1,0 +1,136 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Índices Econômicos - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': path('app_financeiro_index')}
+        ],
+        'current': 'Índices Econômicos'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-percentage"></i> Índices Econômicos</h1>
+                <a href="{{ path('app_indice_economico_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Novo Índice
+                </a>
+            </div>
+
+            {% include '_partials/search_panel.html.twig' with {
+                filterDefs: pagination.filterDefs,
+                filters: pagination.filters,
+                routeName: 'app_indice_economico_index',
+                itemsPerPage: pagination.itemsPerPage,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir
+            } %}
+
+            {% include '_partials/sort_panel.html.twig' with {
+                sortOptions: pagination.sortOptions,
+                sortField: pagination.sortField,
+                sortDir: pagination.sortDir,
+                routeName: 'app_indice_economico_index',
+                filters: pagination.filters,
+                itemsPerPage: pagination.itemsPerPage
+            } %}
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="80">ID</th>
+                                    <th>Índice</th>
+                                    <th>Competência</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th width="200">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for indice in pagination.items %}
+                                <tr>
+                                    <td>{{ indice.id }}</td>
+                                    <td><strong>{{ indice.tipo == 'IGPM' ? 'IGPM' : 'Tribunal de Justiça' }}</strong></td>
+                                    <td>{{ indice.competencia }}</td>
+                                    <td>{{ indice.tipoValor == 'indice' ? 'Índice' : 'Percentual' }}</td>
+                                    <td>
+                                        {% if indice.tipoValor == 'indice' %}
+                                            {{ indice.valorIndice }}
+                                        {% else %}
+                                            {{ indice.valorPercentual }}%
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical btn-group-sm d-md-none" role="group">
+                                            <a href="{{ path('app_indice_economico_show', {'id': indice.id}) }}"
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_indice_economico_edit', {'id': indice.id}) }}"
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                        </div>
+                                        <div class="btn-group d-none d-md-flex" role="group">
+                                            <a href="{{ path('app_indice_economico_show', {'id': indice.id}) }}"
+                                               class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            <a href="{{ path('app_indice_economico_edit', {'id': indice.id}) }}"
+                                               class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            <form method="post"
+                                                  action="{{ path('app_indice_economico_delete', {'id': indice.id}) }}"
+                                                  style="display:inline-block"
+                                                  data-confirm-delete="Tem certeza que deseja excluir este índice?">
+                                                <input type="hidden" name="_token"
+                                                       value="{{ csrf_token('delete' ~ indice.id) }}">
+                                                <button class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Excluir
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                        <span>Nenhum índice econômico cadastrado</span><br>
+                                        <small>Clique em "Novo Índice" para começar</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% include '_partials/pagination.html.twig' with {
+                        totalItems: pagination.totalItems,
+                        currentPage: pagination.currentPage,
+                        itemsPerPage: pagination.itemsPerPage,
+                        totalPages: pagination.totalPages,
+                        search: pagination.search,
+                        routeName: 'app_indice_economico_index',
+                        filters: pagination.filters,
+                        sortField: pagination.sortField,
+                        sortDir: pagination.sortDir,
+                        showSearch: false
+                    } %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ encore_entry_script_tags('crud_filters') }}
+{% endblock %}

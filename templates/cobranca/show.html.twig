@@ -64,7 +64,7 @@
                                 <tr>
                                     <th width="40%">Contrato:</th>
                                     <td>
-                                        <a href="{{ path('app_imoveis_contratos_edit', {id: contrato.id}) }}">
+                                        <a href="{{ path('app_contrato_edit', {id: contrato.id}) }}">
                                             #{{ contrato.id }}
                                         </a>
                                     </td>
@@ -102,6 +102,10 @@
                                             <span class="badge bg-secondary">Não enviado</span>
                                         {% endif %}
                                     </td>
+                                </tr>
+                                <tr>
+                                    <th>Canal de Envio:</th>
+                                    <td><span class="badge bg-light text-dark border">{{ cobranca.canalEnvioLabel }}</span></td>
                                 </tr>
                                 {% if cobranca.bloqueadoRotinaAuto %}
                                 <tr>

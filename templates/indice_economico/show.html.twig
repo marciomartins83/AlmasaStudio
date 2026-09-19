@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Índice {{ indice_economico.competencia }} - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': path('app_financeiro_index')},
+            {'label': 'Índices Econômicos', 'url': path('app_indice_economico_index')}
+        ],
+        'current': 'Ver Índice'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-percentage"></i> {{ indice_economico.tipo == 'IGPM' ? 'IGPM' : 'Tribunal de Justiça' }} — {{ indice_economico.competencia }}</h1>
+                <div>
+                    <a href="{{ path('app_indice_economico_edit', {'id': indice_economico.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Índice
+                    </a>
+                    <a href="{{ path('app_indice_economico_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="150">ID:</th>
+                                    <td>{{ indice_economico.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Índice:</th>
+                                    <td><strong>{{ indice_economico.tipo == 'IGPM' ? 'IGPM' : 'Tribunal de Justiça' }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Competência:</th>
+                                    <td>{{ indice_economico.competencia }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo de Valor:</th>
+                                    <td>{{ indice_economico.tipoValor == 'indice' ? 'Índice' : 'Percentual' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor do Índice:</th>
+                                    <td>{{ indice_economico.valorIndice ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor Percentual:</th>
+                                    <td>{{ indice_economico.valorPercentual is not null ? indice_economico.valorPercentual ~ '%' : '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Observações:</th>
+                                    <td>{{ indice_economico.observacoes ?? '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

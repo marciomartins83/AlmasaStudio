@@ -273,14 +273,15 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="envia_email" id="envia-email"
-                                                {% if not contrato or contrato.envia_email %}checked{% endif %}>
-                                            <label class="form-check-label" for="envia-email">
-                                                <i class="fas fa-envelope"></i> Enviar E-mails Automaticamente
-                                            </label>
-                                            <small class="text-muted d-block">Enviar e-mails de cobrança e avisos</small>
-                                        </div>
+                                        <label class="form-label" for="canal-envio">
+                                            <i class="fas fa-paper-plane"></i> Canal de Envio do Boleto
+                                        </label>
+                                        <select name="canal_envio" id="canal-envio" class="form-select">
+                                            <option value="EMAIL" {% if not contrato or contrato.canal_envio == 'EMAIL' %}selected{% endif %}>E-mail</option>
+                                            <option value="CORREIO" {% if contrato and contrato.canal_envio == 'CORREIO' %}selected{% endif %}>Correio</option>
+                                            <option value="ADMINISTRACAO" {% if contrato and contrato.canal_envio == 'ADMINISTRACAO' %}selected{% endif %}>Administração (entrega em mãos)</option>
+                                        </select>
+                                        <small class="text-muted d-block">Como o boleto chega até o locatário</small>
                                     </div>
 
                                     <div class="col-md-6">

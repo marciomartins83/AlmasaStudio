@@ -16,6 +16,7 @@ use App\Repository\ImoveisContratosRepository;
 use App\Repository\PessoaRepository;
 use App\Repository\ContasBancariasRepository;
 use App\Service\PrestacaoContasService;
+use App\Service\TabelaImpostoRendaService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -34,6 +35,7 @@ class PrestacaoContasServiceTest extends TestCase
     private PessoaRepository $pessoaRepo;
     private ContasBancariasRepository $contaBancariaRepo;
     private Security $security;
+    private TabelaImpostoRendaService $tabelaImpostoRendaService;
 
     protected function setUp(): void
     {
@@ -47,6 +49,7 @@ class PrestacaoContasServiceTest extends TestCase
         $this->pessoaRepo = $this->createMock(PessoaRepository::class);
         $this->contaBancariaRepo = $this->createMock(ContasBancariasRepository::class);
         $this->security = $this->createMock(Security::class);
+        $this->tabelaImpostoRendaService = $this->createMock(TabelaImpostoRendaService::class);
 
         $params = $this->createMock(ParameterBagInterface::class);
         $params
@@ -66,6 +69,7 @@ class PrestacaoContasServiceTest extends TestCase
             $this->pessoaRepo,
             $this->contaBancariaRepo,
             $this->security,
+            $this->tabelaImpostoRendaService,
             $params
         );
     }
@@ -222,12 +226,17 @@ class PrestacaoContasServiceTest extends TestCase
         $this->assertEquals(100.0, $taxa);
     }
 
-    public function testCalcularRetencaoIR(): void
+    public function testCalcularRetencaoIRDelegaParaTabelaImpostoRendaService(): void
     {
+        $this->tabelaImpostoRendaService
+            ->expects($this->once())
+            ->method('calcularRetencao')
+            ->with(1000.00)
+            ->willReturn(50.0);
+
         $retencao = $this->service->calcularRetencaoIR(1000.00, 1);
 
-        // Currently returns 0
-        $this->assertEquals(0, $retencao);
+        $this->assertEquals(50.0, $retencao);
     }
 
     public function testGetEstatisticas(): void

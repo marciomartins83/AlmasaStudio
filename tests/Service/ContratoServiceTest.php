@@ -11,10 +11,12 @@ use App\Entity\Logradouros;
 use App\Entity\Bairros;
 use App\Entity\Cidades;
 use App\Entity\Estados;
+use App\Entity\IndiceEconomico;
 use App\Repository\ImoveisContratosRepository;
 use App\Repository\ImoveisRepository;
 use App\Repository\PessoaRepository;
 use App\Service\ContratoService;
+use App\Service\IndiceEconomicoService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -27,6 +29,7 @@ class ContratoServiceTest extends TestCase
     private ImoveisContratosRepository $contratosRepository;
     private ImoveisRepository $imoveisRepository;
     private PessoaRepository $pessoaRepository;
+    private IndiceEconomicoService $indiceEconomicoService;
 
     protected function setUp(): void
     {
@@ -35,13 +38,15 @@ class ContratoServiceTest extends TestCase
         $this->contratosRepository = $this->createMock(ImoveisContratosRepository::class);
         $this->imoveisRepository = $this->createMock(ImoveisRepository::class);
         $this->pessoaRepository = $this->createMock(PessoaRepository::class);
+        $this->indiceEconomicoService = $this->createMock(IndiceEconomicoService::class);
 
         $this->service = new ContratoService(
             $this->entityManager,
             $this->logger,
             $this->contratosRepository,
             $this->imoveisRepository,
-            $this->pessoaRepository
+            $this->pessoaRepository,
+            $this->indiceEconomicoService
         );
     }
 
@@ -450,5 +455,160 @@ class ContratoServiceTest extends TestCase
         $resultado = $this->service->renovarContrato(1, ['data_inicio' => '2025-01-01']);
 
         $this->assertInstanceOf(ImoveisContratos::class, $resultado);
+    }
+
+    private function criarContratoParaReajuste(
+        string $valorContrato,
+        string $indiceReajuste = IndiceEconomico::TIPO_IGPM,
+        string $periodicidade = 'anual',
+        string $dataProximoReajuste = '2026-05-01'
+    ): ImoveisContratos {
+        $contrato = new ImoveisContratos();
+        $contrato->setValorContrato($valorContrato);
+        $contrato->setIndiceReajuste($indiceReajuste);
+        $contrato->setPeriodicidadeReajuste($periodicidade);
+        $contrato->setDataProximoReajuste(new \DateTime($dataProximoReajuste));
+
+        return $contrato;
+    }
+
+    private function criarIndice(string $tipoValor, ?string $valorIndice = null, ?string $valorPercentual = null): IndiceEconomico
+    {
+        $indice = new IndiceEconomico();
+        $indice->setTipo(IndiceEconomico::TIPO_IGPM);
+        $indice->setTipoValor($tipoValor);
+        if ($valorIndice !== null) {
+            $indice->setValorIndice($valorIndice);
+        }
+        if ($valorPercentual !== null) {
+            $indice->setValorPercentual($valorPercentual);
+        }
+
+        return $indice;
+    }
+
+    public function testSimularReajustePorIndiceCalculaFatorCorretamente(): void
+    {
+        $contrato = $this->criarContratoParaReajuste('1000.00');
+
+        $this->contratosRepository->method('find')->with(1)->willReturn($contrato);
+
+        $this->indiceEconomicoService
+            ->method('buscarVigente')
+            ->willReturnMap([
+                [IndiceEconomico::TIPO_IGPM, '2026-05', $this->criarIndice(IndiceEconomico::TIPO_VALOR_INDICE, '110.500000')],
+                [IndiceEconomico::TIPO_IGPM, '2025-05', $this->criarIndice(IndiceEconomico::TIPO_VALOR_INDICE, '100.000000')],
+            ]);
+
+        $resultado = $this->service->simularReajuste(1);
+
+        $this->assertSame(1000.0, $resultado['valor_anterior']);
+        $this->assertSame(1105.0, $resultado['valor_novo']);
+        $this->assertEqualsWithDelta(1.105, $resultado['fator_aplicado'], 0.000001);
+        $this->assertSame('2026-05', $resultado['competencia_atual']);
+        $this->assertSame('2025-05', $resultado['competencia_base']);
+    }
+
+    public function testSimularReajustePorPercentualCalculaFatorCorretamente(): void
+    {
+        $contrato = $this->criarContratoParaReajuste('1000.00');
+
+        $this->contratosRepository->method('find')->with(1)->willReturn($contrato);
+
+        $this->indiceEconomicoService
+            ->method('buscarVigente')
+            ->with(IndiceEconomico::TIPO_IGPM, '2026-05')
+            ->willReturn($this->criarIndice(IndiceEconomico::TIPO_VALOR_PERCENTUAL, null, '5.0000'));
+
+        $resultado = $this->service->simularReajuste(1);
+
+        $this->assertSame(1050.0, $resultado['valor_novo']);
+        $this->assertEqualsWithDelta(1.05, $resultado['fator_aplicado'], 0.000001);
+        $this->assertEqualsWithDelta(5.0, $resultado['percentual_aplicado'], 0.0001);
+    }
+
+    public function testSimularReajusteLancaExcecaoQuandoIndiceNaoCadastrado(): void
+    {
+        $contrato = $this->criarContratoParaReajuste('1000.00');
+        $this->contratosRepository->method('find')->with(1)->willReturn($contrato);
+        $this->indiceEconomicoService->method('buscarVigente')->willReturn(null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Índice IGPM não cadastrado');
+
+        $this->service->simularReajuste(1);
+    }
+
+    public function testSimularReajusteLancaExcecaoQuandoContratoNaoTemDataProximoReajuste(): void
+    {
+        $contrato = new ImoveisContratos();
+        $contrato->setValorContrato('1000.00');
+        $this->contratosRepository->method('find')->with(1)->willReturn($contrato);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('data de próximo reajuste');
+
+        $this->service->simularReajuste(1);
+    }
+
+    public function testAplicarReajusteAtualizaContratoRegistraHistoricoEAvancaProximaData(): void
+    {
+        $contrato = $this->criarContratoParaReajuste('1000.00');
+
+        $this->contratosRepository->method('find')->with(1)->willReturn($contrato);
+
+        $this->indiceEconomicoService
+            ->method('buscarVigente')
+            ->willReturnMap([
+                [IndiceEconomico::TIPO_IGPM, '2026-05', $this->criarIndice(IndiceEconomico::TIPO_VALOR_INDICE, '110.500000')],
+                [IndiceEconomico::TIPO_IGPM, '2025-05', $this->criarIndice(IndiceEconomico::TIPO_VALOR_INDICE, '100.000000')],
+            ]);
+
+        $connection = $this->createMock(\Doctrine\DBAL\Connection::class);
+        $this->entityManager->method('getConnection')->willReturn($connection);
+
+        $connection->expects($this->once())->method('beginTransaction');
+        $connection->expects($this->once())->method('commit');
+        $connection->expects($this->never())->method('rollBack');
+
+        $this->entityManager->expects($this->once())->method('persist')
+            ->with($this->isInstanceOf(\App\Entity\ContratoReajusteHistorico::class));
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $resultado = $this->service->aplicarReajuste(1);
+
+        $this->assertSame('1105', $contrato->getValorContrato());
+        $this->assertEquals(new \DateTime('2027-05-01'), $contrato->getDataProximoReajuste());
+        $this->assertSame(1105.0, $resultado['valor_novo']);
+    }
+
+    public function testAplicarReajusteFazRollbackQuandoContratoDesaparece(): void
+    {
+        $contrato = $this->criarContratoParaReajuste('1000.00');
+
+        // find() é chamado 2x: 1x dentro de simularReajuste (sucesso), 1x dentro do
+        // corpo transacional de aplicarReajuste (aqui simulamos que sumiu)
+        $this->contratosRepository
+            ->method('find')
+            ->with(1)
+            ->willReturnOnConsecutiveCalls($contrato, null);
+
+        $this->indiceEconomicoService
+            ->method('buscarVigente')
+            ->willReturnMap([
+                [IndiceEconomico::TIPO_IGPM, '2026-05', $this->criarIndice(IndiceEconomico::TIPO_VALOR_INDICE, '110.500000')],
+                [IndiceEconomico::TIPO_IGPM, '2025-05', $this->criarIndice(IndiceEconomico::TIPO_VALOR_INDICE, '100.000000')],
+            ]);
+
+        $connection = $this->createMock(\Doctrine\DBAL\Connection::class);
+        $this->entityManager->method('getConnection')->willReturn($connection);
+
+        $connection->expects($this->once())->method('beginTransaction');
+        $connection->expects($this->once())->method('rollBack');
+        $connection->expects($this->never())->method('commit');
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->service->aplicarReajuste(1);
     }
 }

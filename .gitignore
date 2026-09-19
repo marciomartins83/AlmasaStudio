@@ -96,3 +96,15 @@ Captura\ de\ tela*.png
 /backups/
 /exemploRel/
 ###< backups e exemplos ###
+
+###> deploy: nunca versionar segredos e lixo local ###
+*.pfx
+*.p12
+/almasaVideoBoletos/
+/almasa-migration/
+/emails/
+/.claude/
+/EOF
+/deploy/*.bak
+/docs/.UPDATE_PENDING
+###< deploy ###

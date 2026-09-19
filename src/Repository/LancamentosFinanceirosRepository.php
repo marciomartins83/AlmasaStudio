@@ -126,6 +126,30 @@ class LancamentosFinanceirosRepository extends ServiceEntityRepository
     }
 
     /**
+     * Verifica se o inquilino tem lançamento vencido e não pago com vencimento
+     * anterior à data informada — usado pra bloquear envio automático de boleto
+     * pra quem está inadimplente (regra do sistema legado: "só manda pra quem
+     * está em dia", senão o inquilino paga o mês atual e esquece o atrasado).
+     */
+    public function possuiLancamentoEmAbertoAntesDe(int $inquilinoId, \DateTimeInterface $data): bool
+    {
+        $resultado = $this->createQueryBuilder('l')
+            ->select('1')
+            ->where('l.inquilino = :inquilino')
+            ->andWhere('l.situacao IN (:situacoes)')
+            ->andWhere('l.dataVencimento < :data')
+            ->andWhere('l.ativo = true')
+            ->setParameter('inquilino', $inquilinoId)
+            ->setParameter('situacoes', ['aberto', 'parcial', 'atrasado'])
+            ->setParameter('data', $data)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $resultado !== null;
+    }
+
+    /**
      * Busca lançamentos em atraso
      *
      * @return array

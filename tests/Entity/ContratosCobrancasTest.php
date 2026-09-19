@@ -244,6 +244,23 @@ class ContratosCobrancasTest extends TestCase
         $this->assertEquals(1234.56, $this->cobranca->getValorTotalFloat());
     }
 
+    public function testCanalEnvioEStatusAguardandoEntrega(): void
+    {
+        $this->cobranca->setCanalEnvio(ImoveisContratos::CANAL_CORREIO);
+        $this->assertEquals(ImoveisContratos::CANAL_CORREIO, $this->cobranca->getCanalEnvio());
+        $this->assertEquals('Correio', $this->cobranca->getCanalEnvioLabel());
+
+        $this->cobranca->setStatus(ContratosCobrancas::STATUS_AGUARDANDO_ENTREGA);
+        $this->assertTrue($this->cobranca->isAguardandoEntrega());
+        $this->assertTrue($this->cobranca->podeMarcarEntregue());
+        $this->assertEquals('Aguardando Entrega', $this->cobranca->getStatusLabel());
+        $this->assertEquals('dark', $this->cobranca->getStatusClass());
+
+        $this->cobranca->setStatus(ContratosCobrancas::STATUS_ENVIADO);
+        $this->assertFalse($this->cobranca->isAguardandoEntrega());
+        $this->assertFalse($this->cobranca->podeMarcarEntregue());
+    }
+
     public function testGetStatusDisponiveis(): void
     {
         $disponiveis = ContratosCobrancas::getStatusDisponiveis();

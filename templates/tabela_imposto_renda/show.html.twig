@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Faixa de IR - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': path('app_financeiro_index')},
+            {'label': 'Tabela de Imposto de Renda', 'url': path('app_tabela_imposto_renda_index')}
+        ],
+        'current': 'Ver Faixa'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-file-invoice-dollar"></i> Faixa de IR — {{ faixa_imposto_renda.dataVigencia|date('d/m/Y') }}</h1>
+                <div>
+                    <a href="{{ path('app_tabela_imposto_renda_edit', {'id': faixa_imposto_renda.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Faixa
+                    </a>
+                    <a href="{{ path('app_tabela_imposto_renda_index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="180">ID:</th>
+                                    <td>{{ faixa_imposto_renda.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Data de Vigência:</th>
+                                    <td>{{ faixa_imposto_renda.dataVigencia|date('d/m/Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor Inicial:</th>
+                                    <td>R$ {{ faixa_imposto_renda.valorInicial|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Valor Final:</th>
+                                    <td>{{ faixa_imposto_renda.valorFinal is not null ? 'R$ ' ~ faixa_imposto_renda.valorFinal|number_format(2, ',', '.') : 'Sem teto' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Alíquota:</th>
+                                    <td><strong>{{ faixa_imposto_renda.aliquota }}%</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Parcela a Deduzir:</th>
+                                    <td>R$ {{ faixa_imposto_renda.parcelaDeduzir|number_format(2, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if faixa_imposto_renda.ativo %}
+                                            <span class="badge bg-success">Ativo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

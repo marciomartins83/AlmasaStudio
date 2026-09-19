@@ -5,6 +5,8 @@ namespace App\Service;
 use App\Entity\ImoveisContratos;
 use App\Entity\Imoveis;
 use App\Entity\Pessoas;
+use App\Entity\ContratoReajusteHistorico;
+use App\Entity\IndiceEconomico;
 use App\Repository\ImoveisContratosRepository;
 use App\Repository\ImoveisRepository;
 use App\Repository\PessoaRepository;
@@ -30,19 +32,22 @@ class ContratoService
     private ImoveisContratosRepository $contratosRepository;
     private ImoveisRepository $imoveisRepository;
     private PessoaRepository $pessoaRepository;
+    private IndiceEconomicoService $indiceEconomicoService;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
         ImoveisContratosRepository $contratosRepository,
         ImoveisRepository $imoveisRepository,
-        PessoaRepository $pessoaRepository
+        PessoaRepository $pessoaRepository,
+        IndiceEconomicoService $indiceEconomicoService
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->contratosRepository = $contratosRepository;
         $this->imoveisRepository = $imoveisRepository;
         $this->pessoaRepository = $pessoaRepository;
+        $this->indiceEconomicoService = $indiceEconomicoService;
     }
 
     /**
@@ -347,6 +352,167 @@ class ContratoService
     }
 
     /**
+     * Calcula (sem persistir) o reajuste de um contrato, usando o índice econômico
+     * configurado (IGPM/TJ) vigente na competência do próximo reajuste, comparado
+     * ao índice da competência-base (mesma época do último reajuste).
+     *
+     * Fórmula: fator = índice_atual / índice_base (quando tipoValor=indice)
+     *          fator = 1 + percentual/100         (quando tipoValor=percentual)
+     *          valor_novo = valor_contrato * fator
+     *
+     * @throws \RuntimeException se o contrato não tiver data de próximo reajuste
+     *                            configurada ou se o índice não estiver cadastrado
+     *                            para a competência necessária
+     */
+    public function simularReajuste(int $contratoId): array
+    {
+        $contrato = $this->contratosRepository->find($contratoId);
+
+        if (!$contrato) {
+            throw new \RuntimeException('Contrato não encontrado.');
+        }
+
+        if (!$contrato->getDataProximoReajuste()) {
+            throw new \RuntimeException('Contrato não tem data de próximo reajuste configurada.');
+        }
+
+        $tipoIndice = $contrato->getIndiceReajuste() ?? IndiceEconomico::TIPO_IGPM;
+        $periodicidadeMeses = $this->periodicidadeEmMeses($contrato->getPeriodicidadeReajuste());
+
+        $dataAtual = clone $contrato->getDataProximoReajuste();
+        $dataBase = clone $dataAtual;
+        $dataBase->modify("-{$periodicidadeMeses} months");
+
+        $competenciaAtual = $dataAtual->format('Y-m');
+        $competenciaBase = $dataBase->format('Y-m');
+
+        $indiceAtual = $this->indiceEconomicoService->buscarVigente($tipoIndice, $competenciaAtual);
+        if (!$indiceAtual) {
+            throw new \RuntimeException(
+                "Índice {$tipoIndice} não cadastrado para a competência {$dataAtual->format('m/Y')}."
+            );
+        }
+
+        $valorContrato = (float) $contrato->getValorContrato();
+
+        if ($indiceAtual->isIndice()) {
+            $indiceBase = $this->indiceEconomicoService->buscarVigente($tipoIndice, $competenciaBase);
+            if (!$indiceBase) {
+                throw new \RuntimeException(
+                    "Índice {$tipoIndice} não cadastrado para a competência-base {$dataBase->format('m/Y')}."
+                );
+            }
+
+            $valorIndiceBase = (float) $indiceBase->getValorIndice();
+            if ($valorIndiceBase <= 0) {
+                throw new \RuntimeException("Valor do índice {$tipoIndice} na competência-base é inválido.");
+            }
+
+            $fator = ((float) $indiceAtual->getValorIndice()) / $valorIndiceBase;
+            $percentualAplicado = null;
+            $indiceValorAnterior = $valorIndiceBase;
+            $indiceValorAtual = (float) $indiceAtual->getValorIndice();
+        } else {
+            $percentualAplicado = (float) $indiceAtual->getValorPercentual();
+            $fator = 1 + ($percentualAplicado / 100);
+            $indiceValorAnterior = null;
+            $indiceValorAtual = null;
+        }
+
+        $valorNovo = round($valorContrato * $fator, 2);
+
+        return [
+            'contrato_id' => $contrato->getId(),
+            'indice_tipo' => $tipoIndice,
+            'tipo_valor' => $indiceAtual->getTipoValor(),
+            'competencia_base' => $competenciaBase,
+            'competencia_atual' => $competenciaAtual,
+            'indice_valor_anterior' => $indiceValorAnterior,
+            'indice_valor_atual' => $indiceValorAtual,
+            'percentual_aplicado' => $percentualAplicado,
+            'fator_aplicado' => round($fator, 6),
+            'valor_anterior' => $valorContrato,
+            'valor_novo' => $valorNovo,
+            'data_reajuste' => $dataAtual,
+            'periodicidade_meses' => $periodicidadeMeses,
+        ];
+    }
+
+    /**
+     * Aplica o reajuste calculado por simularReajuste(): atualiza o valor do
+     * contrato, avança a data do próximo reajuste e registra o histórico.
+     */
+    public function aplicarReajuste(int $contratoId): array
+    {
+        $resultado = $this->simularReajuste($contratoId);
+
+        $this->entityManager->getConnection()->beginTransaction();
+
+        try {
+            $contrato = $this->contratosRepository->find($contratoId);
+            if (!$contrato) {
+                throw new \RuntimeException('Contrato não encontrado.');
+            }
+
+            $novaDataProximoReajuste = clone $resultado['data_reajuste'];
+            $novaDataProximoReajuste->modify("+{$resultado['periodicidade_meses']} months");
+
+            $contrato->setValorContrato((string) $resultado['valor_novo']);
+            $contrato->setDataProximoReajuste($novaDataProximoReajuste);
+
+            $historico = new ContratoReajusteHistorico();
+            $historico->setContrato($contrato);
+            $historico->setDataReajuste($resultado['data_reajuste']);
+            $historico->setCompetenciaBase($resultado['competencia_base']);
+            $historico->setCompetenciaAtual($resultado['competencia_atual']);
+            $historico->setIndiceTipo($resultado['indice_tipo']);
+            $historico->setTipoValor($resultado['tipo_valor']);
+            $historico->setIndiceValorAnterior(
+                $resultado['indice_valor_anterior'] !== null ? (string) $resultado['indice_valor_anterior'] : null
+            );
+            $historico->setIndiceValorAtual(
+                $resultado['indice_valor_atual'] !== null ? (string) $resultado['indice_valor_atual'] : null
+            );
+            $historico->setPercentualAplicado(
+                $resultado['percentual_aplicado'] !== null ? (string) $resultado['percentual_aplicado'] : null
+            );
+            $historico->setFatorAplicado((string) $resultado['fator_aplicado']);
+            $historico->setValorAnterior((string) $resultado['valor_anterior']);
+            $historico->setValorNovo((string) $resultado['valor_novo']);
+
+            $this->entityManager->persist($historico);
+            $this->entityManager->flush();
+            $this->entityManager->getConnection()->commit();
+
+            $this->logger->info('Reajuste aplicado ao contrato', [
+                'contrato_id' => $contratoId,
+                'valor_anterior' => $resultado['valor_anterior'],
+                'valor_novo' => $resultado['valor_novo'],
+            ]);
+
+            $resultado['nova_data_proximo_reajuste'] = $novaDataProximoReajuste;
+
+            return $resultado;
+        } catch (\Exception $e) {
+            $this->entityManager->getConnection()->rollBack();
+            $this->logger->error('Erro ao aplicar reajuste', [
+                'contrato_id' => $contratoId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    private function periodicidadeEmMeses(?string $periodicidade): int
+    {
+        return match ($periodicidade) {
+            'semestral' => 6,
+            'anual' => 12,
+            default => 12,
+        };
+    }
+
+    /**
      * Obtém estatísticas de contratos
      *
      * @return array
@@ -526,7 +692,10 @@ class ContratoService
 
         $contrato->setGeraBoleto(!empty($dados['gera_boleto']));
 
-        $contrato->setEnviaEmail(!empty($dados['envia_email']));
+        // canal_envio (Administração/Correio/E-mail) mantém enviaEmail sincronizado
+        // automaticamente via ImoveisContratos::setCanalEnvio() — não setar enviaEmail
+        // separadamente aqui pra não sobrescrever essa sincronização.
+        $contrato->setCanalEnvio($dados['canal_envio'] ?? ImoveisContratos::CANAL_EMAIL);
 
         $contrato->setAtivo(!empty($dados['ativo']));
     }
@@ -581,6 +750,8 @@ class ContratoService
             'carencia_dias' => $contrato->getCarenciaDias(),
             'gera_boleto' => $contrato->isGeraBoleto(),
             'envia_email' => $contrato->isEnviaEmail(),
+            'canal_envio' => $contrato->getCanalEnvio(),
+            'canal_envio_label' => $contrato->getCanalEnvioLabel(),
             'ativo' => $contrato->isAtivo(),
             'observacoes' => $contrato->getObservacoes(),
             'created_at' => $contrato->getCreatedAt(),

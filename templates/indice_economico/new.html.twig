@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novo Índice Econômico - {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include '_partials/breadcrumb.html.twig' with {
+        'items': [
+            {'label': 'Financeiro', 'url': path('app_financeiro_index')},
+            {'label': 'Índices Econômicos', 'url': path('app_indice_economico_index')}
+        ],
+        'current': 'Novo Índice'
+    } %}
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="fas fa-plus"></i> Novo Índice Econômico</h1>
+                <a href="{{ path('app_indice_economico_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ form_row(form.tipo) }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form_row(form.competencia) }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form_row(form.tipoValor) }}
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                {{ form_row(form.valorIndice) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.valorPercentual) }}
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                {{ form_row(form.observacoes) }}
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Salvar
+                                </button>
+                                <a href="{{ path('app_indice_economico_index') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
