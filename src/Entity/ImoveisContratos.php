@@ -105,6 +105,12 @@ class ImoveisContratos
     #[ORM\Column(name: 'dias_antecedencia_boleto', type: Types::INTEGER, options: ['default' => 5])]
     private int $diasAntecedenciaBoleto = 5;
 
+    // Quando true, ao enviar o boleto ao cliente (manual ou automatico) o emitente
+    // recebe uma copia (CC) para conferir o disparo. O e-mail de destino da copia e
+    // global (ConfiguracoesApiBanco.emailCopiaEmitente).
+    #[ORM\Column(name: 'copia_emitente', type: Types::BOOLEAN, nullable: true, options: ['default' => 'false'])]
+    private ?bool $copiaEmitente = false;
+
     /**
      * @var Collection<int, ContratosItensCobranca>
      */
@@ -364,6 +370,17 @@ class ImoveisContratos
     public function setGeraBoleto(?bool $geraBoleto): self
     {
         $this->geraBoleto = $geraBoleto;
+        return $this;
+    }
+
+    public function isCopiaEmitente(): ?bool
+    {
+        return $this->copiaEmitente;
+    }
+
+    public function setCopiaEmitente(?bool $copiaEmitente): self
+    {
+        $this->copiaEmitente = $copiaEmitente;
         return $this;
     }
 

@@ -8,6 +8,7 @@ use App\Entity\ContratosCobrancas;
 use App\Entity\Emails;
 use App\Entity\EmailsEnviados;
 use App\Entity\Pessoas;
+use App\Repository\ConfiguracoesApiBancoRepository;
 use App\Repository\EmailsEnviadosRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -32,6 +33,7 @@ class EmailService
         private Environment $twig,
         private LoggerInterface $logger,
         private EmailsEnviadosRepository $emailsRepo,
+        private ConfiguracoesApiBancoRepository $configApiRepo,
         private string $emailRemetente,
         private string $nomeRemetente
     ) {}
@@ -53,7 +55,8 @@ class EmailService
         string $corpoHtml,
         array $anexos = [],
         ?string $tipoReferencia = null,
-        ?int $referenciaId = null
+        ?int $referenciaId = null,
+        array $cc = []
     ): array {
         // Criar email
         $email = (new Email())
@@ -61,6 +64,12 @@ class EmailService
             ->to($destinatario)
             ->subject($assunto)
             ->html($corpoHtml);
+
+        // Copia (CC) para o emitente, quando solicitado
+        $cc = array_values(array_filter(array_map('trim', $cc)));
+        if (!empty($cc)) {
+            $email->cc(...$cc);
+        }
 
         // Adicionar anexos
         $anexosLog = [];
@@ -108,6 +117,7 @@ class EmailService
 
             $this->logger->info('Email enviado com sucesso', [
                 'destinatario' => $destinatario,
+                'cc' => $cc,
                 'assunto' => $assunto,
                 'tipo' => $tipoReferencia,
                 'id' => $referenciaId
@@ -191,13 +201,24 @@ class EmailService
             $cobranca->getDataVencimento()->format('d/m/Y')
         );
 
+        // Cópia (CC) ao emitente, quando o contrato tiver a flag ligada.
+        // O e-mail de destino da cópia é global (config de API bancária ativa).
+        $cc = [];
+        if ($contrato->isCopiaEmitente()) {
+            $emailCopia = $this->configApiRepo->findOneBy(['ativo' => true])?->getEmailCopiaEmitente();
+            if ($emailCopia) {
+                $cc[] = $emailCopia;
+            }
+        }
+
         return $this->enviar(
             $emailDestino,
             $assunto,
             $corpo,
             [['path' => $pdfPath, 'nome' => 'boleto.pdf']],
             EmailsEnviados::TIPO_COBRANCA,
-            $cobranca->getId()
+            $cobranca->getId(),
+            $cc
         );
     }
 

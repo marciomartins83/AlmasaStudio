@@ -589,22 +589,28 @@ class ContratoService
      */
     private function preencherContrato(ImoveisContratos $contrato, array $dados): void
     {
-        // Relacionamentos
-        if (isset($dados['imovel_id'])) {
+        // Relacionamentos — usar !empty (nao isset): campo vazio ('' do autocomplete)
+        // passava por find('') e quebrava no Postgres (SQLSTATE 22P02 integer "").
+        if (!empty($dados['imovel_id'])) {
             $imovel = $this->imoveisRepository->find($dados['imovel_id']);
             if ($imovel) {
                 $contrato->setImovel($imovel);
             }
         }
 
-        if (isset($dados['locatario_id'])) {
+        if (!empty($dados['locatario_id'])) {
             $locatario = $this->pessoaRepository->find($dados['locatario_id']);
-            $contrato->setPessoaLocatario($locatario);
+            if ($locatario) {
+                $contrato->setPessoaLocatario($locatario);
+            }
         }
 
-        if (isset($dados['fiador_id'])) {
+        if (!empty($dados['fiador_id'])) {
             $fiador = $this->pessoaRepository->find($dados['fiador_id']);
             $contrato->setPessoaFiador($fiador);
+        } else {
+            // Fiador e opcional: campo vazio limpa o fiador (sem quebrar em find('')).
+            $contrato->setPessoaFiador(null);
         }
 
         // Campos básicos
@@ -697,6 +703,9 @@ class ContratoService
         // separadamente aqui pra não sobrescrever essa sincronização.
         $contrato->setCanalEnvio($dados['canal_envio'] ?? ImoveisContratos::CANAL_EMAIL);
 
+        // Flag "copia emitente": emitente recebe copia (CC) do boleto enviado ao cliente.
+        $contrato->setCopiaEmitente(!empty($dados['copia_emitente']));
+
         $contrato->setAtivo(!empty($dados['ativo']));
     }
 
@@ -750,6 +759,7 @@ class ContratoService
             'carencia_dias' => $contrato->getCarenciaDias(),
             'gera_boleto' => $contrato->isGeraBoleto(),
             'envia_email' => $contrato->isEnviaEmail(),
+            'copia_emitente' => $contrato->isCopiaEmitente(),
             'canal_envio' => $contrato->getCanalEnvio(),
             'canal_envio_label' => $contrato->getCanalEnvioLabel(),
             'ativo' => $contrato->isAtivo(),

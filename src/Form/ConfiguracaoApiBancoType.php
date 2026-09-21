@@ -111,6 +111,16 @@ class ConfiguracaoApiBancoType extends AbstractType
                 'required' => false,
                 'always_empty' => false
             ])
+            ->add('emailCopiaEmitente', TextType::class, [
+                'label' => 'E-mail para cópia (CC) do emitente',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'email',
+                    'placeholder' => 'ex: almasa@almasa.com.br'
+                ],
+                'help' => 'Quando um contrato tiver "Enviar cópia ao emitente" marcado, o boleto enviado ao cliente sai com cópia (CC) para este e-mail. Vale para envio manual e automático.'
+            ])
             ->add('ativo', CheckboxType::class, [
                 'label' => 'Configuração Ativa',
                 'required' => false,

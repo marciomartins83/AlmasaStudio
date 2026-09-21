@@ -60,6 +60,11 @@ class ConfiguracoesApiBanco
     #[ORM\Column(length: 20)]
     private string $ambiente = 'sandbox';
 
+    // E-mail global que recebe a copia (CC) do emitente quando o contrato tem a
+    // flag "copia emitente" ligada (envio manual e automatico de boleto).
+    #[ORM\Column(name: 'email_copia_emitente', length: 255, nullable: true)]
+    private ?string $emailCopiaEmitente = null;
+
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $urlAutenticacao = null;
 
@@ -212,6 +217,17 @@ class ConfiguracoesApiBanco
     {
         $this->ambiente = $ambiente;
         $this->setUrlsPorAmbiente();
+        return $this;
+    }
+
+    public function getEmailCopiaEmitente(): ?string
+    {
+        return $this->emailCopiaEmitente;
+    }
+
+    public function setEmailCopiaEmitente(?string $emailCopiaEmitente): self
+    {
+        $this->emailCopiaEmitente = $emailCopiaEmitente ?: null;
         return $this;
     }
 

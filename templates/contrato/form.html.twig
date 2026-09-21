@@ -286,6 +286,17 @@
 
                                     <div class="col-md-6">
                                         <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="copia_emitente" id="copia-emitente"
+                                                {% if contrato and contrato.copia_emitente %}checked{% endif %}>
+                                            <label class="form-check-label" for="copia-emitente">
+                                                <i class="fas fa-envelope-open-text"></i> Enviar cópia ao emitente
+                                            </label>
+                                            <small class="text-muted d-block">O emitente recebe cópia (CC) do boleto enviado ao cliente, para conferir o disparo. E-mail configurado em Financeiro &rarr; API Bancária.</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" name="ativo" id="ativo"
                                                 {% if not contrato or contrato.ativo %}checked{% endif %}>
                                             <label class="form-check-label" for="ativo">
