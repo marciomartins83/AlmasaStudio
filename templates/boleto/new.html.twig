@@ -281,7 +281,11 @@
         </div>
     </div>
 
-    {{ form_end(form) }}
+    {# pessoaPagador e imovel sao HiddenType renderizados pelo partial de autocomplete acima;
+       render_rest:false evita que form_rest gere um segundo hidden vazio com o mesmo name
+       (o duplicado vazio vencia no submit e zerava pessoa_pagador_id). Token CSRF renderizado a mao. #}
+    {{ form_widget(form._token) }}
+    {{ form_end(form, {'render_rest': false}) }}
 </div>
 {% endblock %}
 
