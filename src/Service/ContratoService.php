@@ -703,6 +703,11 @@ class ContratoService
         // separadamente aqui pra não sobrescrever essa sincronização.
         $contrato->setCanalEnvio($dados['canal_envio'] ?? ImoveisContratos::CANAL_EMAIL);
 
+        // Dias de antecedencia do envio automatico (criterio do usuario, ex: 2 dias antes).
+        if (isset($dados['dias_antecedencia_boleto']) && $dados['dias_antecedencia_boleto'] !== '') {
+            $contrato->setDiasAntecedenciaBoleto((int) $dados['dias_antecedencia_boleto']);
+        }
+
         // Flag "copia emitente": emitente recebe copia (CC) do boleto enviado ao cliente.
         $contrato->setCopiaEmitente(!empty($dados['copia_emitente']));
 
@@ -760,6 +765,7 @@ class ContratoService
             'gera_boleto' => $contrato->isGeraBoleto(),
             'envia_email' => $contrato->isEnviaEmail(),
             'copia_emitente' => $contrato->isCopiaEmitente(),
+            'dias_antecedencia_boleto' => $contrato->getDiasAntecedenciaBoleto(),
             'canal_envio' => $contrato->getCanalEnvio(),
             'canal_envio_label' => $contrato->getCanalEnvioLabel(),
             'ativo' => $contrato->isAtivo(),

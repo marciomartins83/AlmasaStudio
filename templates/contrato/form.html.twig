@@ -285,6 +285,15 @@
                                     </div>
 
                                     <div class="col-md-6">
+                                        <label class="form-label" for="dias-antecedencia">
+                                            <i class="fas fa-clock"></i> Dias de antecedência do envio automático
+                                        </label>
+                                        <input type="number" min="0" max="60" class="form-control" name="dias_antecedencia_boleto" id="dias-antecedencia"
+                                               value="{{ contrato.dias_antecedencia_boleto|default(5) }}">
+                                        <small class="text-muted d-block">Quantos dias antes do vencimento o boleto é gerado/enviado automaticamente (ex: 2).</small>
+                                    </div>
+
+                                    <div class="col-md-6">
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" name="copia_emitente" id="copia-emitente"
                                                 {% if contrato and contrato.copia_emitente %}checked{% endif %}>
