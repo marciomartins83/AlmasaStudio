@@ -395,9 +395,9 @@ class BoletoSantanderService
     /**
      * Consulta e atualiza status de boletos registrados
      */
-    public function atualizarStatusBoletos(int $limite = 100): array
+    public function atualizarStatusBoletos(int $limite = 100, ?int $mesesMax = null): array
     {
-        $boletos = $this->boletosRepository->findParaConsultaStatus();
+        $boletos = $this->boletosRepository->findParaConsultaStatus(1, $mesesMax);
         $boletos = array_slice($boletos, 0, $limite);
 
         $resultados = [

@@ -599,6 +599,118 @@ class CobrancaContratoService
     }
 
     /**
+     * Verifica no banco o pagamento do boleto de UMA cobrança (consulta sob demanda)
+     * e reflete o pagamento na cobrança (status PAGO) quando confirmado.
+     *
+     * @return array{sucesso:bool, mensagem:string}
+     */
+    public function verificarPagamento(ContratosCobrancas $cobranca): array
+    {
+        $boleto = $cobranca->getBoleto();
+        if (!$boleto) {
+            return ['sucesso' => false, 'mensagem' => 'Esta cobrança ainda não tem boleto gerado.'];
+        }
+
+        $r = $this->boletoService->consultarBoleto($boleto);
+
+        if ($boleto->isPago() && $cobranca->getStatus() !== ContratosCobrancas::STATUS_PAGO) {
+            $cobranca->setStatus(ContratosCobrancas::STATUS_PAGO);
+            $this->em->persist($cobranca);
+            $this->em->flush();
+        }
+
+        $sucesso = (bool) ($r['sucesso'] ?? false);
+        return [
+            'sucesso' => $sucesso,
+            'mensagem' => $sucesso
+                ? ('Status do boleto: ' . $boleto->getStatusLabel())
+                : ($r['mensagem'] ?? 'Falha na consulta do boleto'),
+        ];
+    }
+
+    /**
+     * Emite um boleto AVULSO (fora de contrato) para qualquer pagador e envia por
+     * e-mail. Um boleto avulso pode ter vários itens (ex.: "pedreiro", material...);
+     * o valor é a soma e a composição vai itemizada na mensagem.
+     *
+     * $dados: pagador_id, config_id (opcional=padrão), vencimento (Y-m-d),
+     *         imovel_id (opcional), itens[]{descricao,valor}
+     *
+     * @return array{sucesso:bool, mensagem:string, boleto_id?:int}
+     */
+    public function emitirBoletoAvulso(array $dados): array
+    {
+        $pagadorId = (int) ($dados['pagador_id'] ?? 0);
+        if ($pagadorId <= 0) {
+            return ['sucesso' => false, 'mensagem' => 'Selecione o pagador do boleto.'];
+        }
+
+        $total = 0.0;
+        $linhas = [];
+        foreach (($dados['itens'] ?? []) as $item) {
+            $valor = (float) ($item['valor'] ?? 0);
+            if ($valor <= 0) {
+                continue;
+            }
+            $descricao = trim((string) ($item['descricao'] ?? '')) ?: 'Item';
+            $total += $valor;
+            $linhas[] = sprintf('%s: R$ %s', $descricao, number_format($valor, 2, ',', '.'));
+        }
+        if ($total <= 0) {
+            return ['sucesso' => false, 'mensagem' => 'Informe ao menos um item com valor.'];
+        }
+
+        $vencStr = $dados['vencimento'] ?? null;
+        if (!$vencStr) {
+            return ['sucesso' => false, 'mensagem' => 'Informe o vencimento.'];
+        }
+        try {
+            $vencimento = new \DateTime($vencStr);
+        } catch (\Exception $e) {
+            return ['sucesso' => false, 'mensagem' => 'Vencimento inválido.'];
+        }
+
+        $configId = (int) ($dados['config_id'] ?? 0);
+        $config = $configId > 0 ? $this->configApiBancoRepo->find($configId) : $this->getConfiguracaoApiPadrao();
+        if (!$config) {
+            return ['sucesso' => false, 'mensagem' => 'Nenhuma configuração de API bancária ativa encontrada.'];
+        }
+
+        try {
+            $boleto = $this->boletoService->criarBoletoFromArray([
+                'configuracao_api_id' => $config->getId(),
+                'pessoa_pagador_id' => $pagadorId,
+                'imovel_id' => $dados['imovel_id'] ?? null,
+                'valor_nominal' => $total,
+                'data_vencimento' => $vencimento,
+                'mensagem_pagador' => implode("\n", array_slice($linhas, 0, 10)),
+            ]);
+
+            $registro = $this->boletoService->registrarBoleto($boleto);
+            if (!$registro['sucesso']) {
+                return ['sucesso' => false, 'mensagem' => 'Falha ao registrar boleto: ' . ($registro['mensagem'] ?? '')];
+            }
+
+            $pdfPath = $this->gerarPdfBoleto($boleto);
+            $email = $this->emailService->enviarBoletoAvulso($boleto, $pdfPath);
+            if (file_exists($pdfPath)) {
+                unlink($pdfPath);
+            }
+
+            return [
+                'sucesso' => true,
+                'mensagem' => ($email['sucesso'] ?? false)
+                    ? 'Boleto avulso emitido e enviado por e-mail.'
+                    : ('Boleto avulso emitido; falha no envio de e-mail: ' . ($email['erro'] ?? 'erro desconhecido')),
+                'boleto_id' => $boleto->getId(),
+            ];
+        } catch (\Exception $e) {
+            $this->logger->error('Erro ao emitir boleto avulso', ['erro' => $e->getMessage()]);
+            return ['sucesso' => false, 'mensagem' => 'Erro: ' . $e->getMessage()];
+        }
+    }
+
+    /**
      * Busca configuração de API padrão (primeira ativa).
      */
     private function getConfiguracaoApiPadrao(): ?\App\Entity\ConfiguracoesApiBanco
@@ -608,20 +720,174 @@ class CobrancaContratoService
     }
 
     /**
-     * Monta mensagem para o boleto.
+     * Monta a mensagem do boleto ITEMIZADA (aluguel, agua, luz, IPTU, condominio...).
+     * Um boleto tem um valor unico, mas a composicao vai listada na mensagem para o
+     * pagador enxergar o que esta sendo cobrado.
      */
     private function montarMensagemBoleto(ContratosCobrancas $cobranca): string
     {
         $contrato = $cobranca->getContrato();
         $imovel = $contrato->getImovel();
 
-        return sprintf(
-            "Aluguel ref. %s\nImovel: %s\nPeriodo: %s a %s",
-            $cobranca->getCompetenciaFormatada(),
-            $imovel ? $imovel->getCodigoInterno() : '-',
-            $cobranca->getPeriodoInicio()->format('d/m/Y'),
-            $cobranca->getPeriodoFim()->format('d/m/Y')
-        );
+        $linhas = [
+            sprintf(
+                'Ref. %s - Imovel: %s',
+                $cobranca->getCompetenciaFormatada(),
+                $imovel ? $imovel->getCodigoInterno() : '-'
+            ),
+        ];
+
+        $itens = $cobranca->getItensDetalhados() ?: [];
+        foreach ($itens as $item) {
+            $descricao = $item['descricao'] ?? ($item['tipo'] ?? 'Item');
+            $valor = (float) ($item['valor'] ?? 0);
+            $linhas[] = sprintf('%s: R$ %s', $descricao, number_format($valor, 2, ',', '.'));
+        }
+
+        // Sem itens detalhados: mantem o periodo como referencia.
+        if (count($linhas) === 1) {
+            $linhas[] = sprintf(
+                'Periodo: %s a %s',
+                $cobranca->getPeriodoInicio()->format('d/m/Y'),
+                $cobranca->getPeriodoFim()->format('d/m/Y')
+            );
+        }
+
+        return implode("\n", $linhas);
+    }
+
+    /**
+     * Gera cobrancas (RASCUNHO, status PENDENTE) em lote para um periodo — SEM enviar.
+     * O usuario revisa a relacao (relatorio de conferencia) e so depois emite.
+     *
+     * Dois modos:
+     *  - Por competencia: $opts['competencia'] = 'YYYY-MM' (todos os contratos elegiveis).
+     *  - Por intervalo de vencimento: $opts['vencimento_inicio'] e $opts['vencimento_fim']
+     *    (DateTime) — inclui o contrato cujo vencimento da competencia cair no intervalo.
+     *
+     * @return array{criadas:int, existentes:int, erros:array, competencias:array}
+     */
+    public function gerarCobrancasDoPeriodo(array $opts): array
+    {
+        $res = ['criadas' => 0, 'existentes' => 0, 'erros' => [], 'competencias' => []];
+
+        $vencIni = $opts['vencimento_inicio'] ?? null;
+        $vencFim = $opts['vencimento_fim'] ?? null;
+
+        if (!empty($opts['competencia'])) {
+            $competencias = [$opts['competencia']];
+        } elseif ($vencIni instanceof \DateTimeInterface && $vencFim instanceof \DateTimeInterface) {
+            $competencias = $this->competenciasEntre($vencIni, $vencFim);
+        } else {
+            return ['criadas' => 0, 'existentes' => 0,
+                    'erros' => ['Informe uma competencia ou um intervalo de vencimento.'],
+                    'competencias' => []];
+        }
+        $res['competencias'] = $competencias;
+
+        $contratos = $this->contratosRepo->findContratosParaEnvioManual();
+
+        foreach ($competencias as $competencia) {
+            foreach ($contratos as $contrato) {
+                try {
+                    $vencimento = $this->calcularPeriodo($contrato, $competencia)['data_vencimento'];
+                    // Modo intervalo: so entra quem vence dentro do intervalo pedido.
+                    if ($vencIni && $vencFim) {
+                        if ($vencimento < $vencIni || $vencimento > $vencFim) {
+                            continue;
+                        }
+                    }
+                    if ($this->existeCobranca($contrato->getId(), $competencia)) {
+                        $res['existentes']++;
+                        continue;
+                    }
+                    $this->criarCobranca($contrato, $competencia);
+                    $res['criadas']++;
+                } catch (\Exception $e) {
+                    $res['erros'][] = sprintf('Contrato %d: %s', $contrato->getId(), $e->getMessage());
+                }
+            }
+        }
+
+        return $res;
+    }
+
+    /**
+     * Lista de competencias 'YYYY-MM' tocadas por um intervalo de datas.
+     *
+     * @return string[]
+     */
+    private function competenciasEntre(\DateTimeInterface $ini, \DateTimeInterface $fim): array
+    {
+        $comps = [];
+        $cursor = new \DateTime($ini->format('Y-m-01'));
+        $limite = new \DateTime($fim->format('Y-m-01'));
+        while ($cursor <= $limite) {
+            $comps[] = $cursor->format('Y-m');
+            $cursor->modify('+1 month');
+        }
+        return $comps;
+    }
+
+    /**
+     * Edita os ITENS de uma cobranca ainda PENDENTE (antes de gerar o boleto) e
+     * recalcula os baldes de valor + total. Cada item = {tipo, descricao, valor}.
+     * Permite incluir/remover/alterar linhas (aluguel, agua, luz, IPTU, condominio,
+     * ou uma linha avulsa como "pedreiro").
+     *
+     * @param array<int,array{tipo?:string,descricao?:string,valor?:float|string}> $itens
+     * @return array{sucesso:bool, mensagem:string}
+     */
+    public function atualizarItensCobranca(ContratosCobrancas $cobranca, array $itens): array
+    {
+        if ($cobranca->getStatus() !== ContratosCobrancas::STATUS_PENDENTE) {
+            return ['sucesso' => false,
+                    'mensagem' => 'So e possivel editar cobrancas pendentes (antes de gerar o boleto).'];
+        }
+
+        $baldes = ['aluguel' => 0.0, 'iptu' => 0.0, 'condominio' => 0.0, 'taxa_admin' => 0.0, 'outros' => 0.0];
+        $detalhados = [];
+
+        foreach ($itens as $item) {
+            $tipo = (string) ($item['tipo'] ?? ContratosItensCobranca::TIPO_OUTROS);
+            $valor = (float) str_replace(['.', ','], ['', '.'], (string) ($item['valor'] ?? 0));
+            // aceita valor ja numerico (float vindo do JSON)
+            if (is_numeric($item['valor'] ?? null)) {
+                $valor = (float) $item['valor'];
+            }
+            if ($valor <= 0) {
+                continue;
+            }
+            $descricao = trim((string) ($item['descricao'] ?? '')) ?:
+                (ContratosItensCobranca::getTiposDisponiveis()[$tipo] ?? 'Item');
+
+            switch ($tipo) {
+                case ContratosItensCobranca::TIPO_ALUGUEL: $baldes['aluguel'] += $valor; break;
+                case ContratosItensCobranca::TIPO_IPTU: $baldes['iptu'] += $valor; break;
+                case ContratosItensCobranca::TIPO_CONDOMINIO: $baldes['condominio'] += $valor; break;
+                case ContratosItensCobranca::TIPO_TAXA_ADMIN: $baldes['taxa_admin'] += $valor; break;
+                default: $baldes['outros'] += $valor;
+            }
+            $detalhados[] = ['tipo' => $tipo, 'descricao' => $descricao, 'valor' => $valor];
+        }
+
+        if (empty($detalhados)) {
+            return ['sucesso' => false, 'mensagem' => 'Informe ao menos um item com valor.'];
+        }
+
+        $total = array_sum($baldes);
+        $cobranca->setValorAluguel($baldes['aluguel']);
+        $cobranca->setValorIptu($baldes['iptu']);
+        $cobranca->setValorCondominio($baldes['condominio']);
+        $cobranca->setValorTaxaAdmin($baldes['taxa_admin']);
+        $cobranca->setValorOutros($baldes['outros']);
+        $cobranca->setValorTotal($total);
+        $cobranca->setItensDetalhados($detalhados);
+
+        $this->em->persist($cobranca);
+        $this->em->flush();
+
+        return ['sucesso' => true, 'mensagem' => 'Itens atualizados.'];
     }
 
     /**

@@ -223,6 +223,48 @@ class EmailService
     }
 
     /**
+     * Envia um boleto AVULSO (não vinculado a contrato) ao pagador.
+     *
+     * @return array{sucesso: bool, id?: int, email?: string, erro?: string}
+     */
+    public function enviarBoletoAvulso(\App\Entity\Boletos $boleto, string $pdfPath): array
+    {
+        $pagador = $boleto->getPessoaPagador();
+        if (!$pagador) {
+            return ['sucesso' => false, 'erro' => 'Boleto sem pagador'];
+        }
+
+        $emailDestino = $this->getEmailPrincipal($pagador);
+        if (!$emailDestino) {
+            return ['sucesso' => false, 'erro' => 'Pagador sem email cadastrado'];
+        }
+
+        $venc = $boleto->getDataVencimento()->format('d/m/Y');
+        $valor = number_format((float) $boleto->getValorNominal(), 2, ',', '.');
+        $mensagem = nl2br(htmlspecialchars((string) $boleto->getMensagemPagador()));
+
+        $corpo = sprintf(
+            'Prezado(a) %s,<br><br>Segue o seu boleto.<br>Vencimento: <strong>%s</strong><br>'
+            . 'Valor: <strong>R$ %s</strong><br><br>%s',
+            htmlspecialchars($pagador->getNome()),
+            $venc,
+            $valor,
+            $mensagem
+        );
+
+        $assunto = sprintf('Boleto - Vencimento %s', $venc);
+
+        return $this->enviar(
+            $emailDestino,
+            $assunto,
+            $corpo,
+            [['path' => $pdfPath, 'nome' => 'boleto.pdf']],
+            EmailsEnviados::TIPO_COBRANCA,
+            $boleto->getId()
+        );
+    }
+
+    /**
      * Envia lembrete de vencimento próximo
      */
     public function enviarLembreteVencimento(ContratosCobrancas $cobranca): array

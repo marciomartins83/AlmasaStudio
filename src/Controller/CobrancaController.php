@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\ContratosCobrancas;
+use App\Entity\ContratosItensCobranca;
 use App\Repository\ContratosCobrancasRepository;
 use App\Repository\LancamentosFinanceirosRepository;
 use App\Service\CobrancaContratoService;
@@ -32,7 +33,8 @@ class CobrancaController extends AbstractController
         private CobrancaContratoService $cobrancaService,
         private ContratosCobrancasRepository $cobrancasRepo,
         private LancamentosFinanceirosRepository $lancamentosFinanceirosRepo,
-        private \App\Service\EmailService $emailService
+        private \App\Service\EmailService $emailService,
+        private \App\Repository\ConfiguracoesApiBancoRepository $configApiRepo
     ) {}
 
     /**
@@ -141,6 +143,8 @@ class CobrancaController extends AbstractController
             'vencimentoFim' => $vencimentoFim,
             'inadimplentes' => $inadimplentes,
             'queryParams' => array_filter($request->query->all(), fn($v) => !is_array($v)),
+            'configsApi' => $this->configApiRepo->findBy(['ativo' => true], ['id' => 'ASC']),
+            'tiposItem' => ContratosItensCobranca::getTiposDisponiveis(),
         ]);
     }
 
@@ -218,6 +222,15 @@ class CobrancaController extends AbstractController
 
         if (empty($ids)) {
             return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança selecionada'], 400);
+        }
+
+        // REGRA DE NEGÓCIO: boleto só é emitido com o relatório de conferência APROVADO.
+        // O front só manda aprovado=true depois que o usuário confirma o relatório.
+        if (($data['aprovado'] ?? false) !== true) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Emissão bloqueada: gere e aprove o relatório de conferência antes de emitir os boletos.'
+            ], 400);
         }
 
         $resultados = [
@@ -384,6 +397,167 @@ class CobrancaController extends AbstractController
             'quantidade' => count($preview),
             'valor_total' => $valorTotal,
             'valor_total_formatado' => 'R$ ' . number_format($valorTotal, 2, ',', '.'),
+        ]);
+    }
+
+    /**
+     * Gera a RELAÇÃO (rascunhos de cobrança) de um período, SEM enviar. O usuário
+     * depois confere o relatório e só então emite. Aceita competência (mês) OU
+     * intervalo de datas de vencimento.
+     */
+    #[Route('/gerar-periodo', name: 'app_cobranca_gerar_periodo', methods: ['POST'])]
+    public function gerarPeriodo(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('cobranca_gerar_periodo', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF inválido.');
+            return $this->redirectToRoute('app_cobranca_pendentes');
+        }
+
+        $modo = $request->request->get('modo', 'vencimento');
+        $opts = [];
+        $redir = [];
+
+        try {
+            if ($modo === 'competencia') {
+                $comp = trim((string) $request->request->get('competencia', ''));
+                if (!preg_match('/^\d{4}-\d{2}$/', $comp)) {
+                    throw new \InvalidArgumentException('Informe a competência (mês/ano).');
+                }
+                $opts['competencia'] = $comp;
+                [$y, $m] = explode('-', $comp);
+                $ini = new \DateTime(sprintf('%s-%s-01', $y, $m));
+                $fim = (clone $ini)->modify('last day of this month');
+                $redir = ['vencimento_inicio' => $ini->format('Y-m-d'), 'vencimento_fim' => $fim->format('Y-m-d')];
+            } else {
+                $iniS = (string) $request->request->get('vencimento_inicio', '');
+                $fimS = (string) $request->request->get('vencimento_fim', '');
+                if (!$iniS || !$fimS) {
+                    throw new \InvalidArgumentException('Informe o intervalo de vencimento (início e fim).');
+                }
+                $ini = new \DateTime($iniS);
+                $fim = new \DateTime($fimS);
+                if ($fim < $ini) {
+                    throw new \InvalidArgumentException('A data final deve ser maior ou igual à inicial.');
+                }
+                $opts['vencimento_inicio'] = $ini;
+                $opts['vencimento_fim'] = $fim;
+                $redir = ['vencimento_inicio' => $ini->format('Y-m-d'), 'vencimento_fim' => $fim->format('Y-m-d')];
+            }
+
+            $r = $this->cobrancaService->gerarCobrancasDoPeriodo($opts);
+            $msg = sprintf('Relação gerada: %d nova(s), %d já existente(s).', $r['criadas'], $r['existentes']);
+            if (!empty($r['erros'])) {
+                $msg .= ' Avisos: ' . implode('; ', array_slice($r['erros'], 0, 3));
+            }
+            $this->addFlash('success', $msg);
+        } catch (\Exception $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('app_cobranca_pendentes');
+        }
+
+        return $this->redirectToRoute('app_cobranca_pendentes', $redir);
+    }
+
+    /**
+     * Retorna os itens de uma cobrança (para o modal de edição) — AJAX.
+     */
+    #[Route('/{id}/itens', name: 'app_cobranca_itens_get', methods: ['GET'])]
+    public function getItens(int $id): JsonResponse
+    {
+        $cobranca = $this->cobrancasRepo->find($id);
+        if (!$cobranca) {
+            return new JsonResponse(['success' => false, 'message' => 'Cobrança não encontrada'], 404);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'id' => $cobranca->getId(),
+            'competencia' => $cobranca->getCompetenciaFormatada(),
+            'podeEditar' => $cobranca->getStatus() === ContratosCobrancas::STATUS_PENDENTE,
+            'itens' => $cobranca->getItensDetalhados() ?: [],
+            'tipos' => ContratosItensCobranca::getTiposDisponiveis(),
+        ]);
+    }
+
+    /**
+     * Salva os itens editados de uma cobrança PENDENTE — AJAX.
+     */
+    #[Route('/{id}/itens', name: 'app_cobranca_itens_save', methods: ['POST'])]
+    public function saveItens(Request $request, int $id): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $cobranca = $this->cobrancasRepo->find($id);
+        if (!$cobranca) {
+            return new JsonResponse(['success' => false, 'message' => 'Cobrança não encontrada'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $itens = $data['itens'] ?? [];
+
+        $r = $this->cobrancaService->atualizarItensCobranca($cobranca, $itens);
+
+        return new JsonResponse([
+            'success' => $r['sucesso'],
+            'message' => $r['mensagem'],
+            'valor_total_formatado' => $cobranca->getValorTotalFormatado(),
+        ]);
+    }
+
+    /**
+     * Emite um boleto AVULSO (fora de contrato) direto da tela de lote — AJAX.
+     * Exige confirmação (o modal é a conferência do avulso).
+     */
+    #[Route('/avulso', name: 'app_cobranca_avulso', methods: ['POST'])]
+    public function avulso(Request $request): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        if (($data['aprovado'] ?? false) !== true) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Confira os dados e aprove antes de emitir o boleto avulso.'
+            ], 400);
+        }
+
+        $r = $this->cobrancaService->emitirBoletoAvulso($data);
+
+        return new JsonResponse([
+            'success' => $r['sucesso'],
+            'message' => $r['mensagem'],
+            'boleto_id' => $r['boleto_id'] ?? null,
+        ]);
+    }
+
+    /**
+     * Verifica (sob demanda) o pagamento do boleto de uma cobrança — AJAX.
+     */
+    #[Route('/{id}/verificar-pagamento', name: 'app_cobranca_verificar_pagamento', methods: ['POST'])]
+    public function verificarPagamento(Request $request, int $id): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $cobranca = $this->cobrancasRepo->find($id);
+        if (!$cobranca) {
+            return new JsonResponse(['success' => false, 'message' => 'Cobrança não encontrada'], 404);
+        }
+
+        $r = $this->cobrancaService->verificarPagamento($cobranca);
+
+        return new JsonResponse([
+            'success' => $r['sucesso'],
+            'message' => $r['mensagem'],
+            'status' => $cobranca->getStatus(),
+            'statusLabel' => $cobranca->getStatusLabel(),
+            'statusClass' => $cobranca->getStatusClass(),
         ]);
     }
 

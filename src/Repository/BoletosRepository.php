@@ -189,19 +189,27 @@ class BoletosRepository extends ServiceEntityRepository
     /**
      * Busca boletos para consulta de status (registrados há mais de X horas)
      */
-    public function findParaConsultaStatus(int $horasDesdeRegistro = 1): array
+    public function findParaConsultaStatus(int $horasDesdeRegistro = 1, ?int $mesesMax = null): array
     {
         $dataLimite = (new \DateTime())->modify("-{$horasDesdeRegistro} hours");
 
-        return $this->createQueryBuilder('b')
+        $qb = $this->createQueryBuilder('b')
             ->leftJoin('b.configuracaoApi', 'c')
             ->addSelect('c')
             ->where('b.status = :status')
             ->andWhere('b.dataRegistro IS NOT NULL')
             ->andWhere('b.dataRegistro <= :dataLimite')
             ->setParameter('status', Boletos::STATUS_REGISTRADO)
-            ->setParameter('dataLimite', $dataLimite)
-            ->orderBy('b.dataRegistro', 'ASC')
+            ->setParameter('dataLimite', $dataLimite);
+
+        // Janela configurável: não reconsulta boletos antigos (ex.: em aberto há mais
+        // de N meses provavelmente não serão pagos — evita peso desnecessário).
+        if ($mesesMax !== null && $mesesMax > 0) {
+            $qb->andWhere('b.dataRegistro >= :dataMin')
+               ->setParameter('dataMin', (new \DateTime())->modify("-{$mesesMax} months"));
+        }
+
+        return $qb->orderBy('b.dataRegistro', 'ASC')
             ->setMaxResults(100)
             ->getQuery()
             ->getResult();

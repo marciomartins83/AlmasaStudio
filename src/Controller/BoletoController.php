@@ -389,6 +389,44 @@ class BoletoController extends AbstractController
     }
 
     /**
+     * Atualiza (sob demanda) o status dos boletos EM ABERTO consultando o banco.
+     * Acionado por botão — não roda em horário fixo. Janela configurável em meses:
+     * boletos registrados há mais de N meses não são reconsultados (não serão pagos).
+     */
+    #[Route('/atualizar-em-aberto', name: 'app_boleto_atualizar_em_aberto', methods: ['POST'])]
+    public function atualizarEmAberto(Request $request): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $meses = (int) ($data['meses'] ?? 3);
+        if ($meses < 1) {
+            $meses = 3;
+        }
+        if ($meses > 60) {
+            $meses = 60;
+        }
+
+        $r = $this->boletoService->atualizarStatusBoletos(100, $meses);
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => sprintf(
+                'Verificação concluída (últimos %d meses): %d boleto(s) em aberto consultado(s), %d atualizado(s), %d erro(s).',
+                $meses,
+                $r['total'],
+                $r['atualizados'],
+                $r['erros']
+            ),
+            'total' => $r['total'],
+            'atualizados' => $r['atualizados'],
+            'erros' => $r['erros'],
+        ]);
+    }
+
+    /**
      * API: Retorna estatísticas de boletos (AJAX)
      */
     #[Route('/api/estatisticas', name: 'app_boleto_api_estatisticas', methods: ['GET'])]

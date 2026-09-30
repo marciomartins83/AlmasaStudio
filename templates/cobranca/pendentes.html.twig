@@ -26,10 +26,55 @@
         </div>
     {% endfor %}
 
+    {# Passo 1: gerar a relação de cobranças do período (rascunhos, SEM enviar) #}
+    <div class="card mb-3 border-primary">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-file-invoice-dollar"></i> Emissão de boletos em lote
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                <strong>1.</strong> Gere a relação do período &nbsp;·&nbsp;
+                <strong>2.</strong> Confira / edite / exclua &nbsp;·&nbsp;
+                <strong>3.</strong> Gere o <em>relatório de conferência</em> e aprove &nbsp;·&nbsp;
+                <strong>4.</strong> Só então os boletos são emitidos e enviados.
+            </p>
+            <form method="POST" action="{{ path('app_cobranca_gerar_periodo') }}" class="row g-3 align-items-end">
+                <input type="hidden" name="_token" value="{{ csrf_token('cobranca_gerar_periodo') }}">
+                <div class="col-md-3">
+                    <label class="form-label">Modo</label>
+                    <select class="form-select" name="modo" id="gerModo">
+                        <option value="vencimento">Por intervalo de vencimento</option>
+                        <option value="competencia">Por competência (mês)</option>
+                    </select>
+                </div>
+                <div class="col-md-3 modo-vencimento">
+                    <label class="form-label">Vencimento de</label>
+                    <input type="date" class="form-control" name="vencimento_inicio">
+                </div>
+                <div class="col-md-3 modo-vencimento">
+                    <label class="form-label">Vencimento até</label>
+                    <input type="date" class="form-control" name="vencimento_fim">
+                </div>
+                <div class="col-md-3 modo-competencia" style="display:none">
+                    <label class="form-label">Competência</label>
+                    <input type="month" class="form-control" name="competencia">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-list-check"></i> Gerar relação
+                    </button>
+                    <a href="{{ path('app_boleto_new') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-plus"></i> Boleto avulso
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1><i class="fas fa-file-invoice-dollar"></i> Cobranças Pendentes</h1>
+                <h1><i class="fas fa-file-invoice-dollar"></i> Relação de cobranças a emitir</h1>
             </div>
 
             {# Filtros #}
@@ -137,14 +182,42 @@
                 </div>
             </div>
 
-            {# Ações em Lote #}
+            {# Passo 3: gerar o relatório de conferência das selecionadas e aprovar #}
             <div class="mb-3">
-                <button type="button" class="btn btn-success" id="btnEnviarSelecionados" disabled>
-                    <i class="fas fa-paper-plane"></i> Enviar Selecionados (<span id="contadorSelecionados">0</span>)
+                <button type="button" class="btn btn-primary" id="btnRelatorioConferencia" disabled>
+                    <i class="fas fa-clipboard-check"></i> Gerar Relatório de Conferência (<span id="contadorSelecionados">0</span>)
                 </button>
-                <button type="button" class="btn btn-info" id="btnPreview" disabled>
-                    <i class="fas fa-eye"></i> Preview
+                <button type="button" class="btn btn-outline-success" id="btnAvulso">
+                    <i class="fas fa-plus"></i> Boleto avulso (rápido)
                 </button>
+                <span class="text-muted small ms-2">
+                    <i class="fas fa-lock"></i> Os boletos só são emitidos depois que você aprovar o relatório.
+                </span>
+            </div>
+
+            {# Verificação de pagamento (sob demanda — não roda em horário fixo) #}
+            <div class="card mb-3">
+                <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-auto"><strong><i class="fas fa-magnifying-glass-dollar"></i> Verificar pagamentos</strong></div>
+                        <div class="col-auto">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">Últimos</span>
+                                <input type="number" min="1" max="60" value="3" id="verifMeses" class="form-control" style="max-width:80px">
+                                <span class="input-group-text">meses</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAtualizarEmAberto">
+                                <i class="fas fa-rotate"></i> Atualizar boletos em aberto
+                            </button>
+                        </div>
+                        <div class="col-auto text-muted small">
+                            Consulta os boletos ainda não pagos emitidos dentro da janela e atualiza o status.
+                            Boletos individuais: use o botão <i class="fas fa-magnifying-glass-dollar"></i> na linha.
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {# Tabela de Cobranças #}
@@ -233,6 +306,14 @@
                                                title="Ver Detalhes">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            {% if cobranca.boleto %}
+                                            <button type="button"
+                                                    class="btn btn-secondary btn-sm btn-verificar-pgto"
+                                                    data-id="{{ cobranca.id }}"
+                                                    title="Verificar pagamento deste boleto">
+                                                <i class="fas fa-magnifying-glass-dollar"></i>
+                                            </button>
+                                            {% endif %}
                                             {% if cobranca.podeEnviarManualmente() %}
                                             <button type="button"
                                                     class="btn btn-success btn-sm btn-enviar"
@@ -251,9 +332,15 @@
                                             {% endif %}
                                             {% if cobranca.isPendente() %}
                                             <button type="button"
+                                                    class="btn btn-warning btn-sm btn-editar-itens"
+                                                    data-id="{{ cobranca.id }}"
+                                                    title="Editar itens (aluguel, água, luz, IPTU, condomínio...)">
+                                                <i class="fas fa-pen"></i>
+                                            </button>
+                                            <button type="button"
                                                     class="btn btn-danger btn-sm btn-cancelar"
                                                     data-id="{{ cobranca.id }}"
-                                                    title="Cancelar">
+                                                    title="Excluir da relação">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                             {% endif %}
@@ -323,7 +410,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-eye"></i> Preview de Envio
+                    <i class="fas fa-clipboard-check"></i> Relatório de Conferência
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -337,9 +424,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar e revisar</button>
                 <button type="button" class="btn btn-success" id="btnConfirmarEnvio">
-                    <i class="fas fa-paper-plane"></i> Confirmar Envio
+                    <i class="fas fa-check-double"></i> Aprovar e emitir boletos
                 </button>
             </div>
         </div>
@@ -367,14 +454,131 @@
     </div>
 </div>
 
+{# Modal de Edição de Itens da Cobrança #}
+<div class="modal fade" id="editItensModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-pen"></i> Editar itens — <span id="editItensCompetencia"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="editItensAviso" class="alert alert-warning" style="display:none">
+                    Esta cobrança não está mais pendente e não pode ser editada.
+                </div>
+                <p class="text-muted small">Um boleto pode ter vários itens (aluguel, água, luz, IPTU,
+                    condomínio) ou uma linha avulsa. Ajuste, inclua ou remova linhas — o total é recalculado.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="220">Tipo</th>
+                                <th>Descrição</th>
+                                <th width="140" class="text-end">Valor (R$)</th>
+                                <th width="50"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="editItensBody"></tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddItem">
+                    <i class="fas fa-plus"></i> Adicionar item
+                </button>
+                <div class="text-end mt-2">
+                    <strong>Total: <span id="editItensTotal">R$ 0,00</span></strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarItens">
+                    <i class="fas fa-save"></i> Salvar itens
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal de Boleto Avulso (fora de contrato) #}
+<div class="modal fade" id="avulsoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Boleto avulso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Cobrança avulsa para qualquer pagador (ex.: um serviço de pedreiro,
+                    material...). Vários itens somam no total; a composição vai itemizada no boleto.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Pagador <span class="text-danger">*</span></label>
+                        {% include '_partials/autocomplete_field.html.twig' with {
+                            id: 'avulso_pagador',
+                            name: 'avulso_pagador',
+                            url: path('app_autocomplete_pessoas'),
+                            placeholder: 'Digite o nome do pagador'
+                        } %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Config. bancária <span class="text-danger">*</span></label>
+                        <select class="form-select" id="avulsoConfig">
+                            {% for c in configsApi %}
+                                <option value="{{ c.id }}">{{ c.ambiente|capitalize }} (#{{ c.id }})</option>
+                            {% else %}
+                                <option value="">Nenhuma config. ativa</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Vencimento <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="avulsoVenc">
+                    </div>
+                </div>
+                <hr>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-dark"><tr>
+                            <th width="220">Tipo</th><th>Descrição</th>
+                            <th width="140" class="text-end">Valor (R$)</th><th width="50"></th>
+                        </tr></thead>
+                        <tbody id="avulsoItensBody"></tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnAvulsoAddItem">
+                    <i class="fas fa-plus"></i> Adicionar item
+                </button>
+                <div class="text-end mt-2"><strong>Total: <span id="avulsoTotal">R$ 0,00</span></strong></div>
+                <div class="alert alert-warning mt-2 mb-0 small">
+                    <i class="fas fa-triangle-exclamation"></i> Ao aprovar, o boleto avulso é gerado e enviado por e-mail ao pagador.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnAvulsoEmitir">
+                    <i class="fas fa-check-double"></i> Aprovar e emitir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     window.COBRANCA_ROUTES = {
         enviar: '{{ path('app_cobranca_enviar', {id: '__ID__'}) }}',
         enviarLote: '{{ path('app_cobranca_enviar_lote') }}',
         cancelar: '{{ path('app_cobranca_cancelar', {id: '__ID__'}) }}',
         marcarEntregue: '{{ path('app_cobranca_marcar_entregue', {id: '__ID__'}) }}',
-        preview: '{{ path('app_cobranca_preview') }}'
+        preview: '{{ path('app_cobranca_preview') }}',
+        itensGet: '{{ path('app_cobranca_itens_get', {id: '__ID__'}) }}',
+        itensSave: '{{ path('app_cobranca_itens_save', {id: '__ID__'}) }}',
+        avulso: '{{ path('app_cobranca_avulso') }}',
+        verificarPagamento: '{{ path('app_cobranca_verificar_pagamento', {id: '__ID__'}) }}',
+        atualizarEmAberto: '{{ path('app_boleto_atualizar_em_aberto') }}'
     };
+    window.COBRANCA_TIPOS = {{ tiposItem|json_encode|raw }};
 </script>
+<script src="{{ asset('js/generic_autocomplete.js') }}"></script>
 {{ encore_entry_script_tags('cobranca') }}
 {% endblock %}
