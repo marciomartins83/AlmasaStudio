@@ -4,8 +4,17 @@ framework:
     session:
         handler_id: session.handler.native_file
         save_path: '%kernel.project_dir%/var/sessions'
+        # Nome PROPRIO do cookie: evita colisao com o PHPSESSID do site raiz e de
+        # outros apps em liviago.com.br (mesmo dominio/path) que derrubava a sessao.
+        name: ALMASA_SESSID
         cookie_secure: auto
         cookie_samesite: lax
+        # Login persistente: o cookie sobrevive a fechar/reabrir o navegador (30 dias),
+        # e a sessao so expira apos 24h SEM atividade (GC desliza pelo ultimo acesso).
+        cookie_lifetime: 2592000      # 30 dias (navegador)
+        gc_maxlifetime: 86400         # 24h de inatividade -> expira
+        gc_probability: 1
+        gc_divisor: 100
     php_errors:
         log: true
     trusted_proxies: '%env(TRUSTED_PROXIES)%'
