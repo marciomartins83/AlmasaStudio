@@ -108,3 +108,6 @@ Captura\ de\ tela*.png
 /deploy/*.bak
 /docs/.UPDATE_PENDING
 ###< deploy ###
+.env
+.env.local
+.env.*.local
