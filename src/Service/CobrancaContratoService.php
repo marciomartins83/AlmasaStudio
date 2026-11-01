@@ -14,7 +14,10 @@ use App\Repository\ImoveisContratosRepository;
 use App\Repository\ConfiguracoesApiBancoRepository;
 use App\Repository\LancamentosFinanceirosRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Psr\Log\LoggerInterface;
+use Twig\Environment;
 
 /**
  * Service para gerenciamento de cobranças de contratos.
@@ -38,8 +41,43 @@ class CobrancaContratoService
         private ConfiguracoesApiBancoRepository $configApiBancoRepo,
         private LancamentosFinanceirosRepository $lancamentosFinanceirosRepo,
         private LoggerInterface $logger,
-        private string $projectDir
+        private string $projectDir,
+        private Environment $twig
     ) {}
+
+    /**
+     * Gera o PDF do relatório de conferência de cobranças (com cabeçalho/rodapé do
+     * Almasa), uma cobrança por linha — para o usuário imprimir.
+     *
+     * @param array<int, array{contrato:mixed, locatario:string, competencia:string, vencimento:string, valor_formatado:string}> $cobrancas
+     */
+    public function gerarRelatorioConferenciaPdf(array $cobrancas, float $valorTotal, ?string $periodo = null): string
+    {
+        $logoPath = $this->projectDir . '/public/images/almasa-logo.png';
+        $logoDataUri = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : '';
+
+        $html = $this->twig->render('cobranca/pdf/relatorio_conferencia.html.twig', [
+            'cobrancas' => $cobrancas,
+            'valor_total_formatado' => 'R$ ' . number_format($valorTotal, 2, ',', '.'),
+            'periodo' => $periodo,
+            'data_emissao' => new \DateTime(),
+            'logo_data_uri' => $logoDataUri,
+        ]);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', false);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $dompdf->output();
+    }
 
     /**
      * Calcula competência baseada no período de locação.

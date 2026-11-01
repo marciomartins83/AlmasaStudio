@@ -214,7 +214,7 @@ function initRelatorio() {
     const btnImprimir = document.getElementById('btnImprimirRelatorio');
     if (btnImprimir) {
         btnImprimir.addEventListener('click', function () {
-            if (ultimoPreview) imprimirRelatorio(ultimoPreview);
+            if (payloadAprovacao) imprimirRelatorioPdf(payloadAprovacao);
         });
     }
 }
@@ -295,49 +295,35 @@ function renderPreview(data, container) {
     container.innerHTML = html;
 }
 
-// Abre uma janela com o relatório em formato de impressão (uma cobrança por linha)
-// e dispara a impressão. Pedido do cliente: conferir no papel, um por linha.
-function imprimirRelatorio(data) {
-    const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-    const linhas = (data.cobrancas || []).map((c, i) => `
-        <tr>
-            <td class="c">${i + 1}</td>
-            <td>#${esc(c.contrato)}</td>
-            <td>${esc(c.locatario)}</td>
-            <td>${esc(c.competencia)}</td>
-            <td>${esc(c.vencimento)}</td>
-            <td class="r">${esc(c.valor_formatado)}</td>
-        </tr>`).join('');
-    const agora = new Date().toLocaleString('pt-BR');
-    const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-        <title>Relatório de Conferência de Cobranças</title>
-        <style>
-            *{font-family:Arial,Helvetica,sans-serif}
-            body{margin:24px;color:#000}
-            h1{font-size:16px;margin:0 0 2px}
-            .sub{font-size:12px;color:#333;margin:0 0 12px}
-            table{width:100%;border-collapse:collapse;font-size:12px}
-            th,td{border:1px solid #999;padding:4px 6px;text-align:left}
-            th{background:#eee}
-            .c{text-align:center;width:28px}
-            .r{text-align:right;white-space:nowrap}
-            tfoot td{font-weight:bold}
-            @media print{body{margin:0}}
-        </style></head><body>
-        <h1>Relatório de Conferência de Cobranças</h1>
-        <p class="sub">${esc(data.quantidade)} cobrança(s) &middot; Total ${esc(data.valor_total_formatado)} &middot; emitido em ${esc(agora)}</p>
-        <table>
-            <thead><tr><th class="c">#</th><th>Contrato</th><th>Locatário</th><th>Competência</th><th>Vencimento</th><th class="r">Valor</th></tr></thead>
-            <tbody>${linhas}</tbody>
-            <tfoot><tr><td colspan="5" class="r">Total</td><td class="r">${esc(data.valor_total_formatado)}</td></tr></tfoot>
-        </table>
-        <script>window.onload=function(){window.print();}<\/script>
-        </body></html>`;
-    const w = window.open('', '_blank');
-    if (!w) { showToast('warning', 'Permita pop-ups para imprimir o relatório.'); return; }
-    w.document.open();
-    w.document.write(doc);
-    w.document.close();
+// Gera o relatório de conferência em PDF no servidor (com cabeçalho/rodapé do Almasa,
+// uma cobrança por linha) e abre numa nova aba para o usuário imprimir. Usa o MESMO
+// payload do preview ({ids} selecionados OU {filtros} = todas do filtro atual).
+function imprimirRelatorioPdf(payload) {
+    if (!payload) return;
+    const btn = document.getElementById('btnImprimirRelatorio');
+    const original = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando PDF...'; }
+
+    fetch(window.COBRANCA_ROUTES.relatorioPdf, {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify(payload)
+    })
+        .then(r => {
+            if (!r.ok) return r.json().then(j => Promise.reject(j)).catch(() => Promise.reject({ message: 'Erro ao gerar o PDF.' }));
+            return r.blob();
+        })
+        .then(blob => {
+            if (btn) { btn.disabled = false; btn.innerHTML = original; }
+            const url = URL.createObjectURL(blob);
+            const w = window.open(url, '_blank');
+            if (!w) { showToast('warning', 'Permita pop-ups para abrir o PDF do relatório.'); }
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        })
+        .catch(err => {
+            if (btn) { btn.disabled = false; btn.innerHTML = original; }
+            showToast('danger', (err && err.message) || 'Erro ao gerar o PDF do relatório.');
+        });
 }
 
 // ------------------------------------------------------------------ emissão

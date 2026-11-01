@@ -328,8 +328,56 @@ class CobrancaController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança para o relatório (seleção vazia ou filtro sem cobranças emitíveis).'], 400);
         }
 
-        $preview = [];
-        $valorTotal = 0;
+        $res = $this->montarLinhasConferencia($ids);
+
+        return new JsonResponse([
+            'success' => true,
+            'cobrancas' => $res['linhas'],
+            'quantidade' => count($res['linhas']),
+            'valor_total' => $res['valorTotal'],
+            'valor_total_formatado' => 'R$ ' . number_format($res['valorTotal'], 2, ',', '.'),
+        ]);
+    }
+
+    /**
+     * Gera o relatório de conferência em PDF (com cabeçalho/rodapé do Almasa), uma
+     * cobrança por linha — para imprimir. Aceita o mesmo payload do preview: IDs
+     * marcados OU {filtros} (todas as emitíveis do filtro, em todas as páginas).
+     */
+    #[Route('/relatorio-conferencia-pdf', name: 'app_cobranca_relatorio_pdf', methods: ['POST'])]
+    public function relatorioConferenciaPdf(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('ajax_global', $request->headers->get('X-CSRF-Token'))) {
+            return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true) ?: [];
+        $ids = $this->resolverIdsDoPayload($data);
+
+        if (empty($ids)) {
+            return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança para o relatório.'], 400);
+        }
+
+        $res = $this->montarLinhasConferencia($ids);
+        $pdf = $this->cobrancaService->gerarRelatorioConferenciaPdf($res['linhas'], $res['valorTotal']);
+
+        return new Response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="relatorio-conferencia-cobrancas.pdf"',
+        ]);
+    }
+
+    /**
+     * Monta as linhas do relatório de conferência (só cobranças emitíveis), reusado
+     * pelo preview (JSON) e pelo PDF.
+     *
+     * @param int[] $ids
+     * @return array{linhas: array<int, array>, valorTotal: float}
+     */
+    private function montarLinhasConferencia(array $ids): array
+    {
+        $linhas = [];
+        $valorTotal = 0.0;
 
         foreach ($ids as $id) {
             $cobranca = $this->cobrancasRepo->find($id);
@@ -338,7 +386,7 @@ class CobrancaController extends AbstractController
                 $contrato = $cobranca->getContrato();
                 $locatario = $contrato->getPessoaLocatario();
 
-                $preview[] = [
+                $linhas[] = [
                     'id' => $cobranca->getId(),
                     'contrato' => $contrato->getId(),
                     'locatario' => $locatario ? $locatario->getNome() : '-',
@@ -352,13 +400,7 @@ class CobrancaController extends AbstractController
             }
         }
 
-        return new JsonResponse([
-            'success' => true,
-            'cobrancas' => $preview,
-            'quantidade' => count($preview),
-            'valor_total' => $valorTotal,
-            'valor_total_formatado' => 'R$ ' . number_format($valorTotal, 2, ',', '.'),
-        ]);
+        return ['linhas' => $linhas, 'valorTotal' => $valorTotal];
     }
 
     /**
