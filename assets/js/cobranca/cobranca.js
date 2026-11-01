@@ -416,8 +416,9 @@ function adicionarLinhaItem(item) {
     const valorFmt = (item.valor !== '' && item.valor !== undefined && item.valor !== null)
         ? Number(item.valor).toFixed(2).replace('.', ',') : '';
     const planoLabel = (item.plano_label || (isAluguel ? 'Aluguel (contrato)' : '')).replace(/"/g, '&quot;');
-    const recChecked = (item.recorrente && planoId && !isAluguel) ? 'checked' : '';
-    const recDisabled = (!planoId || isAluguel) ? 'disabled' : '';
+    // Aluguel recorre por natureza (vem sempre do contrato) → já marcado e travado.
+    const recChecked = isAluguel ? 'checked' : ((item.recorrente && planoId) ? 'checked' : '');
+    const recDisabled = (isAluguel || !planoId) ? 'disabled' : '';
     tr.innerHTML = `
         <td class="position-relative">
             <input type="hidden" class="item-plano-id" value="${planoId}">
