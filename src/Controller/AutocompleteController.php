@@ -242,14 +242,23 @@ class AutocompleteController extends AbstractController
         $q = trim($request->query->get('q', ''));
         if (strlen($q) < 1) return new JsonResponse([]);
 
+        // Filtro opcional por tipo do plano (0=Receita, 1=Despesa, 2=Transitória, 3=Caixa).
+        $where = 'ativo = true';
+        $params = ['q' => '%' . $q . '%'];
+        $tipo = $request->query->get('tipo', '');
+        if ($tipo !== '') {
+            $where .= ' AND tipo = :tipo';
+            $params['tipo'] = (int) $tipo;
+        }
+
         $rows = $this->conn->fetchAllAssociative(
             "SELECT id, CONCAT(codigo, ' — ', descricao) AS label
              FROM plano_contas
-             WHERE ativo = true
+             WHERE {$where}
                AND (unaccent(LOWER(descricao)) LIKE unaccent(LOWER(:q))
                  OR LOWER(codigo) LIKE LOWER(:q))
              ORDER BY descricao ASC LIMIT 20",
-            ['q' => '%' . $q . '%']
+            $params
         );
 
         return new JsonResponse($rows);

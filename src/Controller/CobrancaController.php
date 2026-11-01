@@ -107,14 +107,12 @@ class CobrancaController extends AbstractController
         $cobrancas = $resultado['cobrancas'];
         $total = $resultado['total'];
 
-        // Estatísticas para o dia/período (usa a data de referência disponível)
-        $dataReferencia = $filtros['data_vencimento'] ?? $vencimentoInicio ?? null;
-        $estatisticas = $this->cobrancaService->getEstatisticas($dataReferencia);
-
-        // Contagem por tipo de envio
-        $contagemTipoEnvio = $this->cobrancasRepo->contarPorTipoEnvio(
-            $dataReferencia ?? new \DateTime()
-        );
+        // Resumo dos cards usando EXATAMENTE os mesmos filtros da lista (período +
+        // status + excluir_automaticos). Antes usava só a data de início do período,
+        // por isso o card "Total de Cobranças" mostrava menos que a lista.
+        $resumo = $this->cobrancaService->getResumoPorFiltros($filtros);
+        $estatisticas = ['total' => $resumo['total']];
+        $contagemTipoEnvio = $resumo['tipo'];
 
         // Status disponíveis para filtro
         $statusOptions = ContratosCobrancas::getStatusDisponiveis();
@@ -474,8 +472,7 @@ class CobrancaController extends AbstractController
             'id' => $cobranca->getId(),
             'competencia' => $cobranca->getCompetenciaFormatada(),
             'podeEditar' => $cobranca->getStatus() === ContratosCobrancas::STATUS_PENDENTE,
-            'itens' => $cobranca->getItensDetalhados() ?: [],
-            'tipos' => ContratosItensCobranca::getTiposDisponiveis(),
+            'itens' => $this->cobrancaService->getItensEditaveis($cobranca),
         ]);
     }
 

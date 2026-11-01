@@ -425,6 +425,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar e revisar</button>
+                <button type="button" class="btn btn-outline-primary" id="btnImprimirRelatorio">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
                 <button type="button" class="btn btn-success" id="btnConfirmarEnvio">
                     <i class="fas fa-check-double"></i> Aprovar e emitir boletos
                 </button>
@@ -468,15 +471,18 @@
                 <div id="editItensAviso" class="alert alert-warning" style="display:none">
                     Esta cobrança não está mais pendente e não pode ser editada.
                 </div>
-                <p class="text-muted small">Um boleto pode ter vários itens (aluguel, água, luz, IPTU,
-                    condomínio) ou uma linha avulsa. Ajuste, inclua ou remova linhas — o total é recalculado.</p>
+                <p class="text-muted small">O <strong>Tipo</strong> vem do plano de contas (só receitas) — digite
+                    parte do nome; ou deixe em branco e descreva como "Outros". Marque <strong>Recorr.</strong> para o
+                    item voltar automaticamente no mês seguinte, com valor editável sugerindo o último cobrado.
+                    O total é recalculado.</p>
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead class="table-dark">
                             <tr>
-                                <th width="220">Tipo</th>
+                                <th width="240">Tipo (plano — receita)</th>
                                 <th>Descrição</th>
-                                <th width="140" class="text-end">Valor (R$)</th>
+                                <th width="130" class="text-end">Valor (R$)</th>
+                                <th width="70" class="text-center">Recorr.</th>
                                 <th width="50"></th>
                             </tr>
                         </thead>
@@ -573,6 +579,7 @@
         preview: '{{ path('app_cobranca_preview') }}',
         itensGet: '{{ path('app_cobranca_itens_get', {id: '__ID__'}) }}',
         itensSave: '{{ path('app_cobranca_itens_save', {id: '__ID__'}) }}',
+        planoContas: '{{ path('app_autocomplete_plano_contas') }}',
         avulso: '{{ path('app_cobranca_avulso') }}',
         verificarPagamento: '{{ path('app_cobranca_verificar_pagamento', {id: '__ID__'}) }}',
         atualizarEmAberto: '{{ path('app_boleto_atualizar_em_aberto') }}'

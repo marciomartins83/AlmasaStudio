@@ -143,67 +143,7 @@ class ContratosCobrancasRepository extends ServiceEntityRepository
             ->innerJoin('ct.imovel', 'i')
             ->leftJoin('ct.pessoaLocatario', 'p');
 
-        // Filtro por data de vencimento
-        if (!empty($filtros['data_vencimento'])) {
-            $qb->andWhere('c.dataVencimento = :dataVencimento')
-                ->setParameter('dataVencimento', $filtros['data_vencimento']->format('Y-m-d'));
-        }
-
-        // Filtro por período de vencimento
-        if (!empty($filtros['vencimento_inicio'])) {
-            $qb->andWhere('c.dataVencimento >= :vencimentoInicio')
-                ->setParameter('vencimentoInicio', $filtros['vencimento_inicio']->format('Y-m-d'));
-        }
-
-        if (!empty($filtros['vencimento_fim'])) {
-            $qb->andWhere('c.dataVencimento <= :vencimentoFim')
-                ->setParameter('vencimentoFim', $filtros['vencimento_fim']->format('Y-m-d'));
-        }
-
-        // Filtro por status
-        if (!empty($filtros['status'])) {
-            if (is_array($filtros['status'])) {
-                $qb->andWhere('c.status IN (:status)')
-                    ->setParameter('status', $filtros['status']);
-            } else {
-                $qb->andWhere('c.status = :status')
-                    ->setParameter('status', $filtros['status']);
-            }
-        }
-
-        // Filtro por competência
-        if (!empty($filtros['competencia'])) {
-            $qb->andWhere('c.competencia = :competencia')
-                ->setParameter('competencia', $filtros['competencia']);
-        }
-
-        // Filtro por contrato
-        if (!empty($filtros['contrato_id'])) {
-            $qb->andWhere('c.contrato = :contratoId')
-                ->setParameter('contratoId', $filtros['contrato_id']);
-        }
-
-        // Filtro por tipo envio
-        if (isset($filtros['tipo_envio'])) {
-            if ($filtros['tipo_envio'] === null) {
-                $qb->andWhere('c.tipoEnvio IS NULL');
-            } else {
-                $qb->andWhere('c.tipoEnvio = :tipoEnvio')
-                    ->setParameter('tipoEnvio', $filtros['tipo_envio']);
-            }
-        }
-
-        // Filtro por bloqueado rotina
-        if (isset($filtros['bloqueado_rotina_auto'])) {
-            $qb->andWhere('c.bloqueadoRotinaAuto = :bloqueadoRotinaAuto')
-                ->setParameter('bloqueadoRotinaAuto', $filtros['bloqueado_rotina_auto']);
-        }
-
-        // Excluir automáticos (padrão na tela de envio manual)
-        if (!empty($filtros['excluir_automaticos'])) {
-            $qb->andWhere('(c.tipoEnvio IS NULL OR c.tipoEnvio != :tipoAuto)')
-                ->setParameter('tipoAuto', ContratosCobrancas::TIPO_ENVIO_AUTOMATICO);
-        }
+        $this->aplicarFiltrosCobranca($qb, $filtros);
 
         // Contar total
         $countQb = clone $qb;
@@ -304,5 +244,88 @@ class ContratosCobrancasRepository extends ServiceEntityRepository
         }
 
         return $contagem;
+    }
+
+    /**
+     * Aplica os filtros de listagem a um QueryBuilder (alias 'c').
+     * Centralizado para que a lista e os cards de resumo usem EXATAMENTE os mesmos filtros.
+     */
+    private function aplicarFiltrosCobranca(\Doctrine\ORM\QueryBuilder $qb, array $filtros): void
+    {
+        if (!empty($filtros['data_vencimento'])) {
+            $qb->andWhere('c.dataVencimento = :dataVencimento')
+                ->setParameter('dataVencimento', $filtros['data_vencimento']->format('Y-m-d'));
+        }
+        if (!empty($filtros['vencimento_inicio'])) {
+            $qb->andWhere('c.dataVencimento >= :vencimentoInicio')
+                ->setParameter('vencimentoInicio', $filtros['vencimento_inicio']->format('Y-m-d'));
+        }
+        if (!empty($filtros['vencimento_fim'])) {
+            $qb->andWhere('c.dataVencimento <= :vencimentoFim')
+                ->setParameter('vencimentoFim', $filtros['vencimento_fim']->format('Y-m-d'));
+        }
+        if (!empty($filtros['status'])) {
+            if (is_array($filtros['status'])) {
+                $qb->andWhere('c.status IN (:status)')->setParameter('status', $filtros['status']);
+            } else {
+                $qb->andWhere('c.status = :status')->setParameter('status', $filtros['status']);
+            }
+        }
+        if (!empty($filtros['competencia'])) {
+            $qb->andWhere('c.competencia = :competencia')->setParameter('competencia', $filtros['competencia']);
+        }
+        if (!empty($filtros['contrato_id'])) {
+            $qb->andWhere('c.contrato = :contratoId')->setParameter('contratoId', $filtros['contrato_id']);
+        }
+        if (isset($filtros['tipo_envio'])) {
+            if ($filtros['tipo_envio'] === null) {
+                $qb->andWhere('c.tipoEnvio IS NULL');
+            } else {
+                $qb->andWhere('c.tipoEnvio = :tipoEnvio')->setParameter('tipoEnvio', $filtros['tipo_envio']);
+            }
+        }
+        if (isset($filtros['bloqueado_rotina_auto'])) {
+            $qb->andWhere('c.bloqueadoRotinaAuto = :bloqueadoRotinaAuto')
+                ->setParameter('bloqueadoRotinaAuto', $filtros['bloqueado_rotina_auto']);
+        }
+        if (!empty($filtros['excluir_automaticos'])) {
+            $qb->andWhere('(c.tipoEnvio IS NULL OR c.tipoEnvio != :tipoAuto)')
+                ->setParameter('tipoAuto', ContratosCobrancas::TIPO_ENVIO_AUTOMATICO);
+        }
+    }
+
+    /**
+     * Resumo (contagem + valor + quebra por tipo de envio) usando EXATAMENTE os
+     * mesmos filtros da listagem — para os cards baterem com a lista (antes os cards
+     * usavam só a data de início do período, mostrando menos cobranças que a lista).
+     *
+     * @return array{total: array{quantidade:int, valor:float}, tipo: array{automatico:int, manual:int}}
+     */
+    public function getResumoPorFiltros(array $filtros): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->select('COUNT(c.id) as quantidade', 'COALESCE(SUM(c.valorTotal), 0) as valor');
+        $this->aplicarFiltrosCobranca($qb, $filtros);
+        $row = $qb->getQuery()->getSingleResult();
+
+        $qb2 = $this->createQueryBuilder('c')
+            ->select(
+                'SUM(CASE WHEN c.tipoEnvio = :tEnvAuto THEN 1 ELSE 0 END) as automatico',
+                'SUM(CASE WHEN c.tipoEnvio IS NULL OR c.tipoEnvio != :tEnvAuto THEN 1 ELSE 0 END) as manual'
+            )
+            ->setParameter('tEnvAuto', ContratosCobrancas::TIPO_ENVIO_AUTOMATICO);
+        $this->aplicarFiltrosCobranca($qb2, $filtros);
+        $row2 = $qb2->getQuery()->getSingleResult();
+
+        return [
+            'total' => [
+                'quantidade' => (int) $row['quantidade'],
+                'valor' => (float) $row['valor'],
+            ],
+            'tipo' => [
+                'automatico' => (int) ($row2['automatico'] ?? 0),
+                'manual' => (int) ($row2['manual'] ?? 0),
+            ],
+        ];
     }
 }

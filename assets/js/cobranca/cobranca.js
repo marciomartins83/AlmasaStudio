@@ -199,6 +199,13 @@ function initRelatorio() {
             if (idsParaEmitir.length > 0) emitirBoletos(idsParaEmitir);
         });
     }
+
+    const btnImprimir = document.getElementById('btnImprimirRelatorio');
+    if (btnImprimir) {
+        btnImprimir.addEventListener('click', function () {
+            if (ultimoPreview) imprimirRelatorio(ultimoPreview);
+        });
+    }
 }
 
 // Botões "enviar" por linha: também passam pelo relatório de conferência (1 item).
@@ -209,6 +216,9 @@ function initBotoesEnviar() {
         });
     });
 }
+
+// Guarda o último relatório carregado para a impressão.
+let ultimoPreview = null;
 
 function abrirRelatorio(ids) {
     idsParaEmitir = ids;
@@ -228,7 +238,7 @@ function carregarPreview(ids) {
     })
         .then(r => r.json())
         .then(data => {
-            if (data.success) renderPreview(data, content);
+            if (data.success) { ultimoPreview = data; renderPreview(data, content); }
             else content.innerHTML = `<div class="alert alert-danger">${data.message || 'Erro ao carregar relatório'}</div>`;
         })
         .catch(() => { content.innerHTML = '<div class="alert alert-danger">Erro de comunicação com o servidor</div>'; });
@@ -255,6 +265,51 @@ function renderPreview(data, container) {
         <div class="alert alert-warning mb-0"><i class="fas fa-triangle-exclamation"></i>
         Ao aprovar, os boletos serão gerados e enviados. Confira antes de aprovar.</div>`;
     container.innerHTML = html;
+}
+
+// Abre uma janela com o relatório em formato de impressão (uma cobrança por linha)
+// e dispara a impressão. Pedido do cliente: conferir no papel, um por linha.
+function imprimirRelatorio(data) {
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    const linhas = (data.cobrancas || []).map((c, i) => `
+        <tr>
+            <td class="c">${i + 1}</td>
+            <td>#${esc(c.contrato)}</td>
+            <td>${esc(c.locatario)}</td>
+            <td>${esc(c.competencia)}</td>
+            <td>${esc(c.vencimento)}</td>
+            <td class="r">${esc(c.valor_formatado)}</td>
+        </tr>`).join('');
+    const agora = new Date().toLocaleString('pt-BR');
+    const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+        <title>Relatório de Conferência de Cobranças</title>
+        <style>
+            *{font-family:Arial,Helvetica,sans-serif}
+            body{margin:24px;color:#000}
+            h1{font-size:16px;margin:0 0 2px}
+            .sub{font-size:12px;color:#333;margin:0 0 12px}
+            table{width:100%;border-collapse:collapse;font-size:12px}
+            th,td{border:1px solid #999;padding:4px 6px;text-align:left}
+            th{background:#eee}
+            .c{text-align:center;width:28px}
+            .r{text-align:right;white-space:nowrap}
+            tfoot td{font-weight:bold}
+            @media print{body{margin:0}}
+        </style></head><body>
+        <h1>Relatório de Conferência de Cobranças</h1>
+        <p class="sub">${esc(data.quantidade)} cobrança(s) &middot; Total ${esc(data.valor_total_formatado)} &middot; emitido em ${esc(agora)}</p>
+        <table>
+            <thead><tr><th class="c">#</th><th>Contrato</th><th>Locatário</th><th>Competência</th><th>Vencimento</th><th class="r">Valor</th></tr></thead>
+            <tbody>${linhas}</tbody>
+            <tfoot><tr><td colspan="5" class="r">Total</td><td class="r">${esc(data.valor_total_formatado)}</td></tr></tfoot>
+        </table>
+        <script>window.onload=function(){window.print();}<\/script>
+        </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { showToast('warning', 'Permita pop-ups para imprimir o relatório.'); return; }
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
 }
 
 // ------------------------------------------------------------------ emissão
@@ -339,7 +394,6 @@ function abrirEdicaoItens(id) {
         .then(r => r.json())
         .then(data => {
             if (!data.success) { showToast('danger', data.message || 'Erro'); return; }
-            editItensTipos = data.tipos || {};
             const corpo = document.getElementById('editItensBody');
             corpo.innerHTML = '';
             (data.itens || []).forEach(it => adicionarLinhaItem(it));
@@ -354,23 +408,84 @@ function abrirEdicaoItens(id) {
 }
 
 function adicionarLinhaItem(item) {
-    item = item || { tipo: 'OUTROS', descricao: '', valor: '' };
+    item = item || { plano_conta_id: null, plano_label: '', tipo: 'OUTROS', descricao: '', valor: '', recorrente: false };
     const corpo = document.getElementById('editItensBody');
     const tr = document.createElement('tr');
-    let opts = '';
-    Object.keys(editItensTipos).forEach(k => {
-        opts += `<option value="${k}" ${k === item.tipo ? 'selected' : ''}>${editItensTipos[k]}</option>`;
-    });
-    const valorFmt = item.valor !== '' && item.valor !== undefined
+    const isAluguel = (item.tipo === 'ALUGUEL');
+    const planoId = (item.plano_conta_id != null && item.plano_conta_id !== '') ? item.plano_conta_id : '';
+    const valorFmt = (item.valor !== '' && item.valor !== undefined && item.valor !== null)
         ? Number(item.valor).toFixed(2).replace('.', ',') : '';
+    const planoLabel = (item.plano_label || (isAluguel ? 'Aluguel (contrato)' : '')).replace(/"/g, '&quot;');
+    const recChecked = (item.recorrente && planoId && !isAluguel) ? 'checked' : '';
+    const recDisabled = (!planoId || isAluguel) ? 'disabled' : '';
     tr.innerHTML = `
-        <td><select class="form-select form-select-sm item-tipo">${opts}</select></td>
+        <td class="position-relative">
+            <input type="hidden" class="item-plano-id" value="${planoId}">
+            <input type="hidden" class="item-tipo" value="${item.tipo || 'OUTROS'}">
+            <input type="text" class="form-control form-control-sm item-plano-label" autocomplete="off"
+                   value="${planoLabel}" placeholder="Plano (receita) ou deixe p/ Outros" ${isAluguel ? 'readonly' : ''}>
+            <div class="ac-dropdown list-group position-absolute w-100 shadow-sm" style="z-index:1090;display:none;max-height:200px;overflow:auto"></div>
+        </td>
         <td><input type="text" class="form-control form-control-sm item-descricao" value="${(item.descricao || '').replace(/"/g, '&quot;')}" placeholder="Descrição"></td>
         <td><input type="text" class="form-control form-control-sm item-valor text-end" value="${valorFmt}" placeholder="0,00" inputmode="decimal"></td>
+        <td class="text-center align-middle"><input type="checkbox" class="form-check-input item-recorrente" ${recChecked} ${recDisabled} title="Recorrente — volta todo mês sugerindo o último valor"></td>
         <td><button type="button" class="btn btn-outline-danger btn-sm item-remover"><i class="fas fa-trash"></i></button></td>`;
     corpo.appendChild(tr);
     tr.querySelector('.item-remover').addEventListener('click', () => { tr.remove(); atualizarTotalItens(); });
     tr.querySelector('.item-valor').addEventListener('input', atualizarTotalItens);
+    if (!isAluguel) initItemAutocomplete(tr);
+}
+
+// Autocomplete do plano de contas (receita) por linha de item. Enquanto não se
+// escolhe uma conta, o item é "Outros" (descrição livre) e não pode ser recorrente.
+function initItemAutocomplete(tr) {
+    const input = tr.querySelector('.item-plano-label');
+    const hiddenId = tr.querySelector('.item-plano-id');
+    const hiddenTipo = tr.querySelector('.item-tipo');
+    const dd = tr.querySelector('.ac-dropdown');
+    const chkRec = tr.querySelector('.item-recorrente');
+    const descr = tr.querySelector('.item-descricao');
+    let timer = null;
+    const fechar = () => { dd.style.display = 'none'; dd.innerHTML = ''; };
+
+    input.addEventListener('input', () => {
+        hiddenId.value = '';
+        if (hiddenTipo.value !== 'ALUGUEL') hiddenTipo.value = 'OUTROS';
+        chkRec.checked = false; chkRec.disabled = true;
+        const q = input.value.trim();
+        clearTimeout(timer);
+        if (q.length < 1) { fechar(); return; }
+        timer = setTimeout(() => {
+            fetch(window.COBRANCA_ROUTES.planoContas + '?tipo=0&q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(rows => {
+                    dd.innerHTML = '';
+                    if (!rows || !rows.length) { fechar(); return; }
+                    rows.forEach(row => {
+                        const opt = document.createElement('button');
+                        opt.type = 'button';
+                        opt.className = 'list-group-item list-group-item-action py-1 small';
+                        opt.textContent = row.label;
+                        opt.addEventListener('mousedown', (e) => {
+                            e.preventDefault();
+                            hiddenId.value = row.id;
+                            hiddenTipo.value = 'OUTROS';
+                            input.value = row.label;
+                            if (!descr.value.trim()) {
+                                const parts = row.label.split('—');
+                                descr.value = (parts.length > 1 ? parts.slice(1).join('—') : row.label).trim();
+                            }
+                            chkRec.disabled = false; chkRec.checked = true;
+                            fechar();
+                        });
+                        dd.appendChild(opt);
+                    });
+                    dd.style.display = 'block';
+                })
+                .catch(fechar);
+        }, 250);
+    });
+    input.addEventListener('blur', () => setTimeout(fechar, 150));
 }
 
 function parseValor(str) {
@@ -389,10 +504,12 @@ function atualizarTotalItens() {
 function salvarItens() {
     const itens = [];
     document.querySelectorAll('#editItensBody tr').forEach(tr => {
-        const tipo = tr.querySelector('.item-tipo').value;
+        const planoId = tr.querySelector('.item-plano-id').value;
+        const tipo = tr.querySelector('.item-tipo').value || 'OUTROS';
         const descricao = tr.querySelector('.item-descricao').value;
         const valor = parseValor(tr.querySelector('.item-valor').value);
-        if (valor > 0) itens.push({ tipo, descricao, valor });
+        const recorrente = tr.querySelector('.item-recorrente').checked;
+        if (valor > 0) itens.push({ plano_conta_id: planoId || null, tipo, descricao, valor, recorrente });
     });
     if (itens.length === 0) { showToast('warning', 'Informe ao menos um item com valor.'); return; }
 

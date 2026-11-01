@@ -19,17 +19,11 @@ use Doctrine\ORM\Mapping as ORM;
  * - Outros
  */
 #[ORM\Entity(repositoryClass: ContratosItensCobrancaRepository::class)]
-#[ORM\Table(
-    name: 'contratos_itens_cobranca',
-    indexes: [
-        new ORM\Index(name: 'idx_contratos_itens_contrato', columns: ['contrato_id']),
-        new ORM\Index(name: 'idx_contratos_itens_tipo', columns: ['tipo_item']),
-        new ORM\Index(name: 'idx_contratos_itens_ativo', columns: ['ativo']),
-    ],
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uk_itens_contrato_tipo', columns: ['contrato_id', 'tipo_item'])
-    ]
-)]
+#[ORM\Table(name: 'contratos_itens_cobranca')]
+#[ORM\Index(name: 'idx_contratos_itens_contrato', columns: ['contrato_id'])]
+#[ORM\Index(name: 'idx_contratos_itens_tipo', columns: ['tipo_item'])]
+#[ORM\Index(name: 'idx_contratos_itens_ativo', columns: ['ativo'])]
+#[ORM\UniqueConstraint(name: 'uk_itens_contrato_plano', columns: ['contrato_id', 'plano_conta_id'])]
 #[ORM\HasLifecycleCallbacks]
 class ContratosItensCobranca
 {
@@ -59,6 +53,14 @@ class ContratosItensCobranca
 
     #[ORM\Column(name: 'tipo_item', type: Types::STRING, length: 50)]
     private string $tipoItem;
+
+    /**
+     * Conta do plano de contas (RECEITA) deste item recorrente. Null = item "Outros"
+     * (descrição livre, sem conta). A recorrência é chaveada por (contrato, plano_conta).
+     */
+    #[ORM\ManyToOne(targetEntity: PlanoContas::class)]
+    #[ORM\JoinColumn(name: 'plano_conta_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?PlanoContas $planoConta = null;
 
     #[ORM\Column(name: 'descricao', type: Types::STRING, length: 100)]
     private string $descricao;
@@ -103,6 +105,17 @@ class ContratosItensCobranca
     public function setContrato(ImoveisContratos $contrato): self
     {
         $this->contrato = $contrato;
+        return $this;
+    }
+
+    public function getPlanoConta(): ?PlanoContas
+    {
+        return $this->planoConta;
+    }
+
+    public function setPlanoConta(?PlanoContas $planoConta): self
+    {
+        $this->planoConta = $planoConta;
         return $this;
     }
 

@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\ContratosCobrancas;
 use App\Entity\ContratosItensCobranca;
+use App\Entity\PlanoContas;
 use App\Entity\ImoveisContratos;
 use App\Repository\ContratosCobrancasRepository;
 use App\Repository\ContratosItensCobrancaRepository;
@@ -148,45 +149,37 @@ class CobrancaContratoService
 
         $valorAluguel = (float) $contrato->getValorContrato();
 
-        // Buscar itens de cobrança do contrato
-        $itens = $contrato->getItensCobrancaAtivos();
+        // Aluguel SEMPRE vem do contrato (base da cobrança).
+        $valores['aluguel'] = $valorAluguel;
+        $valores['itens_detalhados'][] = [
+            'tipo' => ContratosItensCobranca::TIPO_ALUGUEL,
+            'descricao' => 'Aluguel',
+            'valor' => $valorAluguel,
+            'plano_conta_id' => null,
+            'recorrente' => true,
+        ];
 
-        // Se não há itens configurados, usar apenas o valor do contrato como aluguel
-        if ($itens->isEmpty()) {
-            $valores['aluguel'] = $valorAluguel;
-            $valores['total'] = $valorAluguel;
-            $valores['itens_detalhados'][] = [
-                'tipo' => ContratosItensCobranca::TIPO_ALUGUEL,
-                'descricao' => 'Aluguel',
-                'valor' => $valorAluguel
-            ];
-            return $valores;
-        }
-
-        foreach ($itens as $item) {
+        // Itens RECORRENTES configurados no contrato (condomínio, água, IPTU, taxa,
+        // seguro...). Vêm por conta do plano de contas e entram itemizados no boleto.
+        foreach ($contrato->getItensCobrancaAtivos() as $item) {
+            if ($item->getTipoItem() === ContratosItensCobranca::TIPO_ALUGUEL) {
+                continue; // aluguel já veio do contrato
+            }
             $valorItem = $item->calcularValorEfetivo($valorAluguel);
 
             switch ($item->getTipoItem()) {
-                case ContratosItensCobranca::TIPO_ALUGUEL:
-                    $valores['aluguel'] += $valorItem;
-                    break;
-                case ContratosItensCobranca::TIPO_IPTU:
-                    $valores['iptu'] += $valorItem;
-                    break;
-                case ContratosItensCobranca::TIPO_CONDOMINIO:
-                    $valores['condominio'] += $valorItem;
-                    break;
-                case ContratosItensCobranca::TIPO_TAXA_ADMIN:
-                    $valores['taxa_admin'] += $valorItem;
-                    break;
-                default:
-                    $valores['outros'] += $valorItem;
+                case ContratosItensCobranca::TIPO_IPTU: $valores['iptu'] += $valorItem; break;
+                case ContratosItensCobranca::TIPO_CONDOMINIO: $valores['condominio'] += $valorItem; break;
+                case ContratosItensCobranca::TIPO_TAXA_ADMIN: $valores['taxa_admin'] += $valorItem; break;
+                default: $valores['outros'] += $valorItem;
             }
 
             $valores['itens_detalhados'][] = [
                 'tipo' => $item->getTipoItem(),
                 'descricao' => $item->getDescricao(),
-                'valor' => $valorItem
+                'valor' => $valorItem,
+                'plano_conta_id' => $item->getPlanoConta()?->getId(),
+                'recorrente' => true,
             ];
         }
 
@@ -553,6 +546,14 @@ class CobrancaContratoService
     }
 
     /**
+     * Resumo dos cards (contagem + valor + auto/manual) com os MESMOS filtros da lista.
+     */
+    public function getResumoPorFiltros(array $filtros): array
+    {
+        return $this->cobrancasRepo->getResumoPorFiltros($filtros);
+    }
+
+    /**
      * Cancela uma cobrança.
      */
     public function cancelarCobranca(ContratosCobrancas $cobranca): array
@@ -847,6 +848,7 @@ class CobrancaContratoService
 
         $baldes = ['aluguel' => 0.0, 'iptu' => 0.0, 'condominio' => 0.0, 'taxa_admin' => 0.0, 'outros' => 0.0];
         $detalhados = [];
+        $recorrentes = []; // plano_conta_id => ['descricao'=>, 'valor'=>, 'tipo'=>]
 
         foreach ($itens as $item) {
             $tipo = (string) ($item['tipo'] ?? ContratosItensCobranca::TIPO_OUTROS);
@@ -858,6 +860,9 @@ class CobrancaContratoService
             if ($valor <= 0) {
                 continue;
             }
+            $planoId = (isset($item['plano_conta_id']) && $item['plano_conta_id'] !== '' && $item['plano_conta_id'] !== null)
+                ? (int) $item['plano_conta_id'] : null;
+            $recorrente = !empty($item['recorrente']);
             $descricao = trim((string) ($item['descricao'] ?? '')) ?:
                 (ContratosItensCobranca::getTiposDisponiveis()[$tipo] ?? 'Item');
 
@@ -868,7 +873,19 @@ class CobrancaContratoService
                 case ContratosItensCobranca::TIPO_TAXA_ADMIN: $baldes['taxa_admin'] += $valor; break;
                 default: $baldes['outros'] += $valor;
             }
-            $detalhados[] = ['tipo' => $tipo, 'descricao' => $descricao, 'valor' => $valor];
+            $detalhados[] = [
+                'tipo' => $tipo,
+                'descricao' => $descricao,
+                'valor' => $valor,
+                'plano_conta_id' => $planoId,
+                'recorrente' => $recorrente,
+            ];
+
+            // Recorrente só vale para item com conta do plano e que não seja o aluguel
+            // (aluguel sempre vem do contrato).
+            if ($recorrente && $planoId !== null && $tipo !== ContratosItensCobranca::TIPO_ALUGUEL) {
+                $recorrentes[$planoId] = ['descricao' => $descricao, 'valor' => $valor, 'tipo' => $tipo];
+            }
         }
 
         if (empty($detalhados)) {
@@ -883,11 +900,83 @@ class CobrancaContratoService
         $cobranca->setValorOutros($baldes['outros']);
         $cobranca->setValorTotal($total);
         $cobranca->setItensDetalhados($detalhados);
-
         $this->em->persist($cobranca);
+
+        // Sincroniza os itens recorrentes DO CONTRATO (para voltarem no mês seguinte,
+        // sugerindo o último valor). Marcados = upsert ativo; os que saíram = inativados.
+        $this->sincronizarItensRecorrentes($cobranca->getContrato(), $recorrentes);
+
         $this->em->flush();
 
         return ['sucesso' => true, 'mensagem' => 'Itens atualizados.'];
+    }
+
+    /**
+     * Mantém os itens recorrentes de um contrato em sincronia com o que foi marcado
+     * como recorrente na edição de uma cobrança. Chaveado por (contrato, plano_conta).
+     *
+     * @param array<int,array{descricao:string,valor:float,tipo:string}> $recorrentes
+     */
+    private function sincronizarItensRecorrentes(ImoveisContratos $contrato, array $recorrentes): void
+    {
+        $porPlano = [];
+        foreach ($this->itensRepo->findBy(['contrato' => $contrato]) as $e) {
+            if ($e->getPlanoConta()) {
+                $porPlano[$e->getPlanoConta()->getId()] = $e;
+            }
+        }
+
+        // Upsert dos marcados (cria ou reativa + atualiza o último valor cobrado).
+        foreach ($recorrentes as $planoId => $dados) {
+            $item = $porPlano[$planoId] ?? null;
+            if (!$item) {
+                $item = new ContratosItensCobranca();
+                $item->setContrato($contrato);
+                $item->setPlanoConta($this->em->getReference(PlanoContas::class, $planoId));
+                $this->em->persist($item);
+            }
+            $item->setTipoItem($dados['tipo']);
+            $item->setDescricao(mb_substr($dados['descricao'], 0, 100));
+            $item->setValorTipo(ContratosItensCobranca::VALOR_TIPO_FIXO);
+            $item->setValor(number_format($dados['valor'], 2, '.', ''));
+            $item->setAtivo(true);
+        }
+
+        // Inativa os recorrentes que não vieram marcados agora.
+        foreach ($porPlano as $planoId => $item) {
+            if (!isset($recorrentes[$planoId]) && $item->isAtivo()) {
+                $item->setAtivo(false);
+            }
+        }
+    }
+
+    /**
+     * Itens de uma cobrança prontos para o modal de edição: inclui plano_conta_id,
+     * o rótulo do plano (para preencher o autocomplete) e a flag recorrente.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function getItensEditaveis(ContratosCobrancas $cobranca): array
+    {
+        $itens = $cobranca->getItensDetalhados() ?: [];
+        $planoIds = array_values(array_filter(array_map(
+            static fn($it) => $it['plano_conta_id'] ?? null,
+            $itens
+        )));
+        $labels = [];
+        if (!empty($planoIds)) {
+            foreach ($this->em->getRepository(PlanoContas::class)->findBy(['id' => $planoIds]) as $p) {
+                $labels[$p->getId()] = $p->getCodigo() . ' — ' . $p->getDescricao();
+            }
+        }
+        foreach ($itens as &$it) {
+            $pid = $it['plano_conta_id'] ?? null;
+            $it['plano_label'] = $pid !== null ? ($labels[$pid] ?? '') : '';
+            $it['recorrente'] = !empty($it['recorrente']);
+        }
+        unset($it);
+
+        return $itens;
     }
 
     /**
