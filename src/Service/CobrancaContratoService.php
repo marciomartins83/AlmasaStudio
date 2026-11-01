@@ -554,6 +554,18 @@ class CobrancaContratoService
     }
 
     /**
+     * IDs das cobranças emitíveis (PENDENTE/BOLETO_GERADO) que casam com os filtros
+     * da tela — para gerar o relatório / emitir sobre o filtro inteiro (todas as
+     * páginas), sem marcar uma a uma.
+     *
+     * @return int[]
+     */
+    public function findIdsEmitiveisPorFiltros(array $filtros): array
+    {
+        return $this->cobrancasRepo->getIdsPorFiltros($filtros, true);
+    }
+
+    /**
      * Cancela uma cobrança.
      */
     public function cancelarCobranca(ContratosCobrancas $cobranca): array

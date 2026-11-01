@@ -328,4 +328,33 @@ class ContratosCobrancasRepository extends ServiceEntityRepository
             ],
         ];
     }
+
+    /**
+     * IDs das cobranças que casam com os MESMOS filtros da listagem (todas as páginas),
+     * para gerar o relatório de conferência / emitir sobre o filtro inteiro sem o
+     * usuário ter que marcar uma a uma numa tela paginada.
+     *
+     * Com $apenasEmitiveis (default), restringe às cobranças que podem ser enviadas
+     * manualmente (PENDENTE / BOLETO_GERADO) — o relatório de conferência só faz
+     * sentido para essas.
+     *
+     * @return int[]
+     */
+    public function getIdsPorFiltros(array $filtros, bool $apenasEmitiveis = true): array
+    {
+        $qb = $this->createQueryBuilder('c')->select('c.id');
+        $this->aplicarFiltrosCobranca($qb, $filtros);
+
+        if ($apenasEmitiveis) {
+            $qb->andWhere('c.status IN (:statusEmitiveis)')
+                ->setParameter('statusEmitiveis', [
+                    ContratosCobrancas::STATUS_PENDENTE,
+                    ContratosCobrancas::STATUS_BOLETO_GERADO,
+                ]);
+        }
+
+        $qb->orderBy('c.dataVencimento', 'ASC')->addOrderBy('c.id', 'ASC');
+
+        return array_map(static fn ($r) => (int) $r['id'], $qb->getQuery()->getScalarResult());
+    }
 }

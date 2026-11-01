@@ -6,8 +6,10 @@
  * (no modal) -> só então emite e envia. Não há envio direto sem aprovação.
  */
 
-// IDs que serão emitidos após a aprovação do relatório (setado antes de abrir o modal).
-let idsParaEmitir = [];
+// O que será emitido após a aprovação do relatório (setado antes de abrir o modal).
+// Pode ser por seleção explícita ({ids:[...]}) ou por filtro ({filtros:{...}} =
+// todas as cobranças emitíveis do filtro atual, em todas as páginas).
+let payloadAprovacao = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     initCobranca();
@@ -188,7 +190,16 @@ function initRelatorio() {
     if (btnRelatorio) {
         btnRelatorio.addEventListener('click', function () {
             const selecionados = getSelecionados(document.querySelectorAll('.cobranca-check'));
-            if (selecionados.length > 0) abrirRelatorio(selecionados);
+            if (selecionados.length > 0) abrirRelatorio({ ids: selecionados });
+        });
+    }
+
+    // Gera o relatório sobre TODAS as cobranças do filtro atual (todas as páginas),
+    // sem precisar marcar uma a uma numa tela paginada.
+    const btnTodos = document.getElementById('btnRelatorioTodos');
+    if (btnTodos) {
+        btnTodos.addEventListener('click', function () {
+            abrirRelatorio({ filtros: coletarFiltros() });
         });
     }
 
@@ -196,7 +207,7 @@ function initRelatorio() {
         btnAprovar.addEventListener('click', function () {
             const modal = bootstrap.Modal.getInstance(document.getElementById('previewModal'));
             if (modal) modal.hide();
-            if (idsParaEmitir.length > 0) emitirBoletos(idsParaEmitir);
+            if (payloadAprovacao) emitirBoletos(payloadAprovacao);
         });
     }
 
@@ -212,20 +223,37 @@ function initRelatorio() {
 function initBotoesEnviar() {
     document.querySelectorAll('.btn-enviar').forEach(btn => {
         btn.addEventListener('click', function () {
-            abrirRelatorio([parseInt(this.dataset.id, 10)]);
+            abrirRelatorio({ ids: [parseInt(this.dataset.id, 10)] });
         });
     });
+}
+
+// Lê os filtros atuais da tela (o mesmo form que recarrega a listagem). O backend
+// usa EXATAMENTE esses critérios para resolver as cobranças emitíveis de todas as
+// páginas — garantindo que o relatório bate com o que está filtrado na tela.
+function coletarFiltros() {
+    const form = document.getElementById('form-filtro-cobranca');
+    if (!form) return {};
+    const val = (name) => { const el = form.querySelector(`[name="${name}"]`); return el ? el.value : ''; };
+    const auto = form.querySelector('[name="mostrar_automaticos"]');
+    return {
+        data_vencimento: val('data_vencimento'),
+        vencimento_inicio: val('vencimento_inicio'),
+        vencimento_fim: val('vencimento_fim'),
+        mostrar_automaticos: auto ? auto.checked : false,
+        status: Array.from(form.querySelectorAll('select[name="status[]"] option:checked')).map(o => o.value),
+    };
 }
 
 // Guarda o último relatório carregado para a impressão.
 let ultimoPreview = null;
 
-function abrirRelatorio(ids) {
-    idsParaEmitir = ids;
-    carregarPreview(ids);
+function abrirRelatorio(payload) {
+    payloadAprovacao = payload;
+    carregarPreview(payload);
 }
 
-function carregarPreview(ids) {
+function carregarPreview(payload) {
     const content = document.getElementById('previewContent');
     content.innerHTML = spinner();
     const modal = new bootstrap.Modal(document.getElementById('previewModal'));
@@ -234,7 +262,7 @@ function carregarPreview(ids) {
     fetch(window.COBRANCA_ROUTES.preview, {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify({ ids: ids })
+        body: JSON.stringify(payload)
     })
         .then(r => r.json())
         .then(data => {
@@ -313,7 +341,7 @@ function imprimirRelatorio(data) {
 }
 
 // ------------------------------------------------------------------ emissão
-function emitirBoletos(ids) {
+function emitirBoletos(payload) {
     const btn = document.getElementById('btnRelatorioConferencia');
     const original = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Emitindo...'; }
@@ -321,8 +349,9 @@ function emitirBoletos(ids) {
     fetch(window.COBRANCA_ROUTES.enviarLote, {
         method: 'POST',
         headers: jsonHeaders(),
-        // aprovado=true: confirma que o relatório de conferência foi aprovado (o servidor exige)
-        body: JSON.stringify({ ids: ids, aprovado: true })
+        // aprovado=true: confirma que o relatório de conferência foi aprovado (o servidor exige).
+        // payload = {ids:[...]} (seleção) ou {filtros:{...}} (todas do filtro).
+        body: JSON.stringify(Object.assign({}, payload, { aprovado: true }))
     })
         .then(r => r.json())
         .then(data => {

@@ -56,51 +56,12 @@ class CobrancaController extends AbstractController
         $limit = 20;
         $offset = ($page - 1) * $limit;
 
-        // Montar filtros
-        $filtros = [];
-        $vencimentoInicio = null;
-        $vencimentoFim = null;
-
-        // Filtro por período de vencimento (ex: dia 1-10/11-20/21-31 do mês, como no
-        // sistema legado) tem prioridade sobre o filtro de data pontual, se informado.
-        if ($vencimentoInicioStr || $vencimentoFimStr) {
-            try {
-                if ($vencimentoInicioStr) {
-                    $vencimentoInicio = new \DateTime($vencimentoInicioStr);
-                    $filtros['vencimento_inicio'] = $vencimentoInicio;
-                }
-                if ($vencimentoFimStr) {
-                    $vencimentoFim = new \DateTime($vencimentoFimStr);
-                    $filtros['vencimento_fim'] = $vencimentoFim;
-                }
-            } catch (\Exception $e) {
-                // Ignora datas inválidas
-            }
-        } elseif ($dataVencimentoStr) {
-            try {
-                $dataVencimento = new \DateTime($dataVencimentoStr);
-                $filtros['data_vencimento'] = $dataVencimento;
-            } catch (\Exception $e) {
-                // Ignora data inválida
-            }
-        } else {
-            // Default: hoje
-            $filtros['data_vencimento'] = new \DateTime();
-        }
-
-        if (!empty($status)) {
-            $filtros['status'] = $status;
-        } else {
-            // Default: pendentes e boleto gerado
-            $filtros['status'] = [
-                ContratosCobrancas::STATUS_PENDENTE,
-                ContratosCobrancas::STATUS_BOLETO_GERADO
-            ];
-        }
-
-        if (!$mostrarAutomaticos) {
-            $filtros['excluir_automaticos'] = true;
-        }
+        // Montar filtros (centralizado em montarFiltros — reusado pelo relatório de
+        // conferência / emissão "por filtro" das rotas AJAX, para operar sobre todas
+        // as páginas do filtro atual sem o usuário marcar uma a uma).
+        $filtros = $this->montarFiltros($dataVencimentoStr, $vencimentoInicioStr, $vencimentoFimStr, $mostrarAutomaticos, $status);
+        $vencimentoInicio = $filtros['vencimento_inicio'] ?? null;
+        $vencimentoFim = $filtros['vencimento_fim'] ?? null;
 
         // Buscar cobranças
         $resultado = $this->cobrancaService->listarCobrancas($filtros, $limit, $offset);
@@ -215,11 +176,12 @@ class CobrancaController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
         }
 
-        $data = json_decode($request->getContent(), true);
-        $ids = $data['ids'] ?? [];
+        $data = json_decode($request->getContent(), true) ?: [];
+        // IDs marcados OU, sem seleção, todas as emitíveis do filtro atual (todas as páginas).
+        $ids = $this->resolverIdsDoPayload($data);
 
         if (empty($ids)) {
-            return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança selecionada'], 400);
+            return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança para emitir (seleção vazia ou filtro sem cobranças emitíveis).'], 400);
         }
 
         // REGRA DE NEGÓCIO: boleto só é emitido com o relatório de conferência APROVADO.
@@ -358,11 +320,12 @@ class CobrancaController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Token CSRF inválido'], 403);
         }
 
-        $data = json_decode($request->getContent(), true);
-        $ids = $data['ids'] ?? [];
+        $data = json_decode($request->getContent(), true) ?: [];
+        // IDs marcados OU, sem seleção, todas as emitíveis do filtro atual (todas as páginas).
+        $ids = $this->resolverIdsDoPayload($data);
 
         if (empty($ids)) {
-            return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança selecionada'], 400);
+            return new JsonResponse(['success' => false, 'message' => 'Nenhuma cobrança para o relatório (seleção vazia ou filtro sem cobranças emitíveis).'], 400);
         }
 
         $preview = [];
@@ -578,5 +541,82 @@ class CobrancaController extends AbstractController
         $estatisticas = $this->cobrancaService->getEstatisticas($dataVencimento);
 
         return new JsonResponse($estatisticas);
+    }
+
+    /**
+     * Monta o array de filtros da listagem a partir dos parâmetros crus (query string
+     * na tela OU corpo JSON nas rotas AJAX). Centralizado para que a lista, os cards e
+     * o relatório/emissão "por filtro" usem EXATAMENTE os mesmos critérios.
+     */
+    private function montarFiltros(
+        ?string $dataVencimentoStr,
+        ?string $vencimentoInicioStr,
+        ?string $vencimentoFimStr,
+        bool $mostrarAutomaticos,
+        array $status
+    ): array {
+        $filtros = [];
+
+        // Período de vencimento (faixa) tem prioridade sobre a data pontual.
+        if ($vencimentoInicioStr || $vencimentoFimStr) {
+            try {
+                if ($vencimentoInicioStr) {
+                    $filtros['vencimento_inicio'] = new \DateTime($vencimentoInicioStr);
+                }
+                if ($vencimentoFimStr) {
+                    $filtros['vencimento_fim'] = new \DateTime($vencimentoFimStr);
+                }
+            } catch (\Exception $e) {
+                // Ignora datas inválidas
+            }
+        } elseif ($dataVencimentoStr) {
+            try {
+                $filtros['data_vencimento'] = new \DateTime($dataVencimentoStr);
+            } catch (\Exception $e) {
+                // Ignora data inválida
+            }
+        } else {
+            $filtros['data_vencimento'] = new \DateTime(); // default: hoje
+        }
+
+        $filtros['status'] = !empty($status) ? $status : [
+            ContratosCobrancas::STATUS_PENDENTE,
+            ContratosCobrancas::STATUS_BOLETO_GERADO,
+        ];
+
+        if (!$mostrarAutomaticos) {
+            $filtros['excluir_automaticos'] = true;
+        }
+
+        return $filtros;
+    }
+
+    /**
+     * Resolve a lista de IDs de cobranças de um payload AJAX: ou os IDs marcados
+     * explicitamente (`ids`), ou — quando não há seleção — todas as cobranças
+     * emitíveis que casam com o filtro da tela (`filtros`), em todas as páginas.
+     *
+     * @return int[]
+     */
+    private function resolverIdsDoPayload(array $data): array
+    {
+        if (!empty($data['ids'])) {
+            return array_values(array_filter(array_map('intval', $data['ids'])));
+        }
+
+        if (isset($data['filtros']) && is_array($data['filtros'])) {
+            $f = $data['filtros'];
+            $filtros = $this->montarFiltros(
+                $f['data_vencimento'] ?? null,
+                $f['vencimento_inicio'] ?? null,
+                $f['vencimento_fim'] ?? null,
+                !empty($f['mostrar_automaticos']),
+                is_array($f['status'] ?? null) ? $f['status'] : []
+            );
+
+            return $this->cobrancaService->findIdsEmitiveisPorFiltros($filtros);
+        }
+
+        return [];
     }
 }
